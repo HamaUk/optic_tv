@@ -1,51 +1,48 @@
-import 'dart:async';
-import 'package:dio/dio.dart';
-import 'package:m3u_nullsafe/m3u_nullsafe.dart';
+import 'package:firebase_database/firebase_database.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 class Channel {
   final String name;
   final String url;
-  final String? logo;
   final String group;
+  final String? logo;
 
   Channel({
     required this.name,
     required this.url,
+    this.group = 'General',
     this.logo,
-    required this.group,
   });
-}
 
-final playlistProvider = StateNotifierProvider<PlaylistNotifier, AsyncValue<List<Channel>>>((ref) {
-  return PlaylistNotifier();
-});
-
-class PlaylistNotifier extends StateNotifier<AsyncValue<List<Channel>>> {
-  PlaylistNotifier() : super(const AsyncValue.loading());
-
-  Future<void> loadPlaylist(String url) async {
-    try {
-      state = const AsyncValue.loading();
-      
-      final response = await Dio().get(url);
-      final m3uContent = response.data.toString();
-      
-      // Advanced parsing using the m3u_nullsafe library
-      final m3u = await M3uParser.parse(m3uContent);
-      
-      final channels = m3u.map((entry) {
-        return Channel(
-          name: entry.title ?? 'Unknown Channel',
-          url: entry.link ?? '',
-          logo: entry.attributes['tvg-logo'],
-          group: entry.attributes['group-title'] ?? 'General',
-        );
-      }).toList();
-
-      state = AsyncValue.data(channels);
-    } catch (e, stack) {
-      state = AsyncValue.error(e, stack);
-    }
+  factory Channel.fromMap(Map<dynamic, dynamic> map) {
+    return Channel(
+      name: map['name'] ?? 'Unknown',
+      url: map['url'] ?? '',
+      group: map['group'] ?? map['category'] ?? 'General',
+      logo: map['logo'] ?? map['icon_url'],
+    );
   }
 }
+
+// Provider to stream channels from Firebase Realtime Database
+final channelsProvider = StreamProvider<List<Channel>>((ref) {
+  // Listening to the 'sync/global/managedPlaylist' path as requested
+  final dbRef = FirebaseDatabase.instance.ref('sync/global/managedPlaylist');
+  
+  return dbRef.onValue.map((event) {
+    final data = event.snapshot.value;
+    if (data == null) return [];
+
+    if (data is List) {
+      return data
+          .where((item) => item != null)
+          .map((item) => Channel.fromMap(item as Map))
+          .toList();
+    } else if (data is Map) {
+      return data.values
+          .map((item) => Channel.fromMap(item as Map))
+          .toList();
+    }
+    return [];
+  });
+});

@@ -1,14 +1,39 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
-
-// Force Refresh: 2026-04-09 23:37
 import '../../core/theme.dart';
+import '../../services/playlist_service.dart';
+import '../admin/admin_screen.dart';
+import '../player/player_screen.dart';
 
-class DashboardScreen extends StatelessWidget {
+class DashboardScreen extends ConsumerStatefulWidget {
   const DashboardScreen({super.key});
 
   @override
+  ConsumerState<DashboardScreen> createState() => _DashboardScreenState();
+}
+
+class _DashboardScreenState extends ConsumerState<DashboardScreen> {
+  int _adminClicks = 0;
+
+  void _handleAdminAccess() {
+    setState(() {
+      _adminClicks++;
+    });
+    if (_adminClicks >= 7) {
+      _adminClicks = 0;
+      Navigator.push(
+        context,
+        MaterialPageRoute(builder: (context) => const AdminScreen()),
+      );
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
+    // Watch the dynamic channel stream from Realtime Database
+    final channelsAsync = ref.watch(channelsProvider);
+
     return Scaffold(
       body: Container(
         decoration: const BoxDecoration(
@@ -28,22 +53,48 @@ class DashboardScreen extends StatelessWidget {
             children: [
               _buildHeader(),
               Expanded(
-                child: SingleChildScrollView(
-                  physics: const BouncingScrollPhysics(),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      _buildHeroSection(),
-                      _buildCategoryRow('Live Channels'),
-                      _buildCategoryRow('Recently Watched'),
-                      _buildCategoryRow('Movies'),
-                    ],
-                  ),
+                child: channelsAsync.when(
+                  data: (channels) => _buildChannelView(channels),
+                  loading: () => const Center(child: CircularProgressIndicator(color: AppTheme.primaryBlue)),
+                  error: (e, _) => Center(child: Text('Error loading channels: $e')),
                 ),
               ),
             ],
           ),
         ),
+      ),
+    );
+  }
+
+  Widget _buildChannelView(List<Channel> channels) {
+    if (channels.isEmpty) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Icon(Icons.tv_off, size: 64, color: Colors.white10),
+            const SizedBox(height: 16),
+            const Text('No Channels Found', style: TextStyle(color: Colors.white30)),
+            const SizedBox(height: 8),
+            TextButton(onPressed: _handleAdminAccess, child: const Text('Add your first channel')),
+          ],
+        ),
+      );
+    }
+
+    final groups = <String, List<Channel>>{};
+    for (var channel in channels) {
+      groups.putIfAbsent(channel.group, () => []).add(channel);
+    }
+
+    return SingleChildScrollView(
+      physics: const BouncingScrollPhysics(),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _buildHeroSection(channels.first),
+          ...groups.entries.map((group) => _buildCategoryRow(group.key, group.value)),
+        ],
       ),
     );
   }
@@ -54,27 +105,30 @@ class DashboardScreen extends StatelessWidget {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'OPTIC TV',
-                style: GoogleFonts.outfit(
-                  fontSize: 28,
-                  fontWeight: FontWeight.w900,
-                  color: AppTheme.primaryBlue,
-                  letterSpacing: 2,
+          GestureDetector(
+            onLongPress: _handleAdminAccess,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'OPTIC TV',
+                  style: GoogleFonts.outfit(
+                    fontSize: 28,
+                    fontWeight: FontWeight.w900,
+                    color: AppTheme.primaryBlue,
+                    letterSpacing: 2,
+                  ),
                 ),
-              ),
-              const Text(
-                'PREMIUM ENTERTAINMENT',
-                style: TextStyle(
-                  fontSize: 10,
-                  color: Colors.white30,
-                  letterSpacing: 1.5,
+                const Text(
+                  'PREMIUM ENTERTAINMENT',
+                  style: TextStyle(
+                    fontSize: 10,
+                    color: Colors.white30,
+                    letterSpacing: 1.5,
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
           Container(
             padding: const EdgeInsets.all(8),
@@ -90,7 +144,7 @@ class DashboardScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildHeroSection() {
+  Widget _buildHeroSection(Channel featured) {
     return Container(
       height: 250,
       margin: const EdgeInsets.symmetric(horizontal: 24),
@@ -129,9 +183,9 @@ class DashboardScreen extends StatelessWidget {
                   style: TextStyle(color: Colors.black54, fontWeight: FontWeight.bold),
                 ),
                 const SizedBox(height: 8),
-                const Text(
-                  'Kurdish Sports HD',
-                  style: TextStyle(
+                Text(
+                  featured.name,
+                  style: const TextStyle(
                     fontSize: 24,
                     fontWeight: FontWeight.bold,
                     color: Colors.black,
@@ -139,7 +193,10 @@ class DashboardScreen extends StatelessWidget {
                 ),
                 const SizedBox(height: 16),
                 ElevatedButton(
-                  onPressed: () {},
+                  onPressed: () => Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (context) => PlayerScreen(channel: featured)),
+                  ),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.black,
                     foregroundColor: Colors.white,
@@ -154,7 +211,7 @@ class DashboardScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildCategoryRow(String title) {
+  Widget _buildCategoryRow(String title, List<Channel> channels) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -174,48 +231,56 @@ class DashboardScreen extends StatelessWidget {
           child: ListView.builder(
             scrollDirection: Axis.horizontal,
             padding: const EdgeInsets.symmetric(horizontal: 16),
-            itemCount: 5,
-            itemBuilder: (context, index) => _buildChannelCard(),
+            itemCount: channels.length,
+            itemBuilder: (context, index) => _buildChannelCard(channels[index]),
           ),
         ),
       ],
     );
   }
 
-  Widget _buildChannelCard() {
-    return Container(
-      width: 120,
-      margin: const EdgeInsets.symmetric(horizontal: 8),
-      decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.05),
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: Colors.white10),
+  Widget _buildChannelCard(Channel channel) {
+    return GestureDetector(
+      onTap: () => Navigator.push(
+        context,
+        MaterialPageRoute(builder: (context) => PlayerScreen(channel: channel)),
       ),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(20),
-        child: Column(
-          children: [
-            Expanded(
-              child: Container(
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: [Colors.white10, Colors.white.withOpacity(0.05)],
+      child: Container(
+        width: 120,
+        margin: const EdgeInsets.symmetric(horizontal: 8),
+        decoration: BoxDecoration(
+          color: Colors.white.withOpacity(0.05),
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: Colors.white10),
+        ),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(20),
+          child: Column(
+            children: [
+              Expanded(
+                child: Container(
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: [Colors.white10, Colors.white.withOpacity(0.05)],
+                    ),
+                  ),
+                  child: Center(
+                    child: channel.logo != null
+                        ? Image.network(channel.logo!, fit: BoxFit.contain, errorBuilder: (_, __, ___) => const Icon(Icons.tv, color: Colors.white24, size: 40))
+                        : const Icon(Icons.tv, color: Colors.white24, size: 40),
                   ),
                 ),
-                child: const Center(
-                  child: Icon(Icons.tv, color: Colors.white24, size: 40),
+              ),
+              Padding(
+                padding: const EdgeInsets.all(12.0),
+                child: Text(
+                  channel.name,
+                  style: const TextStyle(fontSize: 12, color: Colors.white70),
+                  overflow: TextOverflow.ellipsis,
                 ),
               ),
-            ),
-            Padding(
-              padding: const EdgeInsets.all(12.0),
-              child: Text(
-                'Channel ${DateTime.now().millisecond}',
-                style: const TextStyle(fontSize: 12, color: Colors.white70),
-                overflow: TextOverflow.ellipsis,
-              ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );

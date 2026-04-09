@@ -12,6 +12,7 @@ class AppTheme {
 
   static ThemeData get darkTheme {
     return ThemeData(
+      fontFamily: 'Rabar',
       brightness: Brightness.dark,
       primaryColor: primaryBlue,
       scaffoldBackgroundColor: backgroundBlack,
