@@ -3,11 +3,11 @@ plugins {
     id("kotlin-android")
     // The Flutter Gradle Plugin must be applied after the Android and Kotlin Gradle plugins.
     id("dev.flutter.flutter-gradle-plugin")
-    id("com.google.gms.google-services") // Added for Firebase
+    id("com.google.gms.google-services")
 }
 
 android {
-    namespace = "com.optic.iptv" // Updated to match Firebase
+    namespace = "com.optic.iptv"
     compileSdk = flutter.compileSdkVersion
     ndkVersion = flutter.ndkVersion
 
@@ -17,13 +17,13 @@ android {
     }
 
     kotlinOptions {
-        jvmTarget = JavaVersion.VERSION_17.toString()
+        jvmTarget = "17"
     }
 
     defaultConfig {
-        applicationId = "com.optic.iptv" // Updated to match Firebase
-        minSdk = 21 // Required for many IPTV libraries
-        targetSdk = flutter.targetSdk
+        applicationId = "com.optic.iptv"
+        minSdk = 21
+        targetSdk = flutter.targetSdkVersion // Fixed reference
         versionCode = flutter.versionCode
         versionName = flutter.versionName
     }
