@@ -12,7 +12,7 @@ dependencies:
   # Premium Media Playback
   media_kit: ^1.1.0
   media_kit_video: ^1.1.0
-  media_kit_libs_video: ^1.1.0
+  media_kit_libs_video: ^1.0.7
 
   # State Management & DI
   flutter_riverpod: ^2.5.1
