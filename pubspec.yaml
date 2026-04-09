@@ -20,7 +20,7 @@ dependencies:
 
   # Networking & Parsing
   dio: ^5.4.3+1
-  m3u_nullsafe: ^3.0.0
+  m3u_nullsafe: ^1.0.4
 
   # UI & UX
   google_fonts: ^6.2.1
