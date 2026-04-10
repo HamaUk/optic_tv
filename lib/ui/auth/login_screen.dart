@@ -46,17 +46,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     final s = AppStrings(Localizations.localeOf(context));
     
     return Scaffold(
-      backgroundColor: AppTheme.backgroundBlack,
+      backgroundColor: Colors.red, // DEBUG COLOR
       resizeToAvoidBottomInset: true,
-      body: DecoratedBox(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [Color(0xFF0B0F14), Color(0xFF151B24), Color(0xFF0B0F14)],
-          ),
-        ),
-        child: ListView(
+      body: ListView(
           padding: const EdgeInsets.symmetric(horizontal: 28),
           children: [
             const SizedBox(height: 80),
