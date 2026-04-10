@@ -175,7 +175,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _buildHeroSection(channels.first),
+          _buildHeroSection(channels, channels.first),
           ...groups.entries.map((group) => _buildCategoryRow(channels, group.key, group.value)),
         ],
       ),
@@ -235,7 +235,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     );
   }
 
-  Widget _buildHeroSection(Channel featured) {
+  Widget _buildHeroSection(List<Channel> channels, Channel featured) {
     return Container(
       height: 250,
       margin: const EdgeInsets.symmetric(horizontal: 24),
