@@ -3,6 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/theme.dart';
 import '../../l10n/app_strings.dart';
+import '../../providers/app_locale_provider.dart';
+import '../../providers/channel_library_provider.dart';
 import '../../providers/session_provider.dart';
 import '../../providers/ui_settings_provider.dart';
 import '../../services/settings_service.dart';
@@ -48,6 +50,41 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     ref.invalidate(appUiSettingsProvider);
   }
 
+  Future<void> _confirmClearLibrary(
+    AppStrings s, {
+    required String dialogTitle,
+    required String dialogBody,
+    required Future<void> Function() onClear,
+  }) async {
+    final go = await showDialog<bool>(
+          context: context,
+          builder: (ctx) => AlertDialog(
+            backgroundColor: AppTheme.surfaceElevated,
+            title: Text(dialogTitle),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(dialogBody),
+                const SizedBox(height: 8),
+                Text(s.clearLibraryConfirmBody, style: TextStyle(color: Colors.white.withOpacity(0.55), fontSize: 13)),
+              ],
+            ),
+            actions: [
+              TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text(s.cancel)),
+              FilledButton(
+                style: FilledButton.styleFrom(backgroundColor: Colors.orange.shade800),
+                onPressed: () => Navigator.pop(ctx, true),
+                child: Text(s.clearButton),
+              ),
+            ],
+          ),
+        ) ??
+        false;
+    if (!go || !mounted) return;
+    await onClear();
+  }
+
   Future<void> _confirmLogout(AppStrings s) async {
     final go = await showDialog<bool>(
           context: context,
@@ -56,7 +93,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             title: Text(s.logoutTitle),
             content: Text(s.logoutSub),
             actions: [
-              TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
+              TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text(s.cancel)),
               FilledButton(onPressed: () => Navigator.pop(ctx, true), child: Text(s.logoutButton)),
             ],
           ),
@@ -69,7 +106,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final s = AppStrings(Localizations.localeOf(context));
+    final uiLocale = ref.watch(appLocaleProvider);
+    final s = AppStrings(uiLocale);
     return Scaffold(
       backgroundColor: AppTheme.backgroundBlack,
       appBar: AppBar(
@@ -93,6 +131,37 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                       ),
                 ),
                 const SizedBox(height: 12),
+                Text(
+                  s.sectionLanguage,
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                        color: AppTheme.primaryGold,
+                        fontWeight: FontWeight.bold,
+                      ),
+                ),
+                const SizedBox(height: 12),
+                Card(
+                  color: AppTheme.surfaceGray,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                  child: Column(
+                    children: [
+                      RadioListTile<String>(
+                        value: 'ckb',
+                        groupValue: uiLocale.languageCode,
+                        activeColor: AppTheme.primaryGold,
+                        title: Text(s.langKurdishSorani),
+                        onChanged: (_) => ref.read(appLocaleProvider.notifier).setLocale(const Locale('ckb')),
+                      ),
+                      RadioListTile<String>(
+                        value: 'en',
+                        groupValue: uiLocale.languageCode,
+                        activeColor: AppTheme.primaryGold,
+                        title: Text(s.langEnglish),
+                        onChanged: (_) => ref.read(appLocaleProvider.notifier).setLocale(const Locale('en')),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 24),
                 Card(
                   color: AppTheme.surfaceGray,
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
@@ -192,6 +261,46 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                           },
                         ),
                     ],
+                  ),
+                ),
+                const SizedBox(height: 24),
+                Text(
+                  s.sectionLibrary,
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                        color: AppTheme.primaryGold,
+                        fontWeight: FontWeight.bold,
+                      ),
+                ),
+                const SizedBox(height: 12),
+                Card(
+                  color: AppTheme.surfaceGray,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                  child: ListTile(
+                    leading: const Icon(Icons.star_outline_rounded, color: AppTheme.primaryGold),
+                    title: Text(s.clearFavoritesTitle),
+                    subtitle: Text(s.clearFavoritesSub),
+                    onTap: () => _confirmClearLibrary(
+                      s,
+                      dialogTitle: s.clearFavoritesTitle,
+                      dialogBody: s.clearFavoritesSub,
+                      onClear: () => ref.read(favoritesProvider.notifier).clearAll(),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Card(
+                  color: AppTheme.surfaceGray,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                  child: ListTile(
+                    leading: Icon(Icons.history_rounded, color: Colors.white.withOpacity(0.85)),
+                    title: Text(s.clearRecentTitle),
+                    subtitle: Text(s.clearRecentSub),
+                    onTap: () => _confirmClearLibrary(
+                      s,
+                      dialogTitle: s.clearRecentTitle,
+                      dialogBody: s.clearRecentSub,
+                      onClear: () => ref.read(recentChannelsProvider.notifier).clearAll(),
+                    ),
                   ),
                 ),
                 const SizedBox(height: 24),

@@ -3,11 +3,14 @@ import 'dart:async';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:share_plus/share_plus.dart';
 
 import '../../core/theme.dart';
 import '../../widgets/channel_logo_image.dart';
 import '../../widgets/optic_wordmark.dart';
 import '../../l10n/app_strings.dart';
+import '../../providers/app_locale_provider.dart';
+import '../../providers/channel_library_provider.dart';
 import '../../providers/ui_settings_provider.dart';
 import '../../services/playlist_service.dart';
 import '../../services/settings_service.dart';
@@ -29,7 +32,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
   int _adminLogoTaps = 0;
   Timer? _adminTapResetTimer;
 
-  /// 0 Home, 1 Movies, 2 Sport
+  /// 0 Home, 1 Movies, 2 Sport, 3 Favorites, 4 Recent
   int _navIndex = 0;
   bool _searchOpen = false;
   final TextEditingController _searchController = TextEditingController();
@@ -57,7 +60,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
   }
 
   void _showAdminPasswordDialog() {
-    final s = AppStrings(Localizations.localeOf(context));
+    final s = AppStrings(ref.read(appLocaleProvider));
     final passwordController = TextEditingController();
     showDialog<void>(
       context: context,
@@ -70,9 +73,9 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
             controller: passwordController,
             obscureText: true,
             autocorrect: false,
-            decoration: const InputDecoration(
-              labelText: 'Password',
-              border: OutlineInputBorder(),
+            decoration: InputDecoration(
+              labelText: s.password,
+              border: const OutlineInputBorder(),
             ),
             onSubmitted: (_) => _tryAdminPassword(
               dialogContext,
@@ -86,7 +89,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                 Navigator.pop(dialogContext);
                 Future.microtask(passwordController.dispose);
               },
-              child: const Text('Cancel'),
+              child: Text(s.cancel),
             ),
             FilledButton(
               onPressed: () => _tryAdminPassword(
@@ -94,7 +97,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                 passwordController.text,
                 passwordController,
               ),
-              child: const Text('Enter'),
+              child: Text(s.enter),
             ),
           ],
         );
@@ -115,7 +118,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
         MaterialPageRoute(builder: (context) => const AdminScreen()),
       );
     } else {
-      final s = AppStrings(Localizations.localeOf(context));
+      final s = AppStrings(ref.read(appLocaleProvider));
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(s.loginErrorInvalid)),
       );
@@ -130,7 +133,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     if (mounted) ref.invalidate(appUiSettingsProvider);
   }
 
-  List<Channel> _channelsForNav(List<Channel> all) {
+  List<Channel> _channelsForNav(List<Channel> all, List<Channel> favorites, List<Channel> recent) {
     switch (_navIndex) {
       case 1:
         return all.where((c) {
@@ -147,9 +150,49 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
           final g = c.group.toLowerCase();
           return g.contains('sport');
         }).toList();
+      case 3:
+        return List<Channel>.from(favorites);
+      case 4:
+        return List<Channel>.from(recent);
       default:
         return all;
     }
+  }
+
+  Future<void> _showChannelSheet(AppStrings s, List<Channel> allChannels, Channel channel) async {
+    final fav = ref.read(favoritesProvider.notifier).isFavorite(channel);
+    await showModalBottomSheet<void>(
+      context: context,
+      backgroundColor: AppTheme.surfaceElevated,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (ctx) {
+        return SafeArea(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              ListTile(
+                leading: Icon(fav ? Icons.star_rounded : Icons.star_border_rounded, color: AppTheme.primaryGold),
+                title: Text(fav ? s.unfavoriteChannel : s.favoriteChannel),
+                onTap: () {
+                  ref.read(favoritesProvider.notifier).toggle(channel);
+                  Navigator.pop(ctx);
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.share_rounded, color: Colors.white70),
+                title: Text(s.shareChannel),
+                onTap: () async {
+                  Navigator.pop(ctx);
+                  await Share.share('${channel.name}\n${channel.url}', subject: channel.name);
+                },
+              ),
+            ],
+          ),
+        );
+      },
+    );
   }
 
   List<Channel> _applySearch(List<Channel> base) {
@@ -185,7 +228,9 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final s = AppStrings(Localizations.localeOf(context));
+    final s = AppStrings(ref.watch(appLocaleProvider));
+    final favorites = ref.watch(favoritesProvider);
+    final recent = ref.watch(recentChannelsProvider);
     final channelsAsync = ref.watch(channelsProvider);
     final settings = ref.watch(appUiSettingsProvider).asData?.value ?? const AppSettingsData();
     final tv = settings.tvFriendlyLayout;
@@ -211,12 +256,18 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                   children: [
                     _buildTopBar(context, s, pad, tv),
                     if (_searchOpen) _buildSearchField(s, pad),
-                    Expanded(child: _buildEmptyState(s, entireLibraryEmpty: true)),
+                    Expanded(
+                      child: _buildEmptyState(
+                        s,
+                        title: s.noChannels,
+                        subtitle: s.noChannelsHint,
+                      ),
+                    ),
                   ],
                 );
               }
 
-              final navScoped = _channelsForNav(channels);
+              final navScoped = _channelsForNav(channels, favorites, recent);
               final filtered = _applySearch(navScoped);
               final groups = _groupMap(filtered);
 
@@ -227,7 +278,19 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                   if (_searchOpen) _buildSearchField(s, pad),
                   Expanded(
                     child: filtered.isEmpty
-                        ? _buildEmptyState(s, entireLibraryEmpty: false)
+                        ? _buildEmptyState(
+                            s,
+                            title: _navIndex == 3
+                                ? s.noFavorites
+                                : _navIndex == 4
+                                    ? s.noRecent
+                                    : null,
+                            subtitle: _navIndex == 3
+                                ? s.noFavoritesHint
+                                : _navIndex == 4
+                                    ? s.noRecentHint
+                                    : null,
+                          )
                         : _buildScrollableContent(
                             context,
                             s,
@@ -245,7 +308,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
             loading: () => const Center(child: CircularProgressIndicator(color: _accent)),
             error: (e, _) => Center(
               child: Text(
-                '${AppStrings(Localizations.localeOf(context)).channelLoadError}: $e',
+                '${AppStrings(ref.watch(appLocaleProvider)).channelLoadError}: $e',
                 style: const TextStyle(color: Colors.white70),
                 textAlign: TextAlign.center,
               ),
@@ -369,9 +432,9 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     );
   }
 
-  Widget _buildEmptyState(AppStrings s, {required bool entireLibraryEmpty}) {
-    final message = entireLibraryEmpty ? s.noChannels : s.noChannelsInSection;
-    final sub = entireLibraryEmpty ? s.noChannelsHint : null;
+  Widget _buildEmptyState(AppStrings s, {String? title, String? subtitle}) {
+    final message = title ?? s.noChannelsInSection;
+    final sub = subtitle;
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(32),
@@ -420,7 +483,9 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     return CustomScrollView(
       physics: const BouncingScrollPhysics(),
       slivers: [
-        if (_navIndex == 0 && _searchController.text.trim().isEmpty && slideChannels.isNotEmpty)
+        if ((_navIndex == 0 || _navIndex == 4) &&
+            _searchController.text.trim().isEmpty &&
+            slideChannels.isNotEmpty)
           SliverToBoxAdapter(
             child: Padding(
               padding: EdgeInsets.fromLTRB(pad, 8, pad, 16),
@@ -499,7 +564,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
             ),
             itemCount: sectionChannels.length,
             itemBuilder: (context, index) =>
-                _buildGridChannelTile(context, allChannels, sectionChannels[index], tv, animMs),
+                _buildGridChannelTile(context, s, allChannels, sectionChannels[index], tv, animMs),
           ),
         ],
       ),
@@ -508,6 +573,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
 
   Widget _buildGridChannelTile(
     BuildContext context,
+    AppStrings s,
     List<Channel> allChannels,
     Channel channel,
     bool tv,
@@ -533,6 +599,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
               child: InkWell(
                 borderRadius: BorderRadius.circular(14),
                 onTap: () => _openPlayer(allChannels, channel),
+                onLongPress: () => _showChannelSheet(s, allChannels, channel),
                 child: Padding(
                   padding: const EdgeInsets.all(8),
                   child: Column(
@@ -588,11 +655,13 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
       ),
       padding: EdgeInsets.only(bottom: bottomInset > 0 ? bottomInset : 8, top: 6),
       child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceAround,
+        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
         children: [
           _navItem(icon: Icons.home_rounded, label: s.navHome, index: 0),
           _navItem(icon: Icons.movie_rounded, label: s.navMovies, index: 1),
           _navItem(icon: Icons.sports_soccer_rounded, label: s.navSport, index: 2),
+          _navItem(icon: Icons.star_rounded, label: s.navFavorites, index: 3),
+          _navItem(icon: Icons.history_rounded, label: s.navRecent, index: 4),
         ],
       ),
     );
@@ -607,15 +676,17 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
       },
       borderRadius: BorderRadius.circular(12),
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(icon, color: color, size: 26),
-            const SizedBox(height: 4),
+            Icon(icon, color: color, size: 24),
+            const SizedBox(height: 2),
             Text(
               label,
-              style: TextStyle(color: color, fontSize: 11, fontWeight: selected ? FontWeight.w700 : FontWeight.w500),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(color: color, fontSize: 10, fontWeight: selected ? FontWeight.w700 : FontWeight.w500),
             ),
           ],
         ),

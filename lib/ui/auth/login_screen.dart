@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/theme.dart';
 import '../../widgets/optic_wordmark.dart';
 import '../../l10n/app_strings.dart';
+import '../../providers/app_locale_provider.dart';
 import '../../providers/session_provider.dart';
 
 class LoginScreen extends ConsumerStatefulWidget {
@@ -58,7 +59,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final s = AppStrings(Localizations.localeOf(context));
+    final s = AppStrings(ref.watch(appLocaleProvider));
 
     return Scaffold(
       backgroundColor: AppTheme.backgroundBlack,

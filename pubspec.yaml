@@ -33,8 +33,11 @@ dependencies:
 
   # Settings & persistence
   shared_preferences: ^2.2.3
+  path_provider: ^2.1.5
+  file_picker: ^8.1.7
 
   # UI & UX
+  share_plus: ^12.0.1
   google_fonts: ^8.0.2
   image_picker: ^1.1.2
   glassmorphism: ^3.0.0
@@ -61,3 +64,8 @@ flutter:
   uses-material-design: true
   assets:
     - assets/images/optic_logo.png
+  fonts:
+    - family: Rabar
+      fonts:
+        - asset: assets/fonts/Rabar_021.ttf
+          weight: 400

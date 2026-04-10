@@ -1,7 +1,11 @@
 import 'package:flutter/material.dart';
 
-/// Premium dark theme — gold accent; system font (no bundled script-specific fonts).
+/// Premium dark theme — gold accent.
+/// Rabar is applied only to body text styles when `uiLocale` is Kurdish (`ckb`),
+/// so titles / app chrome keep the default font and Material icons stay unaffected.
 class AppTheme {
+  static const String rabarFontFamily = 'Rabar';
+
   static const Color primaryGold = Color(0xFFD4AF37);
   static const Color primaryGoldDim = Color(0xFFB8922B);
   static const Color accentTeal = Color(0xFF2DD4BF);
@@ -11,8 +15,10 @@ class AppTheme {
   static const Color surfaceGray = Color(0xFF151B24);
   static const Color surfaceElevated = Color(0xFF1C2430);
 
-  static ThemeData get darkTheme {
+  static ThemeData darkThemeForUi(Locale uiLocale) {
     const base = TextStyle(color: Colors.white);
+    final useRabarBody = uiLocale.languageCode == 'ckb';
+    final bodyFont = useRabarBody ? const TextStyle(fontFamily: rabarFontFamily) : const TextStyle();
     return ThemeData(
       // Explicit icon colors so AppBar/leading icons stay visible with custom text font.
       iconTheme: const IconThemeData(color: Colors.white),
@@ -31,8 +37,9 @@ class AppTheme {
         displayLarge: base.copyWith(fontSize: 32, fontWeight: FontWeight.bold, color: Colors.white),
         headlineSmall: base.copyWith(fontSize: 22, fontWeight: FontWeight.bold, color: Colors.white),
         titleMedium: base.copyWith(fontSize: 16, fontWeight: FontWeight.w600, color: Colors.white),
-        bodyLarge: base.copyWith(fontSize: 16, color: Colors.white70),
-        bodyMedium: base.copyWith(fontSize: 14, color: Colors.white70),
+        bodyLarge: base.copyWith(fontSize: 16, color: Colors.white70).merge(bodyFont),
+        bodyMedium: base.copyWith(fontSize: 14, color: Colors.white70).merge(bodyFont),
+        bodySmall: base.copyWith(fontSize: 12, color: Colors.white54).merge(bodyFont),
         labelLarge: base.copyWith(fontSize: 14, fontWeight: FontWeight.w600),
       ),
       elevatedButtonTheme: ElevatedButtonThemeData(
@@ -66,4 +73,7 @@ class AppTheme {
       ),
     );
   }
+
+  /// English UI — no Rabar on body (system / default Latin UI font).
+  static ThemeData get darkTheme => darkThemeForUi(const Locale('en'));
 }

@@ -21,11 +21,8 @@ void main() async {
 
   final prefs = await SharedPreferences.getInstance();
   final initialSession = prefs.getBool('auth_logged_in') ?? false;
-  var initialLocaleCode = prefs.getString('app_locale') ?? 'en';
-  if (initialLocaleCode == 'ckb') {
-    initialLocaleCode = 'en';
-    await prefs.setString('app_locale', 'en');
-  }
+  var initialLocaleCode = AppLocaleNotifier.normalizeStoredCode(prefs.getString('app_locale'));
+  await prefs.setString('app_locale', initialLocaleCode);
 
   runApp(
     ProviderScope(
@@ -48,6 +45,7 @@ class _SeededSessionNotifier extends SessionNotifier {
 
 class _SeededLocaleNotifier extends AppLocaleNotifier {
   _SeededLocaleNotifier(this._code);
+
   final String _code;
 
   @override
@@ -64,18 +62,18 @@ class OpticTvApp extends ConsumerStatefulWidget {
 class _OpticTvAppState extends ConsumerState<OpticTvApp> {
   @override
   Widget build(BuildContext context) {
-    final locale = ref.watch(appLocaleProvider);
+    final uiLocale = ref.watch(appLocaleProvider);
     final loggedIn = ref.watch(sessionProvider);
 
     return MaterialApp(
       title: 'Optic TV',
       debugShowCheckedModeBanner: false,
-      theme: AppTheme.darkTheme,
-      locale: locale,
-      // Force LTR layout for Kurdish and English (no mirrored chrome / rows).
+      theme: AppTheme.darkThemeForUi(uiLocale),
+      // Keep Material/Cupertino on English — `ckb` is not a full Material locale.
+      locale: const Locale('en'),
       builder: (context, child) {
         return Directionality(
-          textDirection: TextDirection.ltr,
+          textDirection: uiLocale.languageCode == 'ckb' ? TextDirection.rtl : TextDirection.ltr,
           child: child ?? const SizedBox.shrink(),
         );
       },

@@ -1,17 +1,21 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
+import 'package:share_plus/share_plus.dart';
 import 'package:media_kit/media_kit.dart';
 import 'package:media_kit_video/media_kit_video.dart';
 
 import '../../core/theme.dart';
 import '../../widgets/channel_logo_image.dart';
 import '../../l10n/app_strings.dart';
+import '../../providers/app_locale_provider.dart';
+import '../../providers/channel_library_provider.dart';
 import '../../services/playlist_service.dart';
 import '../../services/settings_service.dart';
 
-class PlayerScreen extends StatefulWidget {
+class PlayerScreen extends ConsumerStatefulWidget {
   final List<Channel> channels;
   final int initialIndex;
 
@@ -22,10 +26,10 @@ class PlayerScreen extends StatefulWidget {
   });
 
   @override
-  State<PlayerScreen> createState() => _PlayerScreenState();
+  ConsumerState<PlayerScreen> createState() => _PlayerScreenState();
 }
 
-class _PlayerScreenState extends State<PlayerScreen> {
+class _PlayerScreenState extends ConsumerState<PlayerScreen> {
   static const _accent = AppTheme.accentTeal;
 
   final GlobalKey<VideoState> _videoKey = GlobalKey<VideoState>();
@@ -83,6 +87,10 @@ class _PlayerScreenState extends State<PlayerScreen> {
       setState(() => _settings = s);
       _ensureClockTimer();
     });
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      ref.read(recentChannelsProvider.notifier).record(_current);
+    });
   }
 
   void _ensureClockTimer() {
@@ -121,6 +129,7 @@ class _PlayerScreenState extends State<PlayerScreen> {
       _selectedGroup = widget.channels[_index].group;
     });
     _player.open(Media(_current.url));
+    ref.read(recentChannelsProvider.notifier).record(_current);
   }
 
   Future<void> _toggleFullscreen() async {
@@ -138,9 +147,12 @@ class _PlayerScreenState extends State<PlayerScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final locale = Localizations.localeOf(context);
-    final s = AppStrings(locale);
-    final timeLabel = DateFormat.jm(locale.toString()).format(DateTime.now());
+    final uiLocale = ref.watch(appLocaleProvider);
+    final favorites = ref.watch(favoritesProvider);
+    final isFav = favorites.any((e) => e.url == _current.url);
+    final s = AppStrings(uiLocale);
+    // `intl` has no Sorani clock patterns; keep Latin digits for time.
+    final timeLabel = DateFormat.jm('en').format(DateTime.now());
     final topPad = MediaQuery.paddingOf(context).top;
     final bottomPad = MediaQuery.paddingOf(context).bottom;
 
@@ -166,10 +178,35 @@ class _PlayerScreenState extends State<PlayerScreen> {
                     overflow: TextOverflow.ellipsis,
                   ),
                 ),
+                IconButton(
+                  padding: EdgeInsets.zero,
+                  constraints: const BoxConstraints(minWidth: 40, minHeight: 40),
+                  tooltip: isFav ? s.unfavoriteChannel : s.favoriteChannel,
+                  icon: Icon(
+                    isFav ? Icons.star_rounded : Icons.star_border_rounded,
+                    color: AppTheme.primaryGold,
+                    size: 26,
+                  ),
+                  onPressed: () => ref.read(favoritesProvider.notifier).toggle(_current),
+                ),
+                IconButton(
+                  padding: EdgeInsets.zero,
+                  constraints: const BoxConstraints(minWidth: 40, minHeight: 40),
+                  tooltip: s.shareChannel,
+                  icon: Icon(Icons.share_rounded, color: Colors.white.withValues(alpha: 0.85), size: 22),
+                  onPressed: () => Share.share('${_current.name}\n${_current.url}', subject: _current.name),
+                ),
                 if (_settings.showOnScreenClock)
-                  Text(
-                    timeLabel,
-                    style: TextStyle(color: _accent.withValues(alpha: 0.95), fontSize: 13, fontWeight: FontWeight.w600),
+                  Padding(
+                    padding: const EdgeInsetsDirectional.only(start: 4),
+                    child: Text(
+                      timeLabel,
+                      style: TextStyle(
+                        color: _accent.withValues(alpha: 0.95),
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
                   ),
               ],
             ),

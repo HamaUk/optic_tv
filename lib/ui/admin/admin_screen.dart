@@ -1,9 +1,13 @@
 import 'dart:convert';
+import 'dart:io';
 
+import 'package:file_picker/file_picker.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:share_plus/share_plus.dart';
 
 import '../../core/theme.dart';
 import '../../widgets/channel_logo_image.dart';
@@ -21,6 +25,7 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
   static const _playlistPath = 'sync/global/managedPlaylist';
   static const _groupsPath = 'sync/global/channelGroups';
   static const _loginCodesPath = 'sync/global/loginCodes';
+  static const _backupFileVersion = 1;
 
   final _channelNameController = TextEditingController();
   final _channelUrlController = TextEditingController();
@@ -34,6 +39,7 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
   String _channelSearchQuery = '';
   String? _groupFilter;
   _PublishShelf _publishShelf = _PublishShelf.liveTv;
+  bool _backupBusy = false;
 
   DatabaseReference get _playlistRef => FirebaseDatabase.instance.ref(_playlistPath);
   DatabaseReference get _groupsRef => FirebaseDatabase.instance.ref(_groupsPath);
@@ -73,6 +79,123 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       ),
     );
+  }
+
+  Future<void> _exportLibraryBackup() async {
+    if (_backupBusy) return;
+    setState(() => _backupBusy = true);
+    try {
+      final plSnap = await _playlistRef.get();
+      final grSnap = await _groupsRef.get();
+      final payload = <String, dynamic>{
+        'opticTvBackupVersion': _backupFileVersion,
+        'exportedAt': DateTime.now().toUtc().toIso8601String(),
+        'managedPlaylist': plSnap.value,
+        'channelGroups': grSnap.value ?? {},
+      };
+      final jsonStr = const JsonEncoder.withIndent('  ').convert(payload);
+      final dir = await getTemporaryDirectory();
+      final day = DateTime.now().toUtc().toIso8601String().split('T').first;
+      final file = File('${dir.path}/optic_tv_library_$day.json');
+      await file.writeAsString(jsonStr);
+      await Share.shareXFiles(
+        [XFile(file.path, mimeType: 'application/json', name: 'optic_tv_library_$day.json')],
+        subject: 'Optic TV library backup',
+        text: 'Channels, groups & movies (all playlist data). Keep this file safe.',
+      );
+      if (mounted) _snack('Share sheet opened — save to Downloads, Drive, or Files.');
+    } catch (e) {
+      if (mounted) _snack('Export failed: $e', error: true);
+    } finally {
+      if (mounted) setState(() => _backupBusy = false);
+    }
+  }
+
+  Future<void> _importLibraryBackup() async {
+    if (_backupBusy) return;
+    final confirm = await showDialog<bool>(
+          context: context,
+          builder: (ctx) => AlertDialog(
+            backgroundColor: AppTheme.surfaceElevated,
+            title: const Text('Import library backup?'),
+            content: const Text(
+              'This replaces ALL channels in managedPlaylist and ALL saved channel groups '
+              'with the contents of the backup file.\n\n'
+              'Login codes are NOT changed.\n\n'
+              'Continue?',
+            ),
+            actions: [
+              TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
+              FilledButton(
+                style: FilledButton.styleFrom(backgroundColor: Colors.orange.shade800),
+                onPressed: () => Navigator.pop(ctx, true),
+                child: const Text('Import'),
+              ),
+            ],
+          ),
+        ) ??
+        false;
+    if (!confirm || !mounted) return;
+
+    setState(() => _backupBusy = true);
+    try {
+      final pick = await FilePicker.platform.pickFiles(
+        type: FileType.custom,
+        allowedExtensions: const ['json'],
+        withData: false,
+      );
+      if (pick == null || pick.files.isEmpty) {
+        if (mounted) setState(() => _backupBusy = false);
+        return;
+      }
+      final path = pick.files.single.path;
+      if (path == null) {
+        if (mounted) {
+          setState(() => _backupBusy = false);
+          _snack('Could not read file path', error: true);
+        }
+        return;
+      }
+      final text = await File(path).readAsString();
+      final decoded = jsonDecode(text);
+      if (decoded is! Map) {
+        if (mounted) _snack('Invalid backup: root must be a JSON object', error: true);
+        return;
+      }
+      final root = Map<String, dynamic>.from(decoded);
+      final ver = root['opticTvBackupVersion'];
+      if (ver != null && ver is! int) {
+        if (mounted) _snack('Invalid backup: bad version field', error: true);
+        return;
+      }
+      if (ver != null && ver != _backupFileVersion) {
+        if (mounted) _snack('Backup version $ver — importing anyway (may need manual check).');
+      }
+      if (!root.containsKey('managedPlaylist')) {
+        if (mounted) _snack('Invalid backup: missing managedPlaylist', error: true);
+        return;
+      }
+      final playlist = root['managedPlaylist'];
+      if (playlist != null && playlist is! Map && playlist is! List) {
+        if (mounted) _snack('Invalid backup: managedPlaylist must be object or array', error: true);
+        return;
+      }
+      var groupsRaw = root['channelGroups'];
+      if (groupsRaw != null && groupsRaw is! Map) {
+        if (mounted) _snack('Invalid backup: channelGroups must be an object', error: true);
+        return;
+      }
+      groupsRaw ??= <String, dynamic>{};
+
+      await _playlistRef.set(playlist);
+      await _groupsRef.set(Map<Object?, Object?>.from(groupsRaw as Map));
+
+      if (mounted) _snack('Import complete — playlist & groups restored.');
+    } catch (e) {
+      if (mounted) _snack('Import failed: $e', error: true);
+    } finally {
+      if (mounted) setState(() => _backupBusy = false);
+    }
   }
 
   Future<bool> _confirmDelete(String title, String body) async {
@@ -681,6 +804,48 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
                                   onPressed: () => _tabController.animateTo(3),
                                   icon: const Icon(Icons.key_rounded),
                                   label: const Text('Groups & login codes'),
+                                ),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(height: 20),
+                          _card(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text('Backup & restore', style: Theme.of(context).textTheme.titleMedium),
+                                const SizedBox(height: 8),
+                                Text(
+                                  'Export saves every channel (including Movies tab items) and saved groups '
+                                  'to a JSON file. Use Import to restore them if Firebase data is lost. '
+                                  'Login codes are not included.',
+                                  style: TextStyle(fontSize: 13, color: Colors.white.withValues(alpha: 0.5)),
+                                ),
+                                const SizedBox(height: 16),
+                                Row(
+                                  children: [
+                                    Expanded(
+                                      child: FilledButton.icon(
+                                        onPressed: _backupBusy ? null : _exportLibraryBackup,
+                                        icon: _backupBusy
+                                            ? const SizedBox(
+                                                width: 18,
+                                                height: 18,
+                                                child: CircularProgressIndicator(strokeWidth: 2, color: Colors.black),
+                                              )
+                                            : const Icon(Icons.save_alt_rounded),
+                                        label: const Text('Export library'),
+                                      ),
+                                    ),
+                                    const SizedBox(width: 12),
+                                    Expanded(
+                                      child: OutlinedButton.icon(
+                                        onPressed: _backupBusy ? null : _importLibraryBackup,
+                                        icon: const Icon(Icons.upload_file_rounded),
+                                        label: const Text('Import library'),
+                                      ),
+                                    ),
+                                  ],
                                 ),
                               ],
                             ),
