@@ -68,6 +68,13 @@ class _OpticTvAppState extends ConsumerState<OpticTvApp> {
       debugShowCheckedModeBanner: false,
       theme: AppTheme.darkTheme,
       locale: locale,
+      // Force LTR layout for Kurdish and English (no mirrored chrome / rows).
+      builder: (context, child) {
+        return Directionality(
+          textDirection: TextDirection.ltr,
+          child: child ?? const SizedBox.shrink(),
+        );
+      },
       localizationsDelegates: const [
         GlobalMaterialLocalizations.delegate,
         GlobalWidgetsLocalizations.delegate,

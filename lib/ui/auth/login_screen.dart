@@ -126,42 +126,40 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                                     side: BorderSide(color: Colors.white.withValues(alpha: 0.1)),
                                   ),
                                   clipBehavior: Clip.antiAlias,
-                                  child: Directionality(
-                                    textDirection: TextDirection.ltr,
-                                    child: Row(
-                                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                                      children: [
-                                        Expanded(
-                                          child: Padding(
-                                            padding: const EdgeInsetsDirectional.only(
-                                              start: 12,
-                                              end: 4,
+                                  child: Row(
+                                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                                    children: [
+                                      Expanded(
+                                        child: Padding(
+                                          padding: const EdgeInsetsDirectional.only(
+                                            start: 12,
+                                            end: 4,
+                                          ),
+                                          // CupertinoTextField skips Material InputDecorator (no M3 gray fill layer).
+                                          child: CupertinoTextField(
+                                            focusNode: _codeFocus,
+                                            controller: _codeController,
+                                            keyboardType: TextInputType.visiblePassword,
+                                            textInputAction: TextInputAction.done,
+                                            enableSuggestions: false,
+                                            autocorrect: false,
+                                            maxLines: 1,
+                                            padding: const EdgeInsets.symmetric(vertical: 14),
+                                            style: _loginTextStyle(context, opacity: 1),
+                                            placeholder: s.loginHint,
+                                            placeholderStyle: _loginTextStyle(context, opacity: 0.38),
+                                            cursorColor: AppTheme.primaryGold,
+                                            selectionControls: materialTextSelectionControls,
+                                            decoration: const BoxDecoration(
+                                              color: Colors.transparent,
                                             ),
-                                            // CupertinoTextField skips Material InputDecorator (no M3 gray fill layer).
-                                            child: CupertinoTextField(
-                                              focusNode: _codeFocus,
-                                              controller: _codeController,
-                                              keyboardType: TextInputType.visiblePassword,
-                                              textInputAction: TextInputAction.done,
-                                              enableSuggestions: false,
-                                              autocorrect: false,
-                                              maxLines: 1,
-                                              padding: const EdgeInsets.symmetric(vertical: 14),
-                                              style: _loginTextStyle(context, opacity: 1),
-                                              placeholder: s.loginHint,
-                                              placeholderStyle: _loginTextStyle(context, opacity: 0.38),
-                                              cursorColor: AppTheme.primaryGold,
-                                              selectionControls: materialTextSelectionControls,
-                                              decoration: const BoxDecoration(
-                                                color: Colors.transparent,
-                                              ),
-                                              onSubmitted: (_) => _submit(s),
-                                            ),
+                                            onSubmitted: (_) => _submit(s),
                                           ),
                                         ),
-                                        IconButton(
-                                          onPressed: _busy ? null : () => _submit(s),
-                                          icon: _busy
+                                      ),
+                                      IconButton(
+                                        onPressed: _busy ? null : () => _submit(s),
+                                        icon: _busy
                                               ? const SizedBox(
                                                   width: 24,
                                                   height: 24,

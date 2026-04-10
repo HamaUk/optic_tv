@@ -265,58 +265,55 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
   ) {
     return Padding(
       padding: EdgeInsets.fromLTRB(pad * 0.5, pad * 0.75, pad * 0.5, 8),
-      child: Directionality(
-        textDirection: TextDirection.ltr,
-        child: Row(
-          children: [
-            Material(
+      child: Row(
+        children: [
+          Material(
+            color: Colors.white.withValues(alpha: 0.06),
+            borderRadius: BorderRadius.circular(12),
+            clipBehavior: Clip.antiAlias,
+            child: IconButton(
+              tooltip: s.settingsTooltip,
+              icon: const Icon(Icons.menu_rounded, color: Colors.white),
+              onPressed: _openSettings,
+            ),
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Material(
               color: Colors.white.withValues(alpha: 0.06),
               borderRadius: BorderRadius.circular(12),
               clipBehavior: Clip.antiAlias,
-              child: IconButton(
-                tooltip: s.settingsTooltip,
-                icon: const Icon(Icons.menu_rounded, color: Colors.white),
-                onPressed: _openSettings,
-              ),
-            ),
-            const SizedBox(width: 8),
-            Expanded(
-              child: Material(
-                color: Colors.white.withValues(alpha: 0.06),
+              child: InkWell(
+                onTap: _onLogoTapForAdminPortal,
                 borderRadius: BorderRadius.circular(12),
-                clipBehavior: Clip.antiAlias,
-                child: InkWell(
-                  onTap: _onLogoTapForAdminPortal,
-                  borderRadius: BorderRadius.circular(12),
-                  child: SizedBox(
-                    height: tv ? 48 : 44,
-                    child: Center(
-                      child: OpticWordmark(height: tv ? 30 : 26),
-                    ),
+                child: SizedBox(
+                  height: tv ? 48 : 44,
+                  child: Center(
+                    child: OpticWordmark(height: tv ? 30 : 26),
                   ),
                 ),
               ),
             ),
-            const SizedBox(width: 8),
-            Material(
-              color: Colors.white.withValues(alpha: 0.06),
-              borderRadius: BorderRadius.circular(12),
-              clipBehavior: Clip.antiAlias,
-              child: IconButton(
-                icon: Icon(
-                  _searchOpen ? Icons.close_rounded : Icons.search_rounded,
-                  color: _searchOpen ? _accent : Colors.white,
-                ),
-                onPressed: () {
-                  setState(() {
-                    _searchOpen = !_searchOpen;
-                    if (!_searchOpen) _searchController.clear();
-                  });
-                },
+          ),
+          const SizedBox(width: 8),
+          Material(
+            color: Colors.white.withValues(alpha: 0.06),
+            borderRadius: BorderRadius.circular(12),
+            clipBehavior: Clip.antiAlias,
+            child: IconButton(
+              icon: Icon(
+                _searchOpen ? Icons.close_rounded : Icons.search_rounded,
+                color: _searchOpen ? _accent : Colors.white,
               ),
+              onPressed: () {
+                setState(() {
+                  _searchOpen = !_searchOpen;
+                  if (!_searchOpen) _searchController.clear();
+                });
+              },
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
