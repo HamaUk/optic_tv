@@ -3,7 +3,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/theme.dart';
 import '../../l10n/app_strings.dart';
-import '../../providers/app_locale_provider.dart';
 import '../../providers/session_provider.dart';
 
 class LoginScreen extends ConsumerStatefulWidget {
@@ -40,13 +39,42 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final locale = ref.watch(appLocaleProvider);
-    final s = AppStrings(locale);
+    final s = AppStrings(Localizations.localeOf(context));
+    final viewInsets = MediaQuery.viewInsetsOf(context);
+    final bottomPad = MediaQuery.paddingOf(context).bottom;
+
+    // Local theme so global InputDecorationTheme cannot paint a light “sheet” behind fields on some OEM skins.
+    final fieldTheme = Theme.of(context).copyWith(
+      textSelectionTheme: const TextSelectionThemeData(cursorColor: AppTheme.primaryGold),
+      inputDecorationTheme: InputDecorationTheme(
+        filled: true,
+        fillColor: const Color(0xFF1C2430),
+        hintStyle: TextStyle(color: Colors.white.withValues(alpha: 0.45), fontSize: 16),
+        labelStyle: TextStyle(color: Colors.white.withValues(alpha: 0.7)),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(16),
+          borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.14)),
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(16),
+          borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.14)),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(16),
+          borderSide: const BorderSide(color: AppTheme.primaryGold, width: 1.6),
+        ),
+        errorBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(16),
+          borderSide: BorderSide(color: Colors.redAccent.withValues(alpha: 0.8)),
+        ),
+        contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
+      ),
+    );
 
     return Scaffold(
-      body: Container(
-        width: double.infinity,
-        height: double.infinity,
+      backgroundColor: AppTheme.backgroundBlack,
+      resizeToAvoidBottomInset: true,
+      body: DecoratedBox(
         decoration: const BoxDecoration(
           gradient: LinearGradient(
             begin: Alignment.topLeft,
@@ -59,100 +87,116 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
           ),
         ),
         child: SafeArea(
-          child: Center(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 24),
-              child: ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: 420),
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.all(20),
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        border: Border.all(color: AppTheme.primaryGold.withOpacity(0.35)),
-                        boxShadow: [
-                          BoxShadow(
-                            color: AppTheme.primaryGold.withOpacity(0.15),
-                            blurRadius: 40,
-                            spreadRadius: 4,
-                          ),
-                        ],
-                      ),
-                      child: Icon(Icons.lock_rounded, size: 40, color: AppTheme.primaryGold.withOpacity(0.95)),
-                    ),
-                    const SizedBox(height: 28),
-                    Text(
-                      s.loginTitle,
-                      textAlign: TextAlign.center,
-                      style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                            color: Colors.white,
-                            fontWeight: FontWeight.bold,
-                            letterSpacing: -0.5,
-                          ),
-                    ),
-                    const SizedBox(height: 10),
-                    Text(
-                      s.loginSubtitle,
-                      textAlign: TextAlign.center,
-                      style: TextStyle(color: Colors.white.withOpacity(0.55), height: 1.45),
-                    ),
-                    const SizedBox(height: 36),
-                    TextField(
-                      controller: _codeController,
-                      textAlign: TextAlign.center,
-                      style: const TextStyle(color: Colors.white, fontSize: 18, letterSpacing: 1.2),
-                      cursorColor: AppTheme.primaryGold,
-                      decoration: InputDecoration(
-                        hintText: s.loginHint,
-                        hintStyle: TextStyle(color: Colors.white.withOpacity(0.28)),
-                        filled: true,
-                        fillColor: Colors.white.withOpacity(0.06),
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(16),
-                          borderSide: BorderSide(color: Colors.white.withOpacity(0.12)),
-                        ),
-                        enabledBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(16),
-                          borderSide: BorderSide(color: Colors.white.withOpacity(0.12)),
-                        ),
-                        focusedBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(16),
-                          borderSide: const BorderSide(color: AppTheme.primaryGold, width: 1.4),
-                        ),
-                        contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
-                      ),
-                      onSubmitted: (_) => _submit(s),
-                    ),
-                    const SizedBox(height: 24),
-                    SizedBox(
-                      width: double.infinity,
-                      height: 52,
-                      child: FilledButton(
-                        onPressed: _busy ? null : () => _submit(s),
-                        style: FilledButton.styleFrom(
-                          backgroundColor: AppTheme.primaryGold,
-                          foregroundColor: Colors.black,
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-                          elevation: 0,
-                        ),
-                        child: _busy
-                            ? const SizedBox(
-                                height: 22,
-                                width: 22,
-                                child: CircularProgressIndicator(strokeWidth: 2, color: Colors.black87),
-                              )
-                            : Text(
-                                s.loginButton,
-                                style: const TextStyle(fontWeight: FontWeight.w800, letterSpacing: 0.5),
-                              ),
-                      ),
-                    ),
-                  ],
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              return SingleChildScrollView(
+                padding: EdgeInsets.fromLTRB(
+                  28,
+                  24,
+                  28,
+                  24 + bottomPad + viewInsets.bottom,
                 ),
-              ),
-            ),
+                physics: const ClampingScrollPhysics(),
+                child: ConstrainedBox(
+                  constraints: BoxConstraints(minHeight: constraints.maxHeight),
+                  child: Theme(
+                    data: fieldTheme,
+                    child: Align(
+                      alignment: Alignment.center,
+                      child: ConstrainedBox(
+                        constraints: const BoxConstraints(maxWidth: 420),
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.all(20),
+                              decoration: BoxDecoration(
+                                shape: BoxShape.circle,
+                                border: Border.all(color: AppTheme.primaryGold.withValues(alpha: 0.35)),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: AppTheme.primaryGold.withValues(alpha: 0.12),
+                                    blurRadius: 28,
+                                    spreadRadius: 2,
+                                  ),
+                                ],
+                              ),
+                              child: Icon(
+                                Icons.lock_rounded,
+                                size: 36,
+                                color: AppTheme.primaryGold.withValues(alpha: 0.95),
+                              ),
+                            ),
+                            const SizedBox(height: 24),
+                            Text(
+                              s.loginTitle,
+                              textAlign: TextAlign.center,
+                              style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.bold,
+                                    letterSpacing: -0.5,
+                                  ),
+                            ),
+                            const SizedBox(height: 10),
+                            Text(
+                              s.loginSubtitle,
+                              textAlign: TextAlign.center,
+                              style: TextStyle(color: Colors.white.withValues(alpha: 0.55), height: 1.45),
+                            ),
+                            const SizedBox(height: 32),
+                            TextField(
+                              controller: _codeController,
+                              textAlign: TextAlign.center,
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 17,
+                                letterSpacing: 0.8,
+                              ),
+                              cursorColor: AppTheme.primaryGold,
+                              autocorrect: false,
+                              enableSuggestions: false,
+                              keyboardType: TextInputType.visiblePassword,
+                              textInputAction: TextInputAction.done,
+                              decoration: InputDecoration(
+                                hintText: s.loginHint,
+                                isDense: false,
+                              ),
+                              onSubmitted: (_) => _submit(s),
+                            ),
+                            const SizedBox(height: 22),
+                            SizedBox(
+                              width: double.infinity,
+                              height: 52,
+                              child: FilledButton(
+                                onPressed: _busy ? null : () => _submit(s),
+                                style: FilledButton.styleFrom(
+                                  backgroundColor: AppTheme.primaryGold,
+                                  foregroundColor: Colors.black,
+                                  disabledBackgroundColor: AppTheme.primaryGold.withValues(alpha: 0.35),
+                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                                  elevation: 0,
+                                ),
+                                child: _busy
+                                    ? const SizedBox(
+                                        height: 22,
+                                        width: 22,
+                                        child: CircularProgressIndicator(strokeWidth: 2, color: Colors.black87),
+                                      )
+                                    : Text(
+                                        s.loginButton,
+                                        style: const TextStyle(fontWeight: FontWeight.w800, letterSpacing: 0.5),
+                                      ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              );
+            },
           ),
         ),
       ),
