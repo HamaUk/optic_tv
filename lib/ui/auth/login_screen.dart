@@ -56,88 +56,86 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
             colors: [Color(0xFF0B0F14), Color(0xFF151B24), Color(0xFF0B0F14)],
           ),
         ),
-        child: Focus(
-          // TRAP FOCUS: Prevents the Android virtual keyboard from popping up automatically
-          autofocus: true, 
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 28),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center, // Centers everything vertically
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                // Icon Header
-                Center(
-                  child: Container(
-                    padding: const EdgeInsets.all(22),
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      color: AppTheme.primaryGold.withOpacity(0.1),
-                      border: Border.all(color: AppTheme.primaryGold.withOpacity(0.3)),
-                    ),
-                    child: const Icon(
-                      Icons.lock_rounded,
-                      size: 42,
-                      color: AppTheme.primaryGold,
-                    ),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 28),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center, // Centers everything vertically
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              // Icon Header
+              Center(
+                child: Container(
+                  padding: const EdgeInsets.all(22),
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: AppTheme.primaryGold.withOpacity(0.1),
+                    border: Border.all(color: AppTheme.primaryGold.withOpacity(0.3)),
+                  ),
+                  child: const Icon(
+                    Icons.lock_rounded,
+                    size: 42,
+                    color: AppTheme.primaryGold,
                   ),
                 ),
-                const SizedBox(height: 32),
-                
-                // Title & Subtitle
-                Text(
-                  s.loginTitle,
-                  textAlign: TextAlign.center,
-                  style: const TextStyle(
-                    fontSize: 24,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.white,
-                    letterSpacing: -0.5,
-                  ),
+              ),
+              const SizedBox(height: 32),
+              
+              // Title & Subtitle
+              Text(
+                s.loginTitle,
+                textAlign: TextAlign.center,
+                style: const TextStyle(
+                  fontSize: 24,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.white,
+                  letterSpacing: -0.5,
                 ),
-                const SizedBox(height: 12),
-                Text(
-                  s.loginSubtitle,
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    fontSize: 15,
-                    color: Colors.white.withOpacity(0.6),
-                    height: 1.4,
-                  ),
+              ),
+              const SizedBox(height: 12),
+              Text(
+                s.loginSubtitle,
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: 15,
+                  color: Colors.white.withOpacity(0.6),
+                  height: 1.4,
                 ),
-                const SizedBox(height: 48),
-                
-                // Custom Input Box
-                Center(
-                  child: ConstrainedBox(
-                    constraints: const BoxConstraints(maxWidth: 400),
-                    child: Column(
-                      children: [
-                        Container(
-                          height: 56, // STRICT PHYSICAL BOUNDARY
-                          clipBehavior: Clip.hardEdge, // PREVENTS OVERFLOWING IF IT CRASHES
-                          decoration: BoxDecoration(
-                            color: const Color(0xFF1C2430), // Solid dark color
-                            borderRadius: BorderRadius.circular(16),
-                            border: Border.all(color: Colors.white.withOpacity(0.1)),
-                          ),
-                          padding: const EdgeInsets.only(left: 12, right: 8),
-                          alignment: Alignment.center,
-                          child: Row(
-                            children: [
-                              Expanded(
-                                child: TextField(
-                                  controller: _codeController,
-                                  style: const TextStyle(color: Colors.white, fontSize: 18),
-                                  cursorColor: AppTheme.primaryGold,
-                                  onSubmitted: (_) => _submit(s),
-                                  decoration: InputDecoration(
-                                    hintText: s.loginHint,
-                                    hintStyle: TextStyle(color: Colors.white.withOpacity(0.3)),
-                                    border: InputBorder.none, 
-                                    contentPadding: const EdgeInsets.symmetric(horizontal: 16),
-                                  ),
+              ),
+              const SizedBox(height: 48),
+              
+              // Custom Input Box
+              Center(
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 400),
+                  child: Column(
+                    children: [
+                      Container(
+                        height: 56, // STRICT PHYSICAL BOUNDARY
+                        clipBehavior: Clip.hardEdge, // PREVENTS OVERFLOWING IF IT CRASHES
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF1C2430), // Solid dark color
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(color: Colors.white.withOpacity(0.1)),
+                        ),
+                        padding: const EdgeInsets.only(left: 12, right: 8),
+                        alignment: Alignment.center,
+                        child: Row(
+                          children: [
+                            Expanded(
+                              child: TextField(
+                                controller: _codeController,
+                                style: const TextStyle(color: Colors.white, fontSize: 18),
+                                cursorColor: AppTheme.primaryGold,
+                                onSubmitted: (_) => _submit(s),
+                                decoration: InputDecoration(
+                                  hintText: s.loginHint,
+                                  hintStyle: TextStyle(color: Colors.white.withOpacity(0.3)),
+                                  border: InputBorder.none, 
+                                  contentPadding: const EdgeInsets.symmetric(horizontal: 16),
+                                  filled: false, // EXTREMELY IMPORTANT to hide inherited grey background!
                                 ),
                               ),
+                            ),
                                 // ALWAYS VISIBLE SUBMIT BUTTON
                                 IconButton(
                                   onPressed: _busy ? null : () => _submit(s),
@@ -182,8 +180,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                     ),
                   ),
                 ),
-              ],
-            ),
+            ],
           ),
         ),
       ),
