@@ -575,17 +575,22 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
           colors: [AppTheme.backgroundBlack, AppTheme.surfaceGray.withValues(alpha: 0.45)],
         ),
       ),
-      child: ListView(
+      child: SingleChildScrollView(
         padding: const EdgeInsets.fromLTRB(20, 24, 20, 32),
-        children: [
-          StreamBuilder<DatabaseEvent>(
-            stream: _playlistRef.onValue,
-            builder: (context, snapPl) {
-              final pl = snapPl.data?.snapshot.value;
-              final channels = _parsePlaylist(pl);
-              _sortChannelEntries(channels);
+        child: StreamBuilder<DatabaseEvent>(
+          stream: _playlistRef.onValue,
+          builder: (context, snapPl) {
+            if (snapPl.connectionState == ConnectionState.waiting && !snapPl.hasData) {
+              return const SizedBox(
+                height: 240,
+                child: Center(child: CircularProgressIndicator(color: AppTheme.primaryGold)),
+              );
+            }
+            final pl = snapPl.data?.snapshot.value;
+            final channels = _parsePlaylist(pl);
+            _sortChannelEntries(channels);
 
-              return StreamBuilder<DatabaseEvent>(
+            return StreamBuilder<DatabaseEvent>(
                 stream: _groupsRef.onValue,
                 builder: (context, snapG) {
                   int gCount = 0;
@@ -606,6 +611,7 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
                       }
 
                       return Column(
+                        mainAxisSize: MainAxisSize.min,
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Wrap(
@@ -680,7 +686,7 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
               );
             },
           ),
-        ],
+        ),
       ),
     );
   }
@@ -784,195 +790,211 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
                 grp.toLowerCase().contains(_channelSearchQuery);
           }).toList();
 
-          return Column(
-            children: [
-              Padding(
-                padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
-                child: Column(
-                  children: [
-                    TextField(
-                      controller: _channelSearchController,
-                      style: const TextStyle(color: Colors.white),
-                      decoration: InputDecoration(
-                        hintText: 'Search name, URL, group…',
-                        hintStyle: TextStyle(color: Colors.white.withValues(alpha: 0.35)),
-                        prefixIcon: Icon(Icons.search_rounded, color: AppTheme.primaryGold.withValues(alpha: 0.8)),
-                        suffixIcon: _channelSearchQuery.isEmpty
-                            ? null
-                            : IconButton(
-                                icon: const Icon(Icons.clear_rounded),
-                                onPressed: () {
-                                  _channelSearchController.clear();
-                                  setState(() => _channelSearchQuery = '');
-                                },
-                              ),
-                        filled: true,
-                        fillColor: AppTheme.surfaceElevated,
-                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(16)),
-                        enabledBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(16),
-                          borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.08)),
-                        ),
-                        focusedBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(16),
-                          borderSide: BorderSide(color: AppTheme.primaryGold.withValues(alpha: 0.5)),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                    SizedBox(
-                      height: 40,
-                      child: ListView(
-                        scrollDirection: Axis.horizontal,
-                        children: [
-                          Padding(
-                            padding: const EdgeInsets.only(right: 8),
-                            child: ChoiceChip(
-                              label: const Text('All groups'),
-                              selected: _groupFilter == null,
-                              onSelected: (_) => setState(() => _groupFilter = null),
-                              selectedColor: AppTheme.primaryGold.withValues(alpha: 0.35),
-                            ),
+          final header = Padding(
+            padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TextField(
+                  controller: _channelSearchController,
+                  style: const TextStyle(color: Colors.white),
+                  decoration: InputDecoration(
+                    hintText: 'Search name, URL, group…',
+                    hintStyle: TextStyle(color: Colors.white.withValues(alpha: 0.35)),
+                    prefixIcon: Icon(Icons.search_rounded, color: AppTheme.primaryGold.withValues(alpha: 0.8)),
+                    suffixIcon: _channelSearchQuery.isEmpty
+                        ? null
+                        : IconButton(
+                            icon: const Icon(Icons.clear_rounded),
+                            onPressed: () {
+                              _channelSearchController.clear();
+                              setState(() => _channelSearchQuery = '');
+                            },
                           ),
-                          ...sortedGroups.map(
-                            (g) => Padding(
-                              padding: const EdgeInsets.only(right: 8),
-                              child: ChoiceChip(
-                                label: Text(g),
-                                selected: _groupFilter == g,
-                                onSelected: (_) => setState(() => _groupFilter = g),
-                                selectedColor: AppTheme.primaryGold.withValues(alpha: 0.35),
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
+                    filled: true,
+                    fillColor: AppTheme.surfaceElevated,
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(16)),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(16),
+                      borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.08)),
                     ),
-                  ],
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(16),
+                      borderSide: BorderSide(color: AppTheme.primaryGold.withValues(alpha: 0.5)),
+                    ),
+                  ),
                 ),
-              ),
-              Expanded(
-                child: items.isEmpty
-                    ? Center(
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Icon(Icons.search_off_rounded, size: 56, color: Colors.white.withValues(alpha: 0.15)),
-                            const SizedBox(height: 12),
-                            Text(
-                              'No channels match',
-                              style: TextStyle(color: Colors.white.withValues(alpha: 0.4)),
-                            ),
-                          ],
+                const SizedBox(height: 12),
+                SizedBox(
+                  height: 40,
+                  child: ListView(
+                    scrollDirection: Axis.horizontal,
+                    children: [
+                      Padding(
+                        padding: const EdgeInsets.only(right: 8),
+                        child: ChoiceChip(
+                          label: const Text('All groups'),
+                          selected: _groupFilter == null,
+                          onSelected: (_) => setState(() => _groupFilter = null),
+                          selectedColor: AppTheme.primaryGold.withValues(alpha: 0.35),
                         ),
-                      )
-                    : ListView.builder(
-                        padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
-                        itemCount: items.length,
-                        itemBuilder: (context, index) {
-                          final entry = items[index];
-                          final val = entry.value as Map;
-                          final logo = val['logo'] ?? val['icon_url'];
-                          final name = '${val['name'] ?? 'Untitled'}';
-                          final grp = '${val['group'] ?? val['category'] ?? 'General'}';
-                          final url = '${val['url'] ?? ''}';
+                      ),
+                      ...sortedGroups.map(
+                        (g) => Padding(
+                          padding: const EdgeInsets.only(right: 8),
+                          child: ChoiceChip(
+                            label: Text(g),
+                            selected: _groupFilter == g,
+                            onSelected: (_) => setState(() => _groupFilter = g),
+                            selectedColor: AppTheme.primaryGold.withValues(alpha: 0.35),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          );
 
-                          return Padding(
-                            padding: const EdgeInsets.only(bottom: 12),
-                            child: Material(
-                              color: AppTheme.surfaceElevated,
-                              borderRadius: BorderRadius.circular(20),
-                              child: InkWell(
-                                borderRadius: BorderRadius.circular(20),
-                                onTap: () => _showEditChannelDialog('${entry.key}', val),
-                                child: Padding(
-                                  padding: const EdgeInsets.all(14),
-                                  child: Row(
-                                    children: [
-                                      ClipRRect(
-                                        borderRadius: BorderRadius.circular(14),
-                                        child: logo != null && '$logo'.isNotEmpty
-                                            ? ChannelLogoImage(
-                                                logo: '$logo',
-                                                width: 56,
-                                                height: 56,
-                                                fit: BoxFit.cover,
-                                                fallback: _channelPlaceholder(),
-                                              )
-                                            : _channelPlaceholder(),
-                                      ),
-                                      const SizedBox(width: 14),
-                                      Expanded(
-                                        child: Column(
-                                          crossAxisAlignment: CrossAxisAlignment.start,
-                                          children: [
-                                            Text(
-                                              name,
-                                              style: const TextStyle(
-                                                fontWeight: FontWeight.w700,
-                                                fontSize: 15,
-                                              ),
-                                              maxLines: 1,
-                                              overflow: TextOverflow.ellipsis,
-                                            ),
-                                            const SizedBox(height: 4),
-                                            Container(
-                                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                                              decoration: BoxDecoration(
-                                                color: AppTheme.accentTeal.withValues(alpha: 0.12),
-                                                borderRadius: BorderRadius.circular(8),
-                                              ),
-                                              child: Text(
-                                                grp,
-                                                style: TextStyle(
-                                                  fontSize: 11,
-                                                  color: AppTheme.accentTeal.withValues(alpha: 0.95),
-                                                ),
-                                              ),
-                                            ),
-                                            if (url.isNotEmpty) ...[
-                                              const SizedBox(height: 6),
-                                              Text(
-                                                url,
-                                                style: TextStyle(
-                                                  fontSize: 11,
-                                                  color: Colors.white.withValues(alpha: 0.35),
-                                                ),
-                                                maxLines: 1,
-                                                overflow: TextOverflow.ellipsis,
-                                              ),
-                                            ],
-                                          ],
+          if (items.isEmpty) {
+            return CustomScrollView(
+              slivers: [
+                SliverToBoxAdapter(child: header),
+                SliverFillRemaining(
+                  hasScrollBody: false,
+                  child: Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(Icons.search_off_rounded, size: 56, color: Colors.white.withValues(alpha: 0.15)),
+                        const SizedBox(height: 12),
+                        Text(
+                          'No channels match',
+                          style: TextStyle(color: Colors.white.withValues(alpha: 0.4)),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            );
+          }
+
+          return CustomScrollView(
+            slivers: [
+              SliverToBoxAdapter(child: header),
+              SliverPadding(
+                padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
+                sliver: SliverList(
+                  delegate: SliverChildBuilderDelegate(
+                    (context, index) {
+                      final entry = items[index];
+                      final val = entry.value as Map;
+                      final logo = val['logo'] ?? val['icon_url'];
+                      final name = '${val['name'] ?? 'Untitled'}';
+                      final grp = '${val['group'] ?? val['category'] ?? 'General'}';
+                      final url = '${val['url'] ?? ''}';
+
+                      return Padding(
+                        padding: const EdgeInsets.only(bottom: 12),
+                        child: Material(
+                          color: AppTheme.surfaceElevated,
+                          borderRadius: BorderRadius.circular(20),
+                          child: InkWell(
+                            borderRadius: BorderRadius.circular(20),
+                            onTap: () => _showEditChannelDialog('${entry.key}', val),
+                            child: Padding(
+                              padding: const EdgeInsets.all(14),
+                              child: Row(
+                                children: [
+                                  ClipRRect(
+                                    borderRadius: BorderRadius.circular(14),
+                                    child: logo != null && '$logo'.isNotEmpty
+                                        ? ChannelLogoImage(
+                                            logo: '$logo',
+                                            width: 56,
+                                            height: 56,
+                                            fit: BoxFit.cover,
+                                            fallback: _channelPlaceholder(),
+                                          )
+                                        : _channelPlaceholder(),
+                                  ),
+                                  const SizedBox(width: 14),
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          name,
+                                          style: const TextStyle(
+                                            fontWeight: FontWeight.w700,
+                                            fontSize: 15,
+                                          ),
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
                                         ),
-                                      ),
-                                      Column(
-                                        mainAxisSize: MainAxisSize.min,
-                                        children: [
-                                          IconButton(
-                                            tooltip: 'Copy URL',
-                                            icon: Icon(Icons.copy_rounded, color: AppTheme.primaryGold.withValues(alpha: 0.85)),
-                                            onPressed: url.isEmpty ? null : () => _copyUrl(url),
+                                        const SizedBox(height: 4),
+                                        Container(
+                                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                          decoration: BoxDecoration(
+                                            color: AppTheme.accentTeal.withValues(alpha: 0.12),
+                                            borderRadius: BorderRadius.circular(8),
                                           ),
-                                          IconButton(
-                                            tooltip: 'Duplicate to form',
-                                            icon: const Icon(Icons.control_point_duplicate_rounded),
-                                            onPressed: () => _prefillAddFromChannel(val),
+                                          child: Text(
+                                            grp,
+                                            style: TextStyle(
+                                              fontSize: 11,
+                                              color: AppTheme.accentTeal.withValues(alpha: 0.95),
+                                            ),
                                           ),
-                                          IconButton(
-                                            tooltip: 'Delete',
-                                            icon: const Icon(Icons.delete_outline_rounded, color: Colors.redAccent),
-                                            onPressed: () => _deleteChannel('${entry.key}', name),
+                                        ),
+                                        if (url.isNotEmpty) ...[
+                                          const SizedBox(height: 6),
+                                          Text(
+                                            url,
+                                            style: TextStyle(
+                                              fontSize: 11,
+                                              color: Colors.white.withValues(alpha: 0.35),
+                                            ),
+                                            maxLines: 1,
+                                            overflow: TextOverflow.ellipsis,
                                           ),
                                         ],
+                                      ],
+                                    ),
+                                  ),
+                                  Column(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      IconButton(
+                                        tooltip: 'Copy URL',
+                                        icon: Icon(Icons.copy_rounded, color: AppTheme.primaryGold.withValues(alpha: 0.85)),
+                                        onPressed: url.isEmpty ? null : () => _copyUrl(url),
+                                      ),
+                                      IconButton(
+                                        tooltip: 'Duplicate to form',
+                                        icon: const Icon(Icons.control_point_duplicate_rounded),
+                                        onPressed: () => _prefillAddFromChannel(val),
+                                      ),
+                                      IconButton(
+                                        tooltip: 'Delete',
+                                        icon: const Icon(Icons.delete_outline_rounded, color: Colors.redAccent),
+                                        onPressed: () => _deleteChannel('${entry.key}', name),
                                       ),
                                     ],
                                   ),
-                                ),
+                                ],
                               ),
                             ),
-                          );
-                        },
-                      ),
+                          ),
+                        ),
+                      );
+                    },
+                    childCount: items.length,
+                  ),
+                ),
               ),
             ],
           );
