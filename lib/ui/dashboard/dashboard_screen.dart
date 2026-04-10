@@ -29,7 +29,6 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
 
   /// 0 Home, 1 Movies, 2 Sport
   int _navIndex = 0;
-  String? _groupFilter;
   bool _searchOpen = false;
   final TextEditingController _searchController = TextEditingController();
 
@@ -151,21 +150,14 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     }
   }
 
-  List<Channel> _applySearchAndGroup(List<Channel> base) {
-    var list = base;
+  List<Channel> _applySearch(List<Channel> base) {
     final q = _searchController.text.trim().toLowerCase();
-    if (q.isNotEmpty) {
-      list = list
-          .where(
-            (c) =>
-                c.name.toLowerCase().contains(q) || c.group.toLowerCase().contains(q),
-          )
-          .toList();
-    }
-    if (_groupFilter != null) {
-      list = list.where((c) => c.group == _groupFilter).toList();
-    }
-    return list;
+    if (q.isEmpty) return base;
+    return base
+        .where(
+          (c) => c.name.toLowerCase().contains(q) || c.group.toLowerCase().contains(q),
+        )
+        .toList();
   }
 
   Map<String, List<Channel>> _groupMap(List<Channel> channels) {
@@ -174,11 +166,6 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
       groups.putIfAbsent(channel.group, () => []).add(channel);
     }
     return groups;
-  }
-
-  List<String> _sortedGroupKeys(List<Channel> navFiltered) {
-    final keys = _groupMap(navFiltered).keys.toList()..sort();
-    return keys;
   }
 
   void _openPlayer(List<Channel> allFlat, Channel channel) {
@@ -220,7 +207,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                 return Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    _buildTopBar(context, s, pad, tv, const <String>[]),
+                    _buildTopBar(context, s, pad, tv),
                     if (_searchOpen) _buildSearchField(s, pad),
                     Expanded(child: _buildEmptyState(s, entireLibraryEmpty: true)),
                   ],
@@ -228,14 +215,13 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
               }
 
               final navScoped = _channelsForNav(channels);
-              final tabDropdownGroups = _sortedGroupKeys(navScoped);
-              final filtered = _applySearchAndGroup(navScoped);
+              final filtered = _applySearch(navScoped);
               final groups = _groupMap(filtered);
 
               return Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  _buildTopBar(context, s, pad, tv, tabDropdownGroups),
+                  _buildTopBar(context, s, pad, tv),
                   if (_searchOpen) _buildSearchField(s, pad),
                   Expanded(
                     child: filtered.isEmpty
@@ -274,9 +260,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     AppStrings s,
     double pad,
     bool tv,
-    List<String> dropdownGroups,
   ) {
-    final filterLabel = _groupFilter ?? s.filterAll;
     return Padding(
       padding: EdgeInsets.fromLTRB(pad * 0.5, pad * 0.75, pad * 0.5, 8),
       child: Row(
@@ -321,50 +305,6 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
             ),
           ),
           const SizedBox(width: 8),
-          PopupMenuButton<String?>(
-            tooltip: s.filterAll,
-            useRootNavigator: false,
-            color: const Color(0xFF1C2430),
-            onSelected: (v) => setState(() => _groupFilter = v),
-            itemBuilder: (context) => [
-              PopupMenuItem<String?>(
-                value: null,
-                child: Text(s.filterAll, style: const TextStyle(color: Colors.white)),
-              ),
-              ...dropdownGroups.map(
-                (g) => PopupMenuItem<String?>(
-                  value: g,
-                  child: Text(g, style: const TextStyle(color: Colors.white)),
-                ),
-              ),
-            ],
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-              decoration: BoxDecoration(
-                color: Colors.white.withValues(alpha: 0.06),
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
-              ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  const Icon(Icons.grid_view_rounded, color: _accent, size: 20),
-                  const SizedBox(width: 6),
-                  ConstrainedBox(
-                    constraints: const BoxConstraints(maxWidth: 72),
-                    child: Text(
-                      filterLabel,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w600),
-                    ),
-                  ),
-                  Icon(Icons.arrow_drop_down_rounded, color: Colors.white.withValues(alpha: 0.7)),
-                ],
-              ),
-            ),
-          ),
-          const SizedBox(width: 6),
           Material(
             color: Colors.white.withValues(alpha: 0.06),
             borderRadius: BorderRadius.circular(12),
@@ -488,7 +428,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     return CustomScrollView(
       physics: const BouncingScrollPhysics(),
       slivers: [
-        if (_navIndex == 0 && _groupFilter == null && _searchController.text.trim().isEmpty)
+        if (_navIndex == 0 && _searchController.text.trim().isEmpty)
           SliverToBoxAdapter(
             child: Padding(
               padding: EdgeInsets.fromLTRB(pad, 8, pad, 16),
@@ -742,10 +682,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     final color = selected ? _accent : Colors.white38;
     return InkWell(
       onTap: () {
-        setState(() {
-          _navIndex = index;
-          _groupFilter = null;
-        });
+        setState(() => _navIndex = index);
       },
       borderRadius: BorderRadius.circular(12),
       child: Padding(
