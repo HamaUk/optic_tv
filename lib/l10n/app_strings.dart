@@ -13,7 +13,8 @@ class AppStrings {
   String get loginTitle => isEnglish ? 'Welcome back' : 'بەخێربێیت';
   String get loginSubtitle =>
       isEnglish ? 'Enter your access code to continue' : 'کۆدی دەستپێگەیشتن بنووسە بۆ بەردەوامبوون';
-  String get loginHint => isEnglish ? 'Code (letters or numbers)' : 'کۆد (پیت یان ژمارە)';
+  /// Placeholder only — six light stars (☆ U+2606), no script-specific hint text.
+  String get loginHint => '☆☆☆☆☆☆';
   String get loginButton => isEnglish ? 'Continue' : 'بەرەو پێشەوە';
   String get loginErrorEmpty => isEnglish ? 'Enter a code' : 'تکایە کۆدێک بنووسە';
   String get loginErrorInvalid =>
