@@ -75,7 +75,14 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
 
     return Scaffold(
       backgroundColor: AppTheme.backgroundBlack,
-      appBar: AppBar(title: Text(s.settingsTitle)),
+      appBar: AppBar(
+        title: Text(s.settingsTitle),
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back_rounded),
+          tooltip: MaterialLocalizations.of(context).backButtonTooltip,
+          onPressed: () => Navigator.maybePop(context),
+        ),
+      ),
       body: _loading
           ? const Center(child: CircularProgressIndicator(color: AppTheme.primaryGold))
           : ListView(

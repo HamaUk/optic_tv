@@ -2,8 +2,8 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../core/app_assets.dart';
 import '../../core/theme.dart';
+import '../../widgets/optic_wordmark.dart';
 import '../../l10n/app_strings.dart';
 import '../../providers/session_provider.dart';
 
@@ -84,20 +84,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                     mainAxisAlignment: MainAxisAlignment.center,
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
-                      Center(
-                        child: SizedBox(
-                          height: 128,
-                          child: Image.asset(
-                            AppAssets.opticLogo,
-                            fit: BoxFit.contain,
-                            filterQuality: FilterQuality.high,
-                            errorBuilder: (context, error, stackTrace) => const Icon(
-                              Icons.live_tv_rounded,
-                              size: 72,
-                              color: AppTheme.primaryGold,
-                            ),
-                          ),
-                        ),
+                      const Center(
+                        child: OpticWordmark(height: 52),
                       ),
                       const SizedBox(height: 32),
                       Text(

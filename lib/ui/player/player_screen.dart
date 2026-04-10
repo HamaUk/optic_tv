@@ -6,6 +6,7 @@ import 'package:media_kit/media_kit.dart';
 import 'package:media_kit_video/media_kit_video.dart';
 
 import '../../core/theme.dart';
+import '../../widgets/channel_logo_image.dart';
 import '../../l10n/app_strings.dart';
 import '../../services/playlist_service.dart';
 import '../../services/settings_service.dart';
@@ -39,6 +40,16 @@ class _PlayerScreenState extends State<PlayerScreen> {
   final List<StreamSubscription<dynamic>> _subscriptions = [];
 
   Channel get _current => widget.channels[_index];
+
+  /// Hide corner logo for live-style streams; keep for movies / VOD-style groups.
+  bool get _hideChannelLogoOverlay {
+    final g = _current.group.toLowerCase();
+    final u = _current.url.toLowerCase();
+    if (g.contains('movie') || g.contains('film') || g.contains('cinema')) return false;
+    if (g.contains('live')) return true;
+    if (u.contains('.m3u8')) return true;
+    return false;
+  }
 
   List<String> get _groupNames {
     final set = <String>{};
@@ -213,27 +224,28 @@ class _PlayerScreenState extends State<PlayerScreen> {
                     ),
                   ),
                 ),
-                Positioned(
-                  top: 10,
-                  right: 10,
-                  child: Container(
-                    width: 52,
-                    height: 52,
-                    decoration: BoxDecoration(
-                      color: Colors.black.withValues(alpha: 0.35),
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: Colors.white.withValues(alpha: 0.12)),
+                if (!_hideChannelLogoOverlay && _current.logo != null && _current.logo!.isNotEmpty)
+                  Positioned(
+                    top: 10,
+                    right: 10,
+                    child: Container(
+                      width: 52,
+                      height: 52,
+                      decoration: BoxDecoration(
+                        color: Colors.black.withValues(alpha: 0.35),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: Colors.white.withValues(alpha: 0.12)),
+                      ),
+                      clipBehavior: Clip.antiAlias,
+                      child: ChannelLogoImage(
+                        logo: _current.logo,
+                        width: 52,
+                        height: 52,
+                        fit: BoxFit.contain,
+                        fallback: const Icon(Icons.tv_rounded, color: Colors.white54, size: 28),
+                      ),
                     ),
-                    clipBehavior: Clip.antiAlias,
-                    child: _current.logo != null
-                        ? Image.network(
-                            _current.logo!,
-                            fit: BoxFit.contain,
-                            errorBuilder: (_, __, ___) => const Icon(Icons.tv_rounded, color: Colors.white54, size: 28),
-                          )
-                        : const Icon(Icons.tv_rounded, color: Colors.white54, size: 28),
                   ),
-                ),
                 Positioned(
                   bottom: 12,
                   left: 12,

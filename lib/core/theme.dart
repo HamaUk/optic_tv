@@ -15,6 +15,8 @@ class AppTheme {
     const base = TextStyle(fontFamily: 'Rabar', color: Colors.white);
     return ThemeData(
       fontFamily: 'Rabar',
+      // Material Icons must not use Rabar; explicit icon theme avoids missing-glyph “grey boxes”.
+      iconTheme: const IconThemeData(color: Colors.white, fontFamily: null),
       brightness: Brightness.dark,
       primaryColor: primaryGold,
       scaffoldBackgroundColor: backgroundBlack,
@@ -53,6 +55,7 @@ class AppTheme {
         foregroundColor: Colors.white,
         elevation: 0,
         centerTitle: true,
+        iconTheme: IconThemeData(color: Colors.white, size: 24, fontFamily: null),
       ),
       // Avoid default filled inputs (grey blocks) on screens that only set border/hint.
       inputDecorationTheme: InputDecorationTheme(

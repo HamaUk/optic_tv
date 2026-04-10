@@ -1,8 +1,14 @@
+import 'dart:convert';
+
 import 'package:firebase_database/firebase_database.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:image_picker/image_picker.dart';
 
 import '../../core/theme.dart';
+import '../../widgets/channel_logo_image.dart';
+
+enum _PublishShelf { liveTv, movies, custom }
 
 class AdminScreen extends StatefulWidget {
   const AdminScreen({super.key});
@@ -27,6 +33,7 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
   late TabController _tabController;
   String _channelSearchQuery = '';
   String? _groupFilter;
+  _PublishShelf _publishShelf = _PublishShelf.liveTv;
 
   DatabaseReference get _playlistRef => FirebaseDatabase.instance.ref(_playlistPath);
   DatabaseReference get _groupsRef => FirebaseDatabase.instance.ref(_groupsPath);
@@ -36,6 +43,7 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
   void initState() {
     super.initState();
     _tabController = TabController(length: 4, vsync: this);
+    _channelGroupController.text = 'Live TV';
     _channelSearchController.addListener(() {
       setState(() => _channelSearchQuery = _channelSearchController.text.trim().toLowerCase());
     });
@@ -125,6 +133,60 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
     });
   }
 
+  String _resolvedPublishGroup() {
+    switch (_publishShelf) {
+      case _PublishShelf.liveTv:
+        return 'Live TV';
+      case _PublishShelf.movies:
+        return 'Movies';
+      case _PublishShelf.custom:
+        return _channelGroupController.text.trim();
+    }
+  }
+
+  void _setPublishShelf(_PublishShelf v) {
+    setState(() {
+      _publishShelf = v;
+      if (v == _PublishShelf.liveTv) {
+        _channelGroupController.text = 'Live TV';
+      } else if (v == _PublishShelf.movies) {
+        _channelGroupController.text = 'Movies';
+      } else {
+        final t = _channelGroupController.text.trim();
+        if (t == 'Live TV' || t == 'Movies') {
+          _channelGroupController.clear();
+        }
+      }
+    });
+  }
+
+  Future<void> _pickLogoInto(TextEditingController controller, [VoidCallback? after]) async {
+    final picker = ImagePicker();
+    final file = await picker.pickImage(
+      source: ImageSource.gallery,
+      maxWidth: 512,
+      imageQuality: 85,
+    );
+    if (file == null || !mounted) return;
+    try {
+      final bytes = await file.readAsBytes();
+      final b64 = base64Encode(bytes);
+      final mime = (bytes.length >= 8 &&
+              bytes[0] == 0x89 &&
+              bytes[1] == 0x50 &&
+              bytes[2] == 0x4E &&
+              bytes[3] == 0x47)
+          ? 'image/png'
+          : 'image/jpeg';
+      controller.text = 'data:$mime;base64,$b64';
+      setState(() {});
+      after?.call();
+      _snack('Logo image attached');
+    } catch (e) {
+      _snack('Could not read image: $e', error: true);
+    }
+  }
+
   Future<void> _addChannel() async {
     final name = _channelNameController.text.trim();
     final url = _channelUrlController.text.trim();
@@ -132,14 +194,21 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
       _snack('Channel name and stream URL are required', error: true);
       return;
     }
+    final group = _resolvedPublishGroup();
+    if (group.isEmpty) {
+      _snack('Choose a section or enter a custom group name', error: true);
+      return;
+    }
     try {
-      final group = _channelGroupController.text.trim();
       final logo = _channelLogoController.text.trim();
       await _playlistRef.push().set(_channelPayload(name: name, url: url, group: group, logo: logo));
       _channelNameController.clear();
       _channelUrlController.clear();
-      _channelGroupController.clear();
       _channelLogoController.clear();
+      setState(() {
+        _publishShelf = _PublishShelf.liveTv;
+        _channelGroupController.text = 'Live TV';
+      });
       _snack('Channel saved to database');
     } catch (e) {
       _snack('Error: $e', error: true);
@@ -149,8 +218,18 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
   void _prefillAddFromChannel(Map<dynamic, dynamic> val) {
     _channelNameController.text = '${val['name'] ?? ''} (copy)';
     _channelUrlController.text = '${val['url'] ?? ''}';
-    _channelGroupController.text = '${val['group'] ?? val['category'] ?? 'General'}';
+    final grpRaw = '${val['group'] ?? val['category'] ?? 'General'}';
     _channelLogoController.text = '${val['logo'] ?? val['icon_url'] ?? ''}';
+    final gl = grpRaw.toLowerCase();
+    final shelf = (gl.contains('movie') || gl.contains('film') || gl.contains('cinema'))
+        ? _PublishShelf.movies
+        : gl.contains('live')
+            ? _PublishShelf.liveTv
+            : _PublishShelf.custom;
+    setState(() {
+      _publishShelf = shelf;
+      _channelGroupController.text = grpRaw;
+    });
     _tabController.animateTo(2);
     _snack('Form filled — adjust name and tap Publish');
   }
@@ -267,88 +346,105 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (ctx) {
-        return Padding(
-          padding: EdgeInsets.only(bottom: MediaQuery.viewInsetsOf(ctx).bottom),
-          child: Container(
-            decoration: const BoxDecoration(
-              color: AppTheme.surfaceElevated,
-              borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-            ),
-            padding: const EdgeInsets.fromLTRB(24, 16, 24, 28),
-            child: SingleChildScrollView(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  Center(
-                    child: Container(
-                      width: 40,
-                      height: 4,
-                      decoration: BoxDecoration(
-                        color: Colors.white24,
-                        borderRadius: BorderRadius.circular(4),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  Text('Edit channel', style: Theme.of(ctx).textTheme.titleLarge),
-                  const SizedBox(height: 20),
-                  _sheetField(nameCtrl, 'Name', Icons.live_tv_rounded),
-                  const SizedBox(height: 12),
-                  _sheetField(urlCtrl, 'Stream URL', Icons.link_rounded, maxLines: 3),
-                  const SizedBox(height: 12),
-                  _sheetField(groupCtrl, 'Group', Icons.folder_outlined),
-                  const SizedBox(height: 12),
-                  _sheetField(logoCtrl, 'Logo URL', Icons.image_outlined, maxLines: 2),
-                  const SizedBox(height: 24),
-                  Row(
+        return StatefulBuilder(
+          builder: (ctx, setModalState) {
+            return Padding(
+              padding: EdgeInsets.only(bottom: MediaQuery.viewInsetsOf(ctx).bottom),
+              child: Container(
+                decoration: const BoxDecoration(
+                  color: AppTheme.surfaceElevated,
+                  borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+                ),
+                padding: const EdgeInsets.fromLTRB(24, 16, 24, 28),
+                child: SingleChildScrollView(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
-                      Expanded(
-                        child: OutlinedButton(
-                          onPressed: () {
-                            Navigator.pop(ctx);
-                            for (final c in [nameCtrl, urlCtrl, groupCtrl, logoCtrl]) {
-                              Future.microtask(c.dispose);
-                            }
-                          },
-                          child: const Text('Cancel'),
+                      Center(
+                        child: Container(
+                          width: 40,
+                          height: 4,
+                          decoration: BoxDecoration(
+                            color: Colors.white24,
+                            borderRadius: BorderRadius.circular(4),
+                          ),
                         ),
                       ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        flex: 2,
-                        child: FilledButton(
-                          onPressed: () {
-                            Navigator.pop(ctx);
-                            final name = nameCtrl.text.trim();
-                            final url = urlCtrl.text.trim();
-                            if (name.isEmpty || url.isEmpty) {
-                              for (final c in [nameCtrl, urlCtrl, groupCtrl, logoCtrl]) {
-                                Future.microtask(c.dispose);
-                              }
-                              _snack('Name and URL are required', error: true);
-                              return;
-                            }
-                            for (final c in [nameCtrl, urlCtrl, groupCtrl, logoCtrl]) {
-                              Future.microtask(c.dispose);
-                            }
-                            _updateChannel(
-                              key,
-                              name: name,
-                              url: url,
-                              group: groupCtrl.text.trim(),
-                              logo: logoCtrl.text.trim(),
-                            );
-                          },
-                          child: const Text('Save changes'),
-                        ),
+                      const SizedBox(height: 16),
+                      Text('Edit channel', style: Theme.of(ctx).textTheme.titleLarge),
+                      const SizedBox(height: 20),
+                      _sheetField(nameCtrl, 'Name', Icons.live_tv_rounded),
+                      const SizedBox(height: 12),
+                      _sheetField(urlCtrl, 'Stream URL', Icons.link_rounded, maxLines: 3),
+                      const SizedBox(height: 12),
+                      _sheetField(groupCtrl, 'Group', Icons.folder_outlined),
+                      const SizedBox(height: 12),
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Expanded(
+                            child: _sheetField(logoCtrl, 'Logo URL or image', Icons.image_outlined, maxLines: 2),
+                          ),
+                          const SizedBox(width: 8),
+                          IconButton.filledTonal(
+                            tooltip: 'Pick from gallery',
+                            onPressed: () => _pickLogoInto(logoCtrl, () => setModalState(() {})),
+                            icon: const Icon(Icons.photo_library_outlined),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 24),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: OutlinedButton(
+                              onPressed: () {
+                                Navigator.pop(ctx);
+                                for (final c in [nameCtrl, urlCtrl, groupCtrl, logoCtrl]) {
+                                  Future.microtask(c.dispose);
+                                }
+                              },
+                              child: const Text('Cancel'),
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            flex: 2,
+                            child: FilledButton(
+                              onPressed: () {
+                                Navigator.pop(ctx);
+                                final name = nameCtrl.text.trim();
+                                final url = urlCtrl.text.trim();
+                                if (name.isEmpty || url.isEmpty) {
+                                  for (final c in [nameCtrl, urlCtrl, groupCtrl, logoCtrl]) {
+                                    Future.microtask(c.dispose);
+                                  }
+                                  _snack('Name and URL are required', error: true);
+                                  return;
+                                }
+                                for (final c in [nameCtrl, urlCtrl, groupCtrl, logoCtrl]) {
+                                  Future.microtask(c.dispose);
+                                }
+                                _updateChannel(
+                                  key,
+                                  name: name,
+                                  url: url,
+                                  group: groupCtrl.text.trim(),
+                                  logo: logoCtrl.text.trim(),
+                                );
+                              },
+                              child: const Text('Save changes'),
+                            ),
+                          ),
+                        ],
                       ),
                     ],
                   ),
-                ],
+                ),
               ),
-            ),
-          ),
+            );
+          },
         );
       },
     );
@@ -367,98 +463,103 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
     );
   }
 
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AppTheme.backgroundBlack,
-      body: NestedScrollView(
-        headerSliverBuilder: (context, inner) => [
-          SliverAppBar(
-            pinned: true,
-            expandedHeight: 118,
-            backgroundColor: AppTheme.backgroundBlack,
-            foregroundColor: Colors.white,
-            leading: IconButton(
-              icon: const Icon(Icons.arrow_back_rounded),
-              onPressed: () => Navigator.pop(context),
-            ),
-            flexibleSpace: FlexibleSpaceBar(
-              background: Container(
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                    colors: [
-                      AppTheme.backgroundBlack,
-                      AppTheme.surfaceGray,
-                      AppTheme.primaryGold.withValues(alpha: 0.06),
+  Widget _buildAdminHeader(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            AppTheme.backgroundBlack,
+            AppTheme.surfaceGray,
+            AppTheme.primaryGold.withValues(alpha: 0.06),
+          ],
+        ),
+      ),
+      padding: const EdgeInsets.fromLTRB(4, 4, 16, 14),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          IconButton(
+            icon: const Icon(Icons.arrow_back_rounded, color: Colors.white),
+            onPressed: () => Navigator.pop(context),
+          ),
+          Expanded(
+            child: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: AppTheme.primaryGold.withValues(alpha: 0.15),
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                  child: Icon(Icons.admin_panel_settings_rounded, color: AppTheme.primaryGold, size: 26),
+                ),
+                const SizedBox(width: 14),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Control center',
+                        style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                              fontWeight: FontWeight.w800,
+                              color: Colors.white,
+                            ),
+                      ),
+                      Text(
+                        'Firebase Realtime Database',
+                        style: TextStyle(color: Colors.white.withValues(alpha: 0.45), fontSize: 12),
+                      ),
                     ],
                   ),
                 ),
-                alignment: Alignment.bottomLeft,
-                padding: const EdgeInsets.fromLTRB(20, 48, 20, 52),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Row(
-                      children: [
-                        Container(
-                          padding: const EdgeInsets.all(10),
-                          decoration: BoxDecoration(
-                            color: AppTheme.primaryGold.withValues(alpha: 0.15),
-                            borderRadius: BorderRadius.circular(14),
-                          ),
-                          child: Icon(Icons.admin_panel_settings_rounded, color: AppTheme.primaryGold, size: 26),
-                        ),
-                        const SizedBox(width: 14),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                'Control center',
-                                style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                                      fontWeight: FontWeight.w800,
-                                      color: Colors.white,
-                                    ),
-                              ),
-                              Text(
-                                'Firebase Realtime Database',
-                                style: TextStyle(color: Colors.white.withValues(alpha: 0.45), fontSize: 12),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-            ),
-            bottom: TabBar(
-              controller: _tabController,
-              isScrollable: true,
-              indicatorColor: AppTheme.primaryGold,
-              indicatorWeight: 3,
-              labelColor: AppTheme.primaryGold,
-              unselectedLabelColor: Colors.white54,
-              tabs: const [
-                Tab(icon: Icon(Icons.space_dashboard_rounded, size: 20), text: 'Overview'),
-                Tab(icon: Icon(Icons.live_tv_rounded, size: 20), text: 'Channels'),
-                Tab(icon: Icon(Icons.add_circle_outline_rounded, size: 20), text: 'Publish'),
-                Tab(icon: Icon(Icons.key_rounded, size: 20), text: 'Access'),
               ],
             ),
           ),
         ],
-        body: TabBarView(
-          controller: _tabController,
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: AppTheme.backgroundBlack,
+      body: SafeArea(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            _buildOverviewTab(),
-            _buildChannelsTab(),
-            _buildPublishTab(),
-            _buildAccessTab(),
+            _buildAdminHeader(context),
+            Material(
+              color: AppTheme.backgroundBlack,
+              child: TabBar(
+                controller: _tabController,
+                isScrollable: true,
+                indicatorColor: AppTheme.primaryGold,
+                indicatorWeight: 3,
+                labelColor: AppTheme.primaryGold,
+                unselectedLabelColor: Colors.white54,
+                tabs: const [
+                  Tab(icon: Icon(Icons.space_dashboard_rounded, size: 20), text: 'Overview'),
+                  Tab(icon: Icon(Icons.live_tv_rounded, size: 20), text: 'Channels'),
+                  Tab(icon: Icon(Icons.add_circle_outline_rounded, size: 20), text: 'Publish'),
+                  Tab(icon: Icon(Icons.key_rounded, size: 20), text: 'Access'),
+                ],
+              ),
+            ),
+            Expanded(
+              child: TabBarView(
+                controller: _tabController,
+                children: [
+                  _buildOverviewTab(),
+                  _buildChannelsTab(),
+                  _buildPublishTab(),
+                  _buildAccessTab(),
+                ],
+              ),
+            ),
           ],
         ),
       ),
@@ -791,12 +892,12 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
                                       ClipRRect(
                                         borderRadius: BorderRadius.circular(14),
                                         child: logo != null && '$logo'.isNotEmpty
-                                            ? Image.network(
-                                                '$logo',
+                                            ? ChannelLogoImage(
+                                                logo: '$logo',
                                                 width: 56,
                                                 height: 56,
                                                 fit: BoxFit.cover,
-                                                errorBuilder: (_, __, ___) => _channelPlaceholder(),
+                                                fallback: _channelPlaceholder(),
                                               )
                                             : _channelPlaceholder(),
                                       ),
@@ -915,13 +1016,57 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
               children: [
                 _field(_channelNameController, 'Channel name', Icons.label_outline_rounded),
                 const SizedBox(height: 14),
-                _field(_channelUrlController, 'Stream URL (M3U8 / HLS)', Icons.link_rounded, maxLines: 3),
+                _field(_channelUrlController, 'Stream URL (M3U8 / HLS / MP4)', Icons.link_rounded, maxLines: 3),
                 const SizedBox(height: 14),
-                _field(_channelGroupController, 'Group', Icons.folder_outlined),
-                const SizedBox(height: 12),
-                _buildGroupQuickPick(),
+                DropdownButtonFormField<_PublishShelf>(
+                  value: _publishShelf,
+                  dropdownColor: AppTheme.surfaceElevated,
+                  decoration: InputDecoration(
+                    labelText: 'App section',
+                    prefixIcon: Icon(Icons.category_rounded, color: AppTheme.primaryGold.withValues(alpha: 0.85)),
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(14)),
+                    filled: true,
+                    fillColor: Colors.black.withValues(alpha: 0.2),
+                  ),
+                  items: const [
+                    DropdownMenuItem(value: _PublishShelf.liveTv, child: Text('Live TV (home / live lists)')),
+                    DropdownMenuItem(value: _PublishShelf.movies, child: Text('Movies (Movies tab)')),
+                    DropdownMenuItem(value: _PublishShelf.custom, child: Text('Custom group')),
+                  ],
+                  onChanged: (v) {
+                    if (v != null) _setPublishShelf(v);
+                  },
+                ),
+                if (_publishShelf == _PublishShelf.custom) ...[
+                  const SizedBox(height: 14),
+                  _field(_channelGroupController, 'Group name', Icons.folder_outlined),
+                  const SizedBox(height: 12),
+                  _buildGroupQuickPick(),
+                ] else ...[
+                  const SizedBox(height: 8),
+                  Text(
+                    'Saved under group: ${_resolvedPublishGroup()}',
+                    style: TextStyle(fontSize: 12, color: Colors.white.withValues(alpha: 0.45)),
+                  ),
+                ],
                 const SizedBox(height: 14),
-                _field(_channelLogoController, 'Logo URL (optional)', Icons.image_outlined, maxLines: 2),
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Expanded(
+                      child: _field(_channelLogoController, 'Logo URL (optional)', Icons.image_outlined, maxLines: 2),
+                    ),
+                    const SizedBox(width: 8),
+                    Padding(
+                      padding: const EdgeInsets.only(top: 6),
+                      child: IconButton.filledTonal(
+                        tooltip: 'Pick from gallery',
+                        onPressed: () => _pickLogoInto(_channelLogoController),
+                        icon: const Icon(Icons.add_photo_alternate_outlined),
+                      ),
+                    ),
+                  ],
+                ),
                 const SizedBox(height: 22),
                 FilledButton.icon(
                   onPressed: _addChannel,

@@ -4,8 +4,9 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../core/app_assets.dart';
 import '../../core/theme.dart';
+import '../../widgets/channel_logo_image.dart';
+import '../../widgets/optic_wordmark.dart';
 import '../../l10n/app_strings.dart';
 import '../../providers/ui_settings_provider.dart';
 import '../../services/playlist_service.dart';
@@ -44,7 +45,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
 
   void _onLogoTapForAdminPortal() {
     _adminTapResetTimer?.cancel();
-    _adminTapResetTimer = Timer(const Duration(seconds: 2), () {
+    _adminTapResetTimer = Timer(const Duration(seconds: 3), () {
       if (mounted) setState(() => _adminLogoTaps = 0);
     });
     setState(() => _adminLogoTaps++);
@@ -264,72 +265,58 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
   ) {
     return Padding(
       padding: EdgeInsets.fromLTRB(pad * 0.5, pad * 0.75, pad * 0.5, 8),
-      child: Row(
-        children: [
-          Material(
-            color: Colors.white.withValues(alpha: 0.06),
-            borderRadius: BorderRadius.circular(12),
-            clipBehavior: Clip.antiAlias,
-            child: IconButton(
-              tooltip: s.settingsTooltip,
-              icon: const Icon(Icons.menu_rounded, color: Colors.white),
-              onPressed: _openSettings,
-            ),
-          ),
-          const SizedBox(width: 8),
-          Expanded(
-            child: Material(
+      child: Directionality(
+        textDirection: TextDirection.ltr,
+        child: Row(
+          children: [
+            Material(
               color: Colors.white.withValues(alpha: 0.06),
               borderRadius: BorderRadius.circular(12),
               clipBehavior: Clip.antiAlias,
-              child: InkWell(
-                onTap: _onLogoTapForAdminPortal,
+              child: IconButton(
+                tooltip: s.settingsTooltip,
+                icon: const Icon(Icons.menu_rounded, color: Colors.white),
+                onPressed: _openSettings,
+              ),
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Material(
+                color: Colors.white.withValues(alpha: 0.06),
                 borderRadius: BorderRadius.circular(12),
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
-                  child: Center(
-                    child: Image.asset(
-                      AppAssets.opticLogo,
-                      height: tv ? 36 : 32,
-                      fit: BoxFit.contain,
-                      filterQuality: FilterQuality.high,
-                      errorBuilder: (context, error, stackTrace) => Text(
-                        s.appBrand,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        textAlign: TextAlign.center,
-                        style: TextStyle(
-                          fontSize: tv ? 17 : 15,
-                          fontWeight: FontWeight.w800,
-                          color: Colors.white,
-                          letterSpacing: 0.5,
-                        ),
-                      ),
+                clipBehavior: Clip.antiAlias,
+                child: InkWell(
+                  onTap: _onLogoTapForAdminPortal,
+                  borderRadius: BorderRadius.circular(12),
+                  child: SizedBox(
+                    height: tv ? 48 : 44,
+                    child: Center(
+                      child: OpticWordmark(height: tv ? 30 : 26),
                     ),
                   ),
                 ),
               ),
             ),
-          ),
-          const SizedBox(width: 8),
-          Material(
-            color: Colors.white.withValues(alpha: 0.06),
-            borderRadius: BorderRadius.circular(12),
-            clipBehavior: Clip.antiAlias,
-            child: IconButton(
-              icon: Icon(
-                _searchOpen ? Icons.close_rounded : Icons.search_rounded,
-                color: _searchOpen ? _accent : Colors.white,
+            const SizedBox(width: 8),
+            Material(
+              color: Colors.white.withValues(alpha: 0.06),
+              borderRadius: BorderRadius.circular(12),
+              clipBehavior: Clip.antiAlias,
+              child: IconButton(
+                icon: Icon(
+                  _searchOpen ? Icons.close_rounded : Icons.search_rounded,
+                  color: _searchOpen ? _accent : Colors.white,
+                ),
+                onPressed: () {
+                  setState(() {
+                    _searchOpen = !_searchOpen;
+                    if (!_searchOpen) _searchController.clear();
+                  });
+                },
               ),
-              onPressed: () {
-                setState(() {
-                  _searchOpen = !_searchOpen;
-                  if (!_searchOpen) _searchController.clear();
-                });
-              },
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -635,14 +622,13 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                             ),
                           ),
                           child: Center(
-                            child: channel.logo != null
-                                ? Image.network(
-                                    channel.logo!,
-                                    fit: BoxFit.contain,
-                                    errorBuilder: (_, __, ___) =>
-                                        Icon(Icons.tv_rounded, color: Colors.white24, size: logoSize),
-                                  )
-                                : Icon(Icons.tv_rounded, color: Colors.white24, size: logoSize),
+                            child: ChannelLogoImage(
+                              logo: channel.logo,
+                              width: logoSize * 2.4,
+                              height: logoSize * 2.4,
+                              fit: BoxFit.contain,
+                              fallback: Icon(Icons.tv_rounded, color: Colors.white24, size: logoSize),
+                            ),
                           ),
                         ),
                       ),
