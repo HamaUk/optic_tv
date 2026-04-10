@@ -10,7 +10,7 @@ class AppStrings {
 
   bool get isEnglish => locale.languageCode == 'en';
 
-  String get loginTitle => isEnglish ? '[DEBUG] Welcome' : '[DEBUG] بەخێربێیت';
+  String get loginTitle => isEnglish ? 'Welcome back' : 'بەخێربێیت';
   String get loginSubtitle =>
       isEnglish ? 'Enter your access code to continue' : 'کۆدی دەستپێگەیشتن بنووسە بۆ بەردەوامبوون';
   String get loginHint => isEnglish ? 'Code (letters or numbers)' : 'کۆد (پیت یان ژمارە)';
