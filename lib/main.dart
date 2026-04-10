@@ -26,12 +26,20 @@ void main() async {
   runApp(
     ProviderScope(
       overrides: [
-        sessionProvider.overrideWith((ref) => initialSession),
+        sessionProvider.overrideWith(() => _SeededSessionNotifier(initialSession)),
         appLocaleProvider.overrideWith(() => _SeededLocaleNotifier(initialLocaleCode)),
       ],
       child: const OpticTvApp(),
     ),
   );
+}
+
+class _SeededSessionNotifier extends SessionNotifier {
+  _SeededSessionNotifier(this._initial);
+  final bool _initial;
+
+  @override
+  bool build() => _initial;
 }
 
 class _SeededLocaleNotifier extends AppLocaleNotifier {

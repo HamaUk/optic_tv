@@ -3,7 +3,7 @@ description: A premium, professional IPTV application built from scratch.
 version: 1.0.0+1
 
 environment:
-  sdk: '>=3.0.0 <4.0.0'
+  sdk: '>=3.7.0 <4.0.0'
 
 dependencies:
   flutter:
@@ -11,16 +11,16 @@ dependencies:
 
   # Premium Media Playback
   media_kit: ^1.1.0
-  media_kit_video: ^1.1.0
+  media_kit_video: ^2.0.1
   media_kit_libs_video: ^1.0.7
 
   # State Management & DI
-  flutter_riverpod: ^2.5.1
-  riverpod_annotation: ^2.3.5
+  flutter_riverpod: ^3.3.1
+  riverpod_annotation: ^4.0.2
 
   # Firebase & Backend
-  firebase_core: ^3.1.0
-  firebase_database: ^11.0.1
+  firebase_core: ^4.6.0
+  firebase_database: ^12.2.0
 
   # Localization & RTL
   flutter_localizations:
@@ -35,7 +35,7 @@ dependencies:
   shared_preferences: ^2.2.3
 
   # UI & UX
-  google_fonts: ^6.2.1
+  google_fonts: ^8.0.2
   glassmorphism: ^3.0.0
   cached_network_image: ^3.3.1
   flutter_spinkit: ^5.2.1
@@ -43,9 +43,9 @@ dependencies:
 dev_dependencies:
   flutter_test:
     sdk: flutter
-  flutter_lints: ^3.0.2
-  build_runner: ^2.4.9
-  riverpod_generator: ^2.4.0
+  flutter_lints: ^6.0.0
+  build_runner: ^2.13.1
+  riverpod_generator: ^4.0.3
 
 flutter:
   uses-material-design: true

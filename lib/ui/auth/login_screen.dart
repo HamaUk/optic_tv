@@ -33,7 +33,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       return;
     }
     setState(() => _busy = true);
-    final ok = await ref.read(sessionActionsProvider).loginWithCode(code);
+    final ok = await ref.read(sessionProvider.notifier).loginWithCode(code);
     if (!mounted) return;
     setState(() => _busy = false);
     if (!ok) {

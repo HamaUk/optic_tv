@@ -3,26 +3,24 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import '../services/login_codes_service.dart';
 
-final sessionProvider = StateProvider<bool>((ref) => false);
-
-final sessionActionsProvider = Provider<SessionActions>((ref) => SessionActions(ref));
-
-class SessionActions {
-  SessionActions(this._ref);
-  final Ref _ref;
+class SessionNotifier extends Notifier<bool> {
+  @override
+  bool build() => false;
 
   Future<bool> loginWithCode(String code) async {
     final ok = await LoginCodesService.validate(code);
     if (!ok) return false;
     final p = await SharedPreferences.getInstance();
     await p.setBool('auth_logged_in', true);
-    _ref.read(sessionProvider.notifier).state = true;
+    state = true;
     return true;
   }
 
   Future<void> logout() async {
     final p = await SharedPreferences.getInstance();
     await p.setBool('auth_logged_in', false);
-    _ref.read(sessionProvider.notifier).state = false;
+    state = false;
   }
 }
+
+final sessionProvider = NotifierProvider<SessionNotifier, bool>(SessionNotifier.new);

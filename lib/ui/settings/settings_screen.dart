@@ -64,7 +64,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         ) ??
         false;
     if (!go || !mounted) return;
-    await ref.read(sessionActionsProvider).logout();
+    await ref.read(sessionProvider.notifier).logout();
     // MaterialApp switches home to LoginScreen; avoid extra pops.
   }
 
