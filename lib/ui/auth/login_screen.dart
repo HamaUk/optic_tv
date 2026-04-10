@@ -112,52 +112,56 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   child: Column(
                     children: [
                       Container(
+                        height: 56, // STRICT PHYSICAL BOUNDARY
+                        clipBehavior: Clip.hardEdge, // PREVENTS OVERFLOWING IF IT CRASHES
                         decoration: BoxDecoration(
                           color: const Color(0xFF1C2430), // Solid dark color
                           borderRadius: BorderRadius.circular(16),
                           border: Border.all(color: Colors.white.withOpacity(0.1)),
                         ),
-                        padding: const EdgeInsets.only(left: 20, right: 8),
+                        padding: const EdgeInsets.only(left: 12, right: 8),
                         alignment: Alignment.center,
-                        child: Row(
-                          children: [
-                            Expanded(
-                              child: TextField(
-                                controller: _codeController,
-                                textAlign: TextAlign.center,
-                                textDirection: TextDirection.ltr, // Codes are Latin letters/numbers usually
-                                maxLines: 1, // Enforce single line
-                                style: const TextStyle(
-                                  color: Colors.white, 
-                                  fontSize: 18, 
-                                  letterSpacing: 1.5,
-                                  fontFamily: 'sans-serif', // Force standard system font
-                                ),
-                                cursorColor: AppTheme.primaryGold,
-                                autocorrect: false,
-                                enableSuggestions: false,
-                                keyboardType: TextInputType.text, // Avoids giant password keyboards on TV
-                                textInputAction: TextInputAction.done,
-                                onSubmitted: (_) => _submit(s),
-                                decoration: InputDecoration(
-                                  hintText: s.loginHint,
-                                  hintStyle: TextStyle(
-                                    color: Colors.white.withOpacity(0.3),
-                                    fontFamily: 'sans-serif',
+                        child: Material(
+                          color: Colors.transparent, // Fixes missing Material ancestor bugs on some TV boxes
+                          child: Row(
+                            children: [
+                              Expanded(
+                                child: TextField(
+                                  controller: _codeController,
+                                  textAlign: TextAlign.center,
+                                  textDirection: TextDirection.ltr, // Typing numbers
+                                  maxLines: 1, 
+                                  style: const TextStyle(
+                                    color: Colors.white, 
+                                    fontSize: 18, 
+                                    letterSpacing: 1.5,
+                                    fontFamily: 'sans-serif', // Fallback standard font
                                   ),
-                                  hintTextDirection: TextDirection.ltr,
-                                  border: InputBorder.none, 
-                                  enabledBorder: InputBorder.none,
-                                  focusedBorder: InputBorder.none,
-                                  contentPadding: const EdgeInsets.symmetric(vertical: 20),
-                                  filled: false, 
-                                  isDense: true,
+                                  cursorColor: AppTheme.primaryGold,
+                                  autocorrect: false,
+                                  enableSuggestions: false,
+                                  keyboardType: TextInputType.text,
+                                  textInputAction: TextInputAction.send,
+                                  onSubmitted: (_) => _submit(s),
+                                  decoration: InputDecoration(
+                                    hintText: s.loginHint,
+                                    hintStyle: TextStyle(
+                                      color: Colors.white.withOpacity(0.3),
+                                      fontFamily: 'sans-serif',
+                                    ),
+                                    hintTextDirection: TextDirection.rtl, // Fixes crash if hint is Kurdish
+                                    border: InputBorder.none, 
+                                    enabledBorder: InputBorder.none,
+                                    focusedBorder: InputBorder.none,
+                                    contentPadding: const EdgeInsets.symmetric(vertical: 10),
+                                    filled: false, 
+                                    isDense: true,
+                                  ),
                                 ),
                               ),
-                            ),
-                            // ALWAYS VISIBLE SUBMIT BUTTON SURVIVES KEYBOARD OVERLAYS
-                            IconButton(
-                              onPressed: _busy ? null : () => _submit(s),
+                              // ALWAYS VISIBLE SUBMIT BUTTON
+                              IconButton(
+                                onPressed: _busy ? null : () => _submit(s),
                               icon: _busy
                                   ? const SizedBox(
                                       width: 24,
@@ -165,11 +169,12 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                                       child: CircularProgressIndicator(strokeWidth: 2, color: AppTheme.primaryGold),
                                     )
                                   : const Icon(Icons.arrow_forward_rounded, color: AppTheme.primaryGold, size: 28),
-                            ),
+                            ), // closes IconButton
                           ],
-                        ),
-                      ),
-                      const SizedBox(height: 24),
+                        ), // closes Row
+                      ), // closes Material
+                    ), // closes Container
+                    const SizedBox(height: 24),
                       
                       // Full Login Button (Redundant but keeps UI consistent)
                       SizedBox(
