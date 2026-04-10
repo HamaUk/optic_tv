@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -5,6 +7,10 @@ import '../../core/theme.dart';
 import '../../services/playlist_service.dart';
 import '../admin/admin_screen.dart';
 import '../player/player_screen.dart';
+import '../settings/settings_screen.dart';
+
+/// Hidden admin portal: matches [AdminScreen] gate.
+const String _kAdminPortalPassword = 'hamakoye99';
 
 class DashboardScreen extends ConsumerStatefulWidget {
   const DashboardScreen({super.key});
@@ -14,17 +20,90 @@ class DashboardScreen extends ConsumerStatefulWidget {
 }
 
 class _DashboardScreenState extends ConsumerState<DashboardScreen> {
-  int _adminClicks = 0;
+  int _adminLogoTaps = 0;
+  Timer? _adminTapResetTimer;
 
-  void _handleAdminAccess() {
-    setState(() {
-      _adminClicks++;
+  @override
+  void dispose() {
+    _adminTapResetTimer?.cancel();
+    super.dispose();
+  }
+
+  void _onLogoTapForAdminPortal() {
+    _adminTapResetTimer?.cancel();
+    _adminTapResetTimer = Timer(const Duration(seconds: 2), () {
+      if (mounted) setState(() => _adminLogoTaps = 0);
     });
-    if (_adminClicks >= 7) {
-      _adminClicks = 0;
+
+    setState(() => _adminLogoTaps++);
+
+    if (_adminLogoTaps >= 7) {
+      _adminTapResetTimer?.cancel();
+      setState(() => _adminLogoTaps = 0);
+      _showAdminPasswordDialog();
+    }
+  }
+
+  void _showAdminPasswordDialog() {
+    final passwordController = TextEditingController();
+    showDialog<void>(
+      context: context,
+      barrierDismissible: false,
+      builder: (dialogContext) {
+        return AlertDialog(
+          backgroundColor: const Color(0xFF1A1D26),
+          title: const Text('Admin portal'),
+          content: TextField(
+            controller: passwordController,
+            obscureText: true,
+            autocorrect: false,
+            decoration: const InputDecoration(
+              labelText: 'Password',
+              border: OutlineInputBorder(),
+            ),
+            onSubmitted: (_) => _tryAdminPassword(
+              dialogContext,
+              passwordController.text,
+              passwordController,
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.pop(dialogContext);
+                Future.microtask(passwordController.dispose);
+              },
+              child: const Text('Cancel'),
+            ),
+            FilledButton(
+              onPressed: () => _tryAdminPassword(
+                dialogContext,
+                passwordController.text,
+                passwordController,
+              ),
+              child: const Text('Enter'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  void _tryAdminPassword(
+    BuildContext dialogContext,
+    String password,
+    TextEditingController passwordController,
+  ) {
+    if (password == _kAdminPortalPassword) {
+      Navigator.pop(dialogContext);
+      Future.microtask(passwordController.dispose);
       Navigator.push(
         context,
         MaterialPageRoute(builder: (context) => const AdminScreen()),
+      );
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Incorrect password')),
       );
     }
   }
@@ -76,7 +155,11 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
             const SizedBox(height: 16),
             const Text('No Channels Found', style: TextStyle(color: Colors.white30)),
             const SizedBox(height: 8),
-            TextButton(onPressed: _handleAdminAccess, child: const Text('Add your first channel')),
+            const Text(
+              'Channels sync from your library when available.',
+              style: TextStyle(color: Colors.white24, fontSize: 12),
+              textAlign: TextAlign.center,
+            ),
           ],
         ),
       );
@@ -93,7 +176,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           _buildHeroSection(channels.first),
-          ...groups.entries.map((group) => _buildCategoryRow(group.key, group.value)),
+          ...groups.entries.map((group) => _buildCategoryRow(channels, group.key, group.value)),
         ],
       ),
     );
@@ -106,7 +189,8 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           GestureDetector(
-            onLongPress: _handleAdminAccess,
+            onTap: _onLogoTapForAdminPortal,
+            behavior: HitTestBehavior.opaque,
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -130,14 +214,21 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
               ],
             ),
           ),
-          Container(
-            padding: const EdgeInsets.all(8),
-            decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.05),
+          Material(
+            color: Colors.white.withOpacity(0.05),
+            shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: Colors.white10),
+              side: const BorderSide(color: Colors.white10),
             ),
-            child: const Icon(Icons.search, color: Colors.white70),
+            clipBehavior: Clip.antiAlias,
+            child: IconButton(
+              icon: const Icon(Icons.settings_outlined, color: Colors.white70),
+              tooltip: 'Settings',
+              onPressed: () => Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const SettingsScreen()),
+              ),
+            ),
           ),
         ],
       ),
@@ -193,10 +284,18 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                 ),
                 const SizedBox(height: 16),
                 ElevatedButton(
-                  onPressed: () => Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (context) => PlayerScreen(channel: featured)),
-                  ),
+                  onPressed: () {
+                    final i = channels.indexOf(featured);
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => PlayerScreen(
+                          channels: channels,
+                          initialIndex: i >= 0 ? i : 0,
+                        ),
+                      ),
+                    );
+                  },
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.black,
                     foregroundColor: Colors.white,
@@ -211,7 +310,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     );
   }
 
-  Widget _buildCategoryRow(String title, List<Channel> channels) {
+  Widget _buildCategoryRow(List<Channel> allChannels, String title, List<Channel> channels) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -232,19 +331,27 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
             scrollDirection: Axis.horizontal,
             padding: const EdgeInsets.symmetric(horizontal: 16),
             itemCount: channels.length,
-            itemBuilder: (context, index) => _buildChannelCard(channels[index]),
+            itemBuilder: (context, index) => _buildChannelCard(allChannels, channels[index]),
           ),
         ),
       ],
     );
   }
 
-  Widget _buildChannelCard(Channel channel) {
+  Widget _buildChannelCard(List<Channel> allChannels, Channel channel) {
     return GestureDetector(
-      onTap: () => Navigator.push(
-        context,
-        MaterialPageRoute(builder: (context) => PlayerScreen(channel: channel)),
-      ),
+      onTap: () {
+        final i = allChannels.indexOf(channel);
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => PlayerScreen(
+              channels: allChannels,
+              initialIndex: i >= 0 ? i : 0,
+            ),
+          ),
+        );
+      },
       child: Container(
         width: 120,
         margin: const EdgeInsets.symmetric(horizontal: 8),
