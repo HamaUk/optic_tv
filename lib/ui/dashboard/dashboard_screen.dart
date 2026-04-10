@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -204,38 +205,6 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
 
     return Scaffold(
       backgroundColor: AppTheme.backgroundBlack,
-      drawer: Drawer(
-        backgroundColor: const Color(0xFF151B24),
-        child: SafeArea(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              DrawerHeader(
-                decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.04)),
-                child: Align(
-                  alignment: AlignmentDirectional.bottomStart,
-                  child: Text(
-                    s.appBrand,
-                    style: const TextStyle(
-                      color: _accent,
-                      fontSize: 22,
-                      fontWeight: FontWeight.w800,
-                    ),
-                  ),
-                ),
-              ),
-              ListTile(
-                leading: const Icon(Icons.settings_outlined, color: Colors.white70),
-                title: Text(s.settingsTitle, style: const TextStyle(color: Colors.white)),
-                onTap: () {
-                  Navigator.pop(context);
-                  _openSettings();
-                },
-              ),
-            ],
-          ),
-        ),
-      ),
       body: Container(
         decoration: const BoxDecoration(
           gradient: LinearGradient(
@@ -312,38 +281,40 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
       padding: EdgeInsets.fromLTRB(pad * 0.5, pad * 0.75, pad * 0.5, 8),
       child: Row(
         children: [
-          Builder(
-            builder: (ctx) => Material(
-              color: Colors.white.withValues(alpha: 0.06),
-              borderRadius: BorderRadius.circular(12),
-              clipBehavior: Clip.antiAlias,
-              child: IconButton(
-                icon: const Icon(Icons.menu_rounded, color: Colors.white),
-                onPressed: () => Scaffold.of(ctx).openDrawer(),
-              ),
+          Material(
+            color: Colors.white.withValues(alpha: 0.06),
+            borderRadius: BorderRadius.circular(12),
+            clipBehavior: Clip.antiAlias,
+            child: IconButton(
+              tooltip: s.settingsTooltip,
+              icon: const Icon(Icons.menu_rounded, color: Colors.white),
+              onPressed: _openSettings,
             ),
           ),
           const SizedBox(width: 8),
           Expanded(
-            child: GestureDetector(
-              onTap: _onLogoTapForAdminPortal,
-              behavior: HitTestBehavior.opaque,
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: 0.06),
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
-                ),
-                child: Text(
-                  s.appBrand,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                    fontSize: tv ? 17 : 15,
-                    fontWeight: FontWeight.w800,
-                    color: Colors.white,
-                    letterSpacing: 0.5,
+            child: Material(
+              color: Colors.white.withValues(alpha: 0.06),
+              borderRadius: BorderRadius.circular(12),
+              clipBehavior: Clip.antiAlias,
+              child: InkWell(
+                onTap: _onLogoTapForAdminPortal,
+                borderRadius: BorderRadius.circular(12),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                  child: Center(
+                    child: Text(
+                      s.appBrand,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        fontSize: tv ? 17 : 15,
+                        fontWeight: FontWeight.w800,
+                        color: Colors.white,
+                        letterSpacing: 0.5,
+                      ),
+                    ),
                   ),
                 ),
               ),
@@ -352,6 +323,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
           const SizedBox(width: 8),
           PopupMenuButton<String?>(
             tooltip: s.filterAll,
+            useRootNavigator: false,
             color: const Color(0xFF1C2430),
             onSelected: (v) => setState(() => _groupFilter = v),
             itemBuilder: (context) => [
@@ -415,43 +387,51 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     );
   }
 
+  TextStyle _searchFieldStyle(BuildContext context, {required double opacity}) {
+    final isAndroid = Theme.of(context).platform == TargetPlatform.android;
+    return TextStyle(
+      color: Colors.white.withValues(alpha: opacity),
+      fontSize: 16,
+      fontFamily: isAndroid ? 'Roboto' : null,
+    );
+  }
+
   Widget _buildSearchField(AppStrings s, double pad) {
     return Padding(
       padding: EdgeInsets.fromLTRB(pad * 0.5, 0, pad * 0.5, 8),
-      child: TextField(
-        controller: _searchController,
-        autofocus: true,
-        style: const TextStyle(color: Colors.white),
-        cursorColor: _accent,
-        onChanged: (_) => setState(() {}),
-        decoration: InputDecoration(
-          hintText: s.searchHint,
-          hintStyle: TextStyle(color: Colors.white.withValues(alpha: 0.35)),
-          filled: true,
-          fillColor: Colors.white.withValues(alpha: 0.06),
-          prefixIcon: const Icon(Icons.search_rounded, color: Colors.white54),
-          suffixIcon: _searchController.text.isEmpty
-              ? null
-              : IconButton(
+      child: Material(
+        color: Colors.white.withValues(alpha: 0.06),
+        borderRadius: BorderRadius.circular(14),
+        clipBehavior: Clip.antiAlias,
+        child: Padding(
+          padding: const EdgeInsetsDirectional.only(start: 8, end: 4),
+          child: Row(
+            children: [
+              const Icon(Icons.search_rounded, color: Colors.white54, size: 22),
+              Expanded(
+                child: CupertinoTextField(
+                  controller: _searchController,
+                  autofocus: true,
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 12),
+                  style: _searchFieldStyle(context, opacity: 1),
+                  placeholder: s.searchHint,
+                  placeholderStyle: _searchFieldStyle(context, opacity: 0.4),
+                  cursorColor: _accent,
+                  selectionControls: materialTextSelectionControls,
+                  decoration: const BoxDecoration(color: Colors.transparent),
+                  onChanged: (_) => setState(() {}),
+                ),
+              ),
+              if (_searchController.text.isNotEmpty)
+                IconButton(
                   icon: const Icon(Icons.clear_rounded, color: Colors.white54),
                   onPressed: () {
                     _searchController.clear();
                     setState(() {});
                   },
                 ),
-          border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(14),
-            borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.1)),
+            ],
           ),
-          enabledBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(14),
-            borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.1)),
-          ),
-          focusedBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(14),
-            borderSide: const BorderSide(color: _accent, width: 1.2),
-          ),
-          contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
         ),
       ),
     );
