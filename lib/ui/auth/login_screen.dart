@@ -122,44 +122,22 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                           ),
                           padding: const EdgeInsets.only(left: 12, right: 8),
                           alignment: Alignment.center,
-                          child: Material(
-                            color: Colors.transparent, // Fixes missing Material ancestor bugs on some TV boxes
-                            child: Row(
-                              children: [
-                                Expanded(
-                                  child: TextField(
-                                    controller: _codeController,
-                                    textAlign: TextAlign.center,
-                                    textDirection: TextDirection.ltr, // Typing numbers
-                                    maxLines: 1, 
-                                    style: const TextStyle(
-                                      color: Colors.white, 
-                                      fontSize: 18, 
-                                      letterSpacing: 1.5,
-                                      fontFamily: 'sans-serif', // Fallback standard font
-                                    ),
-                                    cursorColor: AppTheme.primaryGold,
-                                    autocorrect: false,
-                                    enableSuggestions: false,
-                                    keyboardType: TextInputType.text,
-                                    textInputAction: TextInputAction.send,
-                                    onSubmitted: (_) => _submit(s),
-                                    decoration: InputDecoration(
-                                      hintText: s.loginHint,
-                                      hintStyle: TextStyle(
-                                        color: Colors.white.withOpacity(0.3),
-                                        fontFamily: 'sans-serif',
-                                      ),
-                                      hintTextDirection: TextDirection.rtl, // Fixes crash if hint is Kurdish
-                                      border: InputBorder.none, 
-                                      enabledBorder: InputBorder.none,
-                                      focusedBorder: InputBorder.none,
-                                      contentPadding: const EdgeInsets.symmetric(vertical: 10),
-                                      filled: false, 
-                                      isDense: true,
-                                    ),
+                          child: Row(
+                            children: [
+                              Expanded(
+                                child: TextField(
+                                  controller: _codeController,
+                                  style: const TextStyle(color: Colors.white, fontSize: 18),
+                                  cursorColor: AppTheme.primaryGold,
+                                  onSubmitted: (_) => _submit(s),
+                                  decoration: InputDecoration(
+                                    hintText: s.loginHint,
+                                    hintStyle: TextStyle(color: Colors.white.withOpacity(0.3)),
+                                    border: InputBorder.none, 
+                                    contentPadding: const EdgeInsets.symmetric(horizontal: 16),
                                   ),
                                 ),
+                              ),
                                 // ALWAYS VISIBLE SUBMIT BUTTON
                                 IconButton(
                                   onPressed: _busy ? null : () => _submit(s),
@@ -173,7 +151,6 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                                 ), // closes IconButton
                               ],
                             ), // closes Row
-                          ), // closes Material
                         ), // closes Container
                         const SizedBox(height: 24),
                         
