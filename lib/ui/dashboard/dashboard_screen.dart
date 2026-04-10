@@ -2,14 +2,16 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:google_fonts/google_fonts.dart';
 import '../../core/theme.dart';
+import '../../l10n/app_strings.dart';
+import '../../providers/ui_settings_provider.dart';
 import '../../services/playlist_service.dart';
+import '../../services/settings_service.dart';
 import '../admin/admin_screen.dart';
 import '../player/player_screen.dart';
 import '../settings/settings_screen.dart';
 
-/// Hidden admin portal: matches [AdminScreen] gate.
+/// Hidden admin portal password.
 const String _kAdminPortalPassword = 'hamakoye99';
 
 class DashboardScreen extends ConsumerStatefulWidget {
@@ -34,9 +36,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     _adminTapResetTimer = Timer(const Duration(seconds: 2), () {
       if (mounted) setState(() => _adminLogoTaps = 0);
     });
-
     setState(() => _adminLogoTaps++);
-
     if (_adminLogoTaps >= 7) {
       _adminTapResetTimer?.cancel();
       setState(() => _adminLogoTaps = 0);
@@ -45,14 +45,15 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
   }
 
   void _showAdminPasswordDialog() {
+    final s = AppStrings(Localizations.localeOf(context));
     final passwordController = TextEditingController();
     showDialog<void>(
       context: context,
       barrierDismissible: false,
       builder: (dialogContext) {
         return AlertDialog(
-          backgroundColor: const Color(0xFF1A1D26),
-          title: const Text('Admin portal'),
+          backgroundColor: AppTheme.surfaceElevated,
+          title: Text(s.settingsTitle),
           content: TextField(
             controller: passwordController,
             obscureText: true,
@@ -73,7 +74,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                 Navigator.pop(dialogContext);
                 Future.microtask(passwordController.dispose);
               },
-              child: const Text('Cancel'),
+              child: Text(s.isEnglish ? 'Cancel' : 'پاشگەزبوونەوە'),
             ),
             FilledButton(
               onPressed: () => _tryAdminPassword(
@@ -81,7 +82,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                 passwordController.text,
                 passwordController,
               ),
-              child: const Text('Enter'),
+              child: Text(s.isEnglish ? 'Enter' : 'بچۆ ژوورەوە'),
             ),
           ],
         );
@@ -102,27 +103,39 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
         MaterialPageRoute(builder: (context) => const AdminScreen()),
       );
     } else {
+      final s = AppStrings(Localizations.localeOf(context));
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Incorrect password')),
+        SnackBar(content: Text(s.loginErrorInvalid)),
       );
     }
   }
 
+  Future<void> _openSettings() async {
+    await Navigator.push<void>(
+      context,
+      MaterialPageRoute(builder: (context) => const SettingsScreen()),
+    );
+    if (mounted) ref.invalidate(appUiSettingsProvider);
+  }
+
   @override
   Widget build(BuildContext context) {
-    // Watch the dynamic channel stream from Realtime Database
+    final s = AppStrings(Localizations.localeOf(context));
     final channelsAsync = ref.watch(channelsProvider);
+    final settings = ref.watch(appUiSettingsProvider).asData?.value ?? const AppSettingsData();
+    final tv = settings.tvFriendlyLayout;
+    final animMs = settings.reduceMotion ? 100 : 220;
 
     return Scaffold(
       body: Container(
-        decoration: const BoxDecoration(
+        decoration: BoxDecoration(
           gradient: LinearGradient(
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
             colors: [
               AppTheme.backgroundBlack,
-              Color(0xFF161A25),
-              AppTheme.backgroundBlack,
+              AppTheme.surfaceGray,
+              AppTheme.backgroundBlack.withBlue(24),
             ],
           ),
         ),
@@ -130,12 +143,12 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              _buildHeader(),
+              _buildHeader(s, tv),
               Expanded(
                 child: channelsAsync.when(
-                  data: (channels) => _buildChannelView(channels),
-                  loading: () => const Center(child: CircularProgressIndicator(color: AppTheme.primaryBlue)),
-                  error: (e, _) => Center(child: Text('Error loading channels: $e')),
+                  data: (channels) => _buildChannelView(context, s, channels, settings, animMs),
+                  loading: () => const Center(child: CircularProgressIndicator(color: AppTheme.primaryGold)),
+                  error: (e, _) => Center(child: Text('${s.channelLoadError}: $e')),
                 ),
               ),
             ],
@@ -145,46 +158,11 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     );
   }
 
-  Widget _buildChannelView(List<Channel> channels) {
-    if (channels.isEmpty) {
-      return Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const Icon(Icons.tv_off, size: 64, color: Colors.white10),
-            const SizedBox(height: 16),
-            const Text('No Channels Found', style: TextStyle(color: Colors.white30)),
-            const SizedBox(height: 8),
-            const Text(
-              'Channels sync from your library when available.',
-              style: TextStyle(color: Colors.white24, fontSize: 12),
-              textAlign: TextAlign.center,
-            ),
-          ],
-        ),
-      );
-    }
-
-    final groups = <String, List<Channel>>{};
-    for (var channel in channels) {
-      groups.putIfAbsent(channel.group, () => []).add(channel);
-    }
-
-    return SingleChildScrollView(
-      physics: const BouncingScrollPhysics(),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          _buildHeroSection(channels, channels.first),
-          ...groups.entries.map((group) => _buildCategoryRow(channels, group.key, group.value)),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildHeader() {
+  Widget _buildHeader(AppStrings s, bool tv) {
+    final pad = tv ? 28.0 : 24.0;
+    final iconSize = tv ? 26.0 : 22.0;
     return Padding(
-      padding: const EdgeInsets.all(24.0),
+      padding: EdgeInsets.fromLTRB(pad, pad, pad, 8),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
@@ -195,39 +173,38 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'OPTIC TV',
-                  style: GoogleFonts.outfit(
-                    fontSize: 28,
+                  s.appBrand,
+                  style: TextStyle(
+                    fontSize: tv ? 30 : 26,
                     fontWeight: FontWeight.w900,
-                    color: AppTheme.primaryBlue,
-                    letterSpacing: 2,
+                    color: AppTheme.primaryGold,
+                    letterSpacing: 1.2,
                   ),
                 ),
-                const Text(
-                  'PREMIUM ENTERTAINMENT',
+                Text(
+                  s.appTagline,
                   style: TextStyle(
-                    fontSize: 10,
-                    color: Colors.white30,
-                    letterSpacing: 1.5,
+                    fontSize: tv ? 11 : 10,
+                    color: Colors.white.withOpacity(0.38),
+                    letterSpacing: 1.2,
                   ),
                 ),
               ],
             ),
           ),
           Material(
-            color: Colors.white.withOpacity(0.05),
+            color: Colors.white.withOpacity(0.06),
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(12),
-              side: const BorderSide(color: Colors.white10),
+              side: BorderSide(color: Colors.white.withOpacity(0.1)),
             ),
             clipBehavior: Clip.antiAlias,
             child: IconButton(
-              icon: const Icon(Icons.settings_outlined, color: Colors.white70),
-              tooltip: 'Settings',
-              onPressed: () => Navigator.push(
-                context,
-                MaterialPageRoute(builder: (context) => const SettingsScreen()),
-              ),
+              iconSize: iconSize,
+              padding: EdgeInsets.all(tv ? 12 : 10),
+              icon: Icon(Icons.settings_outlined, color: Colors.white.withOpacity(0.82)),
+              tooltip: s.settingsTooltip,
+              onPressed: _openSettings,
             ),
           ),
         ],
@@ -235,72 +212,156 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     );
   }
 
-  Widget _buildHeroSection(List<Channel> channels, Channel featured) {
+  Widget _buildChannelView(
+    BuildContext context,
+    AppStrings s,
+    List<Channel> channels,
+    AppSettingsData settings,
+    int animMs,
+  ) {
+    if (channels.isEmpty) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.tv_off_rounded, size: settings.tvFriendlyLayout ? 56 : 48, color: Colors.white12),
+            const SizedBox(height: 16),
+            Text(s.noChannels, style: TextStyle(color: Colors.white.withOpacity(0.35))),
+            const SizedBox(height: 8),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 32),
+              child: Text(
+                s.noChannelsHint,
+                style: TextStyle(color: Colors.white.withOpacity(0.22), fontSize: 13),
+                textAlign: TextAlign.center,
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    final groups = <String, List<Channel>>{};
+    for (final channel in channels) {
+      groups.putIfAbsent(channel.group, () => []).add(channel);
+    }
+    final tv = settings.tvFriendlyLayout;
+
+    return SingleChildScrollView(
+      physics: const BouncingScrollPhysics(),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _buildHeroSection(context, s, channels, channels.first, tv, animMs),
+          ...groups.entries.map((g) => _buildCategoryRow(context, channels, g.key, g.value, settings, animMs)),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildHeroSection(
+    BuildContext context,
+    AppStrings s,
+    List<Channel> channels,
+    Channel featured,
+    bool tv,
+    int animMs,
+  ) {
     return Container(
-      height: 250,
-      margin: const EdgeInsets.symmetric(horizontal: 24),
+      height: tv ? 220 : 240,
+      margin: EdgeInsets.symmetric(horizontal: tv ? 28 : 24),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(24),
-        gradient: const LinearGradient(
-          colors: [AppTheme.primaryBlue, AppTheme.primaryPurple],
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            AppTheme.primaryGold.withOpacity(0.85),
+            AppTheme.surfaceElevated,
+            AppTheme.accentTeal.withOpacity(0.35),
+          ],
         ),
+        border: Border.all(color: Colors.white.withOpacity(0.08)),
         boxShadow: [
           BoxShadow(
-            color: AppTheme.primaryBlue.withOpacity(0.3),
-            blurRadius: 20,
-            offset: const Offset(0, 10),
+            color: AppTheme.primaryGold.withOpacity(0.12),
+            blurRadius: 24,
+            offset: const Offset(0, 12),
           ),
         ],
       ),
       child: Stack(
         children: [
           Positioned(
-            right: -20,
-            bottom: -20,
+            right: -16,
+            bottom: -16,
             child: Icon(
-              Icons.connected_tv,
-              size: 200,
-              color: Colors.white.withOpacity(0.1),
+              Icons.live_tv_rounded,
+              size: tv ? 100 : 120,
+              color: Colors.black.withOpacity(0.08),
             ),
           ),
           Padding(
-            padding: const EdgeInsets.all(32.0),
+            padding: EdgeInsets.all(tv ? 28 : 26),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                const Text(
-                  'Now Playing',
-                  style: TextStyle(color: Colors.black54, fontWeight: FontWeight.bold),
+                Text(
+                  s.nowPlaying,
+                  style: TextStyle(
+                    color: Colors.black.withOpacity(0.55),
+                    fontWeight: FontWeight.bold,
+                    fontSize: tv ? 12 : 11,
+                  ),
                 ),
-                const SizedBox(height: 8),
+                const SizedBox(height: 6),
                 Text(
                   featured.name,
-                  style: const TextStyle(
-                    fontSize: 24,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.black,
+                  style: TextStyle(
+                    fontSize: tv ? 26 : 22,
+                    fontWeight: FontWeight.w800,
+                    color: Colors.black87,
                   ),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
                 ),
-                const SizedBox(height: 16),
-                ElevatedButton(
-                  onPressed: () {
-                    final i = channels.indexOf(featured);
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => PlayerScreen(
-                          channels: channels,
-                          initialIndex: i >= 0 ? i : 0,
+                const SizedBox(height: 14),
+                Focus(
+                  child: Builder(
+                    builder: (ctx) {
+                      final focused = Focus.of(ctx).hasFocus;
+                      return AnimatedContainer(
+                        duration: Duration(milliseconds: animMs),
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(14),
+                          boxShadow: focused
+                              ? [BoxShadow(color: Colors.black.withOpacity(0.35), blurRadius: 12)]
+                              : [],
                         ),
-                      ),
-                    );
-                  },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.black,
-                    foregroundColor: Colors.white,
+                        child: FilledButton(
+                          onPressed: () {
+                            final i = channels.indexOf(featured);
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => PlayerScreen(
+                                  channels: channels,
+                                  initialIndex: i >= 0 ? i : 0,
+                                ),
+                              ),
+                            );
+                          },
+                          style: FilledButton.styleFrom(
+                            backgroundColor: Colors.black,
+                            foregroundColor: AppTheme.primaryGold,
+                            padding: EdgeInsets.symmetric(horizontal: tv ? 28 : 22, vertical: tv ? 14 : 12),
+                          ),
+                          child: Text(s.watchNow, style: const TextStyle(fontWeight: FontWeight.bold)),
+                        ),
+                      );
+                    },
                   ),
-                  child: const Text('WATCH NOW'),
                 ),
               ],
             ),
@@ -310,84 +371,130 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     );
   }
 
-  Widget _buildCategoryRow(List<Channel> allChannels, String title, List<Channel> channels) {
+  Widget _buildCategoryRow(
+    BuildContext context,
+    List<Channel> allChannels,
+    String title,
+    List<Channel> channels,
+    AppSettingsData settings,
+    int animMs,
+  ) {
+    final tv = settings.tvFriendlyLayout;
+    final rowH = tv ? 186.0 : 148.0;
+    final titleSize = tv ? 22.0 : 18.0;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Padding(
-          padding: const EdgeInsets.fromLTRB(24, 32, 24, 16),
+          padding: EdgeInsets.fromLTRB(tv ? 28 : 24, tv ? 28 : 24, 24, 12),
           child: Text(
             title,
-            style: const TextStyle(
-              fontSize: 20,
-              fontWeight: FontWeight.bold,
-              color: Colors.white,
-            ),
+            style: TextStyle(fontSize: titleSize, fontWeight: FontWeight.bold, color: Colors.white),
           ),
         ),
         SizedBox(
-          height: 160,
+          height: rowH,
           child: ListView.builder(
             scrollDirection: Axis.horizontal,
-            padding: const EdgeInsets.symmetric(horizontal: 16),
+            padding: EdgeInsets.symmetric(horizontal: tv ? 20 : 14),
             itemCount: channels.length,
-            itemBuilder: (context, index) => _buildChannelCard(allChannels, channels[index]),
+            itemBuilder: (context, index) =>
+                _buildChannelCard(context, allChannels, channels[index], settings, animMs),
           ),
         ),
       ],
     );
   }
 
-  Widget _buildChannelCard(List<Channel> allChannels, Channel channel) {
-    return GestureDetector(
-      onTap: () {
-        final i = allChannels.indexOf(channel);
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (context) => PlayerScreen(
-              channels: allChannels,
-              initialIndex: i >= 0 ? i : 0,
-            ),
-          ),
-        );
-      },
-      child: Container(
-        width: 120,
-        margin: const EdgeInsets.symmetric(horizontal: 8),
-        decoration: BoxDecoration(
-          color: Colors.white.withOpacity(0.05),
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: Colors.white10),
-        ),
-        child: ClipRRect(
-          borderRadius: BorderRadius.circular(20),
-          child: Column(
-            children: [
-              Expanded(
-                child: Container(
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      colors: [Colors.white10, Colors.white.withOpacity(0.05)],
+  Widget _buildChannelCard(
+    BuildContext context,
+    List<Channel> allChannels,
+    Channel channel,
+    AppSettingsData settings,
+    int animMs,
+  ) {
+    final tv = settings.tvFriendlyLayout;
+    final w = tv ? 128.0 : 108.0;
+    final logoSize = tv ? 30.0 : 26.0;
+
+    return Padding(
+      padding: EdgeInsets.symmetric(horizontal: tv ? 10 : 8),
+      child: Focus(
+        child: Builder(
+          builder: (ctx) {
+            final focused = Focus.of(ctx).hasFocus;
+            return AnimatedContainer(
+              duration: Duration(milliseconds: animMs),
+              width: w,
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(18),
+                border: Border.all(
+                  color: focused ? AppTheme.primaryGold : Colors.white.withOpacity(0.08),
+                  width: focused ? 2.2 : 1,
+                ),
+                color: Colors.white.withOpacity(focused ? 0.08 : 0.04),
+                boxShadow: focused
+                    ? [BoxShadow(color: AppTheme.primaryGold.withOpacity(0.18), blurRadius: 14)]
+                    : [],
+              ),
+              child: Material(
+                color: Colors.transparent,
+                child: InkWell(
+                  borderRadius: BorderRadius.circular(18),
+                  onTap: () {
+                    final i = allChannels.indexOf(channel);
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => PlayerScreen(
+                          channels: allChannels,
+                          initialIndex: i >= 0 ? i : 0,
+                        ),
+                      ),
+                    );
+                  },
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(18),
+                    child: Column(
+                      children: [
+                        Expanded(
+                          child: Container(
+                            width: double.infinity,
+                            decoration: BoxDecoration(
+                              gradient: LinearGradient(
+                                colors: [Colors.white.withOpacity(0.07), Colors.white.withOpacity(0.02)],
+                              ),
+                            ),
+                            child: Center(
+                              child: channel.logo != null
+                                  ? Image.network(
+                                      channel.logo!,
+                                      fit: BoxFit.contain,
+                                      errorBuilder: (_, __, ___) =>
+                                          Icon(Icons.tv_rounded, color: Colors.white24, size: logoSize),
+                                    )
+                                  : Icon(Icons.tv_rounded, color: Colors.white24, size: logoSize),
+                            ),
+                          ),
+                        ),
+                        Padding(
+                          padding: EdgeInsets.fromLTRB(8, 8, 8, tv ? 12 : 10),
+                          child: Text(
+                            channel.name,
+                            style: TextStyle(fontSize: tv ? 12 : 11, color: Colors.white70),
+                            overflow: TextOverflow.ellipsis,
+                            maxLines: 2,
+                            textAlign: TextAlign.center,
+                          ),
+                        ),
+                      ],
                     ),
                   ),
-                  child: Center(
-                    child: channel.logo != null
-                        ? Image.network(channel.logo!, fit: BoxFit.contain, errorBuilder: (_, __, ___) => const Icon(Icons.tv, color: Colors.white24, size: 40))
-                        : const Icon(Icons.tv, color: Colors.white24, size: 40),
-                  ),
                 ),
               ),
-              Padding(
-                padding: const EdgeInsets.all(12.0),
-                child: Text(
-                  channel.name,
-                  style: const TextStyle(fontSize: 12, color: Colors.white70),
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ),
-            ],
-          ),
+            );
+          },
         ),
       ),
     );

@@ -11,15 +11,18 @@ class AdminScreen extends StatefulWidget {
 class _AdminScreenState extends State<AdminScreen> {
   static const _playlistPath = 'sync/global/managedPlaylist';
   static const _groupsPath = 'sync/global/channelGroups';
+  static const _loginCodesPath = 'sync/global/loginCodes';
 
   final _channelNameController = TextEditingController();
   final _channelUrlController = TextEditingController();
   final _channelGroupController = TextEditingController();
   final _channelLogoController = TextEditingController();
   final _newGroupController = TextEditingController();
+  final _newLoginCodeController = TextEditingController();
 
   DatabaseReference get _playlistRef => FirebaseDatabase.instance.ref(_playlistPath);
   DatabaseReference get _groupsRef => FirebaseDatabase.instance.ref(_groupsPath);
+  DatabaseReference get _loginCodesRef => FirebaseDatabase.instance.ref(_loginCodesPath);
 
   @override
   void dispose() {
@@ -28,6 +31,7 @@ class _AdminScreenState extends State<AdminScreen> {
     _channelGroupController.dispose();
     _channelLogoController.dispose();
     _newGroupController.dispose();
+    _newLoginCodeController.dispose();
     super.dispose();
   }
 
@@ -153,6 +157,48 @@ class _AdminScreenState extends State<AdminScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Error deleting: $e')),
+        );
+      }
+    }
+  }
+
+  Future<void> _addLoginCode() async {
+    final code = _newLoginCodeController.text.trim();
+    if (code.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Enter a login code')),
+      );
+      return;
+    }
+    try {
+      await _loginCodesRef.push().set({'code': code, 'active': true});
+      _newLoginCodeController.clear();
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Login code saved')),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error: $e')),
+        );
+      }
+    }
+  }
+
+  Future<void> _deleteLoginCode(String key) async {
+    try {
+      await _loginCodesRef.child(key).remove();
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Login code removed')),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error: $e')),
         );
       }
     }
@@ -404,6 +450,70 @@ class _AdminScreenState extends State<AdminScreen> {
                             trailing: IconButton(
                               icon: const Icon(Icons.delete_outline, color: Colors.redAccent),
                               onPressed: () => _deleteGroup('${e.key}'),
+                            ),
+                          );
+                        }).toList(),
+                      );
+                    },
+                  ),
+                  const SizedBox(height: 32),
+                  const Divider(),
+                  const Text(
+                    'User login codes',
+                    style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    'App users enter these codes (letters or numbers). Stored at sync/global/loginCodes.',
+                    style: TextStyle(fontSize: 12, color: Colors.white.withOpacity(0.45)),
+                  ),
+                  const SizedBox(height: 16),
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Expanded(child: _buildTextField(_newLoginCodeController, 'New access code')),
+                      const SizedBox(width: 12),
+                      FilledButton.tonal(
+                        onPressed: _addLoginCode,
+                        child: const Text('Add'),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+                  StreamBuilder<DatabaseEvent>(
+                    stream: _loginCodesRef.onValue,
+                    builder: (context, snapshot) {
+                      if (!snapshot.hasData || snapshot.data?.snapshot.value == null) {
+                        return Text(
+                          'No codes yet — users cannot sign in until you add one.',
+                          style: TextStyle(color: Colors.white.withOpacity(0.35)),
+                        );
+                      }
+                      final value = snapshot.data!.snapshot.value;
+                      if (value is! Map || value.isEmpty) {
+                        return Text(
+                          'No codes yet — users cannot sign in until you add one.',
+                          style: TextStyle(color: Colors.white.withOpacity(0.35)),
+                        );
+                      }
+                      final entries = value.entries.toList()
+                        ..sort((a, b) {
+                          final ac = (a.value is Map) ? '${(a.value as Map)['code']}' : '';
+                          final bc = (b.value is Map) ? '${(b.value as Map)['code']}' : '';
+                          return ac.compareTo(bc);
+                        });
+                      return Column(
+                        children: entries.map((e) {
+                          final m = e.value;
+                          final code = (m is Map) ? '${m['code'] ?? e.key}' : '${e.key}';
+                          final active = (m is Map) && m['active'] != false;
+                          return ListTile(
+                            dense: true,
+                            title: Text(code),
+                            subtitle: Text(active ? 'Active' : 'Disabled'),
+                            trailing: IconButton(
+                              icon: const Icon(Icons.delete_outline, color: Colors.redAccent),
+                              onPressed: () => _deleteLoginCode('${e.key}'),
                             ),
                           );
                         }).toList(),

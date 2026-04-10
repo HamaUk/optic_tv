@@ -6,6 +6,7 @@ import 'package:media_kit/media_kit.dart';
 import 'package:media_kit_video/media_kit_video.dart';
 
 import '../../core/theme.dart';
+import '../../l10n/app_strings.dart';
 import '../../services/playlist_service.dart';
 import '../../services/settings_service.dart';
 
@@ -41,6 +42,8 @@ class _PlayerScreenState extends State<PlayerScreen> {
   bool get _canGoPrev => _index > 0;
   bool get _canGoNext => _index < widget.channels.length - 1;
 
+  int get _animMs => _settings.reduceMotion ? 120 : 240;
+
   @override
   void initState() {
     super.initState();
@@ -73,7 +76,7 @@ class _PlayerScreenState extends State<PlayerScreen> {
   void _scheduleAutoHideChrome() {
     _hideChromeTimer?.cancel();
     if (!_settings.autoHidePlayerControls || !_chromeVisible) return;
-    _hideChromeTimer = Timer(const Duration(seconds: 4), () {
+    _hideChromeTimer = Timer(Duration(seconds: _settings.reduceMotion ? 5 : 4), () {
       if (mounted) setState(() => _chromeVisible = false);
     });
   }
@@ -122,11 +125,11 @@ class _PlayerScreenState extends State<PlayerScreen> {
   Widget _circleButton({
     required IconData icon,
     required VoidCallback? onPressed,
-    double size = 52,
+    double size = 48,
   }) {
     final disabled = onPressed == null;
     return Material(
-      color: Colors.white.withOpacity(disabled ? 0.06 : 0.14),
+      color: Colors.white.withOpacity(disabled ? 0.05 : 0.12),
       shape: const CircleBorder(),
       clipBehavior: Clip.antiAlias,
       child: InkWell(
@@ -134,7 +137,11 @@ class _PlayerScreenState extends State<PlayerScreen> {
         child: SizedBox(
           width: size,
           height: size,
-          child: Icon(icon, color: disabled ? Colors.white24 : Colors.white, size: size * 0.42),
+          child: Icon(
+            icon,
+            color: disabled ? Colors.white24 : Colors.white,
+            size: size * 0.4,
+          ),
         ),
       ),
     );
@@ -142,7 +149,9 @@ class _PlayerScreenState extends State<PlayerScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final timeLabel = DateFormat.jm().format(DateTime.now());
+    final locale = Localizations.localeOf(context);
+    final s = AppStrings(locale);
+    final timeLabel = DateFormat.jm(locale.toString()).format(DateTime.now());
 
     return Scaffold(
       backgroundColor: Colors.black,
@@ -170,12 +179,12 @@ class _PlayerScreenState extends State<PlayerScreen> {
                   begin: Alignment.topCenter,
                   end: Alignment.bottomCenter,
                   colors: [
-                    Colors.black.withOpacity(0.55),
+                    Colors.black.withOpacity(0.58),
                     Colors.transparent,
                     Colors.transparent,
-                    Colors.black.withOpacity(0.65),
+                    AppTheme.backgroundBlack.withOpacity(0.72),
                   ],
-                  stops: const [0, 0.22, 0.72, 1],
+                  stops: const [0, 0.2, 0.75, 1],
                 ),
               ),
             ),
@@ -183,19 +192,19 @@ class _PlayerScreenState extends State<PlayerScreen> {
           Positioned.fill(
             child: AnimatedOpacity(
               opacity: _chromeVisible ? 1 : 0,
-              duration: const Duration(milliseconds: 220),
+              duration: Duration(milliseconds: _animMs),
               child: IgnorePointer(
                 ignoring: !_chromeVisible,
                 child: Column(
                   children: [
-                    _buildTopBar(context, timeLabel),
+                    _buildTopBar(context, s, timeLabel),
                     Expanded(
                       child: GestureDetector(
                         behavior: HitTestBehavior.opaque,
                         onTap: _toggleChromeFromVideo,
                       ),
                     ),
-                    _buildBottomBar(context),
+                    _buildBottomBar(context, s),
                   ],
                 ),
               ),
@@ -206,20 +215,21 @@ class _PlayerScreenState extends State<PlayerScreen> {
     );
   }
 
-  Widget _buildTopBar(BuildContext context, String timeLabel) {
+  Widget _buildTopBar(BuildContext context, AppStrings s, String timeLabel) {
     return Container(
       width: double.infinity,
-      padding: EdgeInsets.fromLTRB(8, MediaQuery.paddingOf(context).top + 8, 8, 24),
+      padding: EdgeInsets.fromLTRB(4, MediaQuery.paddingOf(context).top + 6, 4, 20),
       decoration: BoxDecoration(
         gradient: LinearGradient(
           begin: Alignment.topCenter,
           end: Alignment.bottomCenter,
-          colors: [Colors.black.withOpacity(0.88), Colors.transparent],
+          colors: [Colors.black.withOpacity(0.9), Colors.transparent],
         ),
       ),
       child: Row(
         children: [
           IconButton(
+            iconSize: 22,
             icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.white),
             onPressed: () => Navigator.pop(context),
           ),
@@ -232,33 +242,30 @@ class _PlayerScreenState extends State<PlayerScreen> {
                   _current.name,
                   style: const TextStyle(
                     color: Colors.white,
-                    fontSize: 18,
+                    fontSize: 17,
                     fontWeight: FontWeight.w700,
-                    letterSpacing: -0.2,
                   ),
                   overflow: TextOverflow.ellipsis,
                 ),
                 Text(
                   _current.group,
-                  style: TextStyle(color: Colors.white.withOpacity(0.55), fontSize: 12),
+                  style: TextStyle(color: Colors.white.withOpacity(0.52), fontSize: 12),
                 ),
               ],
             ),
           ),
           if (_settings.showOnScreenClock)
             Padding(
-              padding: const EdgeInsets.only(right: 8),
+              padding: const EdgeInsets.only(right: 4),
               child: Text(
                 timeLabel,
-                style: TextStyle(
-                  color: Colors.white.withOpacity(0.75),
-                  fontSize: 13,
-                ),
+                style: TextStyle(color: AppTheme.primaryGold.withOpacity(0.9), fontSize: 12),
               ),
             ),
           IconButton(
-            tooltip: 'Fullscreen',
-            icon: const Icon(Icons.fullscreen_rounded, color: Colors.white),
+            tooltip: s.fullscreenTooltip,
+            iconSize: 24,
+            icon: Icon(Icons.fullscreen_rounded, color: AppTheme.primaryGold.withOpacity(0.95)),
             onPressed: _toggleFullscreen,
           ),
         ],
@@ -266,15 +273,19 @@ class _PlayerScreenState extends State<PlayerScreen> {
     );
   }
 
-  Widget _buildBottomBar(BuildContext context) {
+  Widget _buildBottomBar(BuildContext context, AppStrings s) {
+    final tv = _settings.tvFriendlyLayout;
+    final sideSize = tv ? 52.0 : 46.0;
+    final playSize = tv ? 76.0 : 68.0;
+
     return Container(
       width: double.infinity,
-      padding: EdgeInsets.fromLTRB(20, 24, 20, MediaQuery.paddingOf(context).bottom + 20),
+      padding: EdgeInsets.fromLTRB(16, 20, 16, MediaQuery.paddingOf(context).bottom + 18),
       decoration: BoxDecoration(
         gradient: LinearGradient(
           begin: Alignment.bottomCenter,
           end: Alignment.topCenter,
-          colors: [Colors.black.withOpacity(0.92), Colors.transparent],
+          colors: [Colors.black.withOpacity(0.93), Colors.transparent],
         ),
       ),
       child: Column(
@@ -286,38 +297,38 @@ class _PlayerScreenState extends State<PlayerScreen> {
               _circleButton(
                 icon: Icons.skip_previous_rounded,
                 onPressed: _canGoPrev ? () => _goRelative(-1) : null,
-                size: 54,
+                size: sideSize,
               ),
-              const SizedBox(width: 20),
+              SizedBox(width: tv ? 22 : 18),
               Material(
-                color: AppTheme.primaryBlue.withOpacity(0.2),
+                color: AppTheme.primaryGold.withOpacity(0.18),
                 shape: const CircleBorder(),
                 clipBehavior: Clip.antiAlias,
                 child: InkWell(
                   onTap: _playPause,
                   child: SizedBox(
-                    width: 72,
-                    height: 72,
+                    width: playSize,
+                    height: playSize,
                     child: Icon(
                       _playing ? Icons.pause_rounded : Icons.play_arrow_rounded,
-                      color: AppTheme.primaryBlue,
-                      size: 44,
+                      color: AppTheme.primaryGold,
+                      size: playSize * 0.48,
                     ),
                   ),
                 ),
               ),
-              const SizedBox(width: 20),
+              SizedBox(width: tv ? 22 : 18),
               _circleButton(
                 icon: Icons.skip_next_rounded,
                 onPressed: _canGoNext ? () => _goRelative(1) : null,
-                size: 54,
+                size: sideSize,
               ),
             ],
           ),
-          const SizedBox(height: 14),
+          const SizedBox(height: 12),
           Text(
             '${_index + 1} / ${widget.channels.length}',
-            style: TextStyle(color: Colors.white.withOpacity(0.45), fontSize: 12),
+            style: TextStyle(color: Colors.white.withOpacity(0.4), fontSize: 11),
           ),
         ],
       ),
