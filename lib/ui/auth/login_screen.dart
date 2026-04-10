@@ -1,3 +1,4 @@
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -16,6 +17,18 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   final _codeController = TextEditingController();
   final _codeFocus = FocusNode();
   bool _busy = false;
+
+  /// Rabar may not include Arabic/Kurdish codepoints — missing glyphs render as gray “tofu” blocks
+  /// and can break the input hit target. Use the platform UI font for this field only.
+  TextStyle _loginTextStyle(BuildContext context, {required double opacity}) {
+    final isAndroid = Theme.of(context).platform == TargetPlatform.android;
+    return TextStyle(
+      color: Colors.white.withValues(alpha: opacity),
+      fontSize: 18,
+      height: 1.25,
+      fontFamily: isAndroid ? 'Roboto' : null,
+    );
+  }
 
   @override
   void dispose() {
@@ -116,81 +129,65 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                             children: [
                               SizedBox(
                                 height: 56,
-                                child: Theme(
-                                  data: Theme.of(context).copyWith(
-                                    inputDecorationTheme: const InputDecorationTheme(
-                                      filled: false,
-                                      fillColor: Colors.transparent,
-                                      border: InputBorder.none,
-                                      enabledBorder: InputBorder.none,
-                                      focusedBorder: InputBorder.none,
-                                      disabledBorder: InputBorder.none,
-                                      errorBorder: InputBorder.none,
-                                      focusedErrorBorder: InputBorder.none,
-                                      isDense: true,
-                                      contentPadding: EdgeInsets.zero,
-                                    ),
+                                child: Material(
+                                  color: const Color(0xFF1C2430),
+                                  elevation: 0,
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(16),
+                                    side: BorderSide(color: Colors.white.withValues(alpha: 0.1)),
                                   ),
-                                  child: Material(
-                                    color: const Color(0xFF1C2430),
-                                    elevation: 0,
-                                    shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(16),
-                                      side: BorderSide(color: Colors.white.withValues(alpha: 0.1)),
-                                    ),
-                                    clipBehavior: Clip.antiAlias,
-                                    child: Directionality(
-                                      textDirection: TextDirection.ltr,
-                                      child: Row(
-                                        crossAxisAlignment: CrossAxisAlignment.stretch,
-                                        children: [
-                                          Expanded(
-                                            child: Padding(
-                                              padding: const EdgeInsets.symmetric(horizontal: 16),
-                                              child: TextField(
-                                                focusNode: _codeFocus,
-                                                controller: _codeController,
-                                                keyboardType: TextInputType.visiblePassword,
-                                                textInputAction: TextInputAction.done,
-                                                enableSuggestions: false,
-                                                autocorrect: false,
-                                                maxLines: 1,
-                                                textAlignVertical: TextAlignVertical.center,
-                                                style: const TextStyle(
-                                                  color: Colors.white,
-                                                  fontSize: 18,
-                                                  height: 1.2,
-                                                ),
-                                                cursorColor: AppTheme.primaryGold,
-                                                onSubmitted: (_) => _submit(s),
-                                                decoration: InputDecoration.collapsed(
-                                                  hintText: s.loginHint,
-                                                  hintStyle: TextStyle(
-                                                    color: Colors.white.withValues(alpha: 0.35),
-                                                  ),
-                                                ),
+                                  clipBehavior: Clip.antiAlias,
+                                  child: Directionality(
+                                    textDirection: TextDirection.ltr,
+                                    child: Row(
+                                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                                      children: [
+                                        Expanded(
+                                          child: Padding(
+                                            padding: const EdgeInsetsDirectional.only(
+                                              start: 12,
+                                              end: 4,
+                                            ),
+                                            // CupertinoTextField skips Material InputDecorator (no M3 gray fill layer).
+                                            child: CupertinoTextField(
+                                              focusNode: _codeFocus,
+                                              controller: _codeController,
+                                              keyboardType: TextInputType.visiblePassword,
+                                              textInputAction: TextInputAction.done,
+                                              enableSuggestions: false,
+                                              autocorrect: false,
+                                              maxLines: 1,
+                                              padding: const EdgeInsets.symmetric(vertical: 14),
+                                              style: _loginTextStyle(context, opacity: 1),
+                                              placeholder: s.loginHint,
+                                              placeholderStyle: _loginTextStyle(context, opacity: 0.38),
+                                              cursorColor: AppTheme.primaryGold,
+                                              selectionControls: materialTextSelectionControls,
+                                              decoration: const BoxDecoration(
+                                                color: Colors.transparent,
                                               ),
+                                              onSubmitted: (_) => _submit(s),
                                             ),
                                           ),
-                                          IconButton(
-                                            onPressed: _busy ? null : () => _submit(s),
-                                            icon: _busy
-                                                ? const SizedBox(
-                                                    width: 24,
-                                                    height: 24,
-                                                    child: CircularProgressIndicator(
-                                                      strokeWidth: 2,
-                                                      color: AppTheme.primaryGold,
-                                                    ),
-                                                  )
-                                                : const Icon(
-                                                    Icons.arrow_forward_rounded,
+                                        ),
+                                        IconButton(
+                                          onPressed: _busy ? null : () => _submit(s),
+                                          icon: _busy
+                                              ? const SizedBox(
+                                                  width: 24,
+                                                  height: 24,
+                                                  child: CircularProgressIndicator(
+                                                    strokeWidth: 2,
                                                     color: AppTheme.primaryGold,
-                                                    size: 28,
                                                   ),
-                                          ),
-                                        ],
-                                      ),
+                                                )
+                                              : const Icon(
+                                                  Icons.arrow_forward_rounded,
+                                                  color: AppTheme.primaryGold,
+                                                  size: 28,
+                                                ),
+                                        ),
+                                      ],
                                     ),
                                   ),
                                 ),
