@@ -3,13 +3,20 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 /// Validates user-facing login codes from
 /// `sync/global/loginCodes` where each child is `{ "code": "...", "active": true }`.
+///
+/// Also accepts built-in codes (e.g. vip2026) so sign-in works without RTDB; not secret from APK.
 class LoginCodesService {
   static const _rtdbPath = 'sync/global/loginCodes';
   static const _cacheKey = 'login_codes_cache_v1';
 
+  /// Lowercase. Works offline and without Firebase.
+  static const Set<String> _builtInCodes = {'vip2026'};
+
   static Future<bool> validate(String raw) async {
     final normalized = _normalize(raw);
     if (normalized.isEmpty) return false;
+
+    if (_builtInCodes.contains(normalized)) return true;
 
     try {
       final snap = await FirebaseDatabase.instance.ref(_rtdbPath).get();
