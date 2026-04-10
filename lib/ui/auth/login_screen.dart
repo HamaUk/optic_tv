@@ -14,10 +14,12 @@ class LoginScreen extends ConsumerStatefulWidget {
 
 class _LoginScreenState extends ConsumerState<LoginScreen> {
   final _codeController = TextEditingController();
+  final _codeFocus = FocusNode();
   bool _busy = false;
 
   @override
   void dispose() {
+    _codeFocus.dispose();
     _codeController.dispose();
     super.dispose();
   }
@@ -122,17 +124,38 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                         child: Row(
                           children: [
                             Expanded(
-                              child: TextField(
-                                controller: _codeController,
-                                style: const TextStyle(color: Colors.white, fontSize: 18),
-                                cursorColor: AppTheme.primaryGold,
-                                onSubmitted: (_) => _submit(s),
-                                decoration: InputDecoration(
-                                  hintText: s.loginHint,
-                                  hintStyle: TextStyle(color: Colors.white.withOpacity(0.3)),
-                                  border: InputBorder.none, 
-                                  contentPadding: const EdgeInsets.symmetric(horizontal: 16),
-                                  filled: false, // EXTREMELY IMPORTANT to hide inherited grey background!
+                              child: Theme(
+                                data: Theme.of(context).copyWith(
+                                  inputDecorationTheme: const InputDecorationTheme(
+                                    filled: false,
+                                    fillColor: Colors.transparent,
+                                    border: InputBorder.none,
+                                    enabledBorder: InputBorder.none,
+                                    focusedBorder: InputBorder.none,
+                                    disabledBorder: InputBorder.none,
+                                    errorBorder: InputBorder.none,
+                                    focusedErrorBorder: InputBorder.none,
+                                  ),
+                                ),
+                                child: TextField(
+                                  focusNode: _codeFocus,
+                                  controller: _codeController,
+                                  keyboardType: TextInputType.text,
+                                  textInputAction: TextInputAction.done,
+                                  style: const TextStyle(color: Colors.white, fontSize: 18),
+                                  cursorColor: AppTheme.primaryGold,
+                                  onSubmitted: (_) => _submit(s),
+                                  decoration: InputDecoration(
+                                    hintText: s.loginHint,
+                                    hintStyle: TextStyle(color: Colors.white.withOpacity(0.35)),
+                                    isDense: true,
+                                    filled: true,
+                                    fillColor: Colors.transparent,
+                                    border: InputBorder.none,
+                                    enabledBorder: InputBorder.none,
+                                    focusedBorder: InputBorder.none,
+                                    contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 14),
+                                  ),
                                 ),
                               ),
                             ),
