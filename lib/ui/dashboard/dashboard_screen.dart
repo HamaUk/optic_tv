@@ -414,16 +414,22 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
   ) {
     final tv = settings.tvFriendlyLayout;
     final crossCount = tv ? 4 : 4;
-    final featured = filteredFlat.isNotEmpty ? filteredFlat.first : allChannels.first;
+    final slideChannels = filteredFlat.take(5).toList();
 
     return CustomScrollView(
       physics: const BouncingScrollPhysics(),
       slivers: [
-        if (_navIndex == 0 && _searchController.text.trim().isEmpty)
+        if (_navIndex == 0 && _searchController.text.trim().isEmpty && slideChannels.isNotEmpty)
           SliverToBoxAdapter(
             child: Padding(
               padding: EdgeInsets.fromLTRB(pad, 8, pad, 16),
-              child: _buildHeroCard(context, s, allChannels, featured, tv, animMs),
+              child: _FeaturedCarousel(
+                slides: slideChannels,
+                s: s,
+                tv: tv,
+                animMs: animMs,
+                onWatch: (c) => _openPlayer(allChannels, c),
+              ),
             ),
           ),
         ...groups.entries.map((entry) {
@@ -443,82 +449,6 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
         }),
         const SliverToBoxAdapter(child: SizedBox(height: 88)),
       ],
-    );
-  }
-
-  Widget _buildHeroCard(
-    BuildContext context,
-    AppStrings s,
-    List<Channel> channels,
-    Channel featured,
-    bool tv,
-    int animMs,
-  ) {
-    return Container(
-      height: tv ? 200 : 210,
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(20),
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [
-            _accent.withValues(alpha: 0.35),
-            const Color(0xFF1C2430),
-            AppTheme.primaryGold.withValues(alpha: 0.2),
-          ],
-        ),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
-      ),
-      child: Stack(
-        children: [
-          Positioned(
-            right: -12,
-            bottom: -12,
-            child: Icon(Icons.live_tv_rounded, size: tv ? 88 : 100, color: Colors.black.withValues(alpha: 0.06)),
-          ),
-          Padding(
-            padding: const EdgeInsets.all(22),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Text(
-                  s.nowPlaying,
-                  style: TextStyle(
-                    color: Colors.white.withValues(alpha: 0.55),
-                    fontWeight: FontWeight.bold,
-                    fontSize: tv ? 12 : 11,
-                  ),
-                ),
-                const SizedBox(height: 6),
-                Text(
-                  featured.name,
-                  style: const TextStyle(
-                    fontSize: 21,
-                    fontWeight: FontWeight.w800,
-                    color: Colors.white,
-                  ),
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                ),
-                const SizedBox(height: 14),
-                FilledButton(
-                  onPressed: () {
-                    final i = channels.indexOf(featured);
-                    _openPlayer(channels, channels[i >= 0 ? i : 0]);
-                  },
-                  style: FilledButton.styleFrom(
-                    backgroundColor: _accent,
-                    foregroundColor: Colors.black,
-                    padding: EdgeInsets.symmetric(horizontal: tv ? 26 : 20, vertical: 12),
-                  ),
-                  child: Text(s.watchNow, style: const TextStyle(fontWeight: FontWeight.bold)),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
     );
   }
 
@@ -688,6 +618,205 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
             ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+class _FeaturedCarousel extends StatefulWidget {
+  const _FeaturedCarousel({
+    required this.slides,
+    required this.s,
+    required this.tv,
+    required this.animMs,
+    required this.onWatch,
+  });
+
+  final List<Channel> slides;
+  final AppStrings s;
+  final bool tv;
+  final int animMs;
+  final void Function(Channel channel) onWatch;
+
+  @override
+  State<_FeaturedCarousel> createState() => _FeaturedCarouselState();
+}
+
+class _FeaturedCarouselState extends State<_FeaturedCarousel> {
+  static const _autoAdvance = Duration(seconds: 5);
+
+  late final PageController _pageController;
+  Timer? _autoTimer;
+  int _index = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    _pageController = PageController();
+    _armAutoAdvance();
+  }
+
+  @override
+  void didUpdateWidget(covariant _FeaturedCarousel oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (!_sameSlideOrder(oldWidget.slides, widget.slides)) {
+      _autoTimer?.cancel();
+      _index = 0;
+      if (_pageController.hasClients) {
+        _pageController.jumpToPage(0);
+      }
+      setState(() {});
+      _armAutoAdvance();
+    }
+  }
+
+  bool _sameSlideOrder(List<Channel> a, List<Channel> b) {
+    if (a.length != b.length) return false;
+    for (var i = 0; i < a.length; i++) {
+      if (a[i].url != b[i].url) return false;
+    }
+    return true;
+  }
+
+  void _armAutoAdvance() {
+    _autoTimer?.cancel();
+    if (widget.slides.length <= 1) return;
+    _autoTimer = Timer.periodic(_autoAdvance, (_) {
+      if (!mounted || !_pageController.hasClients) return;
+      final next = (_index + 1) % widget.slides.length;
+      _pageController.animateToPage(
+        next,
+        duration: Duration(milliseconds: widget.animMs.clamp(200, 500)),
+        curve: Curves.easeInOut,
+      );
+    });
+  }
+
+  void _onPageChanged(int i) {
+    setState(() => _index = i);
+    _armAutoAdvance();
+  }
+
+  @override
+  void dispose() {
+    _autoTimer?.cancel();
+    _pageController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final s = widget.s;
+    final tv = widget.tv;
+    final logoSize = tv ? 96.0 : 88.0;
+
+    return Container(
+      height: tv ? 248 : 238,
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(20),
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            AppTheme.accentTeal.withValues(alpha: 0.35),
+            const Color(0xFF1C2430),
+            AppTheme.primaryGold.withValues(alpha: 0.2),
+          ],
+        ),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: Stack(
+        children: [
+          Positioned(
+            right: -12,
+            bottom: 28,
+            child: Icon(Icons.live_tv_rounded, size: tv ? 88 : 100, color: Colors.black.withValues(alpha: 0.06)),
+          ),
+          Column(
+            children: [
+              Expanded(
+                child: PageView.builder(
+                  controller: _pageController,
+                  onPageChanged: _onPageChanged,
+                  itemCount: widget.slides.length,
+                  itemBuilder: (context, i) {
+                    final ch = widget.slides[i];
+                    return Padding(
+                      padding: const EdgeInsets.fromLTRB(20, 16, 20, 4),
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        crossAxisAlignment: CrossAxisAlignment.center,
+                        children: [
+                          Text(
+                            s.nowPlaying,
+                            style: TextStyle(
+                              color: Colors.white.withValues(alpha: 0.55),
+                              fontWeight: FontWeight.bold,
+                              fontSize: tv ? 12 : 11,
+                            ),
+                          ),
+                          SizedBox(height: tv ? 10 : 8),
+                          ChannelLogoImage(
+                            logo: ch.logo,
+                            width: logoSize,
+                            height: logoSize,
+                            fit: BoxFit.contain,
+                            fallback: Icon(Icons.live_tv_rounded, color: Colors.white38, size: logoSize * 0.55),
+                          ),
+                          SizedBox(height: tv ? 10 : 8),
+                          Text(
+                            ch.name,
+                            textAlign: TextAlign.center,
+                            style: const TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.w800,
+                              color: Colors.white,
+                            ),
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          SizedBox(height: tv ? 14 : 12),
+                          FilledButton(
+                            onPressed: () => widget.onWatch(ch),
+                            style: FilledButton.styleFrom(
+                              backgroundColor: AppTheme.accentTeal,
+                              foregroundColor: Colors.black,
+                              padding: EdgeInsets.symmetric(horizontal: tv ? 28 : 22, vertical: 12),
+                            ),
+                            child: Text(s.watchNow, style: const TextStyle(fontWeight: FontWeight.w700)),
+                          ),
+                        ],
+                      ),
+                    );
+                  },
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.only(bottom: 12, top: 4),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: List.generate(widget.slides.length, (i) {
+                    final active = i == _index;
+                    return AnimatedContainer(
+                      duration: Duration(milliseconds: widget.animMs.clamp(120, 400)),
+                      curve: Curves.easeOut,
+                      margin: const EdgeInsets.symmetric(horizontal: 3),
+                      width: active ? 20 : 7,
+                      height: 7,
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(4),
+                        color: active
+                            ? AppTheme.accentTeal
+                            : Colors.white.withValues(alpha: 0.22),
+                      ),
+                    );
+                  }),
+                ),
+              ),
+            ],
+          ),
+        ],
       ),
     );
   }
