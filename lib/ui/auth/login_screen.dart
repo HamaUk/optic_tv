@@ -2,6 +2,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../core/app_assets.dart';
 import '../../core/theme.dart';
 import '../../l10n/app_strings.dart';
 import '../../providers/session_provider.dart';
@@ -84,17 +85,17 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
                       Center(
-                        child: Container(
-                          padding: const EdgeInsets.all(22),
-                          decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            color: AppTheme.primaryGold.withValues(alpha: 0.1),
-                            border: Border.all(color: AppTheme.primaryGold.withValues(alpha: 0.3)),
-                          ),
-                          child: const Icon(
-                            Icons.lock_rounded,
-                            size: 42,
-                            color: AppTheme.primaryGold,
+                        child: SizedBox(
+                          height: 128,
+                          child: Image.asset(
+                            AppAssets.opticLogo,
+                            fit: BoxFit.contain,
+                            filterQuality: FilterQuality.high,
+                            errorBuilder: (context, error, stackTrace) => const Icon(
+                              Icons.live_tv_rounded,
+                              size: 72,
+                              color: AppTheme.primaryGold,
+                            ),
                           ),
                         ),
                       ),

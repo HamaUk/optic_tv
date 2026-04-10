@@ -4,6 +4,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../core/app_assets.dart';
 import '../../core/theme.dart';
 import '../../l10n/app_strings.dart';
 import '../../providers/ui_settings_provider.dart';
@@ -285,18 +286,24 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                 onTap: _onLogoTapForAdminPortal,
                 borderRadius: BorderRadius.circular(12),
                 child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
                   child: Center(
-                    child: Text(
-                      s.appBrand,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                        fontSize: tv ? 17 : 15,
-                        fontWeight: FontWeight.w800,
-                        color: Colors.white,
-                        letterSpacing: 0.5,
+                    child: Image.asset(
+                      AppAssets.opticLogo,
+                      height: tv ? 36 : 32,
+                      fit: BoxFit.contain,
+                      filterQuality: FilterQuality.high,
+                      errorBuilder: (context, error, stackTrace) => Text(
+                        s.appBrand,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          fontSize: tv ? 17 : 15,
+                          fontWeight: FontWeight.w800,
+                          color: Colors.white,
+                          letterSpacing: 0.5,
+                        ),
                       ),
                     ),
                   ),
