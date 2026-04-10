@@ -54,10 +54,13 @@ class AppTheme {
         elevation: 0,
         centerTitle: true,
       ),
+      // Avoid default filled inputs (grey blocks) on screens that only set border/hint.
       inputDecorationTheme: InputDecorationTheme(
-        filled: true,
-        fillColor: Colors.white.withOpacity(0.06),
+        filled: false,
+        fillColor: Colors.transparent,
         border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+        enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+        focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
       ),
     );
   }

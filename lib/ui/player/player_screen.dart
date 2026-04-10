@@ -25,41 +25,51 @@ class PlayerScreen extends StatefulWidget {
 }
 
 class _PlayerScreenState extends State<PlayerScreen> {
+  static const _accent = AppTheme.accentTeal;
+
   final GlobalKey<VideoState> _videoKey = GlobalKey<VideoState>();
   late final Player _player;
   late final VideoController _controller;
   late int _index;
+  late String _selectedGroup;
   AppSettingsData _settings = const AppSettingsData();
-  bool _chromeVisible = true;
-  Timer? _hideChromeTimer;
   Timer? _clockTimer;
-  bool _playing = false;
+  bool _muted = false;
 
   final List<StreamSubscription<dynamic>> _subscriptions = [];
 
   Channel get _current => widget.channels[_index];
 
-  bool get _canGoPrev => _index > 0;
-  bool get _canGoNext => _index < widget.channels.length - 1;
+  List<String> get _groupNames {
+    final set = <String>{};
+    for (final c in widget.channels) {
+      set.add(c.group);
+    }
+    final list = set.toList()..sort();
+    return list;
+  }
 
-  int get _animMs => _settings.reduceMotion ? 120 : 240;
+  List<Channel> get _channelsInSelectedGroup {
+    return widget.channels.where((c) => c.group == _selectedGroup).toList();
+  }
 
   @override
   void initState() {
     super.initState();
     _index = widget.initialIndex.clamp(0, widget.channels.length - 1);
+    _selectedGroup = widget.channels[_index].group;
     _player = Player();
     _controller = VideoController(_player);
     _player.open(Media(_current.url));
     _subscriptions.add(
-      _player.stream.playing.listen((v) {
-        if (mounted) setState(() => _playing = v);
+      _player.stream.volume.listen((v) {
+        if (mounted && v > 0 && _muted) setState(() => _muted = false);
+        if (mounted && v == 0 && !_muted) setState(() => _muted = true);
       }),
     );
     AppSettingsData.load().then((s) {
       if (!mounted) return;
       setState(() => _settings = s);
-      _scheduleAutoHideChrome();
       _ensureClockTimer();
     });
   }
@@ -73,29 +83,8 @@ class _PlayerScreenState extends State<PlayerScreen> {
     }
   }
 
-  void _scheduleAutoHideChrome() {
-    _hideChromeTimer?.cancel();
-    if (!_settings.autoHidePlayerControls || !_chromeVisible) return;
-    _hideChromeTimer = Timer(Duration(seconds: _settings.reduceMotion ? 5 : 4), () {
-      if (mounted) setState(() => _chromeVisible = false);
-    });
-  }
-
-  void _onChromeInteraction() {
-    if (!_settings.autoHidePlayerControls) return;
-    setState(() => _chromeVisible = true);
-    _scheduleAutoHideChrome();
-  }
-
-  void _toggleChromeFromVideo() {
-    if (!_settings.autoHidePlayerControls) return;
-    setState(() => _chromeVisible = !_chromeVisible);
-    if (_chromeVisible) _scheduleAutoHideChrome();
-  }
-
   @override
   void dispose() {
-    _hideChromeTimer?.cancel();
     _clockTimer?.cancel();
     for (final s in _subscriptions) {
       s.cancel();
@@ -104,47 +93,36 @@ class _PlayerScreenState extends State<PlayerScreen> {
     super.dispose();
   }
 
-  void _goRelative(int delta) {
-    final next = _index + delta;
-    if (next < 0 || next >= widget.channels.length) return;
-    _onChromeInteraction();
-    setState(() => _index = next);
+  Future<void> _toggleMute() async {
+    if (_muted) {
+      await _player.setVolume(100);
+      setState(() => _muted = false);
+    } else {
+      await _player.setVolume(0);
+      setState(() => _muted = true);
+    }
+  }
+
+  void _selectChannelByIndex(int fullListIndex) {
+    if (fullListIndex < 0 || fullListIndex >= widget.channels.length) return;
+    setState(() {
+      _index = fullListIndex;
+      _selectedGroup = widget.channels[_index].group;
+    });
     _player.open(Media(_current.url));
   }
 
   Future<void> _toggleFullscreen() async {
-    _onChromeInteraction();
     await _videoKey.currentState?.toggleFullscreen();
   }
 
   Future<void> _playPause() async {
-    _onChromeInteraction();
     await _player.playOrPause();
   }
 
-  Widget _circleButton({
-    required IconData icon,
-    required VoidCallback? onPressed,
-    double size = 48,
-  }) {
-    final disabled = onPressed == null;
-    return Material(
-      color: Colors.white.withOpacity(disabled ? 0.05 : 0.12),
-      shape: const CircleBorder(),
-      clipBehavior: Clip.antiAlias,
-      child: InkWell(
-        onTap: onPressed,
-        child: SizedBox(
-          width: size,
-          height: size,
-          child: Icon(
-            icon,
-            color: disabled ? Colors.white24 : Colors.white,
-            size: size * 0.4,
-          ),
-        ),
-      ),
-    );
+  double _videoHeight(BuildContext context) {
+    final h = MediaQuery.sizeOf(context).height;
+    return (h * 0.38).clamp(168.0, 340.0);
   }
 
   @override
@@ -152,183 +130,303 @@ class _PlayerScreenState extends State<PlayerScreen> {
     final locale = Localizations.localeOf(context);
     final s = AppStrings(locale);
     final timeLabel = DateFormat.jm(locale.toString()).format(DateTime.now());
+    final topPad = MediaQuery.paddingOf(context).top;
+    final bottomPad = MediaQuery.paddingOf(context).bottom;
 
     return Scaffold(
-      backgroundColor: Colors.black,
-      body: Stack(
-        fit: StackFit.expand,
+      backgroundColor: AppTheme.backgroundBlack,
+      body: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          GestureDetector(
-            behavior: HitTestBehavior.opaque,
-            onTap: _toggleChromeFromVideo,
-            child: Center(
-              child: Video(
-                key: _videoKey,
-                controller: _controller,
-                controls: NoVideoControls,
-                wakelock: _settings.keepScreenOnWhilePlaying,
-                fit: _settings.videoFit,
-                fill: const Color(0xFF000000),
-              ),
-            ),
-          ),
-          IgnorePointer(
-            child: DecoratedBox(
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
-                  colors: [
-                    Colors.black.withOpacity(0.58),
-                    Colors.transparent,
-                    Colors.transparent,
-                    AppTheme.backgroundBlack.withOpacity(0.72),
-                  ],
-                  stops: const [0, 0.2, 0.75, 1],
+          Padding(
+            padding: EdgeInsets.fromLTRB(16, topPad + 8, 16, 6),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    _current.name,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 22,
+                      fontWeight: FontWeight.w700,
+                      letterSpacing: -0.3,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
                 ),
-              ),
+                if (_settings.showOnScreenClock)
+                  Text(
+                    timeLabel,
+                    style: TextStyle(color: _accent.withValues(alpha: 0.95), fontSize: 13, fontWeight: FontWeight.w600),
+                  ),
+              ],
             ),
           ),
-          Positioned.fill(
-            child: AnimatedOpacity(
-              opacity: _chromeVisible ? 1 : 0,
-              duration: Duration(milliseconds: _animMs),
-              child: IgnorePointer(
-                ignoring: !_chromeVisible,
-                child: Column(
-                  children: [
-                    _buildTopBar(context, s, timeLabel),
-                    Expanded(
-                      child: GestureDetector(
-                        behavior: HitTestBehavior.opaque,
-                        onTap: _toggleChromeFromVideo,
+          SizedBox(
+            height: _videoHeight(context),
+            width: double.infinity,
+            child: Stack(
+              fit: StackFit.expand,
+              children: [
+                GestureDetector(
+                  onTap: _playPause,
+                  child: Video(
+                    key: _videoKey,
+                    controller: _controller,
+                    controls: NoVideoControls,
+                    wakelock: _settings.keepScreenOnWhilePlaying,
+                    fit: _settings.videoFit,
+                    fill: const Color(0xFF000000),
+                  ),
+                ),
+                IgnorePointer(
+                  child: DecoratedBox(
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: Alignment.topCenter,
+                        end: Alignment.bottomCenter,
+                        colors: [
+                          Colors.black.withValues(alpha: 0.45),
+                          Colors.transparent,
+                          Colors.transparent,
+                          Colors.black.withValues(alpha: 0.55),
+                        ],
+                        stops: const [0, 0.25, 0.65, 1],
                       ),
                     ),
-                    _buildBottomBar(context, s),
-                  ],
-                ),
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildTopBar(BuildContext context, AppStrings s, String timeLabel) {
-    return Container(
-      width: double.infinity,
-      padding: EdgeInsets.fromLTRB(4, MediaQuery.paddingOf(context).top + 6, 4, 20),
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topCenter,
-          end: Alignment.bottomCenter,
-          colors: [Colors.black.withOpacity(0.9), Colors.transparent],
-        ),
-      ),
-      child: Row(
-        children: [
-          IconButton(
-            iconSize: 22,
-            icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.white),
-            onPressed: () => Navigator.pop(context),
-          ),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  _current.name,
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 17,
-                    fontWeight: FontWeight.w700,
                   ),
-                  overflow: TextOverflow.ellipsis,
                 ),
-                Text(
-                  _current.group,
-                  style: TextStyle(color: Colors.white.withOpacity(0.52), fontSize: 12),
+                Positioned(
+                  top: 10,
+                  left: 10,
+                  child: Material(
+                    color: Colors.black.withValues(alpha: 0.45),
+                    borderRadius: BorderRadius.circular(12),
+                    clipBehavior: Clip.antiAlias,
+                    child: InkWell(
+                      onTap: () => Navigator.pop(context),
+                      child: const Padding(
+                        padding: EdgeInsets.all(10),
+                        child: Icon(Icons.arrow_back_ios_new_rounded, color: Colors.white, size: 20),
+                      ),
+                    ),
+                  ),
+                ),
+                Positioned(
+                  top: 10,
+                  right: 10,
+                  child: Container(
+                    width: 52,
+                    height: 52,
+                    decoration: BoxDecoration(
+                      color: Colors.black.withValues(alpha: 0.35),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: Colors.white.withValues(alpha: 0.12)),
+                    ),
+                    clipBehavior: Clip.antiAlias,
+                    child: _current.logo != null
+                        ? Image.network(
+                            _current.logo!,
+                            fit: BoxFit.contain,
+                            errorBuilder: (_, __, ___) => const Icon(Icons.tv_rounded, color: Colors.white54, size: 28),
+                          )
+                        : const Icon(Icons.tv_rounded, color: Colors.white54, size: 28),
+                  ),
+                ),
+                Positioned(
+                  bottom: 12,
+                  left: 12,
+                  child: Material(
+                    color: Colors.black.withValues(alpha: 0.45),
+                    borderRadius: BorderRadius.circular(12),
+                    clipBehavior: Clip.antiAlias,
+                    child: InkWell(
+                      onTap: _toggleMute,
+                      child: Padding(
+                        padding: const EdgeInsets.all(10),
+                        child: Icon(
+                          _muted ? Icons.volume_off_rounded : Icons.volume_up_rounded,
+                          color: Colors.white,
+                          size: 22,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+                Positioned(
+                  bottom: 12,
+                  right: 12,
+                  child: Material(
+                    color: Colors.black.withValues(alpha: 0.45),
+                    borderRadius: BorderRadius.circular(12),
+                    clipBehavior: Clip.antiAlias,
+                    child: InkWell(
+                      onTap: _toggleFullscreen,
+                      child: const Padding(
+                        padding: EdgeInsets.all(10),
+                        child: Icon(Icons.fullscreen_rounded, color: Colors.white, size: 24),
+                      ),
+                    ),
+                  ),
                 ),
               ],
             ),
           ),
-          if (_settings.showOnScreenClock)
-            Padding(
-              padding: const EdgeInsets.only(right: 4),
-              child: Text(
-                timeLabel,
-                style: TextStyle(color: AppTheme.primaryGold.withOpacity(0.9), fontSize: 12),
-              ),
-            ),
-          IconButton(
-            tooltip: s.fullscreenTooltip,
-            iconSize: 24,
-            icon: Icon(Icons.fullscreen_rounded, color: AppTheme.primaryGold.withOpacity(0.95)),
-            onPressed: _toggleFullscreen,
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildBottomBar(BuildContext context, AppStrings s) {
-    final tv = _settings.tvFriendlyLayout;
-    final sideSize = tv ? 52.0 : 46.0;
-    final playSize = tv ? 76.0 : 68.0;
-
-    return Container(
-      width: double.infinity,
-      padding: EdgeInsets.fromLTRB(16, 20, 16, MediaQuery.paddingOf(context).bottom + 18),
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.bottomCenter,
-          end: Alignment.topCenter,
-          colors: [Colors.black.withOpacity(0.93), Colors.transparent],
-        ),
-      ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              _circleButton(
-                icon: Icons.skip_previous_rounded,
-                onPressed: _canGoPrev ? () => _goRelative(-1) : null,
-                size: sideSize,
-              ),
-              SizedBox(width: tv ? 22 : 18),
-              Material(
-                color: AppTheme.primaryGold.withOpacity(0.18),
-                shape: const CircleBorder(),
-                clipBehavior: Clip.antiAlias,
-                child: InkWell(
-                  onTap: _playPause,
-                  child: SizedBox(
-                    width: playSize,
-                    height: playSize,
-                    child: Icon(
-                      _playing ? Icons.pause_rounded : Icons.play_arrow_rounded,
-                      color: AppTheme.primaryGold,
-                      size: playSize * 0.48,
+          Expanded(
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Expanded(
+                  flex: 11,
+                  child: Container(
+                    color: const Color(0xFF0E131A),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        Padding(
+                          padding: const EdgeInsets.fromLTRB(12, 12, 12, 8),
+                          child: Text(
+                            s.categoriesTitle,
+                            style: TextStyle(
+                              color: Colors.white.withValues(alpha: 0.45),
+                              fontSize: 13,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ),
+                        Expanded(
+                          child: ListView.builder(
+                            padding: const EdgeInsets.only(bottom: 12),
+                            itemCount: _groupNames.length,
+                            itemBuilder: (context, i) {
+                              final g = _groupNames[i];
+                              final selected = g == _selectedGroup;
+                              return Padding(
+                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                                child: Material(
+                                  color: selected ? const Color(0xFF15252A) : Colors.transparent,
+                                  borderRadius: BorderRadius.circular(10),
+                                  child: InkWell(
+                                    borderRadius: BorderRadius.circular(10),
+                                    onTap: () => setState(() => _selectedGroup = g),
+                                    child: Container(
+                                      decoration: BoxDecoration(
+                                        borderRadius: BorderRadius.circular(10),
+                                        border: BorderDirectional(
+                                          end: BorderSide(
+                                            color: selected ? _accent : Colors.transparent,
+                                            width: 3,
+                                          ),
+                                        ),
+                                      ),
+                                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 12),
+                                      child: Row(
+                                        children: [
+                                          Icon(
+                                            Icons.folder_outlined,
+                                            size: 18,
+                                            color: selected ? _accent : Colors.white54,
+                                          ),
+                                          const SizedBox(width: 8),
+                                          Expanded(
+                                            child: Text(
+                                              g,
+                                              style: TextStyle(
+                                                color: selected ? _accent : Colors.white.withValues(alpha: 0.82),
+                                                fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
+                                                fontSize: 13,
+                                              ),
+                                              maxLines: 2,
+                                              overflow: TextOverflow.ellipsis,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              );
+                            },
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                 ),
-              ),
-              SizedBox(width: tv ? 22 : 18),
-              _circleButton(
-                icon: Icons.skip_next_rounded,
-                onPressed: _canGoNext ? () => _goRelative(1) : null,
-                size: sideSize,
-              ),
-            ],
-          ),
-          const SizedBox(height: 12),
-          Text(
-            '${_index + 1} / ${widget.channels.length}',
-            style: TextStyle(color: Colors.white.withOpacity(0.4), fontSize: 11),
+                Container(width: 1, color: Colors.white.withValues(alpha: 0.06)),
+                Expanded(
+                  flex: 14,
+                  child: Container(
+                    color: AppTheme.backgroundBlack,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        Padding(
+                          padding: const EdgeInsets.fromLTRB(12, 12, 12, 8),
+                          child: Center(
+                            child: Text(
+                              s.channelListTitle,
+                              style: TextStyle(
+                                color: Colors.white.withValues(alpha: 0.45),
+                                fontSize: 13,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ),
+                        ),
+                        Expanded(
+                          child: ListView.separated(
+                            padding: EdgeInsets.fromLTRB(8, 0, 8, bottomPad + 12),
+                            itemCount: _channelsInSelectedGroup.length,
+                            separatorBuilder: (_, __) => Divider(height: 1, color: Colors.white.withValues(alpha: 0.06)),
+                            itemBuilder: (context, i) {
+                              final ch = _channelsInSelectedGroup[i];
+                              final fullIdx = widget.channels.indexOf(ch);
+                              final playing = fullIdx == _index;
+                              return Material(
+                                color: Colors.transparent,
+                                child: InkWell(
+                                  onTap: () => _selectChannelByIndex(fullIdx),
+                                  child: Padding(
+                                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 14),
+                                    child: Row(
+                                      children: [
+                                        Expanded(
+                                          child: Text(
+                                            ch.name,
+                                            style: TextStyle(
+                                              color: playing ? _accent : Colors.white.withValues(alpha: 0.88),
+                                              fontWeight: playing ? FontWeight.w700 : FontWeight.w500,
+                                              fontSize: 14,
+                                            ),
+                                            maxLines: 2,
+                                            overflow: TextOverflow.ellipsis,
+                                          ),
+                                        ),
+                                        if (playing)
+                                          Container(
+                                            width: 8,
+                                            height: 8,
+                                            decoration: const BoxDecoration(
+                                              color: _accent,
+                                              shape: BoxShape.circle,
+                                            ),
+                                          ),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                              );
+                            },
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            ),
           ),
         ],
       ),

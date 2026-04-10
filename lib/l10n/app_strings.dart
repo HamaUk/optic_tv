@@ -83,4 +83,14 @@ class AppStrings {
   }
 
   String get fullscreenTooltip => isEnglish ? 'Fullscreen' : 'پڕی شاشە';
+
+  String get navHome => isEnglish ? 'Home' : 'سەرەکی';
+  String get navMovies => isEnglish ? 'Movies' : 'فیلم';
+  String get navSport => isEnglish ? 'Sport' : 'وەرزش';
+  String get searchHint => isEnglish ? 'Search channels…' : 'گەڕان بە کەناڵ…';
+  String get filterAll => isEnglish ? 'All' : 'هەموو';
+  String get categoriesTitle => isEnglish ? 'Categories' : 'هاوپۆلەکان';
+  String get channelListTitle => isEnglish ? 'Channel list' : 'لیستی کەناڵەکان';
+  String get noChannelsInSection =>
+      isEnglish ? 'No channels in this section' : 'لەم بەشەدا کەناڵ نییە';
 }
