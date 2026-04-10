@@ -86,7 +86,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                 Navigator.pop(dialogContext);
                 Future.microtask(passwordController.dispose);
               },
-              child: Text(s.isEnglish ? 'Cancel' : 'پاشگەزبوونەوە'),
+              child: const Text('Cancel'),
             ),
             FilledButton(
               onPressed: () => _tryAdminPassword(
@@ -94,7 +94,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                 passwordController.text,
                 passwordController,
               ),
-              child: Text(s.isEnglish ? 'Enter' : 'بچۆ ژوورەوە'),
+              child: const Text('Enter'),
             ),
           ],
         );
@@ -287,6 +287,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                 onTap: _onLogoTapForAdminPortal,
                 borderRadius: BorderRadius.circular(12),
                 child: SizedBox(
+                  width: double.infinity,
                   height: tv ? 48 : 44,
                   child: Center(
                     child: OpticWordmark(height: tv ? 30 : 26),

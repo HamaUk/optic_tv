@@ -3,7 +3,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/theme.dart';
 import '../../l10n/app_strings.dart';
-import '../../providers/app_locale_provider.dart';
 import '../../providers/session_provider.dart';
 import '../../providers/ui_settings_provider.dart';
 import '../../services/settings_service.dart';
@@ -57,7 +56,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             title: Text(s.logoutTitle),
             content: Text(s.logoutSub),
             actions: [
-              TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text(s.isEnglish ? 'Cancel' : 'پاشگەزبوونەوە')),
+              TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
               FilledButton(onPressed: () => Navigator.pop(ctx, true), child: Text(s.logoutButton)),
             ],
           ),
@@ -71,8 +70,6 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   @override
   Widget build(BuildContext context) {
     final s = AppStrings(Localizations.localeOf(context));
-    final locale = ref.watch(appLocaleProvider);
-
     return Scaffold(
       backgroundColor: AppTheme.backgroundBlack,
       appBar: AppBar(
@@ -96,40 +93,6 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                       ),
                 ),
                 const SizedBox(height: 12),
-                Card(
-                  color: AppTheme.surfaceGray,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Padding(
-                        padding: const EdgeInsets.fromLTRB(16, 16, 16, 4),
-                        child: Text(s.languageTitle, style: const TextStyle(fontWeight: FontWeight.w600)),
-                      ),
-                      RadioListTile<String>(
-                        value: 'ckb',
-                        groupValue: locale.languageCode,
-                        activeColor: AppTheme.primaryGold,
-                        title: Text(s.languageCkb),
-                        onChanged: (_) async {
-                          await ref.read(appLocaleProvider.notifier).setLocale(const Locale('ckb'));
-                          if (mounted) setState(() {});
-                        },
-                      ),
-                      RadioListTile<String>(
-                        value: 'en',
-                        groupValue: locale.languageCode,
-                        activeColor: AppTheme.primaryGold,
-                        title: Text(s.languageEn),
-                        onChanged: (_) async {
-                          await ref.read(appLocaleProvider.notifier).setLocale(const Locale('en'));
-                          if (mounted) setState(() {});
-                        },
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 8),
                 Card(
                   color: AppTheme.surfaceGray,
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),

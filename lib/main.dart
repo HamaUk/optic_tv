@@ -21,7 +21,11 @@ void main() async {
 
   final prefs = await SharedPreferences.getInstance();
   final initialSession = prefs.getBool('auth_logged_in') ?? false;
-  final initialLocaleCode = prefs.getString('app_locale') ?? 'ckb';
+  var initialLocaleCode = prefs.getString('app_locale') ?? 'en';
+  if (initialLocaleCode == 'ckb') {
+    initialLocaleCode = 'en';
+    await prefs.setString('app_locale', 'en');
+  }
 
   runApp(
     ProviderScope(
@@ -80,10 +84,7 @@ class _OpticTvAppState extends ConsumerState<OpticTvApp> {
         GlobalWidgetsLocalizations.delegate,
         GlobalCupertinoLocalizations.delegate,
       ],
-      supportedLocales: const [
-        Locale('ckb'),
-        Locale('en'),
-      ],
+      supportedLocales: const [Locale('en')],
       home: loggedIn ? const DashboardScreen() : const LoginScreen(),
     );
   }

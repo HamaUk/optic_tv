@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-/// Premium dark theme — gold accent, Rabar 021 typography (assets).
+/// Premium dark theme — gold accent; system font (no bundled script-specific fonts).
 class AppTheme {
   static const Color primaryGold = Color(0xFFD4AF37);
   static const Color primaryGoldDim = Color(0xFFB8922B);
@@ -12,9 +12,8 @@ class AppTheme {
   static const Color surfaceElevated = Color(0xFF1C2430);
 
   static ThemeData get darkTheme {
-    const base = TextStyle(fontFamily: 'Rabar', color: Colors.white);
+    const base = TextStyle(color: Colors.white);
     return ThemeData(
-      fontFamily: 'Rabar',
       // Explicit icon colors so AppBar/leading icons stay visible with custom text font.
       iconTheme: const IconThemeData(color: Colors.white),
       brightness: Brightness.dark,

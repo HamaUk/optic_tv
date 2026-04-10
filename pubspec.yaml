@@ -61,7 +61,3 @@ flutter:
   uses-material-design: true
   assets:
     - assets/images/optic_logo.png
-  fonts:
-    - family: Rabar
-      fonts:
-        - asset: assets/fonts/Rabar_021.ttf

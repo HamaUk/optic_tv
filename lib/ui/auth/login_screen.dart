@@ -19,8 +19,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   final _codeFocus = FocusNode();
   bool _busy = false;
 
-  /// Rabar may not include Arabic/Kurdish codepoints — missing glyphs render as gray “tofu” blocks
-  /// and can break the input hit target. Use the platform UI font for this field only.
+  /// Use the platform UI font for the code field so Latin digits stay crisp on Android.
   TextStyle _loginTextStyle(BuildContext context, {required double opacity}) {
     final isAndroid = Theme.of(context).platform == TargetPlatform.android;
     return TextStyle(
