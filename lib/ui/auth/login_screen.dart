@@ -160,22 +160,21 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                                       IconButton(
                                         onPressed: _busy ? null : () => _submit(s),
                                         icon: _busy
-                                              ? const SizedBox(
-                                                  width: 24,
-                                                  height: 24,
-                                                  child: CircularProgressIndicator(
-                                                    strokeWidth: 2,
-                                                    color: AppTheme.primaryGold,
-                                                  ),
-                                                )
-                                              : const Icon(
-                                                  Icons.arrow_forward_rounded,
+                                            ? const SizedBox(
+                                                width: 24,
+                                                height: 24,
+                                                child: CircularProgressIndicator(
+                                                  strokeWidth: 2,
                                                   color: AppTheme.primaryGold,
-                                                  size: 28,
                                                 ),
-                                        ),
-                                      ],
-                                    ),
+                                              )
+                                            : const Icon(
+                                                Icons.arrow_forward_rounded,
+                                                color: AppTheme.primaryGold,
+                                                size: 28,
+                                              ),
+                                      ),
+                                    ],
                                   ),
                                 ),
                               ),
