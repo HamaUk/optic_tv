@@ -550,14 +550,18 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
               ),
             ),
             Expanded(
-              child: TabBarView(
-                controller: _tabController,
-                children: [
-                  _buildOverviewTab(),
-                  _buildChannelsTab(),
-                  _buildPublishTab(),
-                  _buildAccessTab(),
-                ],
+              child: Material(
+                color: AppTheme.backgroundBlack,
+                child: TabBarView(
+                  controller: _tabController,
+                  physics: const ClampingScrollPhysics(),
+                  children: [
+                    KeyedSubtree(key: const PageStorageKey<String>('admin_overview'), child: _buildOverviewTab()),
+                    KeyedSubtree(key: const PageStorageKey<String>('admin_channels'), child: _buildChannelsTab()),
+                    KeyedSubtree(key: const PageStorageKey<String>('admin_publish'), child: _buildPublishTab()),
+                    KeyedSubtree(key: const PageStorageKey<String>('admin_access'), child: _buildAccessTab()),
+                  ],
+                ),
               ),
             ),
           ],
@@ -575,22 +579,23 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
           colors: [AppTheme.backgroundBlack, AppTheme.surfaceGray.withValues(alpha: 0.45)],
         ),
       ),
-      child: SingleChildScrollView(
+      child: ListView(
         padding: const EdgeInsets.fromLTRB(20, 24, 20, 32),
-        child: StreamBuilder<DatabaseEvent>(
-          stream: _playlistRef.onValue,
-          builder: (context, snapPl) {
-            if (snapPl.connectionState == ConnectionState.waiting && !snapPl.hasData) {
-              return const SizedBox(
-                height: 240,
-                child: Center(child: CircularProgressIndicator(color: AppTheme.primaryGold)),
-              );
-            }
-            final pl = snapPl.data?.snapshot.value;
-            final channels = _parsePlaylist(pl);
-            _sortChannelEntries(channels);
+        children: [
+          StreamBuilder<DatabaseEvent>(
+            stream: _playlistRef.onValue,
+            builder: (context, snapPl) {
+              if (snapPl.connectionState == ConnectionState.waiting && !snapPl.hasData) {
+                return const SizedBox(
+                  height: 240,
+                  child: Center(child: CircularProgressIndicator(color: AppTheme.primaryGold)),
+                );
+              }
+              final pl = snapPl.data?.snapshot.value;
+              final channels = _parsePlaylist(pl);
+              _sortChannelEntries(channels);
 
-            return StreamBuilder<DatabaseEvent>(
+              return StreamBuilder<DatabaseEvent>(
                 stream: _groupsRef.onValue,
                 builder: (context, snapG) {
                   int gCount = 0;
@@ -641,6 +646,7 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
                           const SizedBox(height: 28),
                           _card(
                             child: Column(
+                              mainAxisSize: MainAxisSize.min,
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Text('Quick paths', style: Theme.of(context).textTheme.titleMedium),
@@ -654,6 +660,7 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
                           const SizedBox(height: 20),
                           _card(
                             child: Column(
+                              mainAxisSize: MainAxisSize.min,
                               crossAxisAlignment: CrossAxisAlignment.stretch,
                               children: [
                                 Text('Shortcuts', style: Theme.of(context).textTheme.titleMedium),
@@ -686,7 +693,8 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
               );
             },
           ),
-        ),
+        ],
+      ),
     );
   }
 
@@ -857,14 +865,14 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
           );
 
           if (items.isEmpty) {
-            return CustomScrollView(
-              slivers: [
-                SliverToBoxAdapter(child: header),
-                SliverFillRemaining(
-                  hasScrollBody: false,
+            return ListView(
+              padding: EdgeInsets.zero,
+              children: [
+                header,
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 24, 16, 32),
                   child: Center(
                     child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         Icon(Icons.search_off_rounded, size: 56, color: Colors.white.withValues(alpha: 0.15)),
@@ -881,123 +889,128 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
             );
           }
 
-          return CustomScrollView(
-            slivers: [
-              SliverToBoxAdapter(child: header),
-              SliverPadding(
+          return ListView(
+            padding: EdgeInsets.zero,
+            children: [
+              header,
+              Padding(
                 padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
-                sliver: SliverList(
-                  delegate: SliverChildBuilderDelegate(
-                    (context, index) {
-                      final entry = items[index];
-                      final val = entry.value as Map;
-                      final logo = val['logo'] ?? val['icon_url'];
-                      final name = '${val['name'] ?? 'Untitled'}';
-                      final grp = '${val['group'] ?? val['category'] ?? 'General'}';
-                      final url = '${val['url'] ?? ''}';
-
-                      return Padding(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    for (final entry in items)
+                      Padding(
                         padding: const EdgeInsets.only(bottom: 12),
-                        child: Material(
-                          color: AppTheme.surfaceElevated,
-                          borderRadius: BorderRadius.circular(20),
-                          child: InkWell(
-                            borderRadius: BorderRadius.circular(20),
-                            onTap: () => _showEditChannelDialog('${entry.key}', val),
-                            child: Padding(
-                              padding: const EdgeInsets.all(14),
-                              child: Row(
-                                children: [
-                                  ClipRRect(
-                                    borderRadius: BorderRadius.circular(14),
-                                    child: logo != null && '$logo'.isNotEmpty
-                                        ? ChannelLogoImage(
-                                            logo: '$logo',
-                                            width: 56,
-                                            height: 56,
-                                            fit: BoxFit.cover,
-                                            fallback: _channelPlaceholder(),
-                                          )
-                                        : _channelPlaceholder(),
-                                  ),
-                                  const SizedBox(width: 14),
-                                  Expanded(
-                                    child: Column(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
-                                      children: [
-                                        Text(
-                                          name,
-                                          style: const TextStyle(
-                                            fontWeight: FontWeight.w700,
-                                            fontSize: 15,
-                                          ),
-                                          maxLines: 1,
-                                          overflow: TextOverflow.ellipsis,
-                                        ),
-                                        const SizedBox(height: 4),
-                                        Container(
-                                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                                          decoration: BoxDecoration(
-                                            color: AppTheme.accentTeal.withValues(alpha: 0.12),
-                                            borderRadius: BorderRadius.circular(8),
-                                          ),
-                                          child: Text(
-                                            grp,
-                                            style: TextStyle(
-                                              fontSize: 11,
-                                              color: AppTheme.accentTeal.withValues(alpha: 0.95),
-                                            ),
-                                          ),
-                                        ),
-                                        if (url.isNotEmpty) ...[
-                                          const SizedBox(height: 6),
-                                          Text(
-                                            url,
-                                            style: TextStyle(
-                                              fontSize: 11,
-                                              color: Colors.white.withValues(alpha: 0.35),
-                                            ),
-                                            maxLines: 1,
-                                            overflow: TextOverflow.ellipsis,
-                                          ),
-                                        ],
-                                      ],
-                                    ),
-                                  ),
-                                  Column(
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                      IconButton(
-                                        tooltip: 'Copy URL',
-                                        icon: Icon(Icons.copy_rounded, color: AppTheme.primaryGold.withValues(alpha: 0.85)),
-                                        onPressed: url.isEmpty ? null : () => _copyUrl(url),
-                                      ),
-                                      IconButton(
-                                        tooltip: 'Duplicate to form',
-                                        icon: const Icon(Icons.control_point_duplicate_rounded),
-                                        onPressed: () => _prefillAddFromChannel(val),
-                                      ),
-                                      IconButton(
-                                        tooltip: 'Delete',
-                                        icon: const Icon(Icons.delete_outline_rounded, color: Colors.redAccent),
-                                        onPressed: () => _deleteChannel('${entry.key}', name),
-                                      ),
-                                    ],
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ),
-                        ),
-                      );
-                    },
-                    childCount: items.length,
-                  ),
+                        child: _adminChannelListTile(entry),
+                      ),
+                  ],
                 ),
               ),
             ],
           );
         },
+      ),
+    );
+  }
+
+  Widget _adminChannelListTile(MapEntry<dynamic, dynamic> entry) {
+    final val = entry.value as Map;
+    final logo = val['logo'] ?? val['icon_url'];
+    final name = '${val['name'] ?? 'Untitled'}';
+    final grp = '${val['group'] ?? val['category'] ?? 'General'}';
+    final url = '${val['url'] ?? ''}';
+
+    return Material(
+      color: AppTheme.surfaceElevated,
+      borderRadius: BorderRadius.circular(20),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(20),
+        onTap: () => _showEditChannelDialog('${entry.key}', val),
+        child: Padding(
+          padding: const EdgeInsets.all(14),
+          child: Row(
+            children: [
+              ClipRRect(
+                borderRadius: BorderRadius.circular(14),
+                child: logo != null && '$logo'.isNotEmpty
+                    ? ChannelLogoImage(
+                        logo: '$logo',
+                        width: 56,
+                        height: 56,
+                        fit: BoxFit.cover,
+                        fallback: _channelPlaceholder(),
+                      )
+                    : _channelPlaceholder(),
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      name,
+                      style: const TextStyle(
+                        fontWeight: FontWeight.w700,
+                        fontSize: 15,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    const SizedBox(height: 4),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: AppTheme.accentTeal.withValues(alpha: 0.12),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Text(
+                        grp,
+                        style: TextStyle(
+                          fontSize: 11,
+                          color: AppTheme.accentTeal.withValues(alpha: 0.95),
+                        ),
+                      ),
+                    ),
+                    if (url.isNotEmpty) ...[
+                      const SizedBox(height: 6),
+                      Text(
+                        url,
+                        style: TextStyle(
+                          fontSize: 11,
+                          color: Colors.white.withValues(alpha: 0.35),
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+              Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  IconButton(
+                    tooltip: 'Copy URL',
+                    icon: Icon(Icons.copy_rounded, color: AppTheme.primaryGold.withValues(alpha: 0.85)),
+                    onPressed: url.isEmpty ? null : () => _copyUrl(url),
+                  ),
+                  IconButton(
+                    tooltip: 'Duplicate to form',
+                    icon: const Icon(Icons.control_point_duplicate_rounded),
+                    onPressed: () => _prefillAddFromChannel(val),
+                  ),
+                  IconButton(
+                    tooltip: 'Delete',
+                    icon: const Icon(Icons.delete_outline_rounded, color: Colors.redAccent),
+                    onPressed: () => _deleteChannel('${entry.key}', name),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }
@@ -1033,6 +1046,7 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
           const SizedBox(height: 24),
           _card(
             child: Column(
+              mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 _field(_channelNameController, 'Channel name', Icons.label_outline_rounded),
@@ -1136,6 +1150,7 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
           ..sort();
         if (names.isEmpty) return const SizedBox.shrink();
         return Column(
+          mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text('Quick pick group', style: TextStyle(fontSize: 12, color: Colors.white.withValues(alpha: 0.45))),
@@ -1177,6 +1192,7 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
           const SizedBox(height: 10),
           _card(
             child: Column(
+              mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 Row(
@@ -1208,6 +1224,8 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
                         return an.compareTo(bn);
                       });
                     return Column(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: entries.map((e) {
                         final m = e.value;
                         final label = (m is Map) ? '${m['name'] ?? e.key}' : '${e.key}';
@@ -1243,6 +1261,7 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
           const SizedBox(height: 16),
           _card(
             child: Column(
+              mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 Row(
@@ -1280,6 +1299,8 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
                         return ac.compareTo(bc);
                       });
                     return Column(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: entries.map((e) {
                         final m = e.value;
                         final code = (m is Map) ? '${m['code'] ?? e.key}' : '${e.key}';
