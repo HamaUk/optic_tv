@@ -25,7 +25,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   Future<void> _submit(AppStrings s) async {
     final code = _codeController.text.trim();
     if (code.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(s.loginErrorEmpty)));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(s.loginErrorEmpty)),
+      );
       return;
     }
     setState(() => _busy = true);
@@ -33,7 +35,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     if (!mounted) return;
     setState(() => _busy = false);
     if (!ok) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(s.loginErrorInvalid)));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(s.loginErrorInvalid)),
+      );
     }
   }
 
@@ -43,31 +47,50 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     final viewInsets = MediaQuery.viewInsetsOf(context);
     final bottomPad = MediaQuery.paddingOf(context).bottom;
 
-    // Local theme so global InputDecorationTheme cannot paint a light “sheet” behind fields on some OEM skins.
+    // Local theme so global InputDecorationTheme cannot paint a light "sheet" behind fields on some OEM skins.
     final fieldTheme = Theme.of(context).copyWith(
-      textSelectionTheme: const TextSelectionThemeData(cursorColor: AppTheme.primaryGold),
+      textSelectionTheme: const TextSelectionThemeData(
+        cursorColor: AppTheme.primaryGold,
+      ),
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
         fillColor: const Color(0xFF1C2430),
-        hintStyle: TextStyle(color: Colors.white.withValues(alpha: 0.45), fontSize: 16),
-        labelStyle: TextStyle(color: Colors.white.withValues(alpha: 0.7)),
+        hintStyle: TextStyle(
+          color: Colors.white.withValues(alpha: 0.45),
+          fontSize: 15,
+        ),
+        labelStyle: TextStyle(
+          color: Colors.white.withValues(alpha: 0.7),
+        ),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(16),
-          borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.14)),
+          borderSide: BorderSide(
+            color: Colors.white.withValues(alpha: 0.14),
+          ),
         ),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(16),
-          borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.14)),
+          borderSide: BorderSide(
+            color: Colors.white.withValues(alpha: 0.14),
+          ),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(16),
-          borderSide: const BorderSide(color: AppTheme.primaryGold, width: 1.6),
+          borderSide: const BorderSide(
+            color: AppTheme.primaryGold,
+            width: 1.6,
+          ),
         ),
         errorBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(16),
-          borderSide: BorderSide(color: Colors.redAccent.withValues(alpha: 0.8)),
+          borderSide: BorderSide(
+            color: Colors.redAccent.withValues(alpha: 0.8),
+          ),
         ),
-        contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 18,
+          vertical: 16,
+        ),
       ),
     );
 
@@ -91,9 +114,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
             builder: (context, constraints) {
               return SingleChildScrollView(
                 padding: EdgeInsets.fromLTRB(
-                  28,
+                  20, // Reduced from 28 for more width
                   24,
-                  28,
+                  20, // Reduced from 28 for more width
                   24 + bottomPad + viewInsets.bottom,
                 ),
                 physics: const ClampingScrollPhysics(),
@@ -113,7 +136,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                               padding: const EdgeInsets.all(20),
                               decoration: BoxDecoration(
                                 shape: BoxShape.circle,
-                                border: Border.all(color: AppTheme.primaryGold.withValues(alpha: 0.35)),
+                                border: Border.all(
+                                  color: AppTheme.primaryGold.withValues(alpha: 0.35),
+                                ),
                                 boxShadow: [
                                   BoxShadow(
                                     color: AppTheme.primaryGold.withValues(alpha: 0.12),
@@ -142,25 +167,40 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                             Text(
                               s.loginSubtitle,
                               textAlign: TextAlign.center,
-                              style: TextStyle(color: Colors.white.withValues(alpha: 0.55), height: 1.45),
+                              style: TextStyle(
+                                color: Colors.white.withValues(alpha: 0.55),
+                                height: 1.45,
+                              ),
                             ),
                             const SizedBox(height: 32),
+                            // FIXED: Improved TextField for long Kurdish text
                             TextField(
                               controller: _codeController,
-                              textAlign: TextAlign.center,
+                              textAlign: TextAlign.start, // Changed from center for RTL/long text
+                              textDirection: TextDirection.rtl, // Support Kurdish RTL
                               style: const TextStyle(
                                 color: Colors.white,
-                                fontSize: 17,
-                                letterSpacing: 0.8,
+                                fontSize: 15,
+                                letterSpacing: 0.3,
                               ),
                               cursorColor: AppTheme.primaryGold,
                               autocorrect: false,
                               enableSuggestions: false,
                               keyboardType: TextInputType.visiblePassword,
                               textInputAction: TextInputAction.done,
+                              maxLines: 1,
                               decoration: InputDecoration(
                                 hintText: s.loginHint,
+                                hintStyle: TextStyle(
+                                  color: Colors.white.withValues(alpha: 0.45),
+                                  fontSize: 14,
+                                ),
+                                hintTextDirection: TextDirection.rtl, // RTL hint support
                                 isDense: false,
+                                contentPadding: const EdgeInsets.symmetric(
+                                  horizontal: 16,
+                                  vertical: 16,
+                                ),
                               ),
                               onSubmitted: (_) => _submit(s),
                             ),
@@ -174,18 +214,26 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                                   backgroundColor: AppTheme.primaryGold,
                                   foregroundColor: Colors.black,
                                   disabledBackgroundColor: AppTheme.primaryGold.withValues(alpha: 0.35),
-                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(14),
+                                  ),
                                   elevation: 0,
                                 ),
                                 child: _busy
                                     ? const SizedBox(
                                         height: 22,
                                         width: 22,
-                                        child: CircularProgressIndicator(strokeWidth: 2, color: Colors.black87),
+                                        child: CircularProgressIndicator(
+                                          strokeWidth: 2,
+                                          color: Colors.black87,
+                                        ),
                                       )
                                     : Text(
                                         s.loginButton,
-                                        style: const TextStyle(fontWeight: FontWeight.w800, letterSpacing: 0.5),
+                                        style: const TextStyle(
+                                          fontWeight: FontWeight.w800,
+                                          letterSpacing: 0.5,
+                                        ),
                                       ),
                               ),
                             ),
