@@ -25,12 +25,18 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   @override
   void initState() {
     super.initState();
+    _codeController.addListener(_onCodeChanged);
     _checkDevice();
+  }
+
+  void _onCodeChanged() {
+    if (_isTV && mounted) setState(() {});
   }
 
   Future<void> _checkDevice() async {
     final tv = await queryAndroidTelevisionDevice();
-    if (mounted) setState(() => _isTV = tv);
+    if (!mounted) return;
+    setState(() => _isTV = tv);
   }
 
   /// Use the platform UI font for the code field so Latin digits stay crisp on Android.
@@ -46,6 +52,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
 
   @override
   void dispose() {
+    _codeController.removeListener(_onCodeChanged);
     _codeFocus.dispose();
     _codeController.dispose();
     super.dispose();

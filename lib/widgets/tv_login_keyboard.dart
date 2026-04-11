@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 /// Latin access-code entry tuned for D-pad / remote: predictable focus order,
 /// no system IME. Wrapped in [Directionality.ltr] by the parent so QWERTY stays
@@ -38,7 +39,7 @@ class TvLoginKeyboard extends StatelessWidget {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              _letterRow(context, theme, _digitRow.chars),
+              _letterRow(context, theme, _digitRow.chars, firstKeyAutofocus: true),
               const SizedBox(height: 6),
               _letterRow(context, theme, _row1.chars),
               const SizedBox(height: 6),
@@ -82,10 +83,23 @@ class TvLoginKeyboard extends StatelessWidget {
     );
   }
 
-  Widget _letterRow(BuildContext context, ThemeData theme, List<String> chars) {
+  Widget _letterRow(
+    BuildContext context,
+    ThemeData theme,
+    List<String> chars, {
+    bool firstKeyAutofocus = false,
+  }) {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [for (final c in chars) _keyCell(context, theme, c)],
+      children: [
+        for (var i = 0; i < chars.length; i++)
+          _keyCell(
+            context,
+            theme,
+            chars[i],
+            autofocus: firstKeyAutofocus && i == 0,
+          ),
+      ],
     );
   }
 
@@ -93,11 +107,17 @@ class TvLoginKeyboard extends StatelessWidget {
     return Expanded(child: _keyCell(context, theme, ch));
   }
 
-  Widget _keyCell(BuildContext context, ThemeData theme, String ch) {
+  Widget _keyCell(
+    BuildContext context,
+    ThemeData theme,
+    String ch, {
+    bool autofocus = false,
+  }) {
     return Expanded(
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 3),
         child: _KeyButton(
+          autofocus: autofocus,
           onPressed: () => onCharacter(ch),
           maxLength: maxLength,
           child: Text(
@@ -149,11 +169,13 @@ extension on String {
 
 class _KeyButton extends StatefulWidget {
   const _KeyButton({
+    this.autofocus = false,
     required this.onPressed,
     required this.maxLength,
     required this.child,
   });
 
+  final bool autofocus;
   final VoidCallback onPressed;
   final int maxLength;
   final Widget child;
@@ -163,7 +185,41 @@ class _KeyButton extends StatefulWidget {
 }
 
 class _KeyButtonState extends State<_KeyButton> {
-  bool _focused = false;
+  final _focusNode = FocusNode();
+
+  @override
+  void initState() {
+    super.initState();
+    _focusNode.addListener(_syncFocusDecoration);
+  }
+
+  void _syncFocusDecoration() {
+    if (mounted) setState(() {});
+  }
+
+  @override
+  void dispose() {
+    _focusNode.removeListener(_syncFocusDecoration);
+    _focusNode.dispose();
+    super.dispose();
+  }
+
+  bool get _focused => _focusNode.hasFocus;
+
+  /// Android TV / STB remotes often send [LogicalKeyboardKey.select] (DPAD center)
+  /// instead of routing [ActivateIntent] the same way phones do.
+  KeyEventResult _onKey(FocusNode node, KeyEvent event) {
+    if (event is! KeyDownEvent) return KeyEventResult.ignored;
+    final k = event.logicalKey;
+    final activates = k == LogicalKeyboardKey.select ||
+        k == LogicalKeyboardKey.enter ||
+        k == LogicalKeyboardKey.numpadEnter ||
+        k == LogicalKeyboardKey.gameButtonSelect ||
+        k == LogicalKeyboardKey.gameButtonA;
+    if (!activates) return KeyEventResult.ignored;
+    widget.onPressed();
+    return KeyEventResult.handled;
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -172,17 +228,10 @@ class _KeyButtonState extends State<_KeyButton> {
       width: _focused ? 2 : 1,
     );
 
-    return FocusableActionDetector(
-      onShowFocusHighlight: (v) => setState(() => _focused = v),
-      mouseCursor: SystemMouseCursors.click,
-      actions: {
-        ActivateIntent: CallbackAction<ActivateIntent>(
-          onInvoke: (_) {
-            widget.onPressed();
-            return null;
-          },
-        ),
-      },
+    return Focus(
+      focusNode: _focusNode,
+      autofocus: widget.autofocus,
+      onKeyEvent: _onKey,
       child: Material(
         color: _focused ? const Color(0xFF4A505A) : const Color(0xFF3D434D),
         borderRadius: BorderRadius.circular(6),
@@ -190,6 +239,7 @@ class _KeyButtonState extends State<_KeyButton> {
         child: InkWell(
           onTap: widget.onPressed,
           canRequestFocus: false,
+          mouseCursor: SystemMouseCursors.click,
           child: AnimatedContainer(
             duration: const Duration(milliseconds: 90),
             height: 44,
