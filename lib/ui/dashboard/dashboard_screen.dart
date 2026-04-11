@@ -173,11 +173,8 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     final fav = ref.read(favoritesProvider.notifier).isFavorite(channel);
     final isMovie = _isMovieChannel(channel);
 
-    // If it's a movie, try to get extra info from TMDB for the sheet
-    TmdbMovie? movieInfo;
-    if (isMovie && _tmdb.isConfigured) {
-      movieInfo = await _tmdb.findMovie(channel.name);
-    }
+    // Enrichment disabled per user request to avoid "random" images.
+    const TmdbMovie? movieInfo = null;
 
     if (!mounted) return;
 
@@ -847,151 +844,114 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
   ) {
     const kTileRadius = 18.0;
 
-    return FutureBuilder<TmdbMovie?>(
-      future: _tmdb.findMovie(channel.name),
-      builder: (context, snapshot) {
-        final movieInfo = snapshot.data;
-
-        return Focus(
-          child: Builder(
-            builder: (ctx) {
-              final focused = Focus.of(ctx).hasFocus;
-              return AnimatedContainer(
-                duration: Duration(milliseconds: animMs),
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(kTileRadius),
-                  border: Border.all(
-                    color: focused ? _accent.withOpacity(0.9) : Colors.white.withOpacity(0.1),
-                    width: focused ? 2 : 1,
-                  ),
-                  color: const Color(0xFF141A22),
-                  boxShadow: [
-                    BoxShadow(
-                      color: focused ? _accent.withOpacity(0.18) : Colors.black.withOpacity(0.25),
-                      blurRadius: focused ? 16 : 10,
-                      offset: const Offset(0, 6),
-                    ),
-                  ],
+    return Focus(
+      child: Builder(
+        builder: (ctx) {
+          final focused = Focus.of(ctx).hasFocus;
+          return AnimatedContainer(
+            duration: Duration(milliseconds: animMs),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(kTileRadius),
+              border: Border.all(
+                color: focused ? _accent.withOpacity(0.9) : Colors.white.withOpacity(0.1),
+                width: focused ? 2 : 1,
+              ),
+              color: const Color(0xFF141A22),
+              boxShadow: [
+                BoxShadow(
+                  color: focused ? _accent.withOpacity(0.18) : Colors.black.withOpacity(0.25),
+                  blurRadius: focused ? 16 : 10,
+                  offset: const Offset(0, 6),
                 ),
-                child: Material(
-                  color: Colors.transparent,
-                  child: InkWell(
-                    borderRadius: BorderRadius.circular(kTileRadius),
-                    onTap: () => _openPlayer(allChannels, channel),
-                    onLongPress: () => _showChannelSheet(s, allChannels, channel),
-                    child: ClipRRect(
-                      borderRadius: BorderRadius.circular(kTileRadius - 1),
-                      child: Stack(
-                        fit: StackFit.expand,
-                        children: [
-                          // Poster: Use TMDB poster if available, otherwise fallback to logo
-                          if (movieInfo?.posterUrl != null)
-                            Image.network(movieInfo!.posterUrl!, fit: BoxFit.cover)
-                          else if (channel.logo != null && channel.logo!.isNotEmpty)
-                            ChannelLogoImage(
-                              logo: channel.logo,
-                              width: double.infinity,
-                              height: double.infinity,
-                              fit: BoxFit.cover,
-                              fallback: _movieFallback(tv),
-                            )
-                          else
-                            _movieFallback(tv),
-                          // Gradient overlay bottom
-                          Positioned.fill(
-                            child: DecoratedBox(
-                              decoration: BoxDecoration(
-                                gradient: LinearGradient(
-                                  begin: Alignment.topCenter,
-                                  end: Alignment.bottomCenter,
-                                  colors: [
-                                    Colors.transparent,
-                                    Colors.transparent,
-                                    Colors.black.withOpacity(0.65),
-                                    Colors.black.withOpacity(0.92),
-                                  ],
-                                  stops: const [0, 0.45, 0.78, 1],
-                                ),
-                              ),
+              ],
+            ),
+            child: Material(
+              color: Colors.transparent,
+              child: InkWell(
+                borderRadius: BorderRadius.circular(kTileRadius),
+                onTap: () => _openPlayer(allChannels, channel),
+                onLongPress: () => _showChannelSheet(s, allChannels, channel),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(kTileRadius - 1),
+                  child: Stack(
+                    fit: StackFit.expand,
+                    children: [
+                      // Poster: Use channel logo directly (no TMDB override)
+                      if (channel.logo != null && channel.logo!.isNotEmpty)
+                        ChannelLogoImage(
+                          logo: channel.logo,
+                          width: double.infinity,
+                          height: double.infinity,
+                          fit: BoxFit.cover,
+                          fallback: _movieFallback(tv),
+                        )
+                      else
+                        _movieFallback(tv),
+                      // Gradient overlay bottom
+                      Positioned.fill(
+                        child: DecoratedBox(
+                          decoration: BoxDecoration(
+                            gradient: LinearGradient(
+                              begin: Alignment.topCenter,
+                              end: Alignment.bottomCenter,
+                              colors: [
+                                Colors.transparent,
+                                Colors.transparent,
+                                Colors.black.withOpacity(0.65),
+                                Colors.black.withOpacity(0.92),
+                              ],
+                              stops: const [0, 0.45, 0.78, 1],
                             ),
                           ),
-                          // Rating Badge (TMDB)
-                          if (movieInfo != null)
-                            Positioned(
-                              top: 8,
-                              right: 8,
-                              child: Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                                decoration: BoxDecoration(
-                                  color: AppTheme.primaryGold,
-                                  borderRadius: BorderRadius.circular(6),
-                                ),
-                                child: Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    const Icon(Icons.star_rounded, size: 10, color: Colors.black),
-                                    const SizedBox(width: 2),
-                                    Text(
-                                      movieInfo.rating.toStringAsFixed(1),
-                                      style: const TextStyle(
-                                        color: Colors.black,
-                                        fontSize: 10,
-                                        fontWeight: FontWeight.w900,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ),
-                          // Play icon center
-                          Center(
-                            child: Container(
-                              width: tv ? 48 : 40,
-                              height: tv ? 48 : 40,
-                              decoration: BoxDecoration(
-                                color: Colors.black.withOpacity(0.45),
-                                shape: BoxShape.circle,
-                                border: Border.all(color: Colors.white.withOpacity(0.25)),
-                              ),
-                              child: Icon(
-                                Icons.play_arrow_rounded,
-                                color: Colors.white.withOpacity(0.85),
-                                size: tv ? 28 : 22,
-                              ),
-                            ),
-                          ),
-                          // Title
-                          Positioned(
-                            left: 10,
-                            right: 10,
-                            bottom: 10,
-                            child: Text(
-                              channel.name,
-                              style: AppTheme.withRabarIfKurdish(
-                                s.locale,
-                                TextStyle(
-                                  fontSize: tv ? 13 : 12,
-                                  fontWeight: FontWeight.w700,
-                                  color: Colors.white,
-                                  shadows: [
-                                    Shadow(color: Colors.black.withOpacity(0.7), blurRadius: 6),
-                                  ],
-                                ),
-                              ),
-                              maxLines: 2,
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                          ),
-                        ],
+                        ),
                       ),
-                    ),
+                      // Play icon center
+                      Center(
+                        child: Container(
+                          width: tv ? 48 : 40,
+                          height: tv ? 48 : 40,
+                          decoration: BoxDecoration(
+                            color: Colors.black.withOpacity(0.45),
+                            shape: BoxShape.circle,
+                            border: Border.all(color: Colors.white.withOpacity(0.25)),
+                          ),
+                          child: Icon(
+                            Icons.play_arrow_rounded,
+                            color: Colors.white.withOpacity(0.85),
+                            size: tv ? 28 : 22,
+                          ),
+                        ),
+                      ),
+                      // Title
+                      Positioned(
+                        left: 10,
+                        right: 10,
+                        bottom: 10,
+                        child: Text(
+                          channel.name,
+                          style: AppTheme.withRabarIfKurdish(
+                            s.locale,
+                            TextStyle(
+                              fontSize: tv ? 13 : 12,
+                              fontWeight: FontWeight.w700,
+                              color: Colors.white,
+                              shadows: [
+                                Shadow(color: Colors.black.withOpacity(0.7), blurRadius: 6),
+                              ],
+                            ),
+                          ),
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
-              );
-            },
-          ),
-        );
-      },
+              ),
+            ),
+          );
+        },
+      ),
     );
   }
 

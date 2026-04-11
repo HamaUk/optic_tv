@@ -51,6 +51,7 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
   String? _groupFilter;
   _PublishShelf _publishShelf = _PublishShelf.liveTv;
   bool _backupBusy = false;
+  final Set<String> _selectedKeys = {};
 
   // Import state
   bool _importBusy = false;
@@ -461,6 +462,28 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
       _snack('Channel removed');
     } catch (e) {
       _snack('Error: $e', error: true);
+    }
+  }
+
+  Future<void> _deleteBatch() async {
+    if (_selectedKeys.isEmpty) return;
+    final count = _selectedKeys.length;
+    final ok = await _confirmDelete(
+      'Remove $count items?',
+      'Are you sure you want to delete $count selected channels? This cannot be undone.',
+    );
+    if (!ok) return;
+
+    try {
+      final updates = <String, dynamic>{};
+      for (final key in _selectedKeys) {
+        updates[key] = null;
+      }
+      await _playlistRef.update(updates);
+      setState(() => _selectedKeys.clear());
+      _snack('$count channels removed');
+    } catch (e) {
+      _snack('Batch delete failed: $e', error: true);
     }
   }
 
@@ -1468,64 +1491,119 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
             padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
             child: Column(
               mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                TextField(
-                  controller: _channelSearchController,
-                  style: const TextStyle(color: Colors.white),
-                  decoration: InputDecoration(
-                    hintText: 'Search name, URL, group…',
-                    hintStyle: TextStyle(color: Colors.white.withOpacity(0.35)),
-                    prefixIcon: Icon(Icons.search_rounded, color: AppTheme.primaryGold.withOpacity(0.8)),
-                    suffixIcon: _channelSearchQuery.isEmpty
-                        ? null
-                        : IconButton(
-                            icon: const Icon(Icons.clear_rounded),
-                            onPressed: () {
-                              _channelSearchController.clear();
-                              setState(() => _channelSearchQuery = '');
-                            },
+                Row(
+                  children: [
+                    Expanded(
+                      child: TextField(
+                        controller: _channelSearchController,
+                        style: const TextStyle(color: Colors.white),
+                        decoration: InputDecoration(
+                          hintText: 'Search name, URL, group…',
+                          hintStyle: TextStyle(color: Colors.white.withOpacity(0.35)),
+                          prefixIcon: Icon(Icons.search_rounded, color: AppTheme.primaryGold.withOpacity(0.8)),
+                          suffixIcon: _channelSearchQuery.isEmpty
+                              ? null
+                              : IconButton(
+                                  icon: const Icon(Icons.clear_rounded),
+                                  onPressed: () {
+                                    _channelSearchController.clear();
+                                    setState(() => _channelSearchQuery = '');
+                                  },
+                                ),
+                          filled: true,
+                          fillColor: AppTheme.surfaceElevated,
+                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(16)),
+                          enabledBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(16),
+                            borderSide: BorderSide(color: Colors.white.withOpacity(0.08)),
                           ),
-                    filled: true,
-                    fillColor: AppTheme.surfaceElevated,
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(16)),
-                    enabledBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(16),
-                      borderSide: BorderSide(color: Colors.white.withOpacity(0.08)),
-                    ),
-                    focusedBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(16),
-                      borderSide: BorderSide(color: AppTheme.primaryGold.withOpacity(0.5)),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 12),
-                SizedBox(
-                  height: 40,
-                  child: ListView(
-                    scrollDirection: Axis.horizontal,
-                    children: [
-                      Padding(
-                        padding: const EdgeInsets.only(right: 8),
-                        child: ChoiceChip(
-                          label: const Text('All groups'),
-                          selected: _groupFilter == null,
-                          onSelected: (_) => setState(() => _groupFilter = null),
-                          selectedColor: AppTheme.primaryGold.withOpacity(0.35),
+                          focusedBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(16),
+                            borderSide: BorderSide(color: AppTheme.primaryGold.withOpacity(0.5)),
+                          ),
                         ),
                       ),
-                      ...sortedGroups.map(
-                        (g) => Padding(
-                          padding: const EdgeInsets.only(right: 8),
-                          child: ChoiceChip(
-                            label: Text(g),
-                            selected: _groupFilter == g,
-                            onSelected: (_) => setState(() => _groupFilter = g),
-                            selectedColor: AppTheme.primaryGold.withOpacity(0.35),
-                          ),
+                    ),
+                    if (_selectedKeys.isNotEmpty) ...[
+                      const SizedBox(width: 12),
+                      FilledButton.icon(
+                        onPressed: _deleteBatch,
+                        style: FilledButton.styleFrom(
+                          backgroundColor: Colors.redAccent,
+                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                         ),
+                        icon: const Icon(Icons.delete_sweep_rounded, size: 20),
+                        label: Text('Delete (${_selectedKeys.length})'),
                       ),
                     ],
-                  ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                Row(
+                  children: [
+                    Expanded(
+                      child: SizedBox(
+                        height: 40,
+                        child: ListView(
+                          scrollDirection: Axis.horizontal,
+                          children: [
+                            Padding(
+                              padding: const EdgeInsets.only(right: 8),
+                              child: ChoiceChip(
+                                label: const Text('All groups'),
+                                selected: _groupFilter == null,
+                                onSelected: (_) => setState(() {
+                                  _groupFilter = null;
+                                  _selectedKeys.clear();
+                                }),
+                                selectedColor: AppTheme.primaryGold.withOpacity(0.35),
+                              ),
+                            ),
+                            ...sortedGroups.map(
+                              (g) => Padding(
+                                padding: const EdgeInsets.only(right: 8),
+                                child: ChoiceChip(
+                                  label: Text(g),
+                                  selected: _groupFilter == g,
+                                  onSelected: (_) => setState(() {
+                                    _groupFilter = g;
+                                    _selectedKeys.clear();
+                                  }),
+                                  selectedColor: AppTheme.primaryGold.withOpacity(0.35),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                    if (items.isNotEmpty) ...[
+                      const SizedBox(width: 8),
+                      TextButton.icon(
+                        onPressed: () {
+                          final allFiltered = items.map((e) => '${e.key}').toSet();
+                          setState(() {
+                            if (_selectedKeys.containsAll(allFiltered)) {
+                              _selectedKeys.removeAll(allFiltered);
+                            } else {
+                              _selectedKeys.addAll(allFiltered);
+                            }
+                          });
+                        },
+                        icon: Icon(
+                          _selectedKeys.containsAll(items.map((e) => '${e.key}'))
+                              ? Icons.check_box_rounded
+                              : Icons.check_box_outline_blank_rounded,
+                          size: 18,
+                          color: AppTheme.primaryGold,
+                        ),
+                        label: const Text('Select All', style: TextStyle(fontSize: 12, color: AppTheme.primaryGold)),
+                      ),
+                    ],
+                  ],
                 ),
                 if (_groupFilter != null && _channelSearchQuery.isEmpty)
                   Padding(
@@ -1654,22 +1732,38 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
   }
 
   Widget _adminChannelListTile(MapEntry<dynamic, dynamic> entry, {int? position}) {
+    final key = '${entry.key}';
     final val = entry.value as Map;
     final logo = val['logo'] ?? val['icon_url'];
     final name = '${val['name'] ?? 'Untitled'}';
     final grp = '${val['group'] ?? val['category'] ?? 'General'}';
     final url = '${val['url'] ?? ''}';
+    final isSelected = _selectedKeys.contains(key);
 
     return Material(
-      color: AppTheme.surfaceElevated,
+      color: isSelected ? AppTheme.accentTeal.withOpacity(0.12) : AppTheme.surfaceElevated,
       borderRadius: BorderRadius.circular(20),
       child: InkWell(
         borderRadius: BorderRadius.circular(20),
-        onTap: () => _showEditChannelDialog('${entry.key}', val),
+        onTap: () => _showEditChannelDialog(key, val),
         child: Padding(
           padding: const EdgeInsets.all(14),
           child: Row(
             children: [
+              Checkbox(
+                value: isSelected,
+                activeColor: AppTheme.primaryGold,
+                onChanged: (v) {
+                  setState(() {
+                    if (v == true) {
+                      _selectedKeys.add(key);
+                    } else {
+                      _selectedKeys.remove(key);
+                    }
+                  });
+                },
+              ),
+              const SizedBox(width: 4),
               if (position != null) ...[
                 SizedBox(
                   width: 28,
@@ -1678,7 +1772,7 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
                     style: TextStyle(
                       fontSize: 11,
                       fontWeight: FontWeight.w800,
-                      color: AppTheme.primaryGold.withOpacity(0.6),
+                      color: isSelected ? AppTheme.accentTeal : AppTheme.primaryGold.withOpacity(0.6),
                     ),
                   ),
                 ),
@@ -1689,8 +1783,8 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
                 child: logo != null && '$logo'.isNotEmpty
                     ? ChannelLogoImage(
                         logo: '$logo',
-                        width: 56,
-                        height: 56,
+                        width: 50,
+                        height: 50,
                         fit: BoxFit.cover,
                         fallback: _channelPlaceholder(),
                       )
@@ -1704,9 +1798,10 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
                   children: [
                     Text(
                       name,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontWeight: FontWeight.w700,
                         fontSize: 15,
+                        color: isSelected ? AppTheme.accentTeal : Colors.white,
                       ),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
@@ -1726,48 +1821,43 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
                         ),
                       ),
                     ),
-                    if (url.isNotEmpty) ...[
-                      const SizedBox(height: 6),
-                      Text(
-                        url,
-                        style: TextStyle(
-                          fontSize: 11,
-                          color: Colors.white.withOpacity(0.35),
-                        ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ],
                   ],
                 ),
               ),
-              Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  if (_groupFilter != null && _channelSearchQuery.isEmpty)
-                    Icon(Icons.drag_handle_rounded,
-                        color: Colors.white.withOpacity(0.3), size: 20),
-                  IconButton(
-                    tooltip: 'Copy URL',
-                    icon: Icon(Icons.copy_rounded, color: AppTheme.primaryGold.withOpacity(0.85)),
-                    onPressed: url.isEmpty ? null : () => _copyUrl(url),
-                  ),
-                  IconButton(
-                    tooltip: 'Duplicate to form',
-                    icon: const Icon(Icons.control_point_duplicate_rounded),
-                    onPressed: () => _prefillAddFromChannel(val),
-                  ),
-                  IconButton(
-                    tooltip: 'Delete',
-                    icon: const Icon(Icons.delete_outline_rounded, color: Colors.redAccent),
-                    onPressed: () => _deleteChannel('${entry.key}', name),
-                  ),
-                ],
-              ),
+              const SizedBox(width: 10),
+              _tileActions(key, name, val, url),
             ],
           ),
         ),
       ),
+    );
+  }
+
+  Widget _tileActions(String key, String name, Map val, String url) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        if (_groupFilter != null && _channelSearchQuery.isEmpty)
+          Icon(Icons.drag_handle_rounded, color: Colors.white.withOpacity(0.3), size: 18),
+        IconButton(
+          visualDensity: VisualDensity.compact,
+          tooltip: 'Copy URL',
+          icon: Icon(Icons.copy_rounded, color: AppTheme.primaryGold.withOpacity(0.85), size: 20),
+          onPressed: url.isEmpty ? null : () => _copyUrl(url),
+        ),
+        IconButton(
+          visualDensity: VisualDensity.compact,
+          tooltip: 'Duplicate',
+          icon: const Icon(Icons.control_point_duplicate_rounded, size: 20),
+          onPressed: () => _prefillAddFromChannel(val),
+        ),
+        IconButton(
+          visualDensity: VisualDensity.compact,
+          tooltip: 'Delete',
+          icon: const Icon(Icons.delete_outline_rounded, color: Colors.redAccent, size: 20),
+          onPressed: () => _deleteChannel(key, name),
+        ),
+      ],
     );
   }
 
