@@ -224,6 +224,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
         ),
       ),
     );
+  }
+
   Widget _buildTvCodeDisplay(AppStrings s) {
     return Container(
       height: 60,
