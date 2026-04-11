@@ -2,21 +2,17 @@ import 'package:firebase_database/firebase_database.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 /// Validates user-facing login codes from
-/// `sync/global/loginCodes` where each child is `{ "code": "...", "active": true }`.
+/// `sync/global/loginCodes` where each child is:
+///   { "code": "...", "active": true, "expiresAt": "2026-05-01T00:00:00.000Z" }
 ///
-/// Also accepts built-in codes (e.g. vip2026) so sign-in works without RTDB; not secret from APK.
+/// Codes with a past `expiresAt` are treated as inactive.
 class LoginCodesService {
   static const _rtdbPath = 'sync/global/loginCodes';
   static const _cacheKey = 'login_codes_cache_v1';
 
-  /// Lowercase. Works offline and without Firebase.
-  static const Set<String> _builtInCodes = {'vip2026'};
-
   static Future<bool> validate(String raw) async {
     final normalized = _normalize(raw);
     if (normalized.isEmpty) return false;
-
-    if (_builtInCodes.contains(normalized)) return true;
 
     try {
       final snap = await FirebaseDatabase.instance.ref(_rtdbPath).get();
@@ -34,13 +30,25 @@ class LoginCodesService {
   static String _normalize(String s) =>
       s.trim().toLowerCase();
 
+  static bool _isExpired(dynamic expiresAt) {
+    if (expiresAt == null) return false; // No expiry means permanent.
+    try {
+      final dt = DateTime.parse('$expiresAt');
+      return DateTime.now().toUtc().isAfter(dt);
+    } catch (_) {
+      return false;
+    }
+  }
+
   static bool _matchSnapshot(dynamic data, String normalized) {
     if (data is! Map) return false;
     for (final v in data.values) {
       if (v is! Map) continue;
       final active = v['active'] != false;
       final code = _normalize('${v['code'] ?? ''}');
-      if (active && code.isNotEmpty && code == normalized) return true;
+      if (!active || code.isEmpty || code != normalized) continue;
+      if (_isExpired(v['expiresAt'])) continue;
+      return true;
     }
     return false;
   }
@@ -50,6 +58,7 @@ class LoginCodesService {
     if (data is Map) {
       for (final v in data.values) {
         if (v is Map && v['active'] != false) {
+          if (_isExpired(v['expiresAt'])) continue;
           final c = _normalize('${v['code'] ?? ''}');
           if (c.isNotEmpty) codes.add(c);
         }

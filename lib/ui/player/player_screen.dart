@@ -39,6 +39,7 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
   AppSettingsData _settings = const AppSettingsData();
   Timer? _clockTimer;
   bool _muted = false;
+  bool _buffering = true;
 
   final List<StreamSubscription<dynamic>> _subscriptions = [];
 
@@ -79,6 +80,11 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
       _player.stream.volume.listen((v) {
         if (mounted && v > 0 && _muted) setState(() => _muted = false);
         if (mounted && v == 0 && !_muted) setState(() => _muted = true);
+      }),
+    );
+    _subscriptions.add(
+      _player.stream.buffering.listen((b) {
+        if (mounted) setState(() => _buffering = b);
       }),
     );
     AppSettingsData.load().then((s) {
@@ -126,6 +132,7 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
     setState(() {
       _index = fullListIndex;
       _selectedGroup = widget.channels[_index].group;
+      _buffering = true;
     });
     _player.open(Media(_current.url));
     ref.read(recentChannelsProvider.notifier).record(_current);
@@ -314,6 +321,34 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
                     ),
                   ),
                 ),
+                if (_buffering)
+                  Center(
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const CircularProgressIndicator(
+                          color: AppTheme.primaryGold,
+                          strokeWidth: 3,
+                        ),
+                        const SizedBox(height: 16),
+                        Material(
+                          color: Colors.black.withValues(alpha: 0.35),
+                          borderRadius: BorderRadius.circular(8),
+                          child: const Padding(
+                            padding: EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                            child: Text(
+                              'Loading stream...',
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 12,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
               ],
             ),
           ),

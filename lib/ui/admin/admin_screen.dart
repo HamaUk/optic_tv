@@ -15,6 +15,7 @@ import '../../core/theme.dart';
 import '../../widgets/channel_logo_image.dart';
 
 enum _PublishShelf { liveTv, movies, custom }
+enum _LoginDuration { day, week, month, year, never }
 
 class AdminScreen extends StatefulWidget {
   const AdminScreen({super.key});
@@ -59,6 +60,7 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
   double _healthProgress = 0;
   final Map<String, _ChannelHealthStatus> _healthResults = {};
   bool _showBrokenOnly = false;
+  _LoginDuration _selectedLoginDuration = _LoginDuration.month;
 
   DatabaseReference get _playlistRef => FirebaseDatabase.instance.ref(_playlistPath);
   DatabaseReference get _groupsRef => FirebaseDatabase.instance.ref(_groupsPath);
@@ -477,11 +479,78 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
       return;
     }
     try {
-      await _loginCodesRef.push().set({'code': code, 'active': true});
+      String? expiresAt;
+      final now = DateTime.now().toUtc();
+      switch (_selectedLoginDuration) {
+        case _LoginDuration.day:
+          expiresAt = now.add(const Duration(days: 1)).toIso8601String();
+          break;
+        case _LoginDuration.week:
+          expiresAt = now.add(const Duration(days: 7)).toIso8601String();
+          break;
+        case _LoginDuration.month:
+          expiresAt = now.add(const Duration(days: 30)).toIso8601String();
+          break;
+        case _LoginDuration.year:
+          expiresAt = now.add(const Duration(days: 365)).toIso8601String();
+          break;
+        case _LoginDuration.never:
+          expiresAt = null;
+          break;
+      }
+
+      await _loginCodesRef.push().set({
+        'code': code,
+        'active': true,
+        'expiresAt': expiresAt,
+        'createdAt': now.toIso8601String(),
+      });
       _newLoginCodeController.clear();
       _snack('Login code created');
     } catch (e) {
       _snack('Error: $e', error: true);
+    }
+  }
+
+  bool _isCodeExpired(dynamic expiresAt) {
+    if (expiresAt == null) return false;
+    try {
+      final dt = DateTime.parse('$expiresAt');
+      return DateTime.now().toUtc().isAfter(dt);
+    } catch (_) {
+      return false;
+    }
+  }
+
+  Widget _durationChip(String label, _LoginDuration duration) {
+    final selected = _selectedLoginDuration == duration;
+    return Padding(
+      padding: const EdgeInsets.only(right: 8),
+      child: ChoiceChip(
+        label: Text(label, style: const TextStyle(fontSize: 11)),
+        selected: selected,
+        onSelected: (val) {
+          if (val) setState(() => _selectedLoginDuration = duration);
+        },
+        selectedColor: AppTheme.primaryGold.withValues(alpha: 0.35),
+      ),
+    );
+  }
+
+  String _formatExpiry(dynamic expiresAt) {
+    if (expiresAt == null) return 'Never expires';
+    try {
+      final dt = DateTime.parse('$expiresAt').toLocal();
+      final now = DateTime.now();
+      final diff = dt.difference(now);
+      if (diff.isNegative) return 'EXPIRED';
+
+      final y = dt.year;
+      final m = dt.month;
+      final d = dt.day;
+      return 'Expires: $y-$m-$d';
+    } catch (_) {
+      return 'Invalid date';
     }
   }
 
@@ -2354,6 +2423,27 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
                     ),
                   ],
                 ),
+                const SizedBox(height: 12),
+                Row(
+                  children: [
+                    Text('Duration: ', style: TextStyle(fontSize: 12, color: Colors.white.withValues(alpha: 0.4))),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: SingleChildScrollView(
+                        scrollDirection: Axis.horizontal,
+                        child: Row(
+                          children: [
+                            _durationChip('Day', _LoginDuration.day),
+                            _durationChip('Week', _LoginDuration.week),
+                            _durationChip('Month', _LoginDuration.month),
+                            _durationChip('Year', _LoginDuration.year),
+                            _durationChip('Never', _LoginDuration.never),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
                 const SizedBox(height: 16),
                 StreamBuilder<DatabaseEvent>(
                   stream: _loginCodesRef.onValue,
@@ -2395,7 +2485,23 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
                                 children: [
                                   Icon(Icons.key_rounded, color: AppTheme.primaryGold.withValues(alpha: 0.8), size: 20),
                                   const SizedBox(width: 12),
-                                  Expanded(child: Text(code, style: const TextStyle(fontWeight: FontWeight.w600))),
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Text(code, style: const TextStyle(fontWeight: FontWeight.w600)),
+                                        Text(
+                                          _formatExpiry(m is Map ? m['expiresAt'] : null),
+                                          style: TextStyle(
+                                            fontSize: 10,
+                                            color: _isCodeExpired(m is Map ? m['expiresAt'] : null)
+                                                ? Colors.redAccent
+                                                : Colors.white.withValues(alpha: 0.45),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
                                   Switch.adaptive(
                                     value: active,
                                     activeTrackColor: AppTheme.primaryGold.withValues(alpha: 0.45),

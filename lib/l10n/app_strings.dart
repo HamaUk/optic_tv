@@ -11,67 +11,67 @@ class AppStrings {
 
   bool get isEnglish => locale.languageCode == 'en';
 
-  String get loginTitle => isEnglish ? 'Welcome back' : 'بەخێربێیت';
+  String get loginTitle => isEnglish ? 'Welcome back' : 'بەخێربێیتەوە';
   String get loginSubtitle =>
-      isEnglish ? 'Enter your access code to continue' : 'کۆدی دەستپێگەیشتن بنووسە بۆ بەردەوام بوون';
+      isEnglish ? 'Enter your access code to continue' : 'تکایە کۆدی چوونەژوورەوە بنووسە بۆ بەردەوامبوون';
   String get loginHint => '☆☆☆☆☆☆';
-  String get loginButton => isEnglish ? 'Continue' : 'بەردەوام بوون';
-  String get loginErrorEmpty => isEnglish ? 'Enter a code' : 'کۆد بنووسە';
-  String get loginErrorInvalid => isEnglish ? 'Code not recognized' : 'کۆد نەناسراوە';
+  String get loginButton => isEnglish ? 'Continue' : 'بەردەوامبە';
+  String get loginErrorEmpty => isEnglish ? 'Enter a code' : 'کۆدەکە بنووسە';
+  String get loginErrorInvalid => isEnglish ? 'Code not recognized' : 'کۆدەکە هەڵەیە';
   String get loginErrorNetwork =>
-      isEnglish ? 'Check connection and try again' : 'پەیوەندی بپشکنە و دووبارە هەوڵ بدەوە';
+      isEnglish ? 'Check connection and try again' : 'پەیوەندی ئینتەرنێت بپشکنە و دووبارە هەوڵبدەوە';
 
   String get appBrand => 'OPTIC TV';
-  String get appTagline => isEnglish ? 'Premium entertainment' : 'کات بەسەری بە باش';
-  String get noChannels => isEnglish ? 'No channels yet' : 'هیچ کەناڵێک نییە';
+  String get appTagline => isEnglish ? 'Premium entertainment' : 'جیهانێک لە کاتبەسەربردن';
+  String get noChannels => isEnglish ? 'No channels yet' : 'هیچ کەناڵێک بەردەست نییە';
   String get noChannelsHint =>
-      isEnglish ? 'They appear when your library syncs.' : 'دوای هاوکاتکردنی پەڕگەکەت دەردەکەون.';
-  String get nowPlaying => isEnglish ? 'Featured' : 'تایبەت';
+      isEnglish ? 'They appear when your library syncs.' : 'کەناڵەکان دەردەکەون کاتێک لیستەکەت هاوکات دەکرێت.';
+  String get nowPlaying => isEnglish ? 'Featured' : 'جێی سەرنج';
   String get featuredNewHint => isEnglish
       ? 'A new channel is available in your lineup. Tap Watch to start playing.'
-      : 'کەناڵێکی نوێ بەردەستە لە هەڵبژاردەکەتدا. دەست لە «بینین» بدە بۆ دەستپێکردنی پەخش.';
-  String get watchNow => isEnglish ? 'Watch' : 'بینین';
+      : 'کەناڵێکی نوێ بۆ لیستەکەت زیادکراوە، دەست لە «ببینە» بدە بۆ سەیرکردن.';
+  String get watchNow => isEnglish ? 'Watch' : 'ببینە';
   String get channelLoadError => isEnglish ? 'Could not load channels' : 'نەتوانرا کەناڵەکان بخوێنرێتەوە';
-  String get settingsTooltip => isEnglish ? 'Settings' : 'ڕێکخستن';
+  String get settingsTooltip => isEnglish ? 'Settings' : 'ڕێکخستنەکان';
 
-  String get settingsTitle => isEnglish ? 'Settings' : 'ڕێکخستن';
+  String get settingsTitle => isEnglish ? 'Settings' : 'ڕێکخستنەکان';
   String get sectionPlayback => isEnglish ? 'Playback' : 'پەخشکردن';
-  String get sectionVideo => isEnglish ? 'Video fit' : 'گونجاندنی ڤیدیۆ';
+  String get sectionVideo => isEnglish ? 'Video fit' : 'قەبارەی ڤیدیۆ';
   String get sectionInterface => isEnglish ? 'Interface' : 'ڕووکار';
-  String get sectionGradientTheme => isEnglish ? 'Theme & backdrop' : 'ڕووکاری ڕەنگ و پاشبنە';
+  String get sectionGradientTheme => isEnglish ? 'Theme & backdrop' : 'شێوازی ڕەنگ و پاشبنە';
   String get gradientThemeCaption =>
-      isEnglish ? 'Gradient look for dashboard and this screen' : 'ڕەنگیزە بۆ داشبۆرد و ئەم پەڕەیە';
-  String get gradientClassic => isEnglish ? 'Midnight (default)' : 'نیوەشەو (بنەڕەت)';
+      isEnglish ? 'Gradient look for dashboard and this screen' : 'شێوازی ڕەنگیزە بۆ داشبۆرد و ئەم شاشەیە';
+  String get gradientClassic => isEnglish ? 'Midnight (default)' : 'نیوەشەو (بنەڕەتی)';
   String get gradientOcean => isEnglish ? 'Ocean abyss' : 'قووڵایی ئۆقیانوس';
-  String get gradientGold => isEnglish ? 'Gold sunset' : 'ئاسەواری زێڕین';
-  String get gradientViolet => isEnglish ? 'Violet haze' : 'ەمەڕەشی مۆر';
-  String get gradientEmber => isEnglish ? 'Ember glow' : 'گەرمی ئێمبەر';
-  String get sectionLanguage => isEnglish ? 'Language' : 'زمان';
+  String get gradientGold => isEnglish ? 'Gold sunset' : 'ئاسۆیی زێڕین';
+  String get gradientViolet => isEnglish ? 'Violet haze' : 'تەمومژی مۆر';
+  String get gradientEmber => isEnglish ? 'Ember glow' : 'گەشیی پۆلێتی';
+  String get sectionLanguage => isEnglish ? 'Language' : 'زمانەکان';
   String get sectionAccount => isEnglish ? 'Account' : 'هەژمار';
   String get sectionAbout => isEnglish ? 'About' : 'دەربارە';
 
-  String get keepScreenOnTitle => isEnglish ? 'Keep screen on' : 'شاشەکە بێدەستەوە';
+  String get keepScreenOnTitle => isEnglish ? 'Keep screen on' : 'داگیرساندنی شاشە';
   String get keepScreenOnSub =>
-      isEnglish ? 'While video is playing' : 'کاتێک ڤیدیۆ پەخش دەکرێت';
-  String get autoHideTitle => isEnglish ? 'Hide controls' : 'شاردنەوەی کۆنترۆڵ';
+      isEnglish ? 'While video is playing' : 'ڕێگری لە کوژانەوەی شاشە لەکاتی پەخشکردندا';
+  String get autoHideTitle => isEnglish ? 'Hide controls' : 'شاردنەوەی دوگمەکان';
   String get autoHideSub =>
-      isEnglish ? 'Fade player bars; tap to show' : 'شریتی پلەیەر دەشارێتەوە؛ دەست لێ بدە بۆ پیشاندان';
+      isEnglish ? 'Fade player bars; tap to show' : 'شاردنەوەی شریتی پلەیەر، دەست لێ بدە بۆ پیشاندانەوە';
   String get clockTitle => isEnglish ? 'Clock in player' : 'کاتژمێر لە پلەیەر';
-  String get clockSub => isEnglish ? 'Time in top bar' : 'کات لە شریتی سەرەوە';
+  String get clockSub => isEnglish ? 'Time in top bar' : 'پیشاندانی کات لە شریتی سەرەوە';
   String get videoFitCaption =>
-      isEnglish ? 'How video fills the screen' : 'چۆنیەتی پڕکردنەوەی شاشە بە ڤیدیۆ';
-  String get tvLayoutTitle => isEnglish ? 'TV-friendly spacing' : 'بۆشایی گونجاو بۆ تەلەڤیزیۆن';
+      isEnglish ? 'How video fills the screen' : 'چۆنیەتی گونجاندنی ڤیدیۆ لەسەر شاشە';
+  String get tvLayoutTitle => isEnglish ? 'TV-friendly spacing' : 'شێوازی گونجاو بۆ تیڤی';
   String get tvLayoutSub =>
-      isEnglish ? 'Larger rows for remote / D-pad' : 'ڕیزە گەورەتر بۆ دوورکەوتنەوە / D-pad';
+      isEnglish ? 'Larger rows for remote / D-pad' : 'بەکارهێنانی ڕیزبەندی گەورەتر بۆ کۆنترۆڵ';
   String get reduceMotionTitle => isEnglish ? 'Reduce motion' : 'کەمکردنەوەی جوڵە';
-  String get reduceMotionSub => isEnglish ? 'Shorter animations' : 'ئەنیمەیشنە کورتەکان';
+  String get reduceMotionSub => isEnglish ? 'Shorter animations' : 'بەکارهێنانی جوڵەی کورتتر';
   String get logoutTitle => isEnglish ? 'Sign out' : 'چوونەدەرەوە';
   String get logoutSub =>
-      isEnglish ? 'Clear login on this device' : 'چوونەژوورەوە لەسەر ئەم ئامێرە بسڕەوە';
+      isEnglish ? 'Clear login on this device' : 'سڕینەوەی هەژمار لەسەر ئەم ئامێرە';
   String get logoutButton => isEnglish ? 'Sign out' : 'چوونەدەرەوە';
 
   String get aboutTitle => isEnglish ? 'Optic TV' : 'Optic TV';
-  String get aboutSub => isEnglish ? 'Version 1.0.0 · IPTV' : 'وەشان ١٫٠٫٠ · IPTV';
+  String get aboutSub => isEnglish ? 'Version 1.0.0 · IPTV' : 'وەشانی ١.٠.٠ · IPTV';
 
   String get langEnglish => 'English';
   String get langKurdishSorani => 'کوردی (سۆرانی)';
@@ -83,46 +83,46 @@ class AppStrings {
   String get fullscreenTooltip => isEnglish ? 'Fullscreen' : 'پڕ بە شاشە';
 
   String get navHome => isEnglish ? 'Home' : 'سەرەکی';
-  String get navMovies => isEnglish ? 'Movies' : 'فیلم';
+  String get navMovies => isEnglish ? 'Movies' : 'فیلمەکان';
   String get navSport => isEnglish ? 'Sport' : 'وەرزش';
-  String get navFavorites => isEnglish ? 'Favorites' : 'دڵخوازەکان';
-  String get navRecent => isEnglish ? 'Recent' : 'دواتر';
-  String get searchHint => isEnglish ? 'Search channels…' : 'گەڕان بە کەناڵ…';
-  String get categoriesTitle => isEnglish ? 'Categories' : 'پۆلەکان';
+  String get navFavorites => isEnglish ? 'Favorites' : 'دڵخوازەکانم';
+  String get navRecent => isEnglish ? 'Recent' : 'بینراوەکانی دوایی';
+  String get searchHint => isEnglish ? 'Search channels…' : 'گەڕان بەدوای کەناڵ...';
+  String get categoriesTitle => isEnglish ? 'Categories' : 'هاوپۆلەکان';
   String get channelListTitle => isEnglish ? 'Channel list' : 'لیستی کەناڵەکان';
   String get noChannelsInSection =>
-      isEnglish ? 'No channels in this section' : 'لەم بەشەدا کەناڵ نییە';
+      isEnglish ? 'No channels in this section' : 'هیچ کەناڵێک لەم بەشەدا نییە';
   String get noFavorites => isEnglish ? 'No favorites yet' : 'هیچ دڵخوازێک نییە';
   String get noFavoritesHint =>
-      isEnglish ? 'Long-press a channel on the home grid or tap the star in the player.' : 'کەناڵێک بە درێژی دەست دابگرە لە تۆڕ یان ئەستێرە لە پلەیەر.';
+      isEnglish ? 'Long-press a channel on the home grid or tap the star in the player.' : 'ئەستێرەی سەر پلەیەرەکە دابگرە بۆ زیادکردنی کەناڵ.';
   String get noRecent => isEnglish ? 'Nothing played yet' : 'هیچ شتێک نەبینراوە';
   String get noRecentHint =>
-      isEnglish ? 'Channels you open appear here for quick return.' : 'کەناڵەکانی کردووەتەوە لێرە دەردەکەون.';
+      isEnglish ? 'Channels you open appear here for quick return.' : 'کەناڵەکان لێرەدا دەردەکەون بۆ بینینەوەی خێرا.';
 
   String get sectionLibrary => isEnglish ? 'Library' : 'کتێبخانە';
   String get clearFavoritesTitle => isEnglish ? 'Clear favorites' : 'سڕینەوەی دڵخوازەکان';
   String get clearFavoritesSub =>
-      isEnglish ? 'Remove all starred channels on this device' : 'هەموو کەناڵە دڵخوازەکان لەسەر ئەم ئامێرە بسڕەوە';
+      isEnglish ? 'Remove all starred channels on this device' : 'سڕینەوەی هەموو کەناڵە دڵخوازەکان';
   String get clearRecentTitle => isEnglish ? 'Clear watch history' : 'سڕینەوەی مێژووی بینین';
   String get clearRecentSub =>
-      isEnglish ? 'Forget recently opened channels on this device' : 'کەناڵە دواترەکان لەسەر ئەم ئامێرە بسڕەوە';
+      isEnglish ? 'Forget recently opened channels on this device' : 'سڕینەوەی هەموو کەناڵە بینراوەکان';
   String get clearLibraryConfirmBody =>
-      isEnglish ? 'This cannot be undone.' : 'ناتوانرێت هەڵوەشێنرێتەوە.';
+      isEnglish ? 'This cannot be undone.' : 'ئەم پڕۆسەیە ناگەڕێتەوە دواوە.';
   String get clearButton => isEnglish ? 'Clear' : 'سڕینەوە';
 
-  String get favoriteChannel => isEnglish ? 'Add to favorites' : 'زیادکردن بۆ دڵخواز';
-  String get unfavoriteChannel => isEnglish ? 'Remove from favorites' : 'لابردن لە دڵخواز';
+  String get favoriteChannel => isEnglish ? 'Add to favorites' : 'زیادکردن بۆ دڵخوازەکان';
+  String get unfavoriteChannel => isEnglish ? 'Remove from favorites' : 'سڕینەوە لە دڵخوازەکان';
 
   String fitLabel(BoxFit fit) {
     if (isEnglish) return AppSettingsData.labelForFit(fit);
     return switch (fit) {
-      BoxFit.contain => 'تەواو (letterbox)',
-      BoxFit.cover => 'داپۆشین (بڕین)',
-      BoxFit.fill => 'کێشان',
-      BoxFit.fitWidth => 'پانی گونجاو',
-      BoxFit.fitHeight => 'درێژی گونجاو',
-      BoxFit.scaleDown => 'کەمکردنەوەی قەبارە',
-      BoxFit.none => 'هیچ (قەبارەی ڕەسەن)',
+      BoxFit.contain => 'تەواو (بە بێ بڕین)',
+      BoxFit.cover => 'داپۆشین (بڕینی دەورووبەر)',
+      BoxFit.fill => 'پڕکردنەوەی شاشە',
+      BoxFit.fitWidth => 'گونجاندن لەگەڵ پانی',
+      BoxFit.fitHeight => 'گونجاندن لەگەڵ بەرزی',
+      BoxFit.scaleDown => 'پچوکردنەوە',
+      BoxFit.none => 'قەبارەی ئەسڵی',
     };
   }
 }
