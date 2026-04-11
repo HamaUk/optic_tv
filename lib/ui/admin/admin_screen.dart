@@ -697,10 +697,22 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
                   controller: _tabController,
                   physics: const ClampingScrollPhysics(),
                   children: [
-                    KeyedSubtree(key: const PageStorageKey<String>('admin_overview'), child: _buildOverviewTab()),
-                    KeyedSubtree(key: const PageStorageKey<String>('admin_channels'), child: _buildChannelsTab()),
-                    KeyedSubtree(key: const PageStorageKey<String>('admin_publish'), child: _buildPublishTab()),
-                    KeyedSubtree(key: const PageStorageKey<String>('admin_access'), child: _buildAccessTab()),
+                    KeyedSubtree(
+                      key: const PageStorageKey<String>('admin_overview'),
+                      child: _KeepAliveTab(child: _buildOverviewTab()),
+                    ),
+                    KeyedSubtree(
+                      key: const PageStorageKey<String>('admin_channels'),
+                      child: _KeepAliveTab(child: _buildChannelsTab()),
+                    ),
+                    KeyedSubtree(
+                      key: const PageStorageKey<String>('admin_publish'),
+                      child: _KeepAliveTab(child: _buildPublishTab()),
+                    ),
+                    KeyedSubtree(
+                      key: const PageStorageKey<String>('admin_access'),
+                      child: _KeepAliveTab(child: _buildAccessTab()),
+                    ),
                   ],
                 ),
               ),
@@ -733,6 +745,12 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
                   child: Center(child: CircularProgressIndicator(color: AppTheme.primaryGold)),
                 );
               }
+              if (!snapPl.hasData) {
+                return const SizedBox(
+                  height: 240,
+                  child: Center(child: CircularProgressIndicator(color: AppTheme.primaryGold)),
+                );
+              }
               final pl = snapPl.data?.snapshot.value;
               final channels = _parsePlaylist(pl);
               _sortChannelEntries(channels);
@@ -741,19 +759,23 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
                 stream: _groupsRef.onValue,
                 builder: (context, snapG) {
                   int gCount = 0;
-                  final gv = snapG.data?.snapshot.value;
-                  if (gv is Map) gCount = gv.length;
+                  if (snapG.hasData) {
+                    final gv = snapG.data?.snapshot.value;
+                    if (gv is Map) gCount = gv.length;
+                  }
 
                   return StreamBuilder<DatabaseEvent>(
                     stream: _loginCodesRef.onValue,
                     builder: (context, snapC) {
                       int cCount = 0;
                       int activeCodes = 0;
-                      final cv = snapC.data?.snapshot.value;
-                      if (cv is Map) {
-                        cCount = cv.length;
-                        for (final v in cv.values) {
-                          if (v is Map && v['active'] != false) activeCodes++;
+                      if (snapC.hasData) {
+                        final cv = snapC.data?.snapshot.value;
+                        if (cv is Map) {
+                          cCount = cv.length;
+                          for (final v in cv.values) {
+                            if (v is Map && v['active'] != false) activeCodes++;
+                          }
                         }
                       }
 
@@ -1526,4 +1548,25 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
       ),
     );
   }
+}
+
+/// Keeps admin [TabBarView] pages alive when switching tabs (avoids grey flicker / rebuild races).
+class _KeepAliveTab extends StatefulWidget {
+  const _KeepAliveTab({required this.child});
+
+  final Widget child;
+
+  @override
+  State<_KeepAliveTab> createState() => _KeepAliveTabState();
+}
+
+class _KeepAliveTabState extends State<_KeepAliveTab> with AutomaticKeepAliveClientMixin {
+  @override
+  Widget build(BuildContext context) {
+    super.build(context);
+    return widget.child;
+  }
+
+  @override
+  bool get wantKeepAlive => true;
 }
