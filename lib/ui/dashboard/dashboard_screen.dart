@@ -1,5 +1,5 @@
-import 'dart:async';
 import 'dart:math' as math;
+import 'package:firebase_database/firebase_database.dart';
 
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
@@ -17,6 +17,7 @@ import '../admin/admin_screen.dart';
 import '../player/player_screen.dart';
 import '../settings/settings_screen.dart';
 import '../sport/sport_scores_screen.dart';
+import '../../services/tmdb_service.dart';
 
 /// Hidden admin portal password.
 const String _kAdminPortalPassword = 'hamakoye99';
@@ -29,6 +30,7 @@ class DashboardScreen extends ConsumerStatefulWidget {
 }
 
 class _DashboardScreenState extends ConsumerState<DashboardScreen> {
+  final TmdbService _tmdb = TmdbService();
   int _adminLogoTaps = 0;
   Timer? _adminTapResetTimer;
 
@@ -162,27 +164,106 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
 
   Future<void> _showChannelSheet(AppStrings s, List<Channel> allChannels, Channel channel) async {
     final fav = ref.read(favoritesProvider.notifier).isFavorite(channel);
+    final isMovie = _isMovieChannel(channel);
+
+    // If it's a movie, try to get extra info from TMDB for the sheet
+    TmdbMovie? movieInfo;
+    if (isMovie && _tmdb.isConfigured) {
+      movieInfo = await _tmdb.findMovie(channel.name);
+    }
+
+    if (!mounted) return;
+
     await showModalBottomSheet<void>(
       context: context,
       backgroundColor: AppTheme.surfaceElevated,
+      isScrollControlled: true,
       shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
       builder: (ctx) {
-        return SafeArea(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              ListTile(
-                leading: Icon(fav ? Icons.star_rounded : Icons.star_border_rounded, color: AppTheme.primaryGold),
-                title: Text(fav ? s.unfavoriteChannel : s.favoriteChannel),
-                onTap: () {
-                  ref.read(favoritesProvider.notifier).toggle(channel);
-                  Navigator.pop(ctx);
-                },
+        return DraggableScrollableSheet(
+          initialChildSize: movieInfo != null ? 0.6 : 0.35,
+          minChildSize: 0.3,
+          maxChildSize: 0.9,
+          expand: false,
+          builder: (context, scrollController) {
+            return SingleChildScrollView(
+              controller: scrollController,
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Center(
+                    child: Container(
+                      width: 40,
+                      height: 4,
+                      decoration: BoxDecoration(
+                        color: Colors.white24,
+                        borderRadius: BorderRadius.circular(2),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+                  if (movieInfo != null && movieInfo.posterUrl != null)
+                    Center(
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(12),
+                        child: Image.network(movieInfo.posterUrl!, height: 180, fit: BoxFit.cover),
+                      ),
+                    ),
+                  const SizedBox(height: 16),
+                  Text(
+                    channel.name,
+                    style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+                  ),
+                  if (movieInfo != null) ...[
+                    const SizedBox(height: 8),
+                    Row(
+                      children: [
+                        const Icon(Icons.star_rounded, color: AppTheme.primaryGold, size: 18),
+                        const SizedBox(width: 4),
+                        Text(
+                          movieInfo.rating.toStringAsFixed(1),
+                          style: const TextStyle(fontWeight: FontWeight.bold, color: AppTheme.primaryGold),
+                        ),
+                        if (movieInfo.releaseDate != null) ...[
+                          const SizedBox(width: 12),
+                          Text(
+                            movieInfo.releaseDate!.split('-').first,
+                            style: const TextStyle(color: Colors.white54),
+                          ),
+                        ],
+                      ],
+                    ),
+                    const SizedBox(height: 16),
+                    Text(
+                      movieInfo.overview,
+                      style: const TextStyle(height: 1.5, color: Colors.white70),
+                    ),
+                  ],
+                  const SizedBox(height: 32),
+                  ListTile(
+                    leading: Icon(fav ? Icons.star_rounded : Icons.star_border_rounded, color: AppTheme.primaryGold),
+                    title: Text(fav ? s.unfavoriteChannel : s.favoriteChannel),
+                    onTap: () {
+                      ref.read(favoritesProvider.notifier).toggle(channel);
+                      Navigator.pop(ctx);
+                    },
+                  ),
+                  ListTile(
+                    leading: const Icon(Icons.play_circle_fill_rounded, color: AppTheme.accentTeal),
+                    title: const Text('Play Now'),
+                    onTap: () {
+                      Navigator.pop(ctx);
+                      _openPlayer(allChannels, channel);
+                    },
+                  ),
+                  const SizedBox(height: 20),
+                ],
               ),
-            ],
-          ),
+            );
+          },
         );
       },
     );
@@ -341,6 +422,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           _buildTopBar(context, s, pad, tv),
+          const _GlobalAnnouncementTicker(),
           if (_searchOpen) _buildSearchField(s, pad),
           Expanded(child: expandedChild),
         ],
@@ -352,6 +434,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         _buildTopBar(context, s, pad, tv),
+        const _GlobalAnnouncementTicker(),
         if (_searchOpen) _buildSearchField(s, pad),
         Expanded(child: expandedChild),
       ],
@@ -752,123 +835,152 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     int animMs,
   ) {
     const kTileRadius = 18.0;
-    return Focus(
-      child: Builder(
-        builder: (ctx) {
-          final focused = Focus.of(ctx).hasFocus;
-          return AnimatedContainer(
-            duration: Duration(milliseconds: animMs),
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(kTileRadius),
-              border: Border.all(
-                color: focused
-                    ? _accent.withValues(alpha: 0.9)
-                    : Colors.white.withValues(alpha: 0.1),
-                width: focused ? 2 : 1,
-              ),
-              color: const Color(0xFF141A22),
-              boxShadow: [
-                BoxShadow(
-                  color: focused
-                      ? _accent.withValues(alpha: 0.18)
-                      : Colors.black.withValues(alpha: 0.25),
-                  blurRadius: focused ? 16 : 10,
-                  offset: const Offset(0, 6),
+
+    return FutureBuilder<TmdbMovie?>(
+      future: _tmdb.findMovie(channel.name),
+      builder: (context, snapshot) {
+        final movieInfo = snapshot.data;
+
+        return Focus(
+          child: Builder(
+            builder: (ctx) {
+              final focused = Focus.of(ctx).hasFocus;
+              return AnimatedContainer(
+                duration: Duration(milliseconds: animMs),
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(kTileRadius),
+                  border: Border.all(
+                    color: focused ? _accent.withValues(alpha: 0.9) : Colors.white.withValues(alpha: 0.1),
+                    width: focused ? 2 : 1,
+                  ),
+                  color: const Color(0xFF141A22),
+                  boxShadow: [
+                    BoxShadow(
+                      color: focused ? _accent.withValues(alpha: 0.18) : Colors.black.withValues(alpha: 0.25),
+                      blurRadius: focused ? 16 : 10,
+                      offset: const Offset(0, 6),
+                    ),
+                  ],
                 ),
-              ],
-            ),
-            child: Material(
-              color: Colors.transparent,
-              child: InkWell(
-                borderRadius: BorderRadius.circular(kTileRadius),
-                onTap: () => _openPlayer(allChannels, channel),
-                onLongPress: () => _showChannelSheet(s, allChannels, channel),
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(kTileRadius - 1),
-                  child: Stack(
-                    fit: StackFit.expand,
-                    children: [
-                      // Poster / logo fills the card
-                      if (channel.logo != null && channel.logo!.isNotEmpty)
-                        ChannelLogoImage(
-                          logo: channel.logo,
-                          width: double.infinity,
-                          height: double.infinity,
-                          fit: BoxFit.cover,
-                          fallback: _movieFallback(tv),
-                        )
-                      else
-                        _movieFallback(tv),
-                      // Gradient overlay bottom
-                      Positioned.fill(
-                        child: DecoratedBox(
-                          decoration: BoxDecoration(
-                            gradient: LinearGradient(
-                              begin: Alignment.topCenter,
-                              end: Alignment.bottomCenter,
-                              colors: [
-                                Colors.transparent,
-                                Colors.transparent,
-                                Colors.black.withValues(alpha: 0.65),
-                                Colors.black.withValues(alpha: 0.92),
-                              ],
-                              stops: const [0, 0.45, 0.78, 1],
-                            ),
-                          ),
-                        ),
-                      ),
-                      // Play icon center
-                      Center(
-                        child: Container(
-                          width: tv ? 48 : 40,
-                          height: tv ? 48 : 40,
-                          decoration: BoxDecoration(
-                            color: Colors.black.withValues(alpha: 0.45),
-                            shape: BoxShape.circle,
-                            border: Border.all(
-                              color: Colors.white.withValues(alpha: 0.25),
-                            ),
-                          ),
-                          child: Icon(
-                            Icons.play_arrow_rounded,
-                            color: Colors.white.withValues(alpha: 0.85),
-                            size: tv ? 28 : 22,
-                          ),
-                        ),
-                      ),
-                      // Title
-                      Positioned(
-                        left: 10,
-                        right: 10,
-                        bottom: 10,
-                        child: Text(
-                          channel.name,
-                          style: AppTheme.withRabarIfKurdish(
-                            s.locale,
-                            TextStyle(
-                              fontSize: tv ? 13 : 12,
-                              fontWeight: FontWeight.w700,
-                              color: Colors.white,
-                              shadows: [
-                                Shadow(
-                                  color: Colors.black.withValues(alpha: 0.7),
-                                  blurRadius: 6,
+                child: Material(
+                  color: Colors.transparent,
+                  child: InkWell(
+                    borderRadius: BorderRadius.circular(kTileRadius),
+                    onTap: () => _openPlayer(allChannels, channel),
+                    onLongPress: () => _showChannelSheet(s, allChannels, channel),
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(kTileRadius - 1),
+                      child: Stack(
+                        fit: StackFit.expand,
+                        children: [
+                          // Poster: Use TMDB poster if available, otherwise fallback to logo
+                          if (movieInfo?.posterUrl != null)
+                            Image.network(movieInfo!.posterUrl!, fit: BoxFit.cover)
+                          else if (channel.logo != null && channel.logo!.isNotEmpty)
+                            ChannelLogoImage(
+                              logo: channel.logo,
+                              width: double.infinity,
+                              height: double.infinity,
+                              fit: BoxFit.cover,
+                              fallback: _movieFallback(tv),
+                            )
+                          else
+                            _movieFallback(tv),
+                          // Gradient overlay bottom
+                          Positioned.fill(
+                            child: DecoratedBox(
+                              decoration: BoxDecoration(
+                                gradient: LinearGradient(
+                                  begin: Alignment.topCenter,
+                                  end: Alignment.bottomCenter,
+                                  colors: [
+                                    Colors.transparent,
+                                    Colors.transparent,
+                                    Colors.black.withValues(alpha: 0.65),
+                                    Colors.black.withValues(alpha: 0.92),
+                                  ],
+                                  stops: const [0, 0.45, 0.78, 1],
                                 ),
-                              ],
+                              ),
                             ),
                           ),
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                        ),
+                          // Rating Badge (TMDB)
+                          if (movieInfo != null)
+                            Positioned(
+                              top: 8,
+                              right: 8,
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                decoration: BoxDecoration(
+                                  color: AppTheme.primaryGold,
+                                  borderRadius: BorderRadius.circular(6),
+                                ),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    const Icon(Icons.star_rounded, size: 10, color: Colors.black),
+                                    const SizedBox(width: 2),
+                                    Text(
+                                      movieInfo.rating.toStringAsFixed(1),
+                                      style: const TextStyle(
+                                        color: Colors.black,
+                                        fontSize: 10,
+                                        fontWeight: FontWeight.w900,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          // Play icon center
+                          Center(
+                            child: Container(
+                              width: tv ? 48 : 40,
+                              height: tv ? 48 : 40,
+                              decoration: BoxDecoration(
+                                color: Colors.black.withValues(alpha: 0.45),
+                                shape: BoxShape.circle,
+                                border: Border.all(color: Colors.white.withValues(alpha: 0.25)),
+                              ),
+                              child: Icon(
+                                Icons.play_arrow_rounded,
+                                color: Colors.white.withValues(alpha: 0.85),
+                                size: tv ? 28 : 22,
+                              ),
+                            ),
+                          ),
+                          // Title
+                          Positioned(
+                            left: 10,
+                            right: 10,
+                            bottom: 10,
+                            child: Text(
+                              channel.name,
+                              style: AppTheme.withRabarIfKurdish(
+                                s.locale,
+                                TextStyle(
+                                  fontSize: tv ? 13 : 12,
+                                  fontWeight: FontWeight.w700,
+                                  color: Colors.white,
+                                  shadows: [
+                                    Shadow(color: Colors.black.withValues(alpha: 0.7), blurRadius: 6),
+                                  ],
+                                ),
+                              ),
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                        ],
                       ),
-                    ],
+                    ),
                   ),
                 ),
-              ),
-            ),
-          );
-        },
-      ),
+              );
+            },
+          ),
+        );
+      },
     );
   }
 
@@ -1356,6 +1468,136 @@ class _FeaturedCarouselState extends State<_FeaturedCarousel> {
           ),
         ],
       ),
+    );
+  }
+}
+
+class _GlobalAnnouncementTicker extends StatelessWidget {
+  const _GlobalAnnouncementTicker();
+
+  @override
+  Widget build(BuildContext context) {
+    return StreamBuilder<DatabaseEvent>(
+      stream: FirebaseDatabase.instance.ref('sync/global/announcement').onValue,
+      builder: (context, snapshot) {
+        if (!snapshot.hasData || snapshot.data?.snapshot.value == null) {
+          return const SizedBox.shrink();
+        }
+        final data = snapshot.data!.snapshot.value;
+        if (data is! Map) return const SizedBox.shrink();
+
+        final active = data['active'] == true;
+        final text = '${data['text'] ?? ''}';
+
+        if (!active || text.isEmpty) return const SizedBox.shrink();
+
+        return Container(
+          height: 34,
+          width: double.infinity,
+          decoration: BoxDecoration(
+            color: AppTheme.primaryGold.withValues(alpha: 0.1),
+            border: Border(
+              bottom: BorderSide(color: AppTheme.primaryGold.withValues(alpha: 0.15), width: 0.5),
+            ),
+          ),
+          child: _MarqueeText(text: text),
+        );
+      },
+    );
+  }
+}
+
+class _MarqueeText extends StatefulWidget {
+  final String text;
+  const _MarqueeText({required this.text});
+
+  @override
+  State<_MarqueeText> createState() => _MarqueeTextState();
+}
+
+class _MarqueeTextState extends State<_MarqueeText> with SingleTickerProviderStateMixin {
+  late ScrollController _scrollController;
+  late double _scrollPosition = 0;
+  Timer? _timer;
+
+  @override
+  void initState() {
+    super.initState();
+    _scrollController = ScrollController();
+    WidgetsBinding.instance.addPostFrameCallback((_) => _startScrolling());
+  }
+
+  @override
+  void didUpdateWidget(covariant _MarqueeText oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.text != widget.text) {
+      _scrollPosition = 0;
+      if (_scrollController.hasClients) {
+        _scrollController.jumpTo(0);
+      }
+    }
+  }
+
+  void _startScrolling() {
+    _timer?.cancel();
+    _timer = Timer.periodic(const Duration(milliseconds: 30), (timer) {
+      if (!mounted) {
+        timer.cancel();
+        return;
+      }
+      if (_scrollController.hasClients) {
+        final max = _scrollController.position.maxScrollExtent;
+        if (max > 0) {
+          _scrollPosition += 1.0;
+          if (_scrollPosition >= max) {
+            _scrollPosition = -MediaQuery.sizeOf(context).width;
+          }
+          _scrollController.jumpTo(_scrollPosition.clamp(0.0, max));
+        }
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return ListView(
+      controller: _scrollController,
+      scrollDirection: Axis.horizontal,
+      physics: const NeverScrollableScrollPhysics(),
+      padding: const EdgeInsets.symmetric(horizontal: 20),
+      children: [
+        Center(
+          child: Text(
+            widget.text,
+            style: const TextStyle(
+              fontSize: 13,
+              fontWeight: FontWeight.w600,
+              color: AppTheme.primaryGold,
+              letterSpacing: 0.2,
+            ),
+          ),
+        ),
+        // Add huge padding to simulate clean wrap around for long texts
+        SizedBox(width: MediaQuery.sizeOf(context).width),
+        Center(
+          child: Text(
+            widget.text,
+            style: const TextStyle(
+              fontSize: 13,
+              fontWeight: FontWeight.w600,
+              color: AppTheme.primaryGold,
+              letterSpacing: 0.2,
+            ),
+          ),
+        ),
+      ],
     );
   }
 }

@@ -28,6 +28,7 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
   static const _playlistPath = 'sync/global/managedPlaylist';
   static const _groupsPath = 'sync/global/channelGroups';
   static const _loginCodesPath = 'sync/global/loginCodes';
+  static const _announcementPath = 'sync/global/announcement';
   static const _backupFileVersion = 1;
 
   final _channelNameController = TextEditingController();
@@ -37,6 +38,7 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
   final _newGroupController = TextEditingController();
   final _newLoginCodeController = TextEditingController();
   final _channelSearchController = TextEditingController();
+  final _announcementController = TextEditingController();
 
   // Import tab controllers
   final _importUrlController = TextEditingController();
@@ -65,11 +67,11 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
   DatabaseReference get _playlistRef => FirebaseDatabase.instance.ref(_playlistPath);
   DatabaseReference get _groupsRef => FirebaseDatabase.instance.ref(_groupsPath);
   DatabaseReference get _loginCodesRef => FirebaseDatabase.instance.ref(_loginCodesPath);
+  DatabaseReference get _announcementRef => FirebaseDatabase.instance.ref(_announcementPath);
 
-  @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 6, vsync: this);
+    _tabController = TabController(length: 7, vsync: this);
     _channelGroupController.text = 'Live TV';
     _channelSearchController.addListener(() {
       setState(() => _channelSearchQuery = _channelSearchController.text.trim().toLowerCase());
@@ -90,6 +92,7 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
     _xtreamServerController.dispose();
     _xtreamUserController.dispose();
     _xtreamPassController.dispose();
+    _announcementController.dispose();
     super.dispose();
   }
 
@@ -1111,6 +1114,7 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
                   Tab(icon: Icon(Icons.file_download_rounded, size: 20), text: 'Import'),
                   Tab(icon: Icon(Icons.health_and_safety_rounded, size: 20), text: 'Health'),
                   Tab(icon: Icon(Icons.key_rounded, size: 20), text: 'Access'),
+                  Tab(icon: Icon(Icons.campaign_rounded, size: 20), text: 'Broadcast'),
                 ],
               ),
             ),
@@ -1144,6 +1148,10 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
                     KeyedSubtree(
                       key: const PageStorageKey<String>('admin_access'),
                       child: _KeepAliveTab(child: _buildAccessTab()),
+                    ),
+                    KeyedSubtree(
+                      key: const PageStorageKey<String>('admin_announcement'),
+                      child: _KeepAliveTab(child: _buildAnnouncementTab()),
                     ),
                   ],
                 ),
@@ -1251,9 +1259,10 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
                               children: [
                                 Text('Quick paths', style: Theme.of(context).textTheme.titleMedium),
                                 const SizedBox(height: 10),
-                                _monoPath(_playlistPath),
+                                 _monoPath(_playlistPath),
                                 _monoPath(_groupsPath),
                                 _monoPath(_loginCodesPath),
+                                _monoPath(_announcementPath),
                               ],
                             ),
                           ),
@@ -2524,6 +2533,99 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  // ═══════════════════════════════════════════════════════════════
+  //  Tab: Announcements (Broadcast)
+  // ═══════════════════════════════════════════════════════════════
+
+  Widget _buildAnnouncementTab() {
+    return Container(
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: [AppTheme.backgroundBlack, AppTheme.surfaceGray.withValues(alpha: 0.35)],
+        ),
+      ),
+      child: StreamBuilder<DatabaseEvent>(
+        stream: _announcementRef.onValue,
+        builder: (context, snapshot) {
+          final data = snapshot.data?.snapshot.value as Map? ?? {};
+          final currentText = '${data['text'] ?? ''}';
+          final active = data['active'] == true;
+
+          // Sync controller text only if it has changed externally or on first load.
+          if (_announcementController.text != currentText && !_announcementController.selection.isValid) {
+            _announcementController.text = currentText;
+          }
+
+          return ListView(
+            padding: const EdgeInsets.all(20),
+            children: [
+              Text(
+                'Broadcast Announcement',
+                style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800),
+              ),
+              const SizedBox(height: 6),
+              Text(
+                'This message scrolls at the top of the app home screen when active.',
+                style: TextStyle(color: Colors.white.withValues(alpha: 0.45), fontSize: 13),
+              ),
+              const SizedBox(height: 24),
+              _card(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    _sheetField(
+                      _announcementController,
+                      'Announcement text',
+                      Icons.chat_bubble_outline_rounded,
+                      maxLines: 3,
+                    ),
+                    const SizedBox(height: 20),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Text('Status', style: TextStyle(fontWeight: FontWeight.bold)),
+                              Text(
+                                active ? 'Live and scrolling' : 'Currently hidden',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: active ? AppTheme.accentTeal : Colors.white.withValues(alpha: 0.45),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        Switch.adaptive(
+                          value: active,
+                          activeTrackColor: AppTheme.accentTeal.withValues(alpha: 0.45),
+                          onChanged: (val) {
+                            _announcementRef.update({'active': val});
+                          },
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 24),
+                    FilledButton.icon(
+                      onPressed: () async {
+                        final txt = _announcementController.text.trim();
+                        await _announcementRef.update({'text': txt});
+                        _snack('Announcement updated');
+                      },
+                      icon: const Icon(Icons.save_rounded),
+                      label: const Text('Save & Publish'),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          );
+        },
       ),
     );
   }

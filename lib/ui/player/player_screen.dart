@@ -40,6 +40,9 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
   Timer? _clockTimer;
   bool _muted = false;
   bool _buffering = true;
+  bool _showEngineSplash = true;
+  Duration _position = Duration.zero;
+  Duration _duration = Duration.zero;
 
   final List<StreamSubscription<dynamic>> _subscriptions = [];
 
@@ -87,6 +90,20 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
         if (mounted) setState(() => _buffering = b);
       }),
     );
+    _subscriptions.add(
+      _player.stream.position.listen((p) {
+        if (mounted) setState(() => _position = p);
+      }),
+    );
+    _subscriptions.add(
+      _player.stream.duration.listen((d) {
+        if (mounted) setState(() => _duration = d);
+      }),
+    );
+    // Hide engine splash after 3 seconds
+    Timer(const Duration(seconds: 3), () {
+      if (mounted) setState(() => _showEngineSplash = false);
+    });
     AppSettingsData.load().then((s) {
       if (!mounted) return;
       setState(() => _settings = s);
@@ -145,6 +162,16 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
   Future<void> _playPause() async {
     await _player.playOrPause();
   }
+
+  Future<void> _seek(Duration offset) async {
+    final target = _position + offset;
+    await _player.seek(target.clamp(Duration.zero, _duration));
+  }
+
+  bool get _isMovie =>
+      _current.group.toLowerCase().contains('movie') ||
+      _current.group.toLowerCase().contains('film') ||
+      _current.group.toLowerCase().contains('cinema');
 
   double _videoHeight(BuildContext context) {
     final h = MediaQuery.sizeOf(context).height;
@@ -321,34 +348,10 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
                     ),
                   ),
                 ),
-                if (_buffering)
-                  Center(
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        const CircularProgressIndicator(
-                          color: AppTheme.primaryGold,
-                          strokeWidth: 3,
-                        ),
-                        const SizedBox(height: 16),
-                        Material(
-                          color: Colors.black.withValues(alpha: 0.35),
-                          borderRadius: BorderRadius.circular(8),
-                          child: const Padding(
-                            padding: EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                            child: Text(
-                              'Loading stream...',
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontSize: 12,
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
+                if (_showEngineSplash) _buildEngineSplash(),
+                if (_buffering) _buildBufferingIndicator(),
+                if (!_hideSidebar) _buildSidebar(),
+                if (_isMovie) _buildMovieControlsOverlay(),
               ],
             ),
           ),
@@ -521,6 +524,157 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
           ),
         ],
       ),
+    );
+  }
+
+  Widget _buildEngineSplash() {
+    return Container(
+      color: Colors.black.withValues(alpha: 0.6),
+      child: Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const OpticWordmark(height: 48),
+            const SizedBox(height: 12),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+              decoration: BoxDecoration(
+                color: AppTheme.primaryGold,
+                borderRadius: BorderRadius.circular(4),
+              ),
+              child: const Text(
+                'PREMIUM ENGINE',
+                style: TextStyle(
+                  color: Colors.black,
+                  fontSize: 10,
+                  fontWeight: FontWeight.w900,
+                  letterSpacing: 2,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildMovieControlsOverlay() {
+    final format = DateFormat('H:mm:ss');
+    final posStr = format.format(DateTime(2024).add(_position));
+    final durStr = format.format(DateTime(2024).add(_duration));
+
+    return AnimatedOpacity(
+      opacity: _hideSidebar ? 0.0 : 1.0,
+      duration: const Duration(milliseconds: 300),
+      child: Stack(
+        children: [
+          // Bottom bar
+          Align(
+            alignment: Alignment.bottomCenter,
+            child: Container(
+              padding: const EdgeInsets.fromLTRB(24, 40, 24, 24),
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.bottomCenter,
+                  end: Alignment.topCenter,
+                  colors: [Colors.black.withValues(alpha: 0.9), Colors.transparent],
+                ),
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  // Progress
+                  Row(
+                    children: [
+                      Text(posStr, style: const TextStyle(fontSize: 12, color: Colors.white70, fontFamily: 'monospace')),
+                      Expanded(
+                        child: SliderTheme(
+                          data: SliderTheme.of(context).copyWith(
+                            trackHeight: 4,
+                            thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 6),
+                            overlayShape: const RoundSliderOverlayShape(overlayRadius: 14),
+                            activeTrackColor: AppTheme.primaryGold,
+                            inactiveTrackColor: Colors.white24,
+                            thumbColor: AppTheme.primaryGold,
+                          ),
+                          child: Slider(
+                            value: _position.inMilliseconds.toDouble(),
+                            max: math.max(_duration.inMilliseconds.toDouble(), 1.0),
+                            onChanged: (v) {
+                              _player.seek(Duration(milliseconds: v.toInt()));
+                            },
+                          ),
+                        ),
+                      ),
+                      Text(durStr, style: const TextStyle(fontSize: 12, color: Colors.white70, fontFamily: 'monospace')),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+                  // Buttons
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      _playerIconBtn(Icons.replay_10_rounded, () => _seek(const Duration(seconds: -10))),
+                      const SizedBox(width: 32),
+                      GestureDetector(
+                        onTap: _playPause,
+                        child: Container(
+                          padding: const EdgeInsets.all(16),
+                          decoration: const BoxDecoration(
+                            shape: BoxShape.circle,
+                            color: AppTheme.primaryGold,
+                          ),
+                          child: StreamBuilder<bool>(
+                            stream: _player.stream.playing,
+                            builder: (context, playing) {
+                              return Icon(
+                                playing.data == true ? Icons.pause_rounded : Icons.play_arrow_rounded,
+                                color: Colors.black,
+                                size: 38,
+                              );
+                            },
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 32),
+                      _playerIconBtn(Icons.forward_10_rounded, () => _seek(const Duration(seconds: 10))),
+                      const SizedBox(width: 48),
+                      _playerIconBtn(Icons.stop_rounded, () => Navigator.pop(context), color: Colors.redAccent),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ),
+          // Title at top
+          Align(
+            alignment: Alignment.topCenter,
+            child: Container(
+              width: double.infinity,
+              padding: const EdgeInsets.fromLTRB(24, 24, 24, 48),
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [Colors.black.withValues(alpha: 0.8), Colors.transparent],
+                ),
+              ),
+              child: Text(
+                _current.name,
+                textAlign: TextAlign.center,
+                style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _playerIconBtn(IconData icon, VoidCallback onTap, {Color color = Colors.white}) {
+    return IconButton(
+      onPressed: onTap,
+      icon: Icon(icon, color: color, size: 30),
     );
   }
 }

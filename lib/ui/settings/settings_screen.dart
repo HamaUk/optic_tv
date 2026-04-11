@@ -8,6 +8,8 @@ import '../../providers/channel_library_provider.dart';
 import '../../providers/session_provider.dart';
 import '../../providers/ui_settings_provider.dart';
 import '../../services/settings_service.dart';
+import 'package:dio/dio.dart';
+import 'dart:math' as math;
 
 class SettingsScreen extends ConsumerStatefulWidget {
   const SettingsScreen({super.key});
@@ -19,6 +21,11 @@ class SettingsScreen extends ConsumerStatefulWidget {
 class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   AppSettingsData _data = const AppSettingsData();
   bool _loading = true;
+
+  // Speed test state
+  bool _testingSpeed = false;
+  double? _lastSpeedMbps;
+  double _testProgress = 0;
 
   static const _fitChoices = <BoxFit>[
     BoxFit.contain,
@@ -102,6 +109,51 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     if (!go || !mounted) return;
     await ref.read(sessionProvider.notifier).logout();
     // MaterialApp switches home to LoginScreen; avoid extra pops.
+  }
+
+  Future<void> _runSpeedTest() async {
+    if (_testingSpeed) return;
+    setState(() {
+      _testingSpeed = true;
+      _testProgress = 0;
+      _lastSpeedMbps = null;
+    });
+
+    final dio = Dio();
+    // Use a reliable, high-speed dummy file for testing.
+    // This is a 10MB test file from Cloudflare / Speedtest
+    const testUrl = 'https://speed.cloudflare.com/__down?bytes=10485760';
+    final startTime = DateTime.now();
+
+    try {
+      await dio.get(
+        testUrl,
+        onReceiveProgress: (count, total) {
+          if (mounted) setState(() => _testProgress = count / 10485760);
+        },
+        options: Options(responseType: ResponseType.bytes),
+      );
+
+      final endTime = DateTime.now();
+      final durationMs = endTime.difference(startTime).inMilliseconds;
+      final megabits = (10485760 * 8) / 1000000;
+      final seconds = durationMs / 1000;
+      final mbps = megabits / seconds;
+
+      if (mounted) {
+        setState(() {
+          _lastSpeedMbps = mbps;
+          _testingSpeed = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() => _testingSpeed = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Speed test failed. Check your connection.')),
+        );
+      }
+    }
   }
 
   @override
@@ -358,6 +410,56 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                     title: Text(s.logoutTitle),
                     subtitle: Text(s.logoutSub),
                     onTap: () => _confirmLogout(s),
+                  ),
+                ),
+                const SizedBox(height: 24),
+                Text(
+                  'Network Diagnostics',
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                        color: AppTheme.primaryGold,
+                        fontWeight: FontWeight.bold,
+                      ),
+                ),
+                const SizedBox(height: 12),
+                Card(
+                  color: AppTheme.surfaceGray,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                  child: Column(
+                    children: [
+                      ListTile(
+                        leading: const Icon(Icons.speed_rounded, color: AppTheme.accentTeal),
+                        title: const Text('Internet Speed Test'),
+                        subtitle: Text(
+                          _lastSpeedMbps != null
+                              ? 'Last result: ${_lastSpeedMbps!.toStringAsFixed(1)} Mbps'
+                              : 'Test your connection speed for 4K/HD streaming',
+                        ),
+                        trailing: _testingSpeed
+                            ? SizedBox(
+                                width: 24,
+                                height: 24,
+                                child: CircularProgressIndicator(
+                                  value: _testProgress,
+                                  strokeWidth: 3,
+                                  color: AppTheme.primaryGold,
+                                ),
+                              )
+                            : TextButton(
+                                onPressed: _runSpeedTest,
+                                child: const Text('RUN TEST', style: TextStyle(color: AppTheme.primaryGold, fontWeight: FontWeight.bold)),
+                              ),
+                      ),
+                      if (_testingSpeed)
+                        Padding(
+                          padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+                          child: LinearProgressIndicator(
+                            value: _testProgress,
+                            backgroundColor: Colors.white10,
+                            color: AppTheme.primaryGold,
+                            minHeight: 2,
+                          ),
+                        ),
+                    ],
                   ),
                 ),
                 const SizedBox(height: 24),
