@@ -168,11 +168,14 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
                 Expanded(
                   child: Text(
                     _current.name,
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 22,
-                      fontWeight: FontWeight.w700,
-                      letterSpacing: -0.3,
+                    style: AppTheme.withRabarIfKurdish(
+                      uiLocale,
+                      const TextStyle(
+                        color: Colors.white,
+                        fontSize: 22,
+                        fontWeight: FontWeight.w700,
+                        letterSpacing: -0.3,
+                      ),
                     ),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
@@ -337,10 +340,13 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
                           padding: const EdgeInsets.fromLTRB(12, 12, 12, 8),
                           child: Text(
                             s.categoriesTitle,
-                            style: TextStyle(
-                              color: Colors.white.withValues(alpha: 0.45),
-                              fontSize: 13,
-                              fontWeight: FontWeight.w600,
+                            style: AppTheme.withRabarIfKurdish(
+                              uiLocale,
+                              TextStyle(
+                                color: Colors.white.withValues(alpha: 0.45),
+                                fontSize: 13,
+                                fontWeight: FontWeight.w600,
+                              ),
                             ),
                           ),
                         ),
@@ -381,10 +387,13 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
                                           Expanded(
                                             child: Text(
                                               g,
-                                              style: TextStyle(
-                                                color: selected ? _accent : Colors.white.withValues(alpha: 0.82),
-                                                fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
-                                                fontSize: 13,
+                                              style: AppTheme.withRabarIfKurdish(
+                                                uiLocale,
+                                                TextStyle(
+                                                  color: selected ? _accent : Colors.white.withValues(alpha: 0.82),
+                                                  fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
+                                                  fontSize: 13,
+                                                ),
                                               ),
                                               maxLines: 2,
                                               overflow: TextOverflow.ellipsis,
@@ -416,10 +425,13 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
                           child: Center(
                             child: Text(
                               s.channelListTitle,
-                              style: TextStyle(
-                                color: Colors.white.withValues(alpha: 0.45),
-                                fontSize: 13,
-                                fontWeight: FontWeight.w600,
+                              style: AppTheme.withRabarIfKurdish(
+                                uiLocale,
+                                TextStyle(
+                                  color: Colors.white.withValues(alpha: 0.45),
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w600,
+                                ),
                               ),
                             ),
                           ),
@@ -444,10 +456,13 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
                                         Expanded(
                                           child: Text(
                                             ch.name,
-                                            style: TextStyle(
-                                              color: playing ? _accent : Colors.white.withValues(alpha: 0.88),
-                                              fontWeight: playing ? FontWeight.w700 : FontWeight.w500,
-                                              fontSize: 14,
+                                            style: AppTheme.withRabarIfKurdish(
+                                              uiLocale,
+                                              TextStyle(
+                                                color: playing ? _accent : Colors.white.withValues(alpha: 0.88),
+                                                fontWeight: playing ? FontWeight.w700 : FontWeight.w500,
+                                                fontSize: 14,
+                                              ),
                                             ),
                                             maxLines: 2,
                                             overflow: TextOverflow.ellipsis,

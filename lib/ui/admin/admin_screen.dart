@@ -68,6 +68,17 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
     super.dispose();
   }
 
+  /// Admin portal is always English copy, LTR layout, and default Latin typography (no Rabar).
+  Widget _adminEnglishLtr(Widget child) {
+    return Directionality(
+      textDirection: TextDirection.ltr,
+      child: Theme(
+        data: AppTheme.darkTheme,
+        child: child,
+      ),
+    );
+  }
+
   void _snack(String msg, {bool error = false}) {
     if (!mounted) return;
     ScaffoldMessenger.of(context).clearSnackBars();
@@ -115,23 +126,25 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
     if (_backupBusy) return;
     final confirm = await showDialog<bool>(
           context: context,
-          builder: (ctx) => AlertDialog(
-            backgroundColor: AppTheme.surfaceElevated,
-            title: const Text('Import library backup?'),
-            content: const Text(
-              'This replaces ALL channels in managedPlaylist and ALL saved channel groups '
-              'with the contents of the backup file.\n\n'
-              'Login codes are NOT changed.\n\n'
-              'Continue?',
-            ),
-            actions: [
-              TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
-              FilledButton(
-                style: FilledButton.styleFrom(backgroundColor: Colors.orange.shade800),
-                onPressed: () => Navigator.pop(ctx, true),
-                child: const Text('Import'),
+          builder: (ctx) => _adminEnglishLtr(
+            AlertDialog(
+              backgroundColor: AppTheme.surfaceElevated,
+              title: const Text('Import library backup?'),
+              content: const Text(
+                'This replaces ALL channels in managedPlaylist and ALL saved channel groups '
+                'with the contents of the backup file.\n\n'
+                'Login codes are NOT changed.\n\n'
+                'Continue?',
               ),
-            ],
+              actions: [
+                TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
+                FilledButton(
+                  style: FilledButton.styleFrom(backgroundColor: Colors.orange.shade800),
+                  onPressed: () => Navigator.pop(ctx, true),
+                  child: const Text('Import'),
+                ),
+              ],
+            ),
           ),
         ) ??
         false;
@@ -201,18 +214,20 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
   Future<bool> _confirmDelete(String title, String body) async {
     final r = await showDialog<bool>(
           context: context,
-          builder: (ctx) => AlertDialog(
-            backgroundColor: AppTheme.surfaceElevated,
-            title: Text(title),
-            content: Text(body),
-            actions: [
-              TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
-              FilledButton(
-                style: FilledButton.styleFrom(backgroundColor: Colors.redAccent),
-                onPressed: () => Navigator.pop(ctx, true),
-                child: const Text('Delete'),
-              ),
-            ],
+          builder: (ctx) => _adminEnglishLtr(
+            AlertDialog(
+              backgroundColor: AppTheme.surfaceElevated,
+              title: Text(title),
+              content: Text(body),
+              actions: [
+                TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
+                FilledButton(
+                  style: FilledButton.styleFrom(backgroundColor: Colors.redAccent),
+                  onPressed: () => Navigator.pop(ctx, true),
+                  child: const Text('Delete'),
+                ),
+              ],
+            ),
           ),
         ) ??
         false;
@@ -469,9 +484,10 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (ctx) {
-        return StatefulBuilder(
-          builder: (ctx, setModalState) {
-            return Padding(
+        return _adminEnglishLtr(
+          StatefulBuilder(
+            builder: (ctx, setModalState) {
+              return Padding(
               padding: EdgeInsets.only(bottom: MediaQuery.viewInsetsOf(ctx).bottom),
               child: Container(
                 decoration: const BoxDecoration(
@@ -567,7 +583,8 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
                 ),
               ),
             );
-          },
+            },
+          ),
         );
       },
     );
@@ -648,16 +665,17 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AppTheme.backgroundBlack,
-      body: SafeArea(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            _buildAdminHeader(context),
-            Material(
-              color: AppTheme.backgroundBlack,
-              child: TabBar(
+    return _adminEnglishLtr(
+      Scaffold(
+        backgroundColor: AppTheme.backgroundBlack,
+        body: SafeArea(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              _buildAdminHeader(context),
+              Material(
+                color: AppTheme.backgroundBlack,
+                child: TabBar(
                 controller: _tabController,
                 isScrollable: true,
                 indicatorColor: AppTheme.primaryGold,
@@ -686,8 +704,9 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
                   ],
                 ),
               ),
-            ),
-          ],
+              ),
+            ],
+          ),
         ),
       ),
     );

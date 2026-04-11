@@ -59,7 +59,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final s = AppStrings(ref.watch(appLocaleProvider));
+    final uiLocale = ref.watch(appLocaleProvider);
+    final s = AppStrings(uiLocale);
 
     return Scaffold(
       backgroundColor: AppTheme.backgroundBlack,
@@ -91,21 +92,27 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                       Text(
                         s.loginTitle,
                         textAlign: TextAlign.center,
-                        style: const TextStyle(
-                          fontSize: 24,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.white,
-                          letterSpacing: -0.5,
+                        style: AppTheme.withRabarIfKurdish(
+                          uiLocale,
+                          const TextStyle(
+                            fontSize: 24,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.white,
+                            letterSpacing: -0.5,
+                          ),
                         ),
                       ),
                       const SizedBox(height: 12),
                       Text(
                         s.loginSubtitle,
                         textAlign: TextAlign.center,
-                        style: TextStyle(
-                          fontSize: 15,
-                          color: Colors.white.withValues(alpha: 0.6),
-                          height: 1.4,
+                        style: AppTheme.withRabarIfKurdish(
+                          uiLocale,
+                          TextStyle(
+                            fontSize: 15,
+                            color: Colors.white.withValues(alpha: 0.6),
+                            height: 1.4,
+                          ),
                         ),
                       ),
                       const SizedBox(height: 48),
@@ -203,10 +210,13 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                                         )
                                       : Text(
                                           s.loginButton,
-                                          style: const TextStyle(
-                                            fontSize: 17,
-                                            fontWeight: FontWeight.w900,
-                                            letterSpacing: 0.5,
+                                          style: AppTheme.withRabarIfKurdish(
+                                            uiLocale,
+                                            const TextStyle(
+                                              fontSize: 17,
+                                              fontWeight: FontWeight.w900,
+                                              letterSpacing: 0.5,
+                                            ),
                                           ),
                                         ),
                                 ),

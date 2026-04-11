@@ -309,7 +309,10 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
             error: (e, _) => Center(
               child: Text(
                 '${AppStrings(ref.watch(appLocaleProvider)).channelLoadError}: $e',
-                style: const TextStyle(color: Colors.white70),
+                style: AppTheme.withRabarIfKurdish(
+                  ref.watch(appLocaleProvider),
+                  const TextStyle(color: Colors.white70),
+                ),
                 textAlign: TextAlign.center,
               ),
             ),
@@ -449,14 +452,20 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
             const SizedBox(height: 16),
             Text(
               message,
-              style: TextStyle(color: Colors.white.withValues(alpha: 0.45)),
+              style: AppTheme.withRabarIfKurdish(
+                s.locale,
+                TextStyle(color: Colors.white.withValues(alpha: 0.45)),
+              ),
               textAlign: TextAlign.center,
             ),
             if (sub != null) ...[
               const SizedBox(height: 8),
               Text(
                 sub,
-                style: TextStyle(color: Colors.white.withValues(alpha: 0.22), fontSize: 13),
+                style: AppTheme.withRabarIfKurdish(
+                  s.locale,
+                  TextStyle(color: Colors.white.withValues(alpha: 0.22), fontSize: 13),
+                ),
                 textAlign: TextAlign.center,
               ),
             ],
@@ -548,7 +557,10 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
               const SizedBox(width: 10),
               Text(
                 '$title |',
-                style: TextStyle(fontSize: titleSize, fontWeight: FontWeight.bold, color: Colors.white),
+                style: AppTheme.withRabarIfKurdish(
+                  s.locale,
+                  TextStyle(fontSize: titleSize, fontWeight: FontWeight.bold, color: Colors.white),
+                ),
               ),
             ],
           ),
@@ -630,7 +642,10 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                       const SizedBox(height: 6),
                       Text(
                         channel.name,
-                        style: TextStyle(fontSize: tv ? 11 : 10, color: Colors.white.withValues(alpha: 0.75)),
+                        style: AppTheme.withRabarIfKurdish(
+                          s.locale,
+                          TextStyle(fontSize: tv ? 11 : 10, color: Colors.white.withValues(alpha: 0.75)),
+                        ),
                         overflow: TextOverflow.ellipsis,
                         maxLines: 2,
                         textAlign: TextAlign.center,
@@ -657,17 +672,17 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceEvenly,
         children: [
-          _navItem(icon: Icons.home_rounded, label: s.navHome, index: 0),
-          _navItem(icon: Icons.movie_rounded, label: s.navMovies, index: 1),
-          _navItem(icon: Icons.sports_soccer_rounded, label: s.navSport, index: 2),
-          _navItem(icon: Icons.star_rounded, label: s.navFavorites, index: 3),
-          _navItem(icon: Icons.history_rounded, label: s.navRecent, index: 4),
+          _navItem(s, icon: Icons.home_rounded, label: s.navHome, index: 0),
+          _navItem(s, icon: Icons.movie_rounded, label: s.navMovies, index: 1),
+          _navItem(s, icon: Icons.sports_soccer_rounded, label: s.navSport, index: 2),
+          _navItem(s, icon: Icons.star_rounded, label: s.navFavorites, index: 3),
+          _navItem(s, icon: Icons.history_rounded, label: s.navRecent, index: 4),
         ],
       ),
     );
   }
 
-  Widget _navItem({required IconData icon, required String label, required int index}) {
+  Widget _navItem(AppStrings s, {required IconData icon, required String label, required int index}) {
     final selected = _navIndex == index;
     final color = selected ? _accent : Colors.white38;
     return InkWell(
@@ -686,7 +701,10 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
               label,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
-              style: TextStyle(color: color, fontSize: 10, fontWeight: selected ? FontWeight.w700 : FontWeight.w500),
+              style: AppTheme.withRabarIfKurdish(
+                s.locale,
+                TextStyle(color: color, fontSize: 10, fontWeight: selected ? FontWeight.w700 : FontWeight.w500),
+              ),
             ),
           ],
         ),
@@ -822,10 +840,13 @@ class _FeaturedCarouselState extends State<_FeaturedCarousel> {
                         children: [
                           Text(
                             s.nowPlaying,
-                            style: TextStyle(
-                              color: Colors.white.withValues(alpha: 0.55),
-                              fontWeight: FontWeight.bold,
-                              fontSize: tv ? 12 : 11,
+                            style: AppTheme.withRabarIfKurdish(
+                              s.locale,
+                              TextStyle(
+                                color: Colors.white.withValues(alpha: 0.55),
+                                fontWeight: FontWeight.bold,
+                                fontSize: tv ? 12 : 11,
+                              ),
                             ),
                           ),
                           SizedBox(height: tv ? 10 : 8),
@@ -840,10 +861,13 @@ class _FeaturedCarouselState extends State<_FeaturedCarousel> {
                           Text(
                             ch.name,
                             textAlign: TextAlign.center,
-                            style: const TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.w800,
-                              color: Colors.white,
+                            style: AppTheme.withRabarIfKurdish(
+                              s.locale,
+                              const TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.w800,
+                                color: Colors.white,
+                              ),
                             ),
                             maxLines: 2,
                             overflow: TextOverflow.ellipsis,
@@ -856,7 +880,13 @@ class _FeaturedCarouselState extends State<_FeaturedCarousel> {
                               foregroundColor: Colors.black,
                               padding: EdgeInsets.symmetric(horizontal: tv ? 28 : 22, vertical: 12),
                             ),
-                            child: Text(s.watchNow, style: const TextStyle(fontWeight: FontWeight.w700)),
+                            child: Text(
+                              s.watchNow,
+                              style: AppTheme.withRabarIfKurdish(
+                                s.locale,
+                                const TextStyle(fontWeight: FontWeight.w700),
+                              ),
+                            ),
                           ),
                         ],
                       ),
