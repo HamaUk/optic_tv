@@ -10,7 +10,7 @@ import 'package:intl/intl.dart';
 ///   Iraqi Stars League = 648
 class FootballApiService {
   /// ⚠️  Replace with your API-Football key from https://www.api-football.com/
-  static const String _apiKey = 'YOUR_API_KEY_HERE';
+  static const String _apiKey = '6dce7ba23ee16516d6f9fca5466819a0';
   static const String _baseUrl = 'https://v3.football.api-sports.io';
 
   static const Map<String, int> leagueIds = {
