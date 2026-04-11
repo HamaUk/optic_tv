@@ -16,7 +16,7 @@ class FootballApiService {
   static const Map<String, int> leagueIds = {
     'Premier League': 39,
     'La Liga': 140,
-    'Iraqi Stars League': 648,
+    'Iraqi League': 542,
   };
 
   /// Current season (adjust if API returns 404).
@@ -56,18 +56,6 @@ class FootballApiService {
     }
   }
 
-  /// Today's matches for a league.
-  Future<List<MatchData>> getTodayMatches(int leagueId) {
-    final today = DateFormat('yyyy-MM-dd').format(DateTime.now());
-    return getMatches(leagueId: leagueId, date: today);
-  }
-
-  /// Tomorrow's matches for a league.
-  Future<List<MatchData>> getTomorrowMatches(int leagueId) {
-    final tomorrow = DateFormat('yyyy-MM-dd')
-        .format(DateTime.now().add(const Duration(days: 1)));
-    return getMatches(leagueId: leagueId, date: tomorrow);
-  }
 
   /// Live matches for a league.
   Future<List<MatchData>> getLiveMatches(int leagueId) async {

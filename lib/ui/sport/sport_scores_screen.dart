@@ -21,7 +21,8 @@ class _SportScoresScreenState extends State<SportScoresScreen>
   final _api = FootballApiService();
 
   late TabController _leagueTab;
-  int _dateTab = 1; // 0 = Live, 1 = Today, 2 = Tomorrow
+  // 0 = Live/Matches combined
+  int _dateTab = 0; 
 
   /// League keys in display order.
   static const _leagueKeys = ['Premier League', 'La Liga', 'Iraqi Stars League'];
@@ -42,9 +43,9 @@ class _SportScoresScreenState extends State<SportScoresScreen>
       }
     });
     _fetchIfNeeded();
-    // Auto-refresh live tab every 60s.
+    // Auto-refresh match list every 60s.
     _liveRefresh = Timer.periodic(const Duration(seconds: 60), (_) {
-      if (_dateTab == 0) _fetch(force: true);
+      _fetch(force: true);
     });
   }
 
@@ -75,15 +76,16 @@ class _SportScoresScreenState extends State<SportScoresScreen>
     if (mounted) setState(() {});
 
     List<MatchData> list;
-    switch (_dateTab) {
-      case 0:
-        list = await _api.getLiveMatches(lid);
-        break;
-      case 2:
-        list = await _api.getTomorrowMatches(lid);
-        break;
-      default:
-        list = await _api.getTodayMatches(lid);
+    // We try Live matches first as they are most reliable on Free plans.
+    final live = await _api.getLiveMatches(lid);
+    // On free plans, getMatches(date) might be blocked for top leagues,
+    // so we just show live or a fallback if Iraqi league.
+    if (lid == 542) {
+      // Iraqi league usually supports today matches.
+      final today = await _api.getMatches(leagueId: lid, date: DateFormat('yyyy-MM-dd').format(DateTime.now()));
+      list = [...live, ...today.where((m) => !live.any((l) => l.fixtureId == m.fixtureId))];
+    } else {
+      list = live;
     }
 
     _cache.putIfAbsent(key, () => {});
@@ -109,7 +111,7 @@ class _SportScoresScreenState extends State<SportScoresScreen>
         const SizedBox(height: 10),
         _buildLeagueTabs(),
         const SizedBox(height: 10),
-        _buildDateSubTabs(),
+        // _buildDateSubTabs() removed as requested
         const SizedBox(height: 8),
         Expanded(child: _buildBody()),
       ],
@@ -186,71 +188,14 @@ class _SportScoresScreenState extends State<SportScoresScreen>
           tabs: const [
             Tab(text: 'Premier League'),
             Tab(text: 'La Liga'),
-            Tab(text: 'Iraqi Stars'),
+            Tab(text: 'Iraqi League'),
           ],
         ),
       ),
     );
   }
 
-  // ─── Date Sub-tabs ───
-  Widget _buildDateSubTabs() {
-    Widget chip(String label, int idx) {
-      final sel = _dateTab == idx;
-      return Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 4),
-        child: ChoiceChip(
-          label: Text(label),
-          selected: sel,
-          onSelected: (_) {
-            setState(() => _dateTab = idx);
-            _fetchIfNeeded();
-          },
-          selectedColor: _accent.withValues(alpha: 0.35),
-          labelStyle: TextStyle(
-            fontWeight: sel ? FontWeight.w700 : FontWeight.w500,
-            color: sel ? Colors.white : Colors.white60,
-            fontSize: 12,
-          ),
-          side: BorderSide(
-            color: sel
-                ? _accent.withValues(alpha: 0.5)
-                : Colors.white.withValues(alpha: 0.1),
-          ),
-          backgroundColor: AppTheme.surfaceElevated,
-          showCheckmark: false,
-          avatar: idx == 0
-              ? Container(
-                  width: 8,
-                  height: 8,
-                  decoration: BoxDecoration(
-                    color: sel ? Colors.redAccent : Colors.red.withValues(alpha: 0.4),
-                    shape: BoxShape.circle,
-                  ),
-                )
-              : null,
-        ),
-      );
-    }
-
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 14),
-      child: Row(
-        children: [
-          chip('Live', 0),
-          chip('Today', 1),
-          chip('Tomorrow', 2),
-          const Spacer(),
-          IconButton(
-            icon: const Icon(Icons.refresh_rounded,
-                color: Colors.white38, size: 20),
-            tooltip: 'Refresh',
-            onPressed: () => _fetch(force: true),
-          ),
-        ],
-      ),
-    );
-  }
+  // Date sub-tabs removed as requested.
 
   // ─── Body ───
   Widget _buildBody() {
@@ -260,11 +205,7 @@ class _SportScoresScreenState extends State<SportScoresScreen>
       );
     }
     if (_matches.isEmpty) {
-      final msg = _dateTab == 0
-          ? 'No live matches right now'
-          : _dateTab == 1
-              ? 'No matches today'
-              : 'No matches tomorrow';
+      final msg = 'No matches found at the moment';
       return Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,

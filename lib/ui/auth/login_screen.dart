@@ -131,39 +131,37 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                       ),
                     ),
                     const SizedBox(height: 48),
-                    // Simplified Input Box for better TV Focus compatibility
-                    Container(
-                      height: 60,
-                      decoration: BoxDecoration(
-                        color: const Color(0xFF1C2430),
-                        borderRadius: BorderRadius.circular(16),
-                        border: Border.all(
-                          color: _isTV ? AppTheme.primaryGold.withValues(alpha: 0.5) : Colors.white.withValues(alpha: 0.15),
-                          width: _isTV ? 2 : 1,
-                        ),
-                      ),
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 16),
-                        child: TextField(
-                          focusNode: _codeFocus,
-                          controller: _codeController,
-                          readOnly: _isTV,
-                          showCursor: !_isTV,
-                          keyboardType: TextInputType.visiblePassword,
-                          textInputAction: TextInputAction.done,
-                          obscureText: true,
-                          decoration: InputDecoration(
-                            hintText: s.loginHint,
-                            hintStyle: _loginTextStyle(context, opacity: 0.35),
-                            border: InputBorder.none,
-                            icon: const Icon(Icons.vpn_key_rounded, color: AppTheme.primaryGold, size: 22),
+                    // Code Display Zone (Prevents TV system password overlay)
+                    _isTV
+                        ? _buildTvCodeDisplay(s)
+                        : Container(
+                            height: 60,
+                            decoration: BoxDecoration(
+                              color: const Color(0xFF1C2430),
+                              borderRadius: BorderRadius.circular(16),
+                              border: Border.all(color: Colors.white.withValues(alpha: 0.15)),
+                            ),
+                            child: Padding(
+                              padding: const EdgeInsets.symmetric(horizontal: 16),
+                              child: TextField(
+                                focusNode: _codeFocus,
+                                controller: _codeController,
+                                keyboardType: TextInputType.visiblePassword,
+                                textInputAction: TextInputAction.done,
+                                obscureText: true,
+                                decoration: InputDecoration(
+                                  hintText: s.loginHint,
+                                  hintStyle: _loginTextStyle(context, opacity: 0.35),
+                                  border: InputBorder.none,
+                                  icon: const Icon(Icons.vpn_key_rounded,
+                                      color: AppTheme.primaryGold, size: 22),
+                                ),
+                                style: _loginTextStyle(context, opacity: 1),
+                                cursorColor: AppTheme.primaryGold,
+                                onSubmitted: (_) => _submit(s),
+                              ),
+                            ),
                           ),
-                          style: _loginTextStyle(context, opacity: 1),
-                          cursorColor: AppTheme.primaryGold,
-                          onSubmitted: (_) => _submit(s),
-                        ),
-                      ),
-                    ),
                     if (_isTV) ...[
                       const SizedBox(height: 16),
                       Directionality(
@@ -223,6 +221,36 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
               ),
             ),
           ),
+        ),
+      ),
+    );
+  Widget _buildTvCodeDisplay(AppStrings s) {
+    return Container(
+      height: 60,
+      decoration: BoxDecoration(
+        color: const Color(0xFF1C2430),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: AppTheme.primaryGold.withValues(alpha: 0.5),
+          width: 2,
+        ),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16),
+        child: Row(
+          children: [
+            const Icon(Icons.vpn_key_rounded, color: AppTheme.primaryGold, size: 22),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Text(
+                _codeController.text.isEmpty
+                    ? s.loginHint
+                    : '●' * _codeController.text.length,
+                style: _loginTextStyle(context,
+                    opacity: _codeController.text.isEmpty ? 0.35 : 1),
+              ),
+            ),
+          ],
         ),
       ),
     );
