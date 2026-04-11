@@ -62,9 +62,16 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     final uiLocale = ref.watch(appLocaleProvider);
     final s = AppStrings(uiLocale);
 
+    // On Android TV the system virtual keyboard causes the Scaffold to
+    // resize, which crushes the layout into a grey box.  Setting
+    // resizeToAvoidBottomInset=false prevents that; we manually add bottom
+    // padding equal to the keyboard height so the user can still scroll to
+    // the input field.
+    final keyboardInset = MediaQuery.viewInsetsOf(context).bottom;
+
     return Scaffold(
       backgroundColor: AppTheme.backgroundBlack,
-      resizeToAvoidBottomInset: true,
+      resizeToAvoidBottomInset: false,
       body: DecoratedBox(
         decoration: const BoxDecoration(
           gradient: LinearGradient(
@@ -74,13 +81,22 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
           ),
         ),
         child: SafeArea(
-          child: CustomScrollView(
-            keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
-            slivers: [
-              SliverPadding(
-                padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 24),
-                sliver: SliverFillRemaining(
-                  hasScrollBody: false,
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              return SingleChildScrollView(
+                keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+                padding: EdgeInsets.only(
+                  left: 28,
+                  right: 28,
+                  top: 24,
+                  // Extra bottom space so the input stays above the keyboard.
+                  bottom: 24 + keyboardInset,
+                ),
+                child: ConstrainedBox(
+                  // Ensure the content fills the screen when the keyboard is hidden.
+                  constraints: BoxConstraints(
+                    minHeight: constraints.maxHeight - 48, // 24 top + 24 bottom
+                  ),
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -228,8 +244,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                     ],
                   ),
                 ),
-              ),
-            ],
+              );
+            },
           ),
         ),
       ),
