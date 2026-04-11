@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 
+/// Backdrop style for dashboard shell, featured hero, and settings (persisted).
+enum AppGradientPreset { classic, oceanAbyss, goldSunset, violetHaze, emberGlow }
+
 /// Premium dark theme — gold accent.
 /// When `uiLocale` is Kurdish (`ckb`), **Rabar** is applied across [TextTheme] (KRD-style full UI
 /// script). [ThemeData.fontFamily] is never set globally so **Material icons** stay on the icon font.
@@ -97,4 +100,137 @@ class AppTheme {
 
   /// English UI — typography uses the default platform / Material font.
   static ThemeData get darkTheme => darkThemeForUi(const Locale('en'));
+
+  /// Main dashboard / app shell behind content.
+  static LinearGradient shellGradient(AppGradientPreset p) {
+    return switch (p) {
+      AppGradientPreset.classic => const LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [Color(0xFF0B0F14), Color(0xFF121820), Color(0xFF0B0F14)],
+        ),
+      AppGradientPreset.oceanAbyss => const LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [Color(0xFF050F18), Color(0xFF0C2434), Color(0xFF061A22)],
+        ),
+      AppGradientPreset.goldSunset => const LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [Color(0xFF120C08), Color(0xFF1C140C), Color(0xFF0F0A06)],
+        ),
+      AppGradientPreset.violetHaze => const LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [Color(0xFF0E0816), Color(0xFF181028), Color(0xFF0C0612)],
+        ),
+      AppGradientPreset.emberGlow => const LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [Color(0xFF120608), Color(0xFF1C0C0C), Color(0xFF0E0606)],
+        ),
+    };
+  }
+
+  /// Featured spotlight card on the dashboard.
+  static LinearGradient featuredHeroGradient(AppGradientPreset p) {
+    return switch (p) {
+      AppGradientPreset.classic => LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            accentTeal.withValues(alpha: 0.38),
+            const Color(0xFF1C2430),
+            primaryGold.withValues(alpha: 0.22),
+          ],
+        ),
+      AppGradientPreset.oceanAbyss => LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            const Color(0xFF0EA5E9).withValues(alpha: 0.35),
+            const Color(0xFF102030),
+            accentTeal.withValues(alpha: 0.28),
+          ],
+        ),
+      AppGradientPreset.goldSunset => LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            primaryGold.withValues(alpha: 0.42),
+            const Color(0xFF241A12),
+            const Color(0xFFF97316).withValues(alpha: 0.18),
+          ],
+        ),
+      AppGradientPreset.violetHaze => LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            primaryPurple.withValues(alpha: 0.4),
+            const Color(0xFF1A1428),
+            primaryBlue.withValues(alpha: 0.2),
+          ],
+        ),
+      AppGradientPreset.emberGlow => LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            const Color(0xFFF43F5E).withValues(alpha: 0.32),
+            const Color(0xFF1C1010),
+            primaryGold.withValues(alpha: 0.2),
+          ],
+        ),
+    };
+  }
+
+  /// Soft wash behind settings lists.
+  static LinearGradient settingsBackdropGradient(AppGradientPreset p) {
+    return switch (p) {
+      AppGradientPreset.classic => LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [
+            backgroundBlack,
+            const Color(0xFF101620).withValues(alpha: 0.92),
+            backgroundBlack,
+          ],
+        ),
+      AppGradientPreset.oceanAbyss => LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            const Color(0xFF060F18),
+            const Color(0xFF0C1C2A).withValues(alpha: 0.95),
+            backgroundBlack,
+          ],
+        ),
+      AppGradientPreset.goldSunset => LinearGradient(
+          begin: Alignment.topRight,
+          end: Alignment.bottomLeft,
+          colors: [
+            const Color(0xFF140E0A),
+            const Color(0xFF1A120C).withValues(alpha: 0.96),
+            backgroundBlack,
+          ],
+        ),
+      AppGradientPreset.violetHaze => LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [
+            const Color(0xFF100818),
+            const Color(0xFF160C22).withValues(alpha: 0.94),
+            backgroundBlack,
+          ],
+        ),
+      AppGradientPreset.emberGlow => LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            const Color(0xFF120608),
+            const Color(0xFF180A0C).withValues(alpha: 0.95),
+            backgroundBlack,
+          ],
+        ),
+    };
+  }
 }

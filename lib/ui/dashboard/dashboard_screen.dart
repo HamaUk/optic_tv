@@ -1,10 +1,9 @@
 import 'dart:async';
+import 'dart:math' as math;
 
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:share_plus/share_plus.dart';
-
 import '../../core/theme.dart';
 import '../../widgets/channel_logo_image.dart';
 import '../../widgets/optic_wordmark.dart';
@@ -180,14 +179,6 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                   Navigator.pop(ctx);
                 },
               ),
-              ListTile(
-                leading: const Icon(Icons.share_rounded, color: Colors.white70),
-                title: Text(s.shareChannel),
-                onTap: () async {
-                  Navigator.pop(ctx);
-                  await Share.share('${channel.name}\n${channel.url}', subject: channel.name);
-                },
-              ),
             ],
           ),
         );
@@ -236,34 +227,28 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     final tv = settings.tvFriendlyLayout;
     final animMs = settings.reduceMotion ? 100 : 220;
     final pad = tv ? 24.0 : 16.0;
+    final portrait = MediaQuery.orientationOf(context) == Orientation.portrait;
 
     return Scaffold(
       backgroundColor: AppTheme.backgroundBlack,
       body: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [Color(0xFF0B0F14), Color(0xFF121820), Color(0xFF0B0F14)],
-          ),
+        decoration: BoxDecoration(
+          gradient: AppTheme.shellGradient(settings.gradientPreset),
         ),
         child: SafeArea(
           child: channelsAsync.when(
             data: (channels) {
               if (channels.isEmpty) {
-                return Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    _buildTopBar(context, s, pad, tv),
-                    if (_searchOpen) _buildSearchField(s, pad),
-                    Expanded(
-                      child: _buildEmptyState(
-                        s,
-                        title: s.noChannels,
-                        subtitle: s.noChannelsHint,
-                      ),
-                    ),
-                  ],
+                return _buildDashboardShell(
+                  context,
+                  s,
+                  pad,
+                  tv,
+                  _buildEmptyState(
+                    s,
+                    title: s.noChannels,
+                    subtitle: s.noChannelsHint,
+                  ),
                 );
               }
 
@@ -271,55 +256,146 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
               final filtered = _applySearch(navScoped);
               final groups = _groupMap(filtered);
 
-              return Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  _buildTopBar(context, s, pad, tv),
-                  if (_searchOpen) _buildSearchField(s, pad),
-                  Expanded(
-                    child: filtered.isEmpty
-                        ? _buildEmptyState(
-                            s,
-                            title: _navIndex == 3
-                                ? s.noFavorites
-                                : _navIndex == 4
-                                    ? s.noRecent
-                                    : null,
-                            subtitle: _navIndex == 3
-                                ? s.noFavoritesHint
-                                : _navIndex == 4
-                                    ? s.noRecentHint
-                                    : null,
-                          )
-                        : _buildScrollableContent(
-                            context,
-                            s,
-                            channels,
-                            filtered,
-                            groups,
-                            settings,
-                            animMs,
-                            pad,
-                          ),
-                  ),
-                ],
+              return _buildDashboardShell(
+                context,
+                s,
+                pad,
+                tv,
+                filtered.isEmpty
+                    ? _buildEmptyState(
+                        s,
+                        title: _navIndex == 3
+                            ? s.noFavorites
+                            : _navIndex == 4
+                                ? s.noRecent
+                                : null,
+                        subtitle: _navIndex == 3
+                            ? s.noFavoritesHint
+                            : _navIndex == 4
+                                ? s.noRecentHint
+                                : null,
+                      )
+                    : _buildScrollableContent(
+                        context,
+                        s,
+                        channels,
+                        filtered,
+                        groups,
+                        settings,
+                        animMs,
+                        pad,
+                      ),
               );
             },
-            loading: () => const Center(child: CircularProgressIndicator(color: _accent)),
-            error: (e, _) => Center(
-              child: Text(
-                '${AppStrings(ref.watch(appLocaleProvider)).channelLoadError}: $e',
-                style: AppTheme.withRabarIfKurdish(
-                  ref.watch(appLocaleProvider),
-                  const TextStyle(color: Colors.white70),
+            loading: () => _buildDashboardShell(
+              context,
+              s,
+              pad,
+              tv,
+              const Center(child: CircularProgressIndicator(color: _accent)),
+            ),
+            error: (e, _) => _buildDashboardShell(
+              context,
+              s,
+              pad,
+              tv,
+              Center(
+                child: Text(
+                  '${s.channelLoadError}: $e',
+                  style: AppTheme.withRabarIfKurdish(
+                    s.locale,
+                    const TextStyle(color: Colors.white70),
+                  ),
+                  textAlign: TextAlign.center,
                 ),
-                textAlign: TextAlign.center,
               ),
             ),
           ),
         ),
       ),
-      bottomNavigationBar: _buildBottomNav(s, MediaQuery.paddingOf(context).bottom),
+      bottomNavigationBar:
+          portrait ? _buildBottomNav(s, MediaQuery.paddingOf(context).bottom) : null,
+    );
+  }
+
+  /// Portrait: column only. Landscape: fixed rail on the **physical left** (like KRD TV) + content with correct RTL.
+  Widget _buildDashboardShell(
+    BuildContext context,
+    AppStrings s,
+    double pad,
+    bool tv,
+    Widget expandedChild,
+  ) {
+    final landscape = MediaQuery.orientationOf(context) == Orientation.landscape;
+    if (!landscape) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          _buildTopBar(context, s, pad, tv),
+          if (_searchOpen) _buildSearchField(s, pad),
+          Expanded(child: expandedChild),
+        ],
+      );
+    }
+
+    final contentDir = s.locale.languageCode == 'ckb' ? TextDirection.rtl : TextDirection.ltr;
+    final bodyColumn = Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        _buildTopBar(context, s, pad, tv),
+        if (_searchOpen) _buildSearchField(s, pad),
+        Expanded(child: expandedChild),
+      ],
+    );
+
+    return Row(
+      textDirection: TextDirection.ltr,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        _buildSideRail(s),
+        VerticalDivider(
+          width: 1,
+          thickness: 1,
+          color: Colors.white.withValues(alpha: 0.08),
+        ),
+        Expanded(
+          child: Directionality(
+            textDirection: contentDir,
+            child: bodyColumn,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildSideRail(AppStrings s) {
+    final bottom = MediaQuery.paddingOf(context).bottom;
+    return Container(
+      width: 96,
+      decoration: BoxDecoration(
+        color: const Color(0xFF0A0E14),
+        border: Border(
+          right: BorderSide(color: Colors.white.withValues(alpha: 0.06)),
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.35),
+            blurRadius: 14,
+            offset: const Offset(2, 0),
+          ),
+        ],
+      ),
+      padding: EdgeInsets.fromLTRB(6, 10, 6, math.max(bottom, 10)),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+        children: [
+          _navItem(s, icon: Icons.home_rounded, label: s.navHome, index: 0, sideRail: true),
+          _navItem(s, icon: Icons.movie_rounded, label: s.navMovies, index: 1, sideRail: true),
+          _navItem(s, icon: Icons.sports_soccer_rounded, label: s.navSport, index: 2, sideRail: true),
+          _navItem(s, icon: Icons.star_rounded, label: s.navFavorites, index: 3, sideRail: true),
+          _navItem(s, icon: Icons.history_rounded, label: s.navRecent, index: 4, sideRail: true),
+        ],
+      ),
     );
   }
 
@@ -503,6 +579,8 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                 s: s,
                 tv: tv,
                 animMs: animMs,
+                gradientPreset: settings.gradientPreset,
+                reduceMotion: settings.reduceMotion,
                 onWatch: (c) => _openPlayer(allChannels, c),
               ),
             ),
@@ -591,7 +669,8 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     bool tv,
     int animMs,
   ) {
-    final logoSize = tv ? 28.0 : 24.0;
+    final logoSize = tv ? 26.0 : 22.0;
+    const kTileRadius = 16.0;
     return Focus(
       child: Builder(
         builder: (ctx) {
@@ -599,43 +678,33 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
           return AnimatedContainer(
             duration: Duration(milliseconds: animMs),
             decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(14),
+              borderRadius: BorderRadius.circular(kTileRadius),
               border: Border.all(
-                color: focused ? _accent : Colors.white.withValues(alpha: 0.1),
-                width: focused ? 2 : 1,
+                color: focused ? _accent.withValues(alpha: 0.9) : Colors.white.withValues(alpha: 0.12),
+                width: focused ? 1.5 : 1,
               ),
-              color: Colors.white.withValues(alpha: focused ? 0.08 : 0.04),
+              color: focused
+                  ? _accent.withValues(alpha: 0.07)
+                  : const Color(0xFF141A22).withValues(alpha: 0.94),
             ),
             child: Material(
               color: Colors.transparent,
               child: InkWell(
-                borderRadius: BorderRadius.circular(14),
+                borderRadius: BorderRadius.circular(kTileRadius),
                 onTap: () => _openPlayer(allChannels, channel),
                 onLongPress: () => _showChannelSheet(s, allChannels, channel),
                 child: Padding(
-                  padding: const EdgeInsets.all(8),
+                  padding: const EdgeInsets.fromLTRB(10, 10, 10, 8),
                   child: Column(
                     children: [
                       Expanded(
-                        child: Container(
-                          width: double.infinity,
-                          decoration: BoxDecoration(
-                            borderRadius: BorderRadius.circular(10),
-                            gradient: LinearGradient(
-                              colors: [
-                                Colors.white.withValues(alpha: 0.07),
-                                Colors.white.withValues(alpha: 0.02),
-                              ],
-                            ),
-                          ),
-                          child: Center(
-                            child: ChannelLogoImage(
-                              logo: channel.logo,
-                              width: logoSize * 2.4,
-                              height: logoSize * 2.4,
-                              fit: BoxFit.contain,
-                              fallback: Icon(Icons.tv_rounded, color: Colors.white24, size: logoSize),
-                            ),
+                        child: Center(
+                          child: ChannelLogoImage(
+                            logo: channel.logo,
+                            width: logoSize * 2.65,
+                            height: logoSize * 2.65,
+                            fit: BoxFit.contain,
+                            fallback: Icon(Icons.tv_rounded, color: Colors.white24, size: logoSize + 2),
                           ),
                         ),
                       ),
@@ -644,7 +713,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                         channel.name,
                         style: AppTheme.withRabarIfKurdish(
                           s.locale,
-                          TextStyle(fontSize: tv ? 11 : 10, color: Colors.white.withValues(alpha: 0.75)),
+                          TextStyle(fontSize: tv ? 11 : 10, color: Colors.white.withValues(alpha: 0.78)),
                         ),
                         overflow: TextOverflow.ellipsis,
                         maxLines: 2,
@@ -682,31 +751,207 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     );
   }
 
-  Widget _navItem(AppStrings s, {required IconData icon, required String label, required int index}) {
+  Widget _navItem(
+    AppStrings s, {
+    required IconData icon,
+    required String label,
+    required int index,
+    bool sideRail = false,
+  }) {
     final selected = _navIndex == index;
-    final color = selected ? _accent : Colors.white38;
-    return InkWell(
-      onTap: () {
-        setState(() => _navIndex = index);
-      },
-      borderRadius: BorderRadius.circular(12),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(icon, color: color, size: 24),
-            const SizedBox(height: 2),
-            Text(
-              label,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: AppTheme.withRabarIfKurdish(
-                s.locale,
-                TextStyle(color: color, fontSize: 10, fontWeight: selected ? FontWeight.w700 : FontWeight.w500),
+    final color = selected ? _accent : (sideRail ? Colors.white.withValues(alpha: 0.52) : Colors.white38);
+
+    if (!sideRail) {
+      return InkWell(
+        onTap: () => setState(() => _navIndex = index),
+        borderRadius: BorderRadius.circular(12),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(icon, color: color, size: 24),
+              const SizedBox(height: 2),
+              Text(
+                label,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: AppTheme.withRabarIfKurdish(
+                  s.locale,
+                  TextStyle(
+                    color: color,
+                    fontSize: 10,
+                    fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
+                  ),
+                ),
               ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    // Landscape rail: KRD-style — teal border + soft fill around **icon + label**, smaller glyphs.
+    const railIcon = 20.0;
+    const railRadius = 14.0;
+    final column = Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Icon(icon, color: color, size: railIcon),
+        const SizedBox(height: 5),
+        Text(
+          label,
+          maxLines: 2,
+          textAlign: TextAlign.center,
+          overflow: TextOverflow.ellipsis,
+          style: AppTheme.withRabarIfKurdish(
+            s.locale,
+            TextStyle(
+              color: color,
+              fontSize: 8.5,
+              height: 1.1,
+              fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
+            ),
+          ),
+        ),
+      ],
+    );
+
+    final padded = Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 8),
+      child: column,
+    );
+
+    final chip = selected
+        ? DecoratedBox(
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(railRadius),
+              border: Border.all(color: _accent.withValues(alpha: 0.88), width: 1.5),
+              color: _accent.withValues(alpha: 0.13),
+              boxShadow: [
+                BoxShadow(
+                  color: _accent.withValues(alpha: 0.18),
+                  blurRadius: 10,
+                  spreadRadius: 0,
+                ),
+              ],
+            ),
+            child: padded,
+          )
+        : Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 6),
+            child: column,
+          );
+
+    return InkWell(
+      onTap: () => setState(() => _navIndex = index),
+      borderRadius: BorderRadius.circular(railRadius),
+      child: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 78),
+          child: chip,
+        ),
+      ),
+    );
+  }
+}
+
+/// Pulsing channel logo for the featured hero (respects [reduceMotion]).
+class _PulsingLogoBox extends StatefulWidget {
+  const _PulsingLogoBox({
+    required this.channel,
+    required this.baseSize,
+    required this.reduceMotion,
+  });
+
+  final Channel channel;
+  final double baseSize;
+  final bool reduceMotion;
+
+  @override
+  State<_PulsingLogoBox> createState() => _PulsingLogoBoxState();
+}
+
+class _PulsingLogoBoxState extends State<_PulsingLogoBox> with SingleTickerProviderStateMixin {
+  AnimationController? _pulse;
+
+  @override
+  void initState() {
+    super.initState();
+    if (!widget.reduceMotion) {
+      _pulse = AnimationController(
+        vsync: this,
+        duration: const Duration(milliseconds: 2800),
+      )..repeat(reverse: true);
+      _pulse!.addListener(() => setState(() {}));
+    }
+  }
+
+  @override
+  void dispose() {
+    _pulse?.dispose();
+    super.dispose();
+  }
+
+  double get _scale {
+    if (_pulse == null) return 1.0;
+    return 1.0 + 0.045 * Curves.easeInOut.transform(_pulse!.value);
+  }
+
+  double get _glow {
+    if (_pulse == null) return 0.32;
+    return 0.2 + 0.28 * Curves.easeInOut.transform(_pulse!.value);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final pad = 10.0;
+    final inner = widget.baseSize;
+    return Transform.scale(
+      scale: _scale,
+      child: Container(
+        width: inner + pad * 2,
+        height: inner + pad * 2,
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(22),
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [
+              AppTheme.accentTeal.withValues(alpha: 0.45),
+              Colors.white.withValues(alpha: 0.1),
+              AppTheme.primaryGold.withValues(alpha: 0.35),
+            ],
+          ),
+          border: Border.all(color: Colors.white.withValues(alpha: 0.28)),
+          boxShadow: [
+            BoxShadow(
+              color: AppTheme.accentTeal.withValues(alpha: _glow),
+              blurRadius: 22,
+              spreadRadius: 0,
+            ),
+            BoxShadow(
+              color: AppTheme.primaryGold.withValues(alpha: _glow * 0.35),
+              blurRadius: 14,
+              spreadRadius: 0,
             ),
           ],
+        ),
+        padding: EdgeInsets.all(pad),
+        child: DecoratedBox(
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(14),
+            color: Colors.black.withValues(alpha: 0.25),
+          ),
+          child: Center(
+            child: ChannelLogoImage(
+              logo: widget.channel.logo,
+              width: inner,
+              height: inner,
+              fit: BoxFit.contain,
+              fallback: Icon(Icons.live_tv_rounded, color: Colors.white38, size: inner * 0.5),
+            ),
+          ),
         ),
       ),
     );
@@ -719,6 +964,8 @@ class _FeaturedCarousel extends StatefulWidget {
     required this.s,
     required this.tv,
     required this.animMs,
+    required this.gradientPreset,
+    required this.reduceMotion,
     required this.onWatch,
   });
 
@@ -726,6 +973,8 @@ class _FeaturedCarousel extends StatefulWidget {
   final AppStrings s;
   final bool tv;
   final int animMs;
+  final AppGradientPreset gradientPreset;
+  final bool reduceMotion;
   final void Function(Channel channel) onWatch;
 
   @override
@@ -733,7 +982,7 @@ class _FeaturedCarousel extends StatefulWidget {
 }
 
 class _FeaturedCarouselState extends State<_FeaturedCarousel> {
-  static const _autoAdvance = Duration(seconds: 5);
+  static const _autoAdvance = Duration(seconds: 10);
 
   late final PageController _pageController;
   Timer? _autoTimer;
@@ -798,30 +1047,30 @@ class _FeaturedCarouselState extends State<_FeaturedCarousel> {
   Widget build(BuildContext context) {
     final s = widget.s;
     final tv = widget.tv;
-    final logoSize = tv ? 96.0 : 88.0;
+    final logoBlock = tv ? 86.0 : 78.0;
+    final textDir = s.locale.languageCode == 'ckb' ? TextDirection.rtl : TextDirection.ltr;
 
     return Container(
-      height: tv ? 248 : 238,
+      height: tv ? 210 : 196,
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(20),
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [
-            AppTheme.accentTeal.withValues(alpha: 0.35),
-            const Color(0xFF1C2430),
-            AppTheme.primaryGold.withValues(alpha: 0.2),
-          ],
-        ),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
+        gradient: AppTheme.featuredHeroGradient(widget.gradientPreset),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.35),
+            blurRadius: 20,
+            offset: const Offset(0, 10),
+          ),
+        ],
       ),
       clipBehavior: Clip.antiAlias,
       child: Stack(
         children: [
           Positioned(
-            right: -12,
-            bottom: 28,
-            child: Icon(Icons.live_tv_rounded, size: tv ? 88 : 100, color: Colors.black.withValues(alpha: 0.06)),
+            right: -20,
+            bottom: 20,
+            child: Icon(Icons.live_tv_rounded, size: tv ? 96 : 108, color: Colors.black.withValues(alpha: 0.07)),
           ),
           Column(
             children: [
@@ -833,58 +1082,90 @@ class _FeaturedCarouselState extends State<_FeaturedCarousel> {
                   itemBuilder: (context, i) {
                     final ch = widget.slides[i];
                     return Padding(
-                      padding: const EdgeInsets.fromLTRB(20, 16, 20, 4),
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        crossAxisAlignment: CrossAxisAlignment.center,
+                      padding: EdgeInsets.fromLTRB(12, 10, 14, 4),
+                      child: Row(
+                        textDirection: TextDirection.ltr,
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: [
-                          Text(
-                            s.nowPlaying,
-                            style: AppTheme.withRabarIfKurdish(
-                              s.locale,
-                              TextStyle(
-                                color: Colors.white.withValues(alpha: 0.55),
-                                fontWeight: FontWeight.bold,
-                                fontSize: tv ? 12 : 11,
-                              ),
+                          Center(
+                            child: _PulsingLogoBox(
+                              channel: ch,
+                              baseSize: logoBlock,
+                              reduceMotion: widget.reduceMotion,
                             ),
                           ),
-                          SizedBox(height: tv ? 10 : 8),
-                          ChannelLogoImage(
-                            logo: ch.logo,
-                            width: logoSize,
-                            height: logoSize,
-                            fit: BoxFit.contain,
-                            fallback: Icon(Icons.live_tv_rounded, color: Colors.white38, size: logoSize * 0.55),
-                          ),
-                          SizedBox(height: tv ? 10 : 8),
-                          Text(
-                            ch.name,
-                            textAlign: TextAlign.center,
-                            style: AppTheme.withRabarIfKurdish(
-                              s.locale,
-                              const TextStyle(
-                                fontSize: 18,
-                                fontWeight: FontWeight.w800,
-                                color: Colors.white,
-                              ),
-                            ),
-                            maxLines: 2,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                          SizedBox(height: tv ? 14 : 12),
-                          FilledButton(
-                            onPressed: () => widget.onWatch(ch),
-                            style: FilledButton.styleFrom(
-                              backgroundColor: AppTheme.accentTeal,
-                              foregroundColor: Colors.black,
-                              padding: EdgeInsets.symmetric(horizontal: tv ? 28 : 22, vertical: 12),
-                            ),
-                            child: Text(
-                              s.watchNow,
-                              style: AppTheme.withRabarIfKurdish(
-                                s.locale,
-                                const TextStyle(fontWeight: FontWeight.w700),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: Directionality(
+                              textDirection: textDir,
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    s.nowPlaying,
+                                    style: AppTheme.withRabarIfKurdish(
+                                      s.locale,
+                                      TextStyle(
+                                        color: Colors.white.withValues(alpha: 0.58),
+                                        fontWeight: FontWeight.w800,
+                                        fontSize: tv ? 11.5 : 10.5,
+                                        letterSpacing: 0.3,
+                                      ),
+                                    ),
+                                  ),
+                                  SizedBox(height: tv ? 6 : 5),
+                                  Text(
+                                    s.featuredNewHint,
+                                    maxLines: 3,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: AppTheme.withRabarIfKurdish(
+                                      s.locale,
+                                      TextStyle(
+                                        color: Colors.white.withValues(alpha: 0.72),
+                                        fontSize: tv ? 12.5 : 11.5,
+                                        height: 1.35,
+                                        fontWeight: FontWeight.w500,
+                                      ),
+                                    ),
+                                  ),
+                                  SizedBox(height: tv ? 8 : 6),
+                                  Text(
+                                    ch.name,
+                                    maxLines: 2,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: AppTheme.withRabarIfKurdish(
+                                      s.locale,
+                                      TextStyle(
+                                        fontSize: tv ? 17 : 16,
+                                        fontWeight: FontWeight.w800,
+                                        color: Colors.white,
+                                        height: 1.15,
+                                      ),
+                                    ),
+                                  ),
+                                  const Spacer(),
+                                  Align(
+                                    alignment: Alignment.centerRight,
+                                    child: FilledButton(
+                                      onPressed: () => widget.onWatch(ch),
+                                      style: FilledButton.styleFrom(
+                                        backgroundColor: AppTheme.accentTeal,
+                                        foregroundColor: Colors.black,
+                                        elevation: 2,
+                                        shadowColor: AppTheme.accentTeal.withValues(alpha: 0.5),
+                                        padding: EdgeInsets.symmetric(horizontal: tv ? 22 : 18, vertical: 11),
+                                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                      ),
+                                      child: Text(
+                                        s.watchNow,
+                                        style: AppTheme.withRabarIfKurdish(
+                                          s.locale,
+                                          const TextStyle(fontWeight: FontWeight.w800, fontSize: 13),
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ],
                               ),
                             ),
                           ),
@@ -895,7 +1176,7 @@ class _FeaturedCarouselState extends State<_FeaturedCarousel> {
                 ),
               ),
               Padding(
-                padding: const EdgeInsets.only(bottom: 12, top: 4),
+                padding: const EdgeInsets.only(bottom: 10, top: 2),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: List.generate(widget.slides.length, (i) {

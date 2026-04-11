@@ -1549,7 +1549,6 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
     );
   }
 }
-
 /// Keeps admin [TabBarView] pages alive when switching tabs (avoids grey flicker / rebuild races).
 class _KeepAliveTab extends StatefulWidget {
   const _KeepAliveTab({required this.child});
@@ -1570,3 +1569,4 @@ class _KeepAliveTabState extends State<_KeepAliveTab> with AutomaticKeepAliveCli
   @override
   bool get wantKeepAlive => true;
 }
+

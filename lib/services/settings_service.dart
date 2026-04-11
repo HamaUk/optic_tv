@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../core/theme.dart';
+
 /// Persisted user preferences (read by [SettingsScreen] and [PlayerScreen]).
 class AppSettingsData {
   final bool keepScreenOnWhilePlaying;
@@ -9,6 +11,7 @@ class AppSettingsData {
   final bool showOnScreenClock;
   final bool tvFriendlyLayout;
   final bool reduceMotion;
+  final AppGradientPreset gradientPreset;
 
   const AppSettingsData({
     this.keepScreenOnWhilePlaying = true,
@@ -17,6 +20,7 @@ class AppSettingsData {
     this.showOnScreenClock = false,
     this.tvFriendlyLayout = false,
     this.reduceMotion = false,
+    this.gradientPreset = AppGradientPreset.classic,
   });
 
   static Future<AppSettingsData> load() async {
@@ -28,6 +32,7 @@ class AppSettingsData {
       showOnScreenClock: p.getBool(_kShowClock) ?? false,
       tvFriendlyLayout: p.getBool(_kTvLayout) ?? false,
       reduceMotion: p.getBool(_kReduceMotion) ?? false,
+      gradientPreset: _decodeGradientPreset(p.getString(_kGradientPreset)),
     );
   }
 
@@ -39,6 +44,7 @@ class AppSettingsData {
     await p.setBool(_kShowClock, showOnScreenClock);
     await p.setBool(_kTvLayout, tvFriendlyLayout);
     await p.setBool(_kReduceMotion, reduceMotion);
+    await p.setString(_kGradientPreset, gradientPreset.name);
   }
 
   AppSettingsData copyWith({
@@ -48,6 +54,7 @@ class AppSettingsData {
     bool? showOnScreenClock,
     bool? tvFriendlyLayout,
     bool? reduceMotion,
+    AppGradientPreset? gradientPreset,
   }) {
     return AppSettingsData(
       keepScreenOnWhilePlaying: keepScreenOnWhilePlaying ?? this.keepScreenOnWhilePlaying,
@@ -56,6 +63,7 @@ class AppSettingsData {
       showOnScreenClock: showOnScreenClock ?? this.showOnScreenClock,
       tvFriendlyLayout: tvFriendlyLayout ?? this.tvFriendlyLayout,
       reduceMotion: reduceMotion ?? this.reduceMotion,
+      gradientPreset: gradientPreset ?? this.gradientPreset,
     );
   }
 
@@ -83,6 +91,14 @@ class AppSettingsData {
     };
   }
 
+  static AppGradientPreset _decodeGradientPreset(String? raw) {
+    if (raw == null || raw.isEmpty) return AppGradientPreset.classic;
+    for (final v in AppGradientPreset.values) {
+      if (v.name == raw) return v;
+    }
+    return AppGradientPreset.classic;
+  }
+
   static String labelForFit(BoxFit fit) {
     return switch (fit) {
       BoxFit.contain => 'Contain (letterbox)',
@@ -102,3 +118,4 @@ const _kAutoHideControls = 'settings_auto_hide_controls';
 const _kShowClock = 'settings_show_clock';
 const _kTvLayout = 'settings_tv_layout';
 const _kReduceMotion = 'settings_reduce_motion';
+const _kGradientPreset = 'settings_gradient_preset';

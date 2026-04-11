@@ -120,7 +120,12 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       ),
       body: _loading
           ? const Center(child: CircularProgressIndicator(color: AppTheme.primaryGold))
-          : ListView(
+          : Container(
+              width: double.infinity,
+              decoration: BoxDecoration(
+                gradient: AppTheme.settingsBackdropGradient(_data.gradientPreset),
+              ),
+              child: ListView(
               padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
               children: [
                 Text(
@@ -131,6 +136,39 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                       ),
                 ),
                 const SizedBox(height: 12),
+                Text(
+                  s.sectionGradientTheme,
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                        color: AppTheme.primaryGold,
+                        fontWeight: FontWeight.bold,
+                      ),
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  s.gradientThemeCaption,
+                  style: TextStyle(color: Colors.white.withOpacity(0.5), fontSize: 13),
+                ),
+                const SizedBox(height: 12),
+                Card(
+                  color: AppTheme.surfaceGray.withOpacity(0.92),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                  child: Column(
+                    children: [
+                      for (final preset in AppGradientPreset.values)
+                        RadioListTile<AppGradientPreset>(
+                          value: preset,
+                          groupValue: _data.gradientPreset,
+                          activeColor: AppTheme.primaryGold,
+                          title: Text(_gradientPresetTitle(s, preset)),
+                          secondary: _GradientPresetSwatch(preset: preset),
+                          onChanged: (v) {
+                            if (v != null) _apply(_data.copyWith(gradientPreset: v));
+                          },
+                        ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 24),
                 Text(
                   s.sectionLanguage,
                   style: Theme.of(context).textTheme.titleMedium?.copyWith(
@@ -342,6 +380,43 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 ),
               ],
             ),
+            ),
+    );
+  }
+}
+
+String _gradientPresetTitle(AppStrings s, AppGradientPreset p) {
+  return switch (p) {
+    AppGradientPreset.classic => s.gradientClassic,
+    AppGradientPreset.oceanAbyss => s.gradientOcean,
+    AppGradientPreset.goldSunset => s.gradientGold,
+    AppGradientPreset.violetHaze => s.gradientViolet,
+    AppGradientPreset.emberGlow => s.gradientEmber,
+  };
+}
+
+class _GradientPresetSwatch extends StatelessWidget {
+  const _GradientPresetSwatch({required this.preset});
+
+  final AppGradientPreset preset;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: 40,
+      height: 26,
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(8),
+        gradient: AppTheme.shellGradient(preset),
+        border: Border.all(color: Colors.white.withOpacity(0.22)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.35),
+            blurRadius: 6,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
     );
   }
 }

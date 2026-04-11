@@ -3,7 +3,6 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
-import 'package:share_plus/share_plus.dart';
 import 'package:media_kit/media_kit.dart';
 import 'package:media_kit_video/media_kit_video.dart';
 
@@ -191,13 +190,6 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
                     size: 26,
                   ),
                   onPressed: () => ref.read(favoritesProvider.notifier).toggle(_current),
-                ),
-                IconButton(
-                  padding: EdgeInsets.zero,
-                  constraints: const BoxConstraints(minWidth: 40, minHeight: 40),
-                  tooltip: s.shareChannel,
-                  icon: Icon(Icons.share_rounded, color: Colors.white.withValues(alpha: 0.85), size: 22),
-                  onPressed: () => Share.share('${_current.name}\n${_current.url}', subject: _current.name),
                 ),
                 if (_settings.showOnScreenClock)
                   Padding(

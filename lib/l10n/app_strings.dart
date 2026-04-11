@@ -27,6 +27,9 @@ class AppStrings {
   String get noChannelsHint =>
       isEnglish ? 'They appear when your library syncs.' : 'دوای هاوکاتکردنی پەڕگەکەت دەردەکەون.';
   String get nowPlaying => isEnglish ? 'Featured' : 'تایبەت';
+  String get featuredNewHint => isEnglish
+      ? 'A new channel is available in your lineup. Tap Watch to start playing.'
+      : 'کەناڵێکی نوێ بەردەستە لە هەڵبژاردەکەتدا. دەست لە «بینین» بدە بۆ دەستپێکردنی پەخش.';
   String get watchNow => isEnglish ? 'Watch' : 'بینین';
   String get channelLoadError => isEnglish ? 'Could not load channels' : 'نەتوانرا کەناڵەکان بخوێنرێتەوە';
   String get settingsTooltip => isEnglish ? 'Settings' : 'ڕێکخستن';
@@ -35,6 +38,14 @@ class AppStrings {
   String get sectionPlayback => isEnglish ? 'Playback' : 'پەخشکردن';
   String get sectionVideo => isEnglish ? 'Video fit' : 'گونجاندنی ڤیدیۆ';
   String get sectionInterface => isEnglish ? 'Interface' : 'ڕووکار';
+  String get sectionGradientTheme => isEnglish ? 'Theme & backdrop' : 'ڕووکاری ڕەنگ و پاشبنە';
+  String get gradientThemeCaption =>
+      isEnglish ? 'Gradient look for dashboard and this screen' : 'ڕەنگیزە بۆ داشبۆرد و ئەم پەڕەیە';
+  String get gradientClassic => isEnglish ? 'Midnight (default)' : 'نیوەشەو (بنەڕەت)';
+  String get gradientOcean => isEnglish ? 'Ocean abyss' : 'قووڵایی ئۆقیانوس';
+  String get gradientGold => isEnglish ? 'Gold sunset' : 'ئاسەواری زێڕین';
+  String get gradientViolet => isEnglish ? 'Violet haze' : 'ەمەڕەشی مۆر';
+  String get gradientEmber => isEnglish ? 'Ember glow' : 'گەرمی ئێمبەر';
   String get sectionLanguage => isEnglish ? 'Language' : 'زمان';
   String get sectionAccount => isEnglish ? 'Account' : 'هەژمار';
   String get sectionAbout => isEnglish ? 'About' : 'دەربارە';
@@ -101,7 +112,6 @@ class AppStrings {
 
   String get favoriteChannel => isEnglish ? 'Add to favorites' : 'زیادکردن بۆ دڵخواز';
   String get unfavoriteChannel => isEnglish ? 'Remove from favorites' : 'لابردن لە دڵخواز';
-  String get shareChannel => isEnglish ? 'Share link' : 'هاوبەشکردنی بەستەر';
 
   String fitLabel(BoxFit fit) {
     if (isEnglish) return AppSettingsData.labelForFit(fit);
