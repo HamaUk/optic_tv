@@ -165,6 +165,15 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
 
   Future<void> _playPause() async {
     await _player.playOrPause();
+    _showControls();
+  }
+
+  void _showControls() {
+    setState(() => _controlsVisible = true);
+    _hideTimer?.cancel();
+    _hideTimer = Timer(const Duration(seconds: 4), () {
+      if (mounted) setState(() => _controlsVisible = false);
+    });
   }
 
   Future<void> _seek(Duration offset) async {
@@ -252,7 +261,11 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
               fit: StackFit.expand,
               children: [
                 GestureDetector(
-                  onTap: _playPause,
+                  onTap: () {
+                    _playPause();
+                    _showControls();
+                  },
+                  onDoubleTap: _toggleFullscreen,
                   child: Video(
                     key: _videoKey,
                     controller: _controller,
@@ -322,21 +335,33 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
                             ),
                           ),
                         ),
+                      if (_showEngineSplash) _buildEngineSplash(),
+                      if (_buffering) _buildBufferingIndicator(),
+                      if (_isMovie) _buildMovieControlsOverlay(),
+
+                      // Move Mute/Fullscreen here so they are ALWAYS on top of the bottom bar
                       Positioned(
                         bottom: 12,
                         left: 12,
-                        child: Material(
-                          color: Colors.black.withOpacity(0.45),
-                          borderRadius: BorderRadius.circular(12),
-                          clipBehavior: Clip.antiAlias,
-                          child: InkWell(
-                            onTap: _toggleMute,
-                            child: Padding(
-                              padding: const EdgeInsets.all(10),
-                              child: Icon(
-                                _muted ? Icons.volume_off_rounded : Icons.volume_up_rounded,
-                                color: Colors.white,
-                                size: 22,
+                        child: AnimatedOpacity(
+                          opacity: (_isMovie && !_controlsVisible) ? 0.0 : 1.0,
+                          duration: const Duration(milliseconds: 300),
+                          child: IgnorePointer(
+                            ignoring: _isMovie && !_controlsVisible,
+                            child: Material(
+                              color: Colors.black.withOpacity(0.45),
+                              borderRadius: BorderRadius.circular(12),
+                              clipBehavior: Clip.antiAlias,
+                              child: InkWell(
+                                onTap: _toggleMute,
+                                child: Padding(
+                                  padding: const EdgeInsets.all(10),
+                                  child: Icon(
+                                    _muted ? Icons.volume_off_rounded : Icons.volume_up_rounded,
+                                    color: Colors.white,
+                                    size: 22,
+                                  ),
+                                ),
                               ),
                             ),
                           ),
@@ -345,22 +370,26 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
                       Positioned(
                         bottom: 12,
                         right: 12,
-                        child: Material(
-                          color: Colors.black.withOpacity(0.45),
-                          borderRadius: BorderRadius.circular(12),
-                          clipBehavior: Clip.antiAlias,
-                          child: InkWell(
-                            onTap: _toggleFullscreen,
-                            child: const Padding(
-                              padding: EdgeInsets.all(10),
-                              child: Icon(Icons.fullscreen_rounded, color: Colors.white, size: 24),
+                        child: AnimatedOpacity(
+                          opacity: (_isMovie && !_controlsVisible) ? 0.0 : 1.0,
+                          duration: const Duration(milliseconds: 300),
+                          child: IgnorePointer(
+                            ignoring: _isMovie && !_controlsVisible,
+                            child: Material(
+                              color: Colors.black.withOpacity(0.45),
+                              borderRadius: BorderRadius.circular(12),
+                              clipBehavior: Clip.antiAlias,
+                              child: InkWell(
+                                onTap: _toggleFullscreen,
+                                child: const Padding(
+                                  padding: EdgeInsets.all(10),
+                                  child: Icon(Icons.fullscreen_rounded, color: Colors.white, size: 24),
+                                ),
+                              ),
                             ),
                           ),
                         ),
                       ),
-                      if (_showEngineSplash) _buildEngineSplash(),
-                      if (_buffering) _buildBufferingIndicator(),
-                      if (_isMovie) _buildMovieControlsOverlay(),
                     ],
                   ),
                 ),
