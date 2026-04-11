@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -8,6 +9,7 @@ import 'package:media_kit_video/media_kit_video.dart';
 
 import '../../core/theme.dart';
 import '../../widgets/channel_logo_image.dart';
+import '../../widgets/optic_wordmark.dart';
 import '../../l10n/app_strings.dart';
 import '../../providers/app_locale_provider.dart';
 import '../../providers/channel_library_provider.dart';
@@ -43,6 +45,8 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
   bool _showEngineSplash = true;
   Duration _position = Duration.zero;
   Duration _duration = Duration.zero;
+  bool _controlsVisible = true;
+  Timer? _hideTimer;
 
   final List<StreamSubscription<dynamic>> _subscriptions = [];
 
@@ -165,7 +169,8 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
 
   Future<void> _seek(Duration offset) async {
     final target = _position + offset;
-    await _player.seek(target.clamp(Duration.zero, _duration));
+    final clamped = target < Duration.zero ? Duration.zero : (target > _duration ? _duration : target);
+    await _player.seek(clamped);
   }
 
   bool get _isMovie =>
@@ -350,7 +355,6 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
                 ),
                 if (_showEngineSplash) _buildEngineSplash(),
                 if (_buffering) _buildBufferingIndicator(),
-                if (!_hideSidebar) _buildSidebar(),
                 if (_isMovie) _buildMovieControlsOverlay(),
               ],
             ),
@@ -527,6 +531,36 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
     );
   }
 
+  Widget _buildBufferingIndicator() {
+    return Center(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const CircularProgressIndicator(
+            color: AppTheme.primaryGold,
+            strokeWidth: 3,
+          ),
+          const SizedBox(height: 16),
+          Material(
+            color: Colors.black.withValues(alpha: 0.35),
+            borderRadius: BorderRadius.circular(8),
+            child: const Padding(
+              padding: EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+              child: Text(
+                'Loading stream...',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildEngineSplash() {
     return Container(
       color: Colors.black.withValues(alpha: 0.6),
@@ -534,7 +568,7 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const OpticWordmark(height: 48),
+            OpticWordmark(height: 48),
             const SizedBox(height: 12),
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
@@ -564,7 +598,7 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
     final durStr = format.format(DateTime(2024).add(_duration));
 
     return AnimatedOpacity(
-      opacity: _hideSidebar ? 0.0 : 1.0,
+      opacity: _controlsVisible ? 1.0 : 0.0,
       duration: const Duration(milliseconds: 300),
       child: Stack(
         children: [
