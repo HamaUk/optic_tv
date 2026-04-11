@@ -98,14 +98,16 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   colors: [Color(0xFF0B0F14), Color(0xFF151B24), Color(0xFF0B0F14)],
                 ),
         ),
+        ),
         child: SafeArea(
           child: Center(
-            child: _isTV
-                ? _buildContent(uiLocale, s, 520)
-                : SingleChildScrollView(
-                    padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 24),
-                    child: _buildContent(uiLocale, s, 400),
-                  ),
+            child: SingleChildScrollView(
+              padding: EdgeInsets.symmetric(
+                horizontal: _isTV ? 40 : 28,
+                vertical: _isTV ? 12 : 24,
+              ),
+              child: _buildContent(uiLocale, s, _isTV ? 540 : 400),
+            ),
           ),
         ),
       ),
@@ -116,89 +118,42 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     return ConstrainedBox(
       constraints: BoxConstraints(maxWidth: maxWidth),
       child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
+        mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           Center(
-            child: OpticWordmark(height: _isTV ? 44 : 52),
+            child: OpticWordmark(height: _isTV ? 40 : 52),
           ),
-          SizedBox(height: _isTV ? 16 : 32),
+          SizedBox(height: _isTV ? 12 : 32),
           Text(
             s.loginTitle,
             textAlign: TextAlign.center,
             style: AppTheme.withRabarIfKurdish(
               uiLocale,
               TextStyle(
-                fontSize: _isTV ? 20 : 24,
+                fontSize: _isTV ? 18 : 24,
                 fontWeight: FontWeight.bold,
                 color: Colors.white,
                 letterSpacing: -0.5,
               ),
             ),
           ),
-          SizedBox(height: _isTV ? 8 : 12),
+          SizedBox(height: _isTV ? 4 : 12),
           Text(
             s.loginSubtitle,
             textAlign: TextAlign.center,
             style: AppTheme.withRabarIfKurdish(
               uiLocale,
               TextStyle(
-                fontSize: _isTV ? 13 : 15,
+                fontSize: _isTV ? 12 : 15,
                 color: Colors.white.withOpacity(0.6),
                 height: 1.4,
               ),
             ),
           ),
           SizedBox(height: _isTV ? 20 : 48),
-          _isTV
-              ? _buildTvCodeDisplay(s)
-              : Container(
-                  height: 60,
-                  decoration: BoxDecoration(
-                    color: const Color(0xFF1C2430),
-                    borderRadius: BorderRadius.circular(16),
-                    border: Border.all(color: Colors.white.withOpacity(0.15)),
-                  ),
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 16),
-                    child: TextField(
-                      focusNode: _codeFocus,
-                      controller: _codeController,
-                      keyboardType: TextInputType.visiblePassword,
-                      textInputAction: TextInputAction.done,
-                      obscureText: true,
-                      decoration: InputDecoration(
-                        hintText: s.loginHint,
-                        hintStyle: _loginTextStyle(context, opacity: 0.35),
-                        border: InputBorder.none,
-                        icon: const Icon(Icons.vpn_key_rounded,
-                            color: AppTheme.primaryGold, size: 22),
-                      ),
-                      style: _loginTextStyle(context, opacity: 1),
-                      cursorColor: AppTheme.primaryGold,
-                      onSubmitted: (_) => _submit(s),
-                    ),
-                  ),
-                ),
-          if (_isTV) ...[
-            const SizedBox(height: 16),
-            Directionality(
-              textDirection: TextDirection.ltr,
-              child: TvLoginKeyboard(
-                onCharacter: (ch) {
-                  _codeController.text += ch;
-                },
-                onBackspace: () {
-                  if (_codeController.text.isNotEmpty) {
-                    _codeController.text = _codeController.text
-                        .substring(0, _codeController.text.length - 1);
-                  }
-                },
-                onClear: () => _codeController.clear(),
-              ),
-            ),
-          ],
-          SizedBox(height: _isTV ? 16 : 24),
+          _buildInputField(s),
+          const SizedBox(height: 20),
           SizedBox(
             height: 56,
             child: FilledButton(
@@ -210,6 +165,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(16),
                 ),
+                // Add border highlight when focused on TV
+                side: _isTV ? const BorderSide(color: Colors.white, width: 2) : null,
               ),
               child: _busy
                   ? const SizedBox(
@@ -238,35 +195,47 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     );
   }
 
-  Widget _buildTvCodeDisplay(AppStrings s) {
+  Widget _buildInputField(AppStrings s) {
     return Container(
       height: 60,
       decoration: BoxDecoration(
         color: const Color(0xFF1C2430),
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: AppTheme.primaryGold.withOpacity(0.5),
-          width: 2,
+          color: _isTV ? Colors.white.withOpacity(0.8) : Colors.white.withOpacity(0.15),
+          width: _isTV ? 2 : 1,
         ),
+        boxShadow: _isTV
+            ? [
+                BoxShadow(
+                  color: AppTheme.primaryGold.withOpacity(0.1),
+                  blurRadius: 12,
+                  spreadRadius: 2,
+                )
+              ]
+            : null,
       ),
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 16),
-        child: Row(
-          children: [
-            const Icon(Icons.vpn_key_rounded, color: AppTheme.primaryGold, size: 22),
-            const SizedBox(width: 16),
-            Expanded(
-              child: Text(
-                _codeController.text.isEmpty
-                    ? s.loginHint
-                    : '●' * _codeController.text.length,
-                style: _loginTextStyle(context,
-                    opacity: _codeController.text.isEmpty ? 0.35 : 1),
-              ),
-            ),
-          ],
+        child: TextField(
+          focusNode: _codeFocus,
+          controller: _codeController,
+          autofocus: _isTV,
+          keyboardType: TextInputType.visiblePassword,
+          textInputAction: TextInputAction.done,
+          obscureText: true,
+          decoration: InputDecoration(
+            hintText: s.loginHint,
+            hintStyle: _loginTextStyle(context, opacity: 0.35),
+            border: InputBorder.none,
+            icon: const Icon(Icons.vpn_key_rounded, color: AppTheme.primaryGold, size: 22),
+          ),
+          style: _loginTextStyle(context, opacity: 1),
+          cursorColor: AppTheme.primaryGold,
+          onSubmitted: (_) => _submit(s),
         ),
       ),
     );
   }
+
 }
