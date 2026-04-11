@@ -26,6 +26,9 @@ class TvLoginKeyboard extends StatelessWidget {
   static const _row1 = 'qwertyuiop';
   static const _row2 = 'asdfghjkl';
   static const _row3 = 'zxcvbnm';
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
 
     return FocusTraversalGroup(
       policy: WidgetOrderTraversalPolicy(),
