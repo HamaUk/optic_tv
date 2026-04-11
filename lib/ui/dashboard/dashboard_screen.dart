@@ -16,6 +16,7 @@ import '../../services/settings_service.dart';
 import '../admin/admin_screen.dart';
 import '../player/player_screen.dart';
 import '../settings/settings_screen.dart';
+import '../sport/sport_scores_screen.dart';
 
 /// Hidden admin portal password.
 const String _kAdminPortalPassword = 'hamakoye99';
@@ -132,29 +133,30 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     if (mounted) ref.invalidate(appUiSettingsProvider);
   }
 
+  bool _isMovieChannel(Channel c) {
+    final g = c.group.toLowerCase();
+    final n = c.name.toLowerCase();
+    return g.contains('movie') ||
+        g.contains('film') ||
+        g.contains('cinema') ||
+        n.contains('movie') ||
+        n.contains('film');
+  }
+
   List<Channel> _channelsForNav(List<Channel> all, List<Channel> favorites, List<Channel> recent) {
     switch (_navIndex) {
       case 1:
-        return all.where((c) {
-          final g = c.group.toLowerCase();
-          final n = c.name.toLowerCase();
-          return g.contains('movie') ||
-              g.contains('film') ||
-              g.contains('cinema') ||
-              n.contains('movie') ||
-              n.contains('film');
-        }).toList();
+        return all.where(_isMovieChannel).toList();
       case 2:
-        return all.where((c) {
-          final g = c.group.toLowerCase();
-          return g.contains('sport');
-        }).toList();
+        // Sport tab now shows the dedicated score screen; return empty.
+        return [];
       case 3:
         return List<Channel>.from(favorites);
       case 4:
         return List<Channel>.from(recent);
       default:
-        return all;
+        // Home: exclude movies so they only appear in the Movies tab.
+        return all.where((c) => !_isMovieChannel(c)).toList();
     }
   }
 
@@ -255,6 +257,13 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
               final navScoped = _channelsForNav(channels, favorites, recent);
               final filtered = _applySearch(navScoped);
               final groups = _groupMap(filtered);
+
+              // Sport tab: show live scores widget instead of channel grid.
+              if (_navIndex == 2) {
+                return _buildDashboardShell(
+                  context, s, pad, tv, const SportScoresScreen(),
+                );
+              }
 
               return _buildDashboardShell(
                 context,
@@ -616,6 +625,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     int animMs,
     double pad,
   ) {
+    final isMovie = _navIndex == 1;
     final titleSize = tv ? 18.0 : 16.0;
     return Padding(
       padding: EdgeInsets.only(left: pad, right: pad, top: tv ? 20 : 16, bottom: 8),
@@ -647,14 +657,15 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
             shrinkWrap: true,
             physics: const NeverScrollableScrollPhysics(),
             gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: crossCount,
-              crossAxisSpacing: 10,
-              mainAxisSpacing: 12,
-              childAspectRatio: 0.72,
+              crossAxisCount: isMovie ? (tv ? 3 : 2) : crossCount,
+              crossAxisSpacing: isMovie ? 14 : 10,
+              mainAxisSpacing: isMovie ? 16 : 12,
+              childAspectRatio: isMovie ? 0.62 : 0.72,
             ),
             itemCount: sectionChannels.length,
-            itemBuilder: (context, index) =>
-                _buildGridChannelTile(context, s, allChannels, sectionChannels[index], tv, animMs),
+            itemBuilder: (context, index) => isMovie
+                ? _buildMovieTile(context, s, allChannels, sectionChannels[index], tv, animMs)
+                : _buildGridChannelTile(context, s, allChannels, sectionChannels[index], tv, animMs),
           ),
         ],
       ),
@@ -726,6 +737,150 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
             ),
           );
         },
+      ),
+    );
+  }
+
+  /// Larger poster-style tile for Movies. The logo/poster fills
+  /// the card and the title sits on a gradient strip at the bottom.
+  Widget _buildMovieTile(
+    BuildContext context,
+    AppStrings s,
+    List<Channel> allChannels,
+    Channel channel,
+    bool tv,
+    int animMs,
+  ) {
+    const kTileRadius = 18.0;
+    return Focus(
+      child: Builder(
+        builder: (ctx) {
+          final focused = Focus.of(ctx).hasFocus;
+          return AnimatedContainer(
+            duration: Duration(milliseconds: animMs),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(kTileRadius),
+              border: Border.all(
+                color: focused
+                    ? _accent.withValues(alpha: 0.9)
+                    : Colors.white.withValues(alpha: 0.1),
+                width: focused ? 2 : 1,
+              ),
+              color: const Color(0xFF141A22),
+              boxShadow: [
+                BoxShadow(
+                  color: focused
+                      ? _accent.withValues(alpha: 0.18)
+                      : Colors.black.withValues(alpha: 0.25),
+                  blurRadius: focused ? 16 : 10,
+                  offset: const Offset(0, 6),
+                ),
+              ],
+            ),
+            child: Material(
+              color: Colors.transparent,
+              child: InkWell(
+                borderRadius: BorderRadius.circular(kTileRadius),
+                onTap: () => _openPlayer(allChannels, channel),
+                onLongPress: () => _showChannelSheet(s, allChannels, channel),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(kTileRadius - 1),
+                  child: Stack(
+                    fit: StackFit.expand,
+                    children: [
+                      // Poster / logo fills the card
+                      if (channel.logo != null && channel.logo!.isNotEmpty)
+                        ChannelLogoImage(
+                          logo: channel.logo,
+                          width: double.infinity,
+                          height: double.infinity,
+                          fit: BoxFit.cover,
+                          fallback: _movieFallback(tv),
+                        )
+                      else
+                        _movieFallback(tv),
+                      // Gradient overlay bottom
+                      Positioned.fill(
+                        child: DecoratedBox(
+                          decoration: BoxDecoration(
+                            gradient: LinearGradient(
+                              begin: Alignment.topCenter,
+                              end: Alignment.bottomCenter,
+                              colors: [
+                                Colors.transparent,
+                                Colors.transparent,
+                                Colors.black.withValues(alpha: 0.65),
+                                Colors.black.withValues(alpha: 0.92),
+                              ],
+                              stops: const [0, 0.45, 0.78, 1],
+                            ),
+                          ),
+                        ),
+                      ),
+                      // Play icon center
+                      Center(
+                        child: Container(
+                          width: tv ? 48 : 40,
+                          height: tv ? 48 : 40,
+                          decoration: BoxDecoration(
+                            color: Colors.black.withValues(alpha: 0.45),
+                            shape: BoxShape.circle,
+                            border: Border.all(
+                              color: Colors.white.withValues(alpha: 0.25),
+                            ),
+                          ),
+                          child: Icon(
+                            Icons.play_arrow_rounded,
+                            color: Colors.white.withValues(alpha: 0.85),
+                            size: tv ? 28 : 22,
+                          ),
+                        ),
+                      ),
+                      // Title
+                      Positioned(
+                        left: 10,
+                        right: 10,
+                        bottom: 10,
+                        child: Text(
+                          channel.name,
+                          style: AppTheme.withRabarIfKurdish(
+                            s.locale,
+                            TextStyle(
+                              fontSize: tv ? 13 : 12,
+                              fontWeight: FontWeight.w700,
+                              color: Colors.white,
+                              shadows: [
+                                Shadow(
+                                  color: Colors.black.withValues(alpha: 0.7),
+                                  blurRadius: 6,
+                                ),
+                              ],
+                            ),
+                          ),
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _movieFallback(bool tv) {
+    return Container(
+      color: const Color(0xFF1C2430),
+      child: Center(
+        child: Icon(
+          Icons.movie_rounded,
+          size: tv ? 48 : 40,
+          color: AppTheme.primaryGold.withValues(alpha: 0.2),
+        ),
       ),
     );
   }

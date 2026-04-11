@@ -1,6 +1,8 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:dio/dio.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'package:flutter/material.dart';
@@ -35,11 +37,28 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
   final _newLoginCodeController = TextEditingController();
   final _channelSearchController = TextEditingController();
 
+  // Import tab controllers
+  final _importUrlController = TextEditingController();
+  final _xtreamServerController = TextEditingController();
+  final _xtreamUserController = TextEditingController();
+  final _xtreamPassController = TextEditingController();
+
   late TabController _tabController;
   String _channelSearchQuery = '';
   String? _groupFilter;
   _PublishShelf _publishShelf = _PublishShelf.liveTv;
   bool _backupBusy = false;
+
+  // Import state
+  bool _importBusy = false;
+  List<Map<String, String>>? _importPreview;
+  String _importStatus = '';
+
+  // Health checker state
+  bool _healthCheckRunning = false;
+  double _healthProgress = 0;
+  final Map<String, _ChannelHealthStatus> _healthResults = {};
+  bool _showBrokenOnly = false;
 
   DatabaseReference get _playlistRef => FirebaseDatabase.instance.ref(_playlistPath);
   DatabaseReference get _groupsRef => FirebaseDatabase.instance.ref(_groupsPath);
@@ -48,7 +67,7 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 4, vsync: this);
+    _tabController = TabController(length: 6, vsync: this);
     _channelGroupController.text = 'Live TV';
     _channelSearchController.addListener(() {
       setState(() => _channelSearchQuery = _channelSearchController.text.trim().toLowerCase());
@@ -65,6 +84,10 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
     _newGroupController.dispose();
     _newLoginCodeController.dispose();
     _channelSearchController.dispose();
+    _importUrlController.dispose();
+    _xtreamServerController.dispose();
+    _xtreamUserController.dispose();
+    _xtreamPassController.dispose();
     super.dispose();
   }
 
@@ -239,6 +262,7 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
     required String url,
     required String group,
     required String logo,
+    int? order,
   }) {
     final map = <String, dynamic>{
       'name': name,
@@ -246,6 +270,7 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
       'group': group.isEmpty ? 'General' : group,
     };
     if (logo.isNotEmpty) map['logo'] = logo;
+    if (order != null) map['order'] = order;
     return map;
   }
 
@@ -265,8 +290,15 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
 
   void _sortChannelEntries(List<MapEntry<dynamic, dynamic>> items) {
     items.sort((a, b) {
-      final an = (a.value is Map) ? '${(a.value as Map)['name']}' : '';
-      final bn = (b.value is Map) ? '${(b.value as Map)['name']}' : '';
+      final av = a.value;
+      final bv = b.value;
+      if (av is Map && bv is Map) {
+        final ao = av['order'] as int? ?? 999999;
+        final bo = bv['order'] as int? ?? 999999;
+        if (ao != bo) return ao.compareTo(bo);
+      }
+      final an = (av is Map) ? '${av['name']}' : '';
+      final bn = (bv is Map) ? '${bv['name']}' : '';
       return an.toLowerCase().compareTo(bn.toLowerCase());
     });
   }
@@ -417,7 +449,7 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
   }
 
   Future<void> _deleteChannel(String key, String name) async {
-    final ok = await _confirmDelete('Remove channel?', '“$name” will be removed from the playlist.');
+    final ok = await _confirmDelete('Remove channel?', '"$name" will be removed from the playlist.');
     if (!ok) return;
     try {
       await _playlistRef.child(key).remove();
@@ -428,7 +460,7 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
   }
 
   Future<void> _deleteGroup(String key, String label) async {
-    final ok = await _confirmDelete('Remove group?', '“$label” will be removed from saved groups.');
+    final ok = await _confirmDelete('Remove group?', '"$label" will be removed from saved groups.');
     if (!ok) return;
     try {
       await _groupsRef.child(key).remove();
@@ -463,7 +495,7 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
   }
 
   Future<void> _deleteLoginCode(String key, String code) async {
-    final ok = await _confirmDelete('Remove login code?', 'Users won’t be able to sign in with “$code”.');
+    final ok = await _confirmDelete('Remove login code?', "Users won't be able to sign in with \"$code\".");
     if (!ok) return;
     try {
       await _loginCodesRef.child(key).remove();
@@ -472,6 +504,327 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
       _snack('Error: $e', error: true);
     }
   }
+
+  // ─────────────────────── Channel Reordering ───────────────────────
+
+  Future<void> _moveChannel(
+    List<MapEntry<dynamic, dynamic>> groupItems,
+    int oldIndex,
+    int newIndex,
+  ) async {
+    if (newIndex > oldIndex) newIndex -= 1;
+    final item = groupItems.removeAt(oldIndex);
+    groupItems.insert(newIndex, item);
+
+    // Update order field for all items in this group.
+    final updates = <String, dynamic>{};
+    for (var i = 0; i < groupItems.length; i++) {
+      updates['${groupItems[i].key}/order'] = i;
+    }
+    try {
+      await _playlistRef.update(updates);
+    } catch (e) {
+      _snack('Reorder failed: $e', error: true);
+    }
+  }
+
+  // ─────────────────────── M3U / Xtream Import ───────────────────────
+
+  List<Map<String, String>> _parseM3u(String content) {
+    final lines = content.split('\n');
+    final channels = <Map<String, String>>[];
+    String? name, group, logo;
+
+    for (final rawLine in lines) {
+      final line = rawLine.trim();
+      if (line.startsWith('#EXTINF:')) {
+        final nameMatch = RegExp(r'tvg-name="([^"]*)"').firstMatch(line);
+        final logoMatch = RegExp(r'tvg-logo="([^"]*)"').firstMatch(line);
+        final groupMatch = RegExp(r'group-title="([^"]*)"').firstMatch(line);
+
+        name = nameMatch?.group(1);
+        logo = logoMatch?.group(1);
+        group = groupMatch?.group(1);
+
+        // Fallback: channel name after the last comma.
+        if (name == null || name.isEmpty) {
+          final commaIndex = line.lastIndexOf(',');
+          if (commaIndex >= 0) {
+            name = line.substring(commaIndex + 1).trim();
+          }
+        }
+      } else if (line.isNotEmpty && !line.startsWith('#') && name != null) {
+        channels.add({
+          'name': name,
+          'url': line,
+          'group': group ?? 'General',
+          if (logo != null && logo.isNotEmpty) 'logo': logo,
+        });
+        name = null;
+        group = null;
+        logo = null;
+      }
+    }
+    return channels;
+  }
+
+  Future<void> _importFromFile() async {
+    if (_importBusy) return;
+    setState(() {
+      _importBusy = true;
+      _importStatus = 'Picking file...';
+    });
+    try {
+      final pick = await FilePicker.platform.pickFiles(
+        type: FileType.custom,
+        allowedExtensions: const ['m3u', 'm3u8', 'txt'],
+        withData: false,
+      );
+      if (pick == null || pick.files.isEmpty || pick.files.single.path == null) {
+        setState(() {
+          _importBusy = false;
+          _importStatus = '';
+        });
+        return;
+      }
+      final content = await File(pick.files.single.path!).readAsString();
+      final parsed = _parseM3u(content);
+      setState(() {
+        _importPreview = parsed;
+        _importBusy = false;
+        _importStatus = 'Found ${parsed.length} channels. Tap "Import All" to save.';
+      });
+    } catch (e) {
+      setState(() {
+        _importBusy = false;
+        _importStatus = 'Error: $e';
+      });
+    }
+  }
+
+  Future<void> _importFromUrl() async {
+    if (_importBusy) return;
+    final url = _importUrlController.text.trim();
+    if (url.isEmpty) {
+      _snack('Enter a playlist URL', error: true);
+      return;
+    }
+    setState(() {
+      _importBusy = true;
+      _importStatus = 'Downloading playlist...';
+    });
+    try {
+      final dio = Dio(BaseOptions(
+        connectTimeout: const Duration(seconds: 15),
+        receiveTimeout: const Duration(seconds: 30),
+      ));
+      final res = await dio.get<String>(url);
+      final parsed = _parseM3u(res.data ?? '');
+      setState(() {
+        _importPreview = parsed;
+        _importBusy = false;
+        _importStatus = 'Found ${parsed.length} channels. Tap "Import All" to save.';
+      });
+    } catch (e) {
+      setState(() {
+        _importBusy = false;
+        _importStatus = 'Download failed: $e';
+      });
+    }
+  }
+
+  Future<void> _importFromXtream() async {
+    if (_importBusy) return;
+    final server = _xtreamServerController.text.trim();
+    final user = _xtreamUserController.text.trim();
+    final pass = _xtreamPassController.text.trim();
+    if (server.isEmpty || user.isEmpty || pass.isEmpty) {
+      _snack('All Xtream fields are required', error: true);
+      return;
+    }
+    setState(() {
+      _importBusy = true;
+      _importStatus = 'Fetching Xtream channels...';
+    });
+    try {
+      final dio = Dio(BaseOptions(
+        connectTimeout: const Duration(seconds: 15),
+        receiveTimeout: const Duration(seconds: 30),
+      ));
+      final baseUrl = server.endsWith('/') ? server.substring(0, server.length - 1) : server;
+      final res = await dio.get('$baseUrl/player_api.php', queryParameters: {
+        'username': user,
+        'password': pass,
+        'action': 'get_live_streams',
+      });
+      final data = res.data;
+      final channels = <Map<String, String>>[];
+      if (data is List) {
+        for (final item in data) {
+          if (item is Map) {
+            final streamId = item['stream_id'];
+            final name = '${item['name'] ?? 'Unknown'}';
+            final logo = '${item['stream_icon'] ?? ''}';
+            final category = '${item['category_name'] ?? 'General'}';
+            if (streamId != null) {
+              channels.add({
+                'name': name,
+                'url': '$baseUrl/live/$user/$pass/$streamId.m3u8',
+                'group': category,
+                if (logo.isNotEmpty) 'logo': logo,
+              });
+            }
+          }
+        }
+      }
+      setState(() {
+        _importPreview = channels;
+        _importBusy = false;
+        _importStatus = 'Found ${channels.length} channels. Tap "Import All" to save.';
+      });
+    } catch (e) {
+      setState(() {
+        _importBusy = false;
+        _importStatus = 'Xtream import failed: $e';
+      });
+    }
+  }
+
+  Future<void> _saveImportedChannels() async {
+    if (_importPreview == null || _importPreview!.isEmpty) return;
+    setState(() {
+      _importBusy = true;
+      _importStatus = 'Saving ${_importPreview!.length} channels...';
+    });
+    try {
+      for (final ch in _importPreview!) {
+        await _playlistRef.push().set({
+          'name': ch['name'] ?? 'Unknown',
+          'url': ch['url'] ?? '',
+          'group': ch['group'] ?? 'General',
+          if (ch['logo'] != null) 'logo': ch['logo'],
+        });
+      }
+      final count = _importPreview!.length;
+      setState(() {
+        _importPreview = null;
+        _importBusy = false;
+        _importStatus = '$count channels imported successfully!';
+      });
+      _snack('$count channels imported');
+    } catch (e) {
+      setState(() {
+        _importBusy = false;
+        _importStatus = 'Save failed: $e';
+      });
+    }
+  }
+
+  // ─────────────────────── Health Check ───────────────────────
+
+  Future<void> _runHealthCheck() async {
+    if (_healthCheckRunning) return;
+    setState(() {
+      _healthCheckRunning = true;
+      _healthProgress = 0;
+      _healthResults.clear();
+    });
+
+    try {
+      final snap = await _playlistRef.get();
+      final items = _parsePlaylist(snap.value);
+      if (items.isEmpty) {
+        setState(() {
+          _healthCheckRunning = false;
+          _healthProgress = 1;
+        });
+        _snack('No channels to check');
+        return;
+      }
+
+      final dio = Dio(BaseOptions(
+        connectTimeout: const Duration(seconds: 8),
+        receiveTimeout: const Duration(seconds: 8),
+        followRedirects: true,
+        maxRedirects: 5,
+      ));
+
+      for (var i = 0; i < items.length; i++) {
+        final entry = items[i];
+        final val = entry.value;
+        if (val is! Map) continue;
+        final key = '${entry.key}';
+        final url = '${val['url'] ?? ''}';
+        final name = '${val['name'] ?? 'Untitled'}';
+
+        if (url.isEmpty) {
+          _healthResults[key] = _ChannelHealthStatus(
+            name: name,
+            url: url,
+            status: _HealthStatus.broken,
+            message: 'Empty URL',
+          );
+        } else {
+          try {
+            final res = await dio.head(url);
+            if (res.statusCode != null && res.statusCode! >= 200 && res.statusCode! < 400) {
+              _healthResults[key] = _ChannelHealthStatus(
+                name: name,
+                url: url,
+                status: _HealthStatus.ok,
+                message: 'HTTP ${res.statusCode}',
+              );
+            } else {
+              _healthResults[key] = _ChannelHealthStatus(
+                name: name,
+                url: url,
+                status: _HealthStatus.broken,
+                message: 'HTTP ${res.statusCode}',
+              );
+            }
+          } on DioException catch (e) {
+            if (e.type == DioExceptionType.connectionTimeout ||
+                e.type == DioExceptionType.receiveTimeout) {
+              _healthResults[key] = _ChannelHealthStatus(
+                name: name,
+                url: url,
+                status: _HealthStatus.warning,
+                message: 'Timeout',
+              );
+            } else {
+              _healthResults[key] = _ChannelHealthStatus(
+                name: name,
+                url: url,
+                status: _HealthStatus.broken,
+                message: e.message ?? 'Connection failed',
+              );
+            }
+          } catch (e) {
+            _healthResults[key] = _ChannelHealthStatus(
+              name: name,
+              url: url,
+              status: _HealthStatus.broken,
+              message: '$e',
+            );
+          }
+        }
+
+        if (mounted) {
+          setState(() {
+            _healthProgress = (i + 1) / items.length;
+          });
+        }
+      }
+    } catch (e) {
+      if (mounted) _snack('Health check error: $e', error: true);
+    } finally {
+      if (mounted) {
+        setState(() => _healthCheckRunning = false);
+      }
+    }
+  }
+
+  // ─────────────────────── Edit Channel Dialog ───────────────────────
 
   void _showEditChannelDialog(String key, Map<dynamic, dynamic> raw) {
     final nameCtrl = TextEditingController(text: '${raw['name'] ?? ''}');
@@ -686,6 +1039,8 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
                   Tab(icon: Icon(Icons.space_dashboard_rounded, size: 20), text: 'Overview'),
                   Tab(icon: Icon(Icons.live_tv_rounded, size: 20), text: 'Channels'),
                   Tab(icon: Icon(Icons.add_circle_outline_rounded, size: 20), text: 'Publish'),
+                  Tab(icon: Icon(Icons.file_download_rounded, size: 20), text: 'Import'),
+                  Tab(icon: Icon(Icons.health_and_safety_rounded, size: 20), text: 'Health'),
                   Tab(icon: Icon(Icons.key_rounded, size: 20), text: 'Access'),
                 ],
               ),
@@ -710,6 +1065,14 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
                       child: _KeepAliveTab(child: _buildPublishTab()),
                     ),
                     KeyedSubtree(
+                      key: const PageStorageKey<String>('admin_import'),
+                      child: _KeepAliveTab(child: _buildImportTab()),
+                    ),
+                    KeyedSubtree(
+                      key: const PageStorageKey<String>('admin_health'),
+                      child: _KeepAliveTab(child: _buildHealthTab()),
+                    ),
+                    KeyedSubtree(
                       key: const PageStorageKey<String>('admin_access'),
                       child: _KeepAliveTab(child: _buildAccessTab()),
                     ),
@@ -723,6 +1086,10 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
       ),
     );
   }
+
+  // ═══════════════════════════════════════════════════════════════
+  //  Tab: Overview
+  // ═══════════════════════════════════════════════════════════════
 
   Widget _buildOverviewTab() {
     return Container(
@@ -843,6 +1210,18 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
                                 const SizedBox(height: 10),
                                 OutlinedButton.icon(
                                   onPressed: () => _tabController.animateTo(3),
+                                  icon: const Icon(Icons.file_download_rounded),
+                                  label: const Text('Import M3U / Xtream'),
+                                ),
+                                const SizedBox(height: 10),
+                                OutlinedButton.icon(
+                                  onPressed: () => _tabController.animateTo(4),
+                                  icon: const Icon(Icons.health_and_safety_rounded),
+                                  label: const Text('Check channel health'),
+                                ),
+                                const SizedBox(height: 10),
+                                OutlinedButton.icon(
+                                  onPressed: () => _tabController.animateTo(5),
                                   icon: const Icon(Icons.key_rounded),
                                   label: const Text('Groups & login codes'),
                                 ),
@@ -964,6 +1343,10 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
     );
   }
 
+  // ═══════════════════════════════════════════════════════════════
+  //  Tab: Channels (with drag reorder per group)
+  // ═══════════════════════════════════════════════════════════════
+
   Widget _buildChannelsTab() {
     return Container(
       decoration: BoxDecoration(
@@ -1066,6 +1449,24 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
                     ],
                   ),
                 ),
+                if (_groupFilter != null)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 8),
+                    child: Row(
+                      children: [
+                        Icon(Icons.drag_indicator_rounded,
+                            size: 16, color: Colors.white.withValues(alpha: 0.3)),
+                        const SizedBox(width: 4),
+                        Text(
+                          'Drag to reorder within "${_groupFilter}"',
+                          style: TextStyle(
+                            fontSize: 11,
+                            color: AppTheme.accentTeal.withValues(alpha: 0.7),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
               ],
             ),
           );
@@ -1095,6 +1496,38 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
             );
           }
 
+          // If a group filter is selected, use ReorderableListView for that group.
+          if (_groupFilter != null && _channelSearchQuery.isEmpty) {
+            return Column(
+              children: [
+                header,
+                Expanded(
+                  child: ReorderableListView.builder(
+                    padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
+                    itemCount: items.length,
+                    onReorder: (oldIndex, newIndex) => _moveChannel(items, oldIndex, newIndex),
+                    proxyDecorator: (child, index, animation) {
+                      return Material(
+                        elevation: 6,
+                        borderRadius: BorderRadius.circular(20),
+                        color: AppTheme.surfaceElevated,
+                        shadowColor: AppTheme.accentTeal.withValues(alpha: 0.25),
+                        child: child,
+                      );
+                    },
+                    itemBuilder: (context, i) {
+                      return Padding(
+                        key: ValueKey(items[i].key),
+                        padding: const EdgeInsets.only(bottom: 12),
+                        child: _adminChannelListTile(items[i], position: i + 1),
+                      );
+                    },
+                  ),
+                ),
+              ],
+            );
+          }
+
           return ListView(
             padding: EdgeInsets.zero,
             children: [
@@ -1105,10 +1538,10 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
                   mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    for (final entry in items)
+                    for (var i = 0; i < items.length; i++)
                       Padding(
                         padding: const EdgeInsets.only(bottom: 12),
-                        child: _adminChannelListTile(entry),
+                        child: _adminChannelListTile(items[i], position: i + 1),
                       ),
                   ],
                 ),
@@ -1120,7 +1553,7 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
     );
   }
 
-  Widget _adminChannelListTile(MapEntry<dynamic, dynamic> entry) {
+  Widget _adminChannelListTile(MapEntry<dynamic, dynamic> entry, {int? position}) {
     final val = entry.value as Map;
     final logo = val['logo'] ?? val['icon_url'];
     final name = '${val['name'] ?? 'Untitled'}';
@@ -1137,6 +1570,20 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
           padding: const EdgeInsets.all(14),
           child: Row(
             children: [
+              if (position != null) ...[
+                SizedBox(
+                  width: 28,
+                  child: Text(
+                    '#$position',
+                    style: TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w800,
+                      color: AppTheme.primaryGold.withValues(alpha: 0.6),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 4),
+              ],
               ClipRRect(
                 borderRadius: BorderRadius.circular(14),
                 child: logo != null && '$logo'.isNotEmpty
@@ -1197,6 +1644,9 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
               Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
+                  if (_groupFilter != null && _channelSearchQuery.isEmpty)
+                    Icon(Icons.drag_handle_rounded,
+                        color: Colors.white.withValues(alpha: 0.3), size: 20),
                   IconButton(
                     tooltip: 'Copy URL',
                     icon: Icon(Icons.copy_rounded, color: AppTheme.primaryGold.withValues(alpha: 0.85)),
@@ -1229,6 +1679,10 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
       child: Icon(Icons.tv_rounded, color: Colors.white.withValues(alpha: 0.25)),
     );
   }
+
+  // ═══════════════════════════════════════════════════════════════
+  //  Tab: Publish
+  // ═══════════════════════════════════════════════════════════════
 
   Widget _buildPublishTab() {
     return Container(
@@ -1380,6 +1834,425 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
       },
     );
   }
+
+  // ═══════════════════════════════════════════════════════════════
+  //  Tab: Import (M3U file / URL / Xtream Codes)
+  // ═══════════════════════════════════════════════════════════════
+
+  Widget _buildImportTab() {
+    return Container(
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: [AppTheme.backgroundBlack, AppTheme.surfaceGray.withValues(alpha: 0.4)],
+        ),
+      ),
+      child: ListView(
+        padding: const EdgeInsets.all(20),
+        children: [
+          Text(
+            'Import playlist',
+            style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            'Add channels from M3U files, URLs, or Xtream Codes.',
+            style: TextStyle(color: Colors.white.withValues(alpha: 0.45), fontSize: 13),
+          ),
+          const SizedBox(height: 24),
+
+          // ── M3U File ──
+          _card(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Row(
+                  children: [
+                    Icon(Icons.file_present_rounded, color: AppTheme.primaryGold, size: 22),
+                    const SizedBox(width: 10),
+                    Text('From file', style: Theme.of(context).textTheme.titleMedium),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  'Pick a .m3u or .m3u8 file from your device.',
+                  style: TextStyle(fontSize: 12, color: Colors.white.withValues(alpha: 0.4)),
+                ),
+                const SizedBox(height: 14),
+                FilledButton.icon(
+                  onPressed: _importBusy ? null : _importFromFile,
+                  icon: const Icon(Icons.folder_open_rounded),
+                  label: const Text('Pick M3U file'),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 16),
+
+          // ── M3U URL ──
+          _card(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Row(
+                  children: [
+                    Icon(Icons.link_rounded, color: AppTheme.accentTeal, size: 22),
+                    const SizedBox(width: 10),
+                    Text('From URL', style: Theme.of(context).textTheme.titleMedium),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                _field(_importUrlController, 'M3U playlist URL', Icons.link_rounded, maxLines: 2),
+                const SizedBox(height: 14),
+                FilledButton.icon(
+                  onPressed: _importBusy ? null : _importFromUrl,
+                  icon: const Icon(Icons.cloud_download_rounded),
+                  label: const Text('Download & parse'),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 16),
+
+          // ── Xtream Codes ──
+          _card(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Row(
+                  children: [
+                    Icon(Icons.dns_rounded, color: AppTheme.primaryBlue, size: 22),
+                    const SizedBox(width: 10),
+                    Text('Xtream Codes', style: Theme.of(context).textTheme.titleMedium),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                _field(_xtreamServerController, 'Server URL (e.g. http://iptv.example.com)', Icons.dns_outlined),
+                const SizedBox(height: 10),
+                _field(_xtreamUserController, 'Username', Icons.person_outline_rounded),
+                const SizedBox(height: 10),
+                _field(_xtreamPassController, 'Password', Icons.lock_outline_rounded),
+                const SizedBox(height: 14),
+                FilledButton.icon(
+                  onPressed: _importBusy ? null : _importFromXtream,
+                  icon: const Icon(Icons.download_rounded),
+                  label: const Text('Fetch Xtream channels'),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 20),
+
+          // ── Status / Loading ──
+          if (_importBusy)
+            Center(
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  children: [
+                    const CircularProgressIndicator(color: AppTheme.primaryGold),
+                    const SizedBox(height: 12),
+                    Text(_importStatus, style: TextStyle(color: Colors.white.withValues(alpha: 0.5), fontSize: 12)),
+                  ],
+                ),
+              ),
+            ),
+
+          if (!_importBusy && _importStatus.isNotEmpty)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 12),
+              child: Text(
+                _importStatus,
+                style: TextStyle(
+                  fontSize: 13,
+                  color: _importStatus.contains('Error') || _importStatus.contains('failed')
+                      ? Colors.redAccent
+                      : AppTheme.accentTeal,
+                ),
+                textAlign: TextAlign.center,
+              ),
+            ),
+
+          // ── Preview ──
+          if (_importPreview != null && _importPreview!.isNotEmpty) ...[
+            _card(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Text(
+                    'Preview (${_importPreview!.length} channels)',
+                    style: Theme.of(context).textTheme.titleMedium,
+                  ),
+                  const SizedBox(height: 12),
+                  SizedBox(
+                    height: 260,
+                    child: ListView.separated(
+                      itemCount: _importPreview!.length,
+                      separatorBuilder: (_, __) =>
+                          Divider(height: 1, color: Colors.white.withValues(alpha: 0.06)),
+                      itemBuilder: (context, i) {
+                        final ch = _importPreview![i];
+                        return ListTile(
+                          dense: true,
+                          contentPadding: EdgeInsets.zero,
+                          leading: CircleAvatar(
+                            backgroundColor: Colors.white.withValues(alpha: 0.06),
+                            radius: 16,
+                            child: Text(
+                              '${i + 1}',
+                              style: TextStyle(
+                                fontSize: 10,
+                                color: AppTheme.primaryGold.withValues(alpha: 0.7),
+                              ),
+                            ),
+                          ),
+                          title: Text(
+                            ch['name'] ?? '',
+                            style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          subtitle: Text(
+                            ch['group'] ?? 'General',
+                            style: TextStyle(fontSize: 10, color: AppTheme.accentTeal.withValues(alpha: 0.7)),
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: OutlinedButton(
+                          onPressed: () => setState(() {
+                            _importPreview = null;
+                            _importStatus = '';
+                          }),
+                          child: const Text('Cancel'),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        flex: 2,
+                        child: FilledButton.icon(
+                          onPressed: _importBusy ? null : _saveImportedChannels,
+                          icon: const Icon(Icons.cloud_upload_rounded),
+                          label: const Text('Import All'),
+                          style: FilledButton.styleFrom(
+                            backgroundColor: AppTheme.accentTeal,
+                            foregroundColor: Colors.black,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  // ═══════════════════════════════════════════════════════════════
+  //  Tab: Health Check
+  // ═══════════════════════════════════════════════════════════════
+
+  Widget _buildHealthTab() {
+    return Container(
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: [AppTheme.backgroundBlack, AppTheme.surfaceGray.withValues(alpha: 0.35)],
+        ),
+      ),
+      child: ListView(
+        padding: const EdgeInsets.all(20),
+        children: [
+          Text(
+            'Channel health',
+            style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            'Check all channel URLs to find broken or unavailable streams.',
+            style: TextStyle(color: Colors.white.withValues(alpha: 0.45), fontSize: 13),
+          ),
+          const SizedBox(height: 24),
+          _card(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                FilledButton.icon(
+                  onPressed: _healthCheckRunning ? null : _runHealthCheck,
+                  icon: _healthCheckRunning
+                      ? const SizedBox(
+                          width: 18,
+                          height: 18,
+                          child: CircularProgressIndicator(strokeWidth: 2, color: Colors.black),
+                        )
+                      : const Icon(Icons.health_and_safety_rounded),
+                  label: Text(_healthCheckRunning ? 'Checking...' : 'Check all channels'),
+                  style: FilledButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                  ),
+                ),
+                if (_healthCheckRunning || _healthProgress > 0) ...[
+                  const SizedBox(height: 16),
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(8),
+                    child: LinearProgressIndicator(
+                      value: _healthProgress,
+                      backgroundColor: Colors.white.withValues(alpha: 0.06),
+                      valueColor: AlwaysStoppedAnimation(
+                        _healthCheckRunning ? AppTheme.primaryGold : AppTheme.accentTeal,
+                      ),
+                      minHeight: 8,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    '${(_healthProgress * 100).toInt()}% complete',
+                    style: TextStyle(
+                      fontSize: 11,
+                      color: Colors.white.withValues(alpha: 0.4),
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                ],
+              ],
+            ),
+          ),
+          if (_healthResults.isNotEmpty) ...[
+            const SizedBox(height: 16),
+            // Summary
+            _card(
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                children: [
+                  _healthSummaryChip(
+                    '✅ OK',
+                    _healthResults.values.where((h) => h.status == _HealthStatus.ok).length,
+                    Colors.green,
+                  ),
+                  _healthSummaryChip(
+                    '⚠️ Warn',
+                    _healthResults.values.where((h) => h.status == _HealthStatus.warning).length,
+                    Colors.orange,
+                  ),
+                  _healthSummaryChip(
+                    '❌ Broken',
+                    _healthResults.values.where((h) => h.status == _HealthStatus.broken).length,
+                    Colors.redAccent,
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 12),
+            // Filter
+            Row(
+              children: [
+                ChoiceChip(
+                  label: const Text('Show all'),
+                  selected: !_showBrokenOnly,
+                  onSelected: (_) => setState(() => _showBrokenOnly = false),
+                  selectedColor: AppTheme.primaryGold.withValues(alpha: 0.35),
+                ),
+                const SizedBox(width: 8),
+                ChoiceChip(
+                  label: const Text('Broken only'),
+                  selected: _showBrokenOnly,
+                  onSelected: (_) => setState(() => _showBrokenOnly = true),
+                  selectedColor: Colors.redAccent.withValues(alpha: 0.35),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            // Results list
+            ..._healthResults.entries
+                .where((e) => !_showBrokenOnly || e.value.status != _HealthStatus.ok)
+                .map((e) => _buildHealthResultTile(e.key, e.value)),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _healthSummaryChip(String label, int count, Color color) {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Text('$count', style: TextStyle(fontSize: 24, fontWeight: FontWeight.w800, color: color)),
+        Text(label, style: TextStyle(fontSize: 11, color: color.withValues(alpha: 0.7))),
+      ],
+    );
+  }
+
+  Widget _buildHealthResultTile(String key, _ChannelHealthStatus health) {
+    final color = switch (health.status) {
+      _HealthStatus.ok => Colors.green,
+      _HealthStatus.warning => Colors.orange,
+      _HealthStatus.broken => Colors.redAccent,
+    };
+    final icon = switch (health.status) {
+      _HealthStatus.ok => Icons.check_circle_rounded,
+      _HealthStatus.warning => Icons.warning_rounded,
+      _HealthStatus.broken => Icons.error_rounded,
+    };
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: Material(
+        color: AppTheme.surfaceElevated,
+        borderRadius: BorderRadius.circular(16),
+        child: InkWell(
+          borderRadius: BorderRadius.circular(16),
+          onTap: health.status != _HealthStatus.ok
+              ? () async {
+                  // Fetch the latest data for this channel and open edit dialog.
+                  final snap = await _playlistRef.child(key).get();
+                  if (snap.value is Map && mounted) {
+                    _showEditChannelDialog(key, snap.value as Map);
+                  }
+                }
+              : null,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+            child: Row(
+              children: [
+                Icon(icon, color: color, size: 22),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        health.name,
+                        style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      Text(
+                        health.message,
+                        style: TextStyle(fontSize: 10, color: color.withValues(alpha: 0.7)),
+                      ),
+                    ],
+                  ),
+                ),
+                if (health.status != _HealthStatus.ok)
+                  Icon(Icons.edit_rounded, size: 16, color: Colors.white.withValues(alpha: 0.3)),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  // ═══════════════════════════════════════════════════════════════
+  //  Tab: Access (Groups + Login codes)
+  // ═══════════════════════════════════════════════════════════════
 
   Widget _buildAccessTab() {
     return Container(
@@ -1549,6 +2422,27 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
     );
   }
 }
+
+// ═══════════════════════════════════════════════════════════════════
+//  Helper types
+// ═══════════════════════════════════════════════════════════════════
+
+enum _HealthStatus { ok, warning, broken }
+
+class _ChannelHealthStatus {
+  final String name;
+  final String url;
+  final _HealthStatus status;
+  final String message;
+
+  _ChannelHealthStatus({
+    required this.name,
+    required this.url,
+    required this.status,
+    required this.message,
+  });
+}
+
 /// Keeps admin [TabBarView] pages alive when switching tabs (avoids grey flicker / rebuild races).
 class _KeepAliveTab extends StatefulWidget {
   const _KeepAliveTab({required this.child});
@@ -1569,4 +2463,3 @@ class _KeepAliveTabState extends State<_KeepAliveTab> with AutomaticKeepAliveCli
   @override
   bool get wantKeepAlive => true;
 }
-

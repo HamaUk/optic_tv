@@ -48,7 +48,7 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
   bool get _hideChannelLogoOverlay {
     final g = _current.group.toLowerCase();
     final u = _current.url.toLowerCase();
-    if (g.contains('movie') || g.contains('film') || g.contains('cinema')) return false;
+    if (g.contains('movie') || g.contains('film') || g.contains('cinema')) return true;
     if (g.contains('live')) return true;
     if (u.contains('.m3u8')) return true;
     return false;
