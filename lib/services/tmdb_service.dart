@@ -3,14 +3,20 @@ import 'package:dio/dio.dart';
 /// The Movie Database (TMDB) API Service.
 /// Get your free API key at: https://www.themoviedb.org/documentation/api
 class TmdbService {
-  /// ⚠️ Replace with your TMDB API Key (v3)
-  static const String _apiKey = 'API_KEY_HERE';
+  /// ⚠️ TMDB API Key (v3)
+  static const String _apiKey = '80ab7e17810930a03bcaeba6c98aa656';
+  /// 🔑 TMDB Read Access Token (v4)
+  static const String _readAccessToken = 'eyJhbGciOiJIUzI1NiJ9.eyJhdWQiOiI4MGFiN2UxNzgxMDkzMGEwM2JjYWViYTZjOThhYTY1NiIsIm5iZiI6MTc3NTkzNTI1NS42ODksInN1YiI6IjY5ZGE5ZjE3OTA4MTdjYjk3MzAyNmRjNSIsInNjb3BlcyI6WyJhcGlfcmVhZCJdLCJ2ZXJzaW9uIjoxfQ.DEgqhdxcwvDTo_a0gL6514ZdZX7Rt_3rB7zbRHDsiQM';
+  
   static const String _baseUrl = 'https://api.themoviedb.org/3';
   static const String _imageBaseUrl = 'https://image.tmdb.org/t/p/w500';
 
   final Dio _dio = Dio(BaseOptions(
     baseUrl: _baseUrl,
-    queryParameters: {'api_key': _apiKey},
+    headers: {
+      'Authorization': 'Bearer $_readAccessToken',
+      'accept': 'application/json',
+    },
   ));
 
   bool get isConfigured => _apiKey != 'API_KEY_HERE' && _apiKey.isNotEmpty;

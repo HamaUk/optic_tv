@@ -117,57 +117,33 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                       ),
                     ),
                     const SizedBox(height: 48),
+                    // Simplified Input Box for better TV Focus compatibility
                     Container(
-                      height: 56,
+                      height: 60,
                       decoration: BoxDecoration(
                         color: const Color(0xFF1C2430),
                         borderRadius: BorderRadius.circular(16),
-                        border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
+                        border: Border.all(color: Colors.white.withValues(alpha: 0.15)),
                       ),
-                      clipBehavior: Clip.antiAlias,
-                      child: Row(
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
-                        children: [
-                          Expanded(
-                            child: Padding(
-                              padding: const EdgeInsets.only(left: 16),
-                              child: TextField(
-                                focusNode: _codeFocus,
-                                controller: _codeController,
-                                keyboardType: TextInputType.text,
-                                textInputAction: TextInputAction.done,
-                                decoration: InputDecoration(
-                                  hintText: s.loginHint,
-                                  hintStyle: _loginTextStyle(context, opacity: 0.38),
-                                  border: InputBorder.none,
-                                  enabledBorder: InputBorder.none,
-                                  focusedBorder: InputBorder.none,
-                                  contentPadding: const EdgeInsets.symmetric(vertical: 14),
-                                ),
-                                style: _loginTextStyle(context, opacity: 1),
-                                cursorColor: AppTheme.primaryGold,
-                                onSubmitted: (_) => _submit(s),
-                              ),
-                            ),
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 16),
+                        child: TextField(
+                          focusNode: _codeFocus,
+                          controller: _codeController,
+                          // visiblePassword is the 'magic' setting for Android TV D-pad compatibility
+                          keyboardType: TextInputType.visiblePassword,
+                          textInputAction: TextInputAction.done,
+                          obscureText: true,
+                          decoration: InputDecoration(
+                            hintText: s.loginHint,
+                            hintStyle: _loginTextStyle(context, opacity: 0.35),
+                            border: InputBorder.none,
+                            icon: const Icon(Icons.vpn_key_rounded, color: AppTheme.primaryGold, size: 22),
                           ),
-                          IconButton(
-                            onPressed: _busy ? null : () => _submit(s),
-                            icon: _busy
-                                ? const SizedBox(
-                                    width: 24,
-                                    height: 24,
-                                    child: CircularProgressIndicator(
-                                      strokeWidth: 2,
-                                      color: AppTheme.primaryGold,
-                                    ),
-                                  )
-                                : const Icon(
-                                    Icons.arrow_forward_rounded,
-                                    color: AppTheme.primaryGold,
-                                    size: 28,
-                                  ),
-                          ),
-                        ],
+                          style: _loginTextStyle(context, opacity: 1),
+                          cursorColor: AppTheme.primaryGold,
+                          onSubmitted: (_) => _submit(s),
+                        ),
                       ),
                     ),
                     const SizedBox(height: 24),
