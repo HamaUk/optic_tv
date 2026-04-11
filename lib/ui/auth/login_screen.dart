@@ -112,7 +112,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     );
   }
 
-  Widget _buildContent(AppLocale uiLocale, AppStrings s, double maxWidth) {
+  Widget _buildContent(Locale uiLocale, AppStrings s, double maxWidth) {
     return ConstrainedBox(
       constraints: BoxConstraints(maxWidth: maxWidth),
       child: Column(
