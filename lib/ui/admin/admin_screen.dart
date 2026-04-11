@@ -535,7 +535,7 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
         onSelected: (val) {
           if (val) setState(() => _selectedLoginDuration = duration);
         },
-        selectedColor: AppTheme.primaryGold.withValues(alpha: 0.35),
+        selectedColor: AppTheme.primaryGold.withOpacity(0.35),
       ),
     );
   }
@@ -1022,7 +1022,7 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
       style: const TextStyle(color: Colors.white),
       decoration: InputDecoration(
         labelText: label,
-        prefixIcon: Icon(icon, color: AppTheme.primaryGold.withValues(alpha: 0.85)),
+        prefixIcon: Icon(icon, color: AppTheme.primaryGold.withOpacity(0.85)),
         border: OutlineInputBorder(borderRadius: BorderRadius.circular(14)),
       ),
     );
@@ -1038,7 +1038,7 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
           colors: [
             AppTheme.backgroundBlack,
             AppTheme.surfaceGray,
-            AppTheme.primaryGold.withValues(alpha: 0.06),
+            AppTheme.primaryGold.withOpacity(0.06),
           ],
         ),
       ),
@@ -1056,7 +1056,7 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
                 Container(
                   padding: const EdgeInsets.all(10),
                   decoration: BoxDecoration(
-                    color: AppTheme.primaryGold.withValues(alpha: 0.15),
+                    color: AppTheme.primaryGold.withOpacity(0.15),
                     borderRadius: BorderRadius.circular(14),
                   ),
                   child: Icon(Icons.admin_panel_settings_rounded, color: AppTheme.primaryGold, size: 26),
@@ -1075,7 +1075,7 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
                       ),
                       Text(
                         'Firebase Realtime Database',
-                        style: TextStyle(color: Colors.white.withValues(alpha: 0.45), fontSize: 12),
+                        style: TextStyle(color: Colors.white.withOpacity(0.45), fontSize: 12),
                       ),
                     ],
                   ),
@@ -1174,7 +1174,7 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
         gradient: LinearGradient(
           begin: Alignment.topCenter,
           end: Alignment.bottomCenter,
-          colors: [AppTheme.backgroundBlack, AppTheme.surfaceGray.withValues(alpha: 0.45)],
+          colors: [AppTheme.backgroundBlack, AppTheme.surfaceGray.withOpacity(0.45)],
         ),
       ),
       child: ListView(
@@ -1317,7 +1317,7 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
                                   'Export saves every channel (including Movies tab items) and saved groups '
                                   'to a JSON file. Use Import to restore them if Firebase data is lost. '
                                   'Login codes are not included.',
-                                  style: TextStyle(fontSize: 13, color: Colors.white.withValues(alpha: 0.5)),
+                                  style: TextStyle(fontSize: 13, color: Colors.white.withOpacity(0.5)),
                                 ),
                                 const SizedBox(height: 16),
                                 Row(
@@ -1373,10 +1373,10 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(20),
         color: AppTheme.surfaceElevated,
-        border: Border.all(color: color.withValues(alpha: 0.25)),
+        border: Border.all(color: color.withOpacity(0.25)),
         boxShadow: [
           BoxShadow(
-            color: color.withValues(alpha: 0.08),
+            color: color.withOpacity(0.08),
             blurRadius: 20,
             offset: const Offset(0, 8),
           ),
@@ -1388,7 +1388,7 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
           Icon(icon, color: color, size: 26),
           const SizedBox(height: 12),
           Text(value, style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w800, color: Colors.white)),
-          Text(label, style: TextStyle(fontSize: 12, color: Colors.white.withValues(alpha: 0.45))),
+          Text(label, style: TextStyle(fontSize: 12, color: Colors.white.withOpacity(0.45))),
         ],
       ),
     );
@@ -1402,7 +1402,7 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
         style: TextStyle(
           fontFamily: 'monospace',
           fontSize: 11,
-          color: AppTheme.accentTeal.withValues(alpha: 0.9),
+          color: AppTheme.accentTeal.withOpacity(0.9),
         ),
       ),
     );
@@ -1415,7 +1415,7 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(22),
         color: AppTheme.surfaceElevated,
-        border: Border.all(color: Colors.white.withValues(alpha: 0.06)),
+        border: Border.all(color: Colors.white.withOpacity(0.06)),
       ),
       child: child,
     );
@@ -1429,7 +1429,7 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
     return Container(
       decoration: BoxDecoration(
         gradient: LinearGradient(
-          colors: [AppTheme.backgroundBlack, AppTheme.surfaceGray.withValues(alpha: 0.35)],
+          colors: [AppTheme.backgroundBlack, AppTheme.surfaceGray.withOpacity(0.35)],
         ),
       ),
       child: StreamBuilder<DatabaseEvent>(
@@ -1474,8 +1474,8 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
                   style: const TextStyle(color: Colors.white),
                   decoration: InputDecoration(
                     hintText: 'Search name, URL, group…',
-                    hintStyle: TextStyle(color: Colors.white.withValues(alpha: 0.35)),
-                    prefixIcon: Icon(Icons.search_rounded, color: AppTheme.primaryGold.withValues(alpha: 0.8)),
+                    hintStyle: TextStyle(color: Colors.white.withOpacity(0.35)),
+                    prefixIcon: Icon(Icons.search_rounded, color: AppTheme.primaryGold.withOpacity(0.8)),
                     suffixIcon: _channelSearchQuery.isEmpty
                         ? null
                         : IconButton(
@@ -1490,11 +1490,11 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
                     border: OutlineInputBorder(borderRadius: BorderRadius.circular(16)),
                     enabledBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(16),
-                      borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.08)),
+                      borderSide: BorderSide(color: Colors.white.withOpacity(0.08)),
                     ),
                     focusedBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(16),
-                      borderSide: BorderSide(color: AppTheme.primaryGold.withValues(alpha: 0.5)),
+                      borderSide: BorderSide(color: AppTheme.primaryGold.withOpacity(0.5)),
                     ),
                   ),
                 ),
@@ -1510,7 +1510,7 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
                           label: const Text('All groups'),
                           selected: _groupFilter == null,
                           onSelected: (_) => setState(() => _groupFilter = null),
-                          selectedColor: AppTheme.primaryGold.withValues(alpha: 0.35),
+                          selectedColor: AppTheme.primaryGold.withOpacity(0.35),
                         ),
                       ),
                       ...sortedGroups.map(
@@ -1520,7 +1520,7 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
                             label: Text(g),
                             selected: _groupFilter == g,
                             onSelected: (_) => setState(() => _groupFilter = g),
-                            selectedColor: AppTheme.primaryGold.withValues(alpha: 0.35),
+                            selectedColor: AppTheme.primaryGold.withOpacity(0.35),
                           ),
                         ),
                       ),
@@ -1533,9 +1533,9 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
                     child: Container(
                       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                       decoration: BoxDecoration(
-                        color: AppTheme.accentTeal.withValues(alpha: 0.1),
+                        color: AppTheme.accentTeal.withOpacity(0.1),
                         borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: AppTheme.accentTeal.withValues(alpha: 0.2)),
+                        border: Border.all(color: AppTheme.accentTeal.withOpacity(0.2)),
                       ),
                       child: Row(
                         children: [
@@ -1557,7 +1557,7 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
                                   'Drag these channels to move them. The new order will sync to all users.',
                                   style: TextStyle(
                                     fontSize: 11,
-                                    color: Colors.white.withValues(alpha: 0.5),
+                                    color: Colors.white.withOpacity(0.5),
                                   ),
                                 ),
                               ],
@@ -1582,11 +1582,11 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
                     child: Column(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        Icon(Icons.search_off_rounded, size: 56, color: Colors.white.withValues(alpha: 0.15)),
+                        Icon(Icons.search_off_rounded, size: 56, color: Colors.white.withOpacity(0.15)),
                         const SizedBox(height: 12),
                         Text(
                           'No channels match',
-                          style: TextStyle(color: Colors.white.withValues(alpha: 0.4)),
+                          style: TextStyle(color: Colors.white.withOpacity(0.4)),
                         ),
                       ],
                     ),
@@ -1611,7 +1611,7 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
                         elevation: 6,
                         borderRadius: BorderRadius.circular(20),
                         color: AppTheme.surfaceElevated,
-                        shadowColor: AppTheme.accentTeal.withValues(alpha: 0.25),
+                        shadowColor: AppTheme.accentTeal.withOpacity(0.25),
                         child: child,
                       );
                     },
@@ -1678,7 +1678,7 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
                     style: TextStyle(
                       fontSize: 11,
                       fontWeight: FontWeight.w800,
-                      color: AppTheme.primaryGold.withValues(alpha: 0.6),
+                      color: AppTheme.primaryGold.withOpacity(0.6),
                     ),
                   ),
                 ),
@@ -1715,14 +1715,14 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                       decoration: BoxDecoration(
-                        color: AppTheme.accentTeal.withValues(alpha: 0.12),
+                        color: AppTheme.accentTeal.withOpacity(0.12),
                         borderRadius: BorderRadius.circular(8),
                       ),
                       child: Text(
                         grp,
                         style: TextStyle(
                           fontSize: 11,
-                          color: AppTheme.accentTeal.withValues(alpha: 0.95),
+                          color: AppTheme.accentTeal.withOpacity(0.95),
                         ),
                       ),
                     ),
@@ -1732,7 +1732,7 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
                         url,
                         style: TextStyle(
                           fontSize: 11,
-                          color: Colors.white.withValues(alpha: 0.35),
+                          color: Colors.white.withOpacity(0.35),
                         ),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
@@ -1746,10 +1746,10 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
                 children: [
                   if (_groupFilter != null && _channelSearchQuery.isEmpty)
                     Icon(Icons.drag_handle_rounded,
-                        color: Colors.white.withValues(alpha: 0.3), size: 20),
+                        color: Colors.white.withOpacity(0.3), size: 20),
                   IconButton(
                     tooltip: 'Copy URL',
-                    icon: Icon(Icons.copy_rounded, color: AppTheme.primaryGold.withValues(alpha: 0.85)),
+                    icon: Icon(Icons.copy_rounded, color: AppTheme.primaryGold.withOpacity(0.85)),
                     onPressed: url.isEmpty ? null : () => _copyUrl(url),
                   ),
                   IconButton(
@@ -1775,8 +1775,8 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
     return Container(
       width: 56,
       height: 56,
-      color: Colors.white.withValues(alpha: 0.06),
-      child: Icon(Icons.tv_rounded, color: Colors.white.withValues(alpha: 0.25)),
+      color: Colors.white.withOpacity(0.06),
+      child: Icon(Icons.tv_rounded, color: Colors.white.withOpacity(0.25)),
     );
   }
 
@@ -1788,7 +1788,7 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
     return Container(
       decoration: BoxDecoration(
         gradient: LinearGradient(
-          colors: [AppTheme.backgroundBlack, AppTheme.surfaceGray.withValues(alpha: 0.4)],
+          colors: [AppTheme.backgroundBlack, AppTheme.surfaceGray.withOpacity(0.4)],
         ),
       ),
       child: ListView(
@@ -1801,7 +1801,7 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
           const SizedBox(height: 6),
           Text(
             'Streams appear in the app from managedPlaylist.',
-            style: TextStyle(color: Colors.white.withValues(alpha: 0.45), fontSize: 13),
+            style: TextStyle(color: Colors.white.withOpacity(0.45), fontSize: 13),
           ),
           const SizedBox(height: 24),
           _card(
@@ -1818,10 +1818,10 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
                   dropdownColor: AppTheme.surfaceElevated,
                   decoration: InputDecoration(
                     labelText: 'App section',
-                    prefixIcon: Icon(Icons.category_rounded, color: AppTheme.primaryGold.withValues(alpha: 0.85)),
+                    prefixIcon: Icon(Icons.category_rounded, color: AppTheme.primaryGold.withOpacity(0.85)),
                     border: OutlineInputBorder(borderRadius: BorderRadius.circular(14)),
                     filled: true,
-                    fillColor: Colors.black.withValues(alpha: 0.2),
+                    fillColor: Colors.black.withOpacity(0.2),
                   ),
                   items: const [
                     DropdownMenuItem(value: _PublishShelf.liveTv, child: Text('Live TV (home / live lists)')),
@@ -1841,7 +1841,7 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
                   const SizedBox(height: 8),
                   Text(
                     'Saved under group: ${_resolvedPublishGroup()}',
-                    style: TextStyle(fontSize: 12, color: Colors.white.withValues(alpha: 0.45)),
+                    style: TextStyle(fontSize: 12, color: Colors.white.withOpacity(0.45)),
                   ),
                 ],
                 const SizedBox(height: 14),
@@ -1887,10 +1887,10 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
       style: const TextStyle(color: Colors.white),
       decoration: InputDecoration(
         labelText: label,
-        prefixIcon: Icon(icon, color: AppTheme.primaryGold.withValues(alpha: 0.85)),
+        prefixIcon: Icon(icon, color: AppTheme.primaryGold.withOpacity(0.85)),
         border: OutlineInputBorder(borderRadius: BorderRadius.circular(14)),
         filled: true,
-        fillColor: Colors.black.withValues(alpha: 0.2),
+        fillColor: Colors.black.withOpacity(0.2),
       ),
     );
   }
@@ -1913,7 +1913,7 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('Quick pick group', style: TextStyle(fontSize: 12, color: Colors.white.withValues(alpha: 0.45))),
+            Text('Quick pick group', style: TextStyle(fontSize: 12, color: Colors.white.withOpacity(0.45))),
             const SizedBox(height: 8),
             Wrap(
               spacing: 8,
@@ -1923,8 +1923,8 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
                     (n) => ActionChip(
                       label: Text(n),
                       onPressed: () => setState(() => _channelGroupController.text = n),
-                      backgroundColor: Colors.white.withValues(alpha: 0.06),
-                      side: BorderSide(color: Colors.white.withValues(alpha: 0.08)),
+                      backgroundColor: Colors.white.withOpacity(0.06),
+                      side: BorderSide(color: Colors.white.withOpacity(0.08)),
                     ),
                   )
                   .toList(),
@@ -1943,7 +1943,7 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
     return Container(
       decoration: BoxDecoration(
         gradient: LinearGradient(
-          colors: [AppTheme.backgroundBlack, AppTheme.surfaceGray.withValues(alpha: 0.4)],
+          colors: [AppTheme.backgroundBlack, AppTheme.surfaceGray.withOpacity(0.4)],
         ),
       ),
       child: ListView(
@@ -1956,7 +1956,7 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
           const SizedBox(height: 6),
           Text(
             'Add channels from M3U files, URLs, or Xtream Codes.',
-            style: TextStyle(color: Colors.white.withValues(alpha: 0.45), fontSize: 13),
+            style: TextStyle(color: Colors.white.withOpacity(0.45), fontSize: 13),
           ),
           const SizedBox(height: 24),
 
@@ -1975,7 +1975,7 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
                 const SizedBox(height: 8),
                 Text(
                   'Pick a .m3u or .m3u8 file from your device.',
-                  style: TextStyle(fontSize: 12, color: Colors.white.withValues(alpha: 0.4)),
+                  style: TextStyle(fontSize: 12, color: Colors.white.withOpacity(0.4)),
                 ),
                 const SizedBox(height: 14),
                 FilledButton.icon(
@@ -2051,7 +2051,7 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
                   children: [
                     const CircularProgressIndicator(color: AppTheme.primaryGold),
                     const SizedBox(height: 12),
-                    Text(_importStatus, style: TextStyle(color: Colors.white.withValues(alpha: 0.5), fontSize: 12)),
+                    Text(_importStatus, style: TextStyle(color: Colors.white.withOpacity(0.5), fontSize: 12)),
                   ],
                 ),
               ),
@@ -2088,20 +2088,20 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
                     child: ListView.separated(
                       itemCount: _importPreview!.length,
                       separatorBuilder: (_, __) =>
-                          Divider(height: 1, color: Colors.white.withValues(alpha: 0.06)),
+                          Divider(height: 1, color: Colors.white.withOpacity(0.06)),
                       itemBuilder: (context, i) {
                         final ch = _importPreview![i];
                         return ListTile(
                           dense: true,
                           contentPadding: EdgeInsets.zero,
                           leading: CircleAvatar(
-                            backgroundColor: Colors.white.withValues(alpha: 0.06),
+                            backgroundColor: Colors.white.withOpacity(0.06),
                             radius: 16,
                             child: Text(
                               '${i + 1}',
                               style: TextStyle(
                                 fontSize: 10,
-                                color: AppTheme.primaryGold.withValues(alpha: 0.7),
+                                color: AppTheme.primaryGold.withOpacity(0.7),
                               ),
                             ),
                           ),
@@ -2113,7 +2113,7 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
                           ),
                           subtitle: Text(
                             ch['group'] ?? 'General',
-                            style: TextStyle(fontSize: 10, color: AppTheme.accentTeal.withValues(alpha: 0.7)),
+                            style: TextStyle(fontSize: 10, color: AppTheme.accentTeal.withOpacity(0.7)),
                           ),
                         );
                       },
@@ -2163,7 +2163,7 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
     return Container(
       decoration: BoxDecoration(
         gradient: LinearGradient(
-          colors: [AppTheme.backgroundBlack, AppTheme.surfaceGray.withValues(alpha: 0.35)],
+          colors: [AppTheme.backgroundBlack, AppTheme.surfaceGray.withOpacity(0.35)],
         ),
       ),
       child: ListView(
@@ -2176,7 +2176,7 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
           const SizedBox(height: 6),
           Text(
             'Check all channel URLs to find broken or unavailable streams.',
-            style: TextStyle(color: Colors.white.withValues(alpha: 0.45), fontSize: 13),
+            style: TextStyle(color: Colors.white.withOpacity(0.45), fontSize: 13),
           ),
           const SizedBox(height: 24),
           _card(
@@ -2204,7 +2204,7 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
                     borderRadius: BorderRadius.circular(8),
                     child: LinearProgressIndicator(
                       value: _healthProgress,
-                      backgroundColor: Colors.white.withValues(alpha: 0.06),
+                      backgroundColor: Colors.white.withOpacity(0.06),
                       valueColor: AlwaysStoppedAnimation(
                         _healthCheckRunning ? AppTheme.primaryGold : AppTheme.accentTeal,
                       ),
@@ -2216,7 +2216,7 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
                     '${(_healthProgress * 100).toInt()}% complete',
                     style: TextStyle(
                       fontSize: 11,
-                      color: Colors.white.withValues(alpha: 0.4),
+                      color: Colors.white.withOpacity(0.4),
                     ),
                     textAlign: TextAlign.center,
                   ),
@@ -2257,14 +2257,14 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
                   label: const Text('Show all'),
                   selected: !_showBrokenOnly,
                   onSelected: (_) => setState(() => _showBrokenOnly = false),
-                  selectedColor: AppTheme.primaryGold.withValues(alpha: 0.35),
+                  selectedColor: AppTheme.primaryGold.withOpacity(0.35),
                 ),
                 const SizedBox(width: 8),
                 ChoiceChip(
                   label: const Text('Broken only'),
                   selected: _showBrokenOnly,
                   onSelected: (_) => setState(() => _showBrokenOnly = true),
-                  selectedColor: Colors.redAccent.withValues(alpha: 0.35),
+                  selectedColor: Colors.redAccent.withOpacity(0.35),
                 ),
               ],
             ),
@@ -2284,7 +2284,7 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
       mainAxisSize: MainAxisSize.min,
       children: [
         Text('$count', style: TextStyle(fontSize: 24, fontWeight: FontWeight.w800, color: color)),
-        Text(label, style: TextStyle(fontSize: 11, color: color.withValues(alpha: 0.7))),
+        Text(label, style: TextStyle(fontSize: 11, color: color.withOpacity(0.7))),
       ],
     );
   }
@@ -2335,13 +2335,13 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
                       ),
                       Text(
                         health.message,
-                        style: TextStyle(fontSize: 10, color: color.withValues(alpha: 0.7)),
+                        style: TextStyle(fontSize: 10, color: color.withOpacity(0.7)),
                       ),
                     ],
                   ),
                 ),
                 if (health.status != _HealthStatus.ok)
-                  Icon(Icons.edit_rounded, size: 16, color: Colors.white.withValues(alpha: 0.3)),
+                  Icon(Icons.edit_rounded, size: 16, color: Colors.white.withOpacity(0.3)),
               ],
             ),
           ),
@@ -2358,7 +2358,7 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
     return Container(
       decoration: BoxDecoration(
         gradient: LinearGradient(
-          colors: [AppTheme.backgroundBlack, AppTheme.surfaceGray.withValues(alpha: 0.35)],
+          colors: [AppTheme.backgroundBlack, AppTheme.surfaceGray.withOpacity(0.35)],
         ),
       ),
       child: ListView(
@@ -2390,11 +2390,11 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
                   stream: _groupsRef.onValue,
                   builder: (context, snapshot) {
                     if (!snapshot.hasData || snapshot.data?.snapshot.value == null) {
-                      return Text('No saved groups', style: TextStyle(color: Colors.white.withValues(alpha: 0.35)));
+                      return Text('No saved groups', style: TextStyle(color: Colors.white.withOpacity(0.35)));
                     }
                     final value = snapshot.data!.snapshot.value;
                     if (value is! Map || value.isEmpty) {
-                      return Text('No saved groups', style: TextStyle(color: Colors.white.withValues(alpha: 0.35)));
+                      return Text('No saved groups', style: TextStyle(color: Colors.white.withOpacity(0.35)));
                     }
                     final entries = value.entries.toList()
                       ..sort((a, b) {
@@ -2411,8 +2411,8 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
                         return ListTile(
                           contentPadding: EdgeInsets.zero,
                           leading: CircleAvatar(
-                            backgroundColor: AppTheme.accentTeal.withValues(alpha: 0.2),
-                            child: Icon(Icons.folder_rounded, color: AppTheme.accentTeal.withValues(alpha: 0.9)),
+                            backgroundColor: AppTheme.accentTeal.withOpacity(0.2),
+                            child: Icon(Icons.folder_rounded, color: AppTheme.accentTeal.withOpacity(0.9)),
                           ),
                           title: Text(label),
                           trailing: IconButton(
@@ -2435,7 +2435,7 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
           const SizedBox(height: 6),
           Text(
             'Users type these at sign-in (case-insensitive).',
-            style: TextStyle(color: Colors.white.withValues(alpha: 0.45), fontSize: 13),
+            style: TextStyle(color: Colors.white.withOpacity(0.45), fontSize: 13),
           ),
           const SizedBox(height: 16),
           _card(
@@ -2457,7 +2457,7 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
                 const SizedBox(height: 12),
                 Row(
                   children: [
-                    Text('Duration: ', style: TextStyle(fontSize: 12, color: Colors.white.withValues(alpha: 0.4))),
+                    Text('Duration: ', style: TextStyle(fontSize: 12, color: Colors.white.withOpacity(0.4))),
                     const SizedBox(width: 8),
                     Expanded(
                       child: SingleChildScrollView(
@@ -2482,14 +2482,14 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
                     if (!snapshot.hasData || snapshot.data?.snapshot.value == null) {
                       return Text(
                         'No codes — users cannot sign in.',
-                        style: TextStyle(color: Colors.white.withValues(alpha: 0.35)),
+                        style: TextStyle(color: Colors.white.withOpacity(0.35)),
                       );
                     }
                     final value = snapshot.data!.snapshot.value;
                     if (value is! Map || value.isEmpty) {
                       return Text(
                         'No codes — users cannot sign in.',
-                        style: TextStyle(color: Colors.white.withValues(alpha: 0.35)),
+                        style: TextStyle(color: Colors.white.withOpacity(0.35)),
                       );
                     }
                     final entries = value.entries.toList()
@@ -2508,13 +2508,13 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
                         return Padding(
                           padding: const EdgeInsets.symmetric(vertical: 6),
                           child: Material(
-                            color: Colors.black.withValues(alpha: 0.2),
+                            color: Colors.black.withOpacity(0.2),
                             borderRadius: BorderRadius.circular(16),
                             child: Padding(
                               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                               child: Row(
                                 children: [
-                                  Icon(Icons.key_rounded, color: AppTheme.primaryGold.withValues(alpha: 0.8), size: 20),
+                                  Icon(Icons.key_rounded, color: AppTheme.primaryGold.withOpacity(0.8), size: 20),
                                   const SizedBox(width: 12),
                                   Expanded(
                                     child: Column(
@@ -2527,7 +2527,7 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
                                             fontSize: 10,
                                             color: _isCodeExpired(m is Map ? m['expiresAt'] : null)
                                                 ? Colors.redAccent
-                                                : Colors.white.withValues(alpha: 0.45),
+                                                : Colors.white.withOpacity(0.45),
                                           ),
                                         ),
                                       ],
@@ -2535,7 +2535,7 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
                                   ),
                                   Switch.adaptive(
                                     value: active,
-                                    activeTrackColor: AppTheme.primaryGold.withValues(alpha: 0.45),
+                                    activeTrackColor: AppTheme.primaryGold.withOpacity(0.45),
                                     onChanged: (_) => _toggleLoginCode('${e.key}', active),
                                   ),
                                   IconButton(
@@ -2567,7 +2567,7 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
     return Container(
       decoration: BoxDecoration(
         gradient: LinearGradient(
-          colors: [AppTheme.backgroundBlack, AppTheme.surfaceGray.withValues(alpha: 0.35)],
+          colors: [AppTheme.backgroundBlack, AppTheme.surfaceGray.withOpacity(0.35)],
         ),
       ),
       child: StreamBuilder<DatabaseEvent>(
@@ -2592,7 +2592,7 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
               const SizedBox(height: 6),
               Text(
                 'This message scrolls at the top of the app home screen when active.',
-                style: TextStyle(color: Colors.white.withValues(alpha: 0.45), fontSize: 13),
+                style: TextStyle(color: Colors.white.withOpacity(0.45), fontSize: 13),
               ),
               const SizedBox(height: 24),
               _card(
@@ -2617,7 +2617,7 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
                                 active ? 'Live and scrolling' : 'Currently hidden',
                                 style: TextStyle(
                                   fontSize: 12,
-                                  color: active ? AppTheme.accentTeal : Colors.white.withValues(alpha: 0.45),
+                                  color: active ? AppTheme.accentTeal : Colors.white.withOpacity(0.45),
                                 ),
                               ),
                             ],
@@ -2625,7 +2625,7 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
                         ),
                         Switch.adaptive(
                           value: active,
-                          activeTrackColor: AppTheme.accentTeal.withValues(alpha: 0.45),
+                          activeTrackColor: AppTheme.accentTeal.withOpacity(0.45),
                           onChanged: (val) {
                             _announcementRef.update({'active': val});
                           },

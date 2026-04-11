@@ -236,7 +236,7 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
                     child: Text(
                       timeLabel,
                       style: TextStyle(
-                        color: _accent.withValues(alpha: 0.95),
+                        color: _accent.withOpacity(0.95),
                         fontSize: 13,
                         fontWeight: FontWeight.w600,
                       ),
@@ -269,10 +269,10 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
                         begin: Alignment.topCenter,
                         end: Alignment.bottomCenter,
                         colors: [
-                          Colors.black.withValues(alpha: 0.45),
+                          Colors.black.withOpacity(0.45),
                           Colors.transparent,
                           Colors.transparent,
-                          Colors.black.withValues(alpha: 0.55),
+                          Colors.black.withOpacity(0.55),
                         ],
                         stops: const [0, 0.25, 0.65, 1],
                       ),
@@ -288,7 +288,7 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
                         top: 10,
                         left: 10,
                         child: Material(
-                          color: Colors.black.withValues(alpha: 0.45),
+                          color: Colors.black.withOpacity(0.45),
                           borderRadius: BorderRadius.circular(12),
                           clipBehavior: Clip.antiAlias,
                           child: InkWell(
@@ -308,9 +308,9 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
                             width: 52,
                             height: 52,
                             decoration: BoxDecoration(
-                              color: Colors.black.withValues(alpha: 0.35),
+                              color: Colors.black.withOpacity(0.35),
                               borderRadius: BorderRadius.circular(12),
-                              border: Border.all(color: Colors.white.withValues(alpha: 0.12)),
+                              border: Border.all(color: Colors.white.withOpacity(0.12)),
                             ),
                             clipBehavior: Clip.antiAlias,
                             child: ChannelLogoImage(
@@ -326,7 +326,7 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
                         bottom: 12,
                         left: 12,
                         child: Material(
-                          color: Colors.black.withValues(alpha: 0.45),
+                          color: Colors.black.withOpacity(0.45),
                           borderRadius: BorderRadius.circular(12),
                           clipBehavior: Clip.antiAlias,
                           child: InkWell(
@@ -346,7 +346,7 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
                         bottom: 12,
                         right: 12,
                         child: Material(
-                          color: Colors.black.withValues(alpha: 0.45),
+                          color: Colors.black.withOpacity(0.45),
                           borderRadius: BorderRadius.circular(12),
                           clipBehavior: Clip.antiAlias,
                           child: InkWell(
@@ -385,7 +385,7 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
                             style: AppTheme.withRabarIfKurdish(
                               uiLocale,
                               TextStyle(
-                                color: Colors.white.withValues(alpha: 0.45),
+                                color: Colors.white.withOpacity(0.45),
                                 fontSize: 13,
                                 fontWeight: FontWeight.w600,
                               ),
@@ -432,7 +432,7 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
                                               style: AppTheme.withRabarIfKurdish(
                                                 uiLocale,
                                                 TextStyle(
-                                                  color: selected ? _accent : Colors.white.withValues(alpha: 0.82),
+                                                  color: selected ? _accent : Colors.white.withOpacity(0.82),
                                                   fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
                                                   fontSize: 13,
                                                 ),
@@ -454,7 +454,7 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
                     ),
                   ),
                 ),
-                Container(width: 1, color: Colors.white.withValues(alpha: 0.06)),
+                Container(width: 1, color: Colors.white.withOpacity(0.06)),
                 Expanded(
                   flex: 14,
                   child: Container(
@@ -470,7 +470,7 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
                               style: AppTheme.withRabarIfKurdish(
                                 uiLocale,
                                 TextStyle(
-                                  color: Colors.white.withValues(alpha: 0.45),
+                                  color: Colors.white.withOpacity(0.45),
                                   fontSize: 13,
                                   fontWeight: FontWeight.w600,
                                 ),
@@ -482,7 +482,7 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
                           child: ListView.separated(
                             padding: EdgeInsets.fromLTRB(8, 0, 8, bottomPad + 12),
                             itemCount: _channelsInSelectedGroup.length,
-                            separatorBuilder: (_, __) => Divider(height: 1, color: Colors.white.withValues(alpha: 0.06)),
+                            separatorBuilder: (_, __) => Divider(height: 1, color: Colors.white.withOpacity(0.06)),
                             itemBuilder: (context, i) {
                               final ch = _channelsInSelectedGroup[i];
                               final fullIdx = widget.channels.indexOf(ch);
@@ -501,7 +501,7 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
                                             style: AppTheme.withRabarIfKurdish(
                                               uiLocale,
                                               TextStyle(
-                                                color: playing ? _accent : Colors.white.withValues(alpha: 0.88),
+                                                color: playing ? _accent : Colors.white.withOpacity(0.88),
                                                 fontWeight: playing ? FontWeight.w700 : FontWeight.w500,
                                                 fontSize: 14,
                                               ),
@@ -550,7 +550,7 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
           ),
           const SizedBox(height: 16),
           Material(
-            color: Colors.black.withValues(alpha: 0.35),
+            color: Colors.black.withOpacity(0.35),
             borderRadius: BorderRadius.circular(8),
             child: const Padding(
               padding: EdgeInsets.symmetric(horizontal: 12, vertical: 6),
@@ -571,7 +571,7 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
 
   Widget _buildEngineSplash() {
     return Container(
-      color: Colors.black.withValues(alpha: 0.6),
+      color: Colors.black.withOpacity(0.6),
       child: Center(
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -619,7 +619,7 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
                 gradient: LinearGradient(
                   begin: Alignment.bottomCenter,
                   end: Alignment.topCenter,
-                  colors: [Colors.black.withValues(alpha: 0.9), Colors.transparent],
+                  colors: [Colors.black.withOpacity(0.9), Colors.transparent],
                 ),
               ),
               child: Column(
@@ -661,7 +661,7 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
                         _movieControlBtn(
                           icon: Icons.stop_rounded,
                           onPressed: () => Navigator.pop(context),
-                          color: Colors.redAccent.withValues(alpha: 0.8),
+                          color: Colors.redAccent.withOpacity(0.8),
                         ),
                         const SizedBox(width: 20),
                         _movieControlBtn(
@@ -684,7 +684,7 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
                               ),
                               boxShadow: [
                                 BoxShadow(
-                                  color: AppTheme.primaryGold.withValues(alpha: 0.3),
+                                  color: AppTheme.primaryGold.withOpacity(0.3),
                                   blurRadius: 12,
                                   offset: const Offset(0, 4),
                                 ),
@@ -724,7 +724,7 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
                 gradient: LinearGradient(
                   begin: Alignment.topCenter,
                   end: Alignment.bottomCenter,
-                  colors: [Colors.black.withValues(alpha: 0.8), Colors.transparent],
+                  colors: [Colors.black.withOpacity(0.8), Colors.transparent],
                 ),
               ),
               child: Text(
@@ -745,7 +745,7 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
     Color color = Colors.white,
   }) {
     return Material(
-      color: Colors.white.withValues(alpha: 0.08),
+      color: Colors.white.withOpacity(0.08),
       borderRadius: BorderRadius.circular(12),
       clipBehavior: Clip.antiAlias,
       child: InkWell(
@@ -755,9 +755,9 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
           height: 42,
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
+            border: Border.all(color: Colors.white.withOpacity(0.1)),
           ),
-          child: Icon(icon, color: color.withValues(alpha: 0.9), size: 22),
+          child: Icon(icon, color: color.withOpacity(0.9), size: 22),
         ),
       ),
     );

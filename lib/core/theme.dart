@@ -139,45 +139,45 @@ class AppTheme {
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
           colors: [
-            accentTeal.withValues(alpha: 0.38),
+            accentTeal.withOpacity(0.38),
             const Color(0xFF1C2430),
-            primaryGold.withValues(alpha: 0.22),
+            primaryGold.withOpacity(0.22),
           ],
         ),
       AppGradientPreset.oceanAbyss => LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
           colors: [
-            const Color(0xFF0EA5E9).withValues(alpha: 0.35),
+            const Color(0xFF0EA5E9).withOpacity(0.35),
             const Color(0xFF102030),
-            accentTeal.withValues(alpha: 0.28),
+            accentTeal.withOpacity(0.28),
           ],
         ),
       AppGradientPreset.goldSunset => LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
           colors: [
-            primaryGold.withValues(alpha: 0.42),
+            primaryGold.withOpacity(0.42),
             const Color(0xFF241A12),
-            const Color(0xFFF97316).withValues(alpha: 0.18),
+            const Color(0xFFF97316).withOpacity(0.18),
           ],
         ),
       AppGradientPreset.violetHaze => LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
           colors: [
-            primaryPurple.withValues(alpha: 0.4),
+            primaryPurple.withOpacity(0.4),
             const Color(0xFF1A1428),
-            primaryBlue.withValues(alpha: 0.2),
+            primaryBlue.withOpacity(0.2),
           ],
         ),
       AppGradientPreset.emberGlow => LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
           colors: [
-            const Color(0xFFF43F5E).withValues(alpha: 0.32),
+            const Color(0xFFF43F5E).withOpacity(0.32),
             const Color(0xFF1C1010),
-            primaryGold.withValues(alpha: 0.2),
+            primaryGold.withOpacity(0.2),
           ],
         ),
     };
@@ -191,7 +191,7 @@ class AppTheme {
           end: Alignment.bottomCenter,
           colors: [
             backgroundBlack,
-            const Color(0xFF101620).withValues(alpha: 0.92),
+            const Color(0xFF101620).withOpacity(0.92),
             backgroundBlack,
           ],
         ),
@@ -200,7 +200,7 @@ class AppTheme {
           end: Alignment.bottomRight,
           colors: [
             const Color(0xFF060F18),
-            const Color(0xFF0C1C2A).withValues(alpha: 0.95),
+            const Color(0xFF0C1C2A).withOpacity(0.95),
             backgroundBlack,
           ],
         ),
@@ -209,7 +209,7 @@ class AppTheme {
           end: Alignment.bottomLeft,
           colors: [
             const Color(0xFF140E0A),
-            const Color(0xFF1A120C).withValues(alpha: 0.96),
+            const Color(0xFF1A120C).withOpacity(0.96),
             backgroundBlack,
           ],
         ),
@@ -218,7 +218,7 @@ class AppTheme {
           end: Alignment.bottomCenter,
           colors: [
             const Color(0xFF100818),
-            const Color(0xFF160C22).withValues(alpha: 0.94),
+            const Color(0xFF160C22).withOpacity(0.94),
             backgroundBlack,
           ],
         ),
@@ -227,7 +227,7 @@ class AppTheme {
           end: Alignment.bottomRight,
           colors: [
             const Color(0xFF120608),
-            const Color(0xFF180A0C).withValues(alpha: 0.95),
+            const Color(0xFF180A0C).withOpacity(0.95),
             backgroundBlack,
           ],
         ),

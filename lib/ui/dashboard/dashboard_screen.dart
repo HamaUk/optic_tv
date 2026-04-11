@@ -459,7 +459,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
         VerticalDivider(
           width: 1,
           thickness: 1,
-          color: Colors.white.withValues(alpha: 0.08),
+          color: Colors.white.withOpacity(0.08),
         ),
         Expanded(
           child: Directionality(
@@ -478,11 +478,11 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
       decoration: BoxDecoration(
         color: const Color(0xFF0A0E14),
         border: Border(
-          right: BorderSide(color: Colors.white.withValues(alpha: 0.06)),
+          right: BorderSide(color: Colors.white.withOpacity(0.06)),
         ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.35),
+            color: Colors.black.withOpacity(0.35),
             blurRadius: 14,
             offset: const Offset(2, 0),
           ),
@@ -513,7 +513,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
       child: Row(
         children: [
           Material(
-            color: Colors.white.withValues(alpha: 0.06),
+            color: Colors.white.withOpacity(0.06),
             borderRadius: BorderRadius.circular(12),
             clipBehavior: Clip.antiAlias,
             child: IconButton(
@@ -525,7 +525,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
           const SizedBox(width: 8),
           Expanded(
             child: Material(
-              color: Colors.white.withValues(alpha: 0.06),
+              color: Colors.white.withOpacity(0.06),
               borderRadius: BorderRadius.circular(12),
               clipBehavior: Clip.antiAlias,
               child: InkWell(
@@ -543,7 +543,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
           ),
           const SizedBox(width: 8),
           Material(
-            color: Colors.white.withValues(alpha: 0.06),
+            color: Colors.white.withOpacity(0.06),
             borderRadius: BorderRadius.circular(12),
             clipBehavior: Clip.antiAlias,
             child: IconButton(
@@ -567,7 +567,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
   TextStyle _searchFieldStyle(BuildContext context, {required double opacity}) {
     final isAndroid = Theme.of(context).platform == TargetPlatform.android;
     return TextStyle(
-      color: Colors.white.withValues(alpha: opacity),
+      color: Colors.white.withOpacity(opacity),
       fontSize: 16,
       fontFamily: isAndroid ? 'Roboto' : null,
     );
@@ -577,7 +577,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     return Padding(
       padding: EdgeInsets.fromLTRB(pad * 0.5, 0, pad * 0.5, 8),
       child: Material(
-        color: Colors.white.withValues(alpha: 0.06),
+        color: Colors.white.withOpacity(0.06),
         borderRadius: BorderRadius.circular(14),
         clipBehavior: Clip.antiAlias,
         child: Padding(
@@ -626,14 +626,14 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
             Icon(
               Icons.tv_off_rounded,
               size: 52,
-              color: Colors.white.withValues(alpha: 0.12),
+              color: Colors.white.withOpacity(0.12),
             ),
             const SizedBox(height: 16),
             Text(
               message,
               style: AppTheme.withRabarIfKurdish(
                 s.locale,
-                TextStyle(color: Colors.white.withValues(alpha: 0.45)),
+                TextStyle(color: Colors.white.withOpacity(0.45)),
               ),
               textAlign: TextAlign.center,
             ),
@@ -643,7 +643,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                 sub,
                 style: AppTheme.withRabarIfKurdish(
                   s.locale,
-                  TextStyle(color: Colors.white.withValues(alpha: 0.22), fontSize: 13),
+                  TextStyle(color: Colors.white.withOpacity(0.22), fontSize: 13),
                 ),
                 textAlign: TextAlign.center,
               ),
@@ -785,12 +785,12 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(kTileRadius),
               border: Border.all(
-                color: focused ? _accent.withValues(alpha: 0.9) : Colors.white.withValues(alpha: 0.12),
+                color: focused ? _accent.withOpacity(0.9) : Colors.white.withOpacity(0.12),
                 width: focused ? 1.5 : 1,
               ),
               color: focused
-                  ? _accent.withValues(alpha: 0.07)
-                  : const Color(0xFF141A22).withValues(alpha: 0.94),
+                  ? _accent.withOpacity(0.07)
+                  : const Color(0xFF141A22).withOpacity(0.94),
             ),
             child: Material(
               color: Colors.transparent,
@@ -818,7 +818,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                         channel.name,
                         style: AppTheme.withRabarIfKurdish(
                           s.locale,
-                          TextStyle(fontSize: tv ? 11 : 10, color: Colors.white.withValues(alpha: 0.78)),
+                          TextStyle(fontSize: tv ? 11 : 10, color: Colors.white.withOpacity(0.78)),
                         ),
                         overflow: TextOverflow.ellipsis,
                         maxLines: 2,
@@ -861,13 +861,13 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(kTileRadius),
                   border: Border.all(
-                    color: focused ? _accent.withValues(alpha: 0.9) : Colors.white.withValues(alpha: 0.1),
+                    color: focused ? _accent.withOpacity(0.9) : Colors.white.withOpacity(0.1),
                     width: focused ? 2 : 1,
                   ),
                   color: const Color(0xFF141A22),
                   boxShadow: [
                     BoxShadow(
-                      color: focused ? _accent.withValues(alpha: 0.18) : Colors.black.withValues(alpha: 0.25),
+                      color: focused ? _accent.withOpacity(0.18) : Colors.black.withOpacity(0.25),
                       blurRadius: focused ? 16 : 10,
                       offset: const Offset(0, 6),
                     ),
@@ -907,8 +907,8 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                                   colors: [
                                     Colors.transparent,
                                     Colors.transparent,
-                                    Colors.black.withValues(alpha: 0.65),
-                                    Colors.black.withValues(alpha: 0.92),
+                                    Colors.black.withOpacity(0.65),
+                                    Colors.black.withOpacity(0.92),
                                   ],
                                   stops: const [0, 0.45, 0.78, 1],
                                 ),
@@ -949,13 +949,13 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                               width: tv ? 48 : 40,
                               height: tv ? 48 : 40,
                               decoration: BoxDecoration(
-                                color: Colors.black.withValues(alpha: 0.45),
+                                color: Colors.black.withOpacity(0.45),
                                 shape: BoxShape.circle,
-                                border: Border.all(color: Colors.white.withValues(alpha: 0.25)),
+                                border: Border.all(color: Colors.white.withOpacity(0.25)),
                               ),
                               child: Icon(
                                 Icons.play_arrow_rounded,
-                                color: Colors.white.withValues(alpha: 0.85),
+                                color: Colors.white.withOpacity(0.85),
                                 size: tv ? 28 : 22,
                               ),
                             ),
@@ -974,7 +974,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                                   fontWeight: FontWeight.w700,
                                   color: Colors.white,
                                   shadows: [
-                                    Shadow(color: Colors.black.withValues(alpha: 0.7), blurRadius: 6),
+                                    Shadow(color: Colors.black.withOpacity(0.7), blurRadius: 6),
                                   ],
                                 ),
                               ),
@@ -1002,7 +1002,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
         child: Icon(
           Icons.movie_rounded,
           size: tv ? 48 : 40,
-          color: AppTheme.primaryGold.withValues(alpha: 0.2),
+          color: AppTheme.primaryGold.withOpacity(0.2),
         ),
       ),
     );
@@ -1012,8 +1012,8 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     return Container(
       decoration: BoxDecoration(
         color: const Color(0xFF0D1118),
-        border: Border(top: BorderSide(color: Colors.white.withValues(alpha: 0.06))),
-        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.4), blurRadius: 16, offset: const Offset(0, -4))],
+        border: Border(top: BorderSide(color: Colors.white.withOpacity(0.06))),
+        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.4), blurRadius: 16, offset: const Offset(0, -4))],
       ),
       padding: EdgeInsets.only(bottom: bottomInset > 0 ? bottomInset : 8, top: 6),
       child: Row(
@@ -1037,7 +1037,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     bool sideRail = false,
   }) {
     final selected = _navIndex == index;
-    final color = selected ? _accent : (sideRail ? Colors.white.withValues(alpha: 0.52) : Colors.white38);
+    final color = selected ? _accent : (sideRail ? Colors.white.withOpacity(0.52) : Colors.white38);
 
     if (!sideRail) {
       return InkWell(
@@ -1104,11 +1104,11 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
         ? DecoratedBox(
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(railRadius),
-              border: Border.all(color: _accent.withValues(alpha: 0.88), width: 1.5),
-              color: _accent.withValues(alpha: 0.13),
+              border: Border.all(color: _accent.withOpacity(0.88), width: 1.5),
+              color: _accent.withOpacity(0.13),
               boxShadow: [
                 BoxShadow(
-                  color: _accent.withValues(alpha: 0.18),
+                  color: _accent.withOpacity(0.18),
                   blurRadius: 10,
                   spreadRadius: 0,
                 ),
@@ -1196,20 +1196,20 @@ class _PulsingLogoBoxState extends State<_PulsingLogoBox> with SingleTickerProvi
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
             colors: [
-              AppTheme.accentTeal.withValues(alpha: 0.45),
-              Colors.white.withValues(alpha: 0.1),
-              AppTheme.primaryGold.withValues(alpha: 0.35),
+              AppTheme.accentTeal.withOpacity(0.45),
+              Colors.white.withOpacity(0.1),
+              AppTheme.primaryGold.withOpacity(0.35),
             ],
           ),
-          border: Border.all(color: Colors.white.withValues(alpha: 0.28)),
+          border: Border.all(color: Colors.white.withOpacity(0.28)),
           boxShadow: [
             BoxShadow(
-              color: AppTheme.accentTeal.withValues(alpha: _glow),
+              color: AppTheme.accentTeal.withOpacity(_glow),
               blurRadius: 22,
               spreadRadius: 0,
             ),
             BoxShadow(
-              color: AppTheme.primaryGold.withValues(alpha: _glow * 0.35),
+              color: AppTheme.primaryGold.withOpacity(_glow * 0.35),
               blurRadius: 14,
               spreadRadius: 0,
             ),
@@ -1219,7 +1219,7 @@ class _PulsingLogoBoxState extends State<_PulsingLogoBox> with SingleTickerProvi
         child: DecoratedBox(
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(14),
-            color: Colors.black.withValues(alpha: 0.25),
+            color: Colors.black.withOpacity(0.25),
           ),
           child: Center(
             child: ChannelLogoImage(
@@ -1333,10 +1333,10 @@ class _FeaturedCarouselState extends State<_FeaturedCarousel> {
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(20),
         gradient: AppTheme.featuredHeroGradient(widget.gradientPreset),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
+        border: Border.all(color: Colors.white.withOpacity(0.1)),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.35),
+            color: Colors.black.withOpacity(0.35),
             blurRadius: 20,
             offset: const Offset(0, 10),
           ),
@@ -1348,7 +1348,7 @@ class _FeaturedCarouselState extends State<_FeaturedCarousel> {
           Positioned(
             right: -20,
             bottom: 20,
-            child: Icon(Icons.live_tv_rounded, size: tv ? 96 : 108, color: Colors.black.withValues(alpha: 0.07)),
+            child: Icon(Icons.live_tv_rounded, size: tv ? 96 : 108, color: Colors.black.withOpacity(0.07)),
           ),
           Column(
             children: [
@@ -1384,7 +1384,7 @@ class _FeaturedCarouselState extends State<_FeaturedCarousel> {
                                     style: AppTheme.withRabarIfKurdish(
                                       s.locale,
                                       TextStyle(
-                                        color: Colors.white.withValues(alpha: 0.58),
+                                        color: Colors.white.withOpacity(0.58),
                                         fontWeight: FontWeight.w800,
                                         fontSize: tv ? 11.5 : 10.5,
                                         letterSpacing: 0.3,
@@ -1399,7 +1399,7 @@ class _FeaturedCarouselState extends State<_FeaturedCarousel> {
                                     style: AppTheme.withRabarIfKurdish(
                                       s.locale,
                                       TextStyle(
-                                        color: Colors.white.withValues(alpha: 0.72),
+                                        color: Colors.white.withOpacity(0.72),
                                         fontSize: tv ? 12.5 : 11.5,
                                         height: 1.35,
                                         fontWeight: FontWeight.w500,
@@ -1430,7 +1430,7 @@ class _FeaturedCarouselState extends State<_FeaturedCarousel> {
                                         backgroundColor: AppTheme.accentTeal,
                                         foregroundColor: Colors.black,
                                         elevation: 2,
-                                        shadowColor: AppTheme.accentTeal.withValues(alpha: 0.5),
+                                        shadowColor: AppTheme.accentTeal.withOpacity(0.5),
                                         padding: EdgeInsets.symmetric(horizontal: tv ? 22 : 18, vertical: 11),
                                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                                       ),
@@ -1469,7 +1469,7 @@ class _FeaturedCarouselState extends State<_FeaturedCarousel> {
                         borderRadius: BorderRadius.circular(4),
                         color: active
                             ? AppTheme.accentTeal
-                            : Colors.white.withValues(alpha: 0.22),
+                            : Colors.white.withOpacity(0.22),
                       ),
                     );
                   }),
@@ -1506,9 +1506,9 @@ class _GlobalAnnouncementTicker extends StatelessWidget {
           height: 34,
           width: double.infinity,
           decoration: BoxDecoration(
-            color: AppTheme.primaryGold.withValues(alpha: 0.1),
+            color: AppTheme.primaryGold.withOpacity(0.1),
             border: Border(
-              bottom: BorderSide(color: AppTheme.primaryGold.withValues(alpha: 0.15), width: 0.5),
+              bottom: BorderSide(color: AppTheme.primaryGold.withOpacity(0.15), width: 0.5),
             ),
           ),
           child: _MarqueeText(text: text),

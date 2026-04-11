@@ -76,23 +76,53 @@ class _SportScoresScreenState extends State<SportScoresScreen>
     _loading[key]![_dateTab] = true;
     if (mounted) setState(() {});
 
-    List<MatchData> list;
-    // We try Live matches first as they are most reliable on Free plans.
-    final live = await _api.getLiveMatches(lid);
-    // On free plans, getMatches(date) might be blocked for top leagues,
-    // so we just show live or a fallback if Iraqi league.
-    if (lid == 542) {
-      // Iraqi league usually supports today matches.
-      final today = await _api.getMatches(leagueId: lid, date: DateFormat('yyyy-MM-dd').format(DateTime.now()));
-      list = [...live, ...today.where((m) => !live.any((l) => l.fixtureId == m.fixtureId))];
-    } else {
-      list = live;
-    }
+    try {
+      final now = DateTime.now();
+      final todayStr = DateFormat('yyyy-MM-dd').format(now);
+      final tomorrowStr = DateFormat('yyyy-MM-dd').format(now.add(const Duration(days: 1)));
 
-    _cache.putIfAbsent(key, () => {});
-    _cache[key]![_dateTab] = list;
-    _loading[key]![_dateTab] = false;
-    if (mounted) setState(() {});
+      // Fetch live, today, and tomorrow in parallel
+      final results = await Future.wait([
+        _api.getLiveMatches(lid),
+        _api.getMatches(leagueId: lid, date: todayStr),
+        _api.getMatches(leagueId: lid, date: tomorrowStr),
+      ]);
+
+      final live = results[0];
+      final today = results[1];
+      final tomorrow = results[2];
+
+      // Merge results avoiding duplicates (prioritize live data)
+      final Map<int, MatchData> merged = {};
+      for (final m in live) {
+        merged[m.fixtureId] = m;
+      }
+      for (final m in today) {
+        merged.putIfAbsent(m.fixtureId, () => m);
+      }
+      for (final m in tomorrow) {
+        merged.putIfAbsent(m.fixtureId, () => m);
+      }
+
+      final list = merged.values.toList();
+
+      // Sort: Live first, then by date/time
+      list.sort((a, b) {
+        if (a.isLive && !b.isLive) return -1;
+        if (!a.isLive && b.isLive) return 1;
+        return a.date.compareTo(b.date);
+      });
+
+      _cache.putIfAbsent(key, () => {});
+      _cache[key]![_dateTab] = list;
+    } catch (_) {
+      // Keep existing cache on error or set empty if none
+      _cache.putIfAbsent(key, () => {});
+      _cache[key]![_dateTab] ??= [];
+    } finally {
+      _loading[key]![_dateTab] = false;
+      if (mounted) setState(() {});
+    }
   }
 
   bool get _isLoading =>
@@ -128,7 +158,7 @@ class _SportScoresScreenState extends State<SportScoresScreen>
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Icon(Icons.sports_soccer_rounded,
-                size: 64, color: AppTheme.primaryGold.withValues(alpha: 0.35)),
+                size: 64, color: AppTheme.primaryGold.withOpacity(0.35)),
             const SizedBox(height: 20),
             const Text(
               'Live Scores — Setup Required',
@@ -147,7 +177,7 @@ class _SportScoresScreenState extends State<SportScoresScreen>
               '   lib/services/football_api_service.dart\n'
               '   (replace YOUR_API_KEY_HERE)',
               style: TextStyle(
-                  color: Colors.white.withValues(alpha: 0.5),
+                  color: Colors.white.withOpacity(0.5),
                   fontSize: 13,
                   height: 1.6),
               textAlign: TextAlign.center,
@@ -166,7 +196,7 @@ class _SportScoresScreenState extends State<SportScoresScreen>
         decoration: BoxDecoration(
           color: AppTheme.surfaceElevated,
           borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
+          border: Border.all(color: Colors.white.withOpacity(0.08)),
         ),
         child: TabBar(
           controller: _leagueTab,
@@ -174,8 +204,8 @@ class _SportScoresScreenState extends State<SportScoresScreen>
           indicatorSize: TabBarIndicatorSize.tab,
           indicator: BoxDecoration(
             gradient: LinearGradient(colors: [
-              _accent.withValues(alpha: 0.45),
-              AppTheme.primaryGold.withValues(alpha: 0.25),
+              _accent.withOpacity(0.45),
+              AppTheme.primaryGold.withOpacity(0.25),
             ]),
             borderRadius: BorderRadius.circular(12),
           ),
@@ -212,11 +242,11 @@ class _SportScoresScreenState extends State<SportScoresScreen>
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Icon(Icons.sports_soccer_rounded,
-                size: 48, color: Colors.white.withValues(alpha: 0.12)),
+                size: 48, color: Colors.white.withOpacity(0.12)),
             const SizedBox(height: 14),
             Text(msg,
                 style: TextStyle(
-                    color: Colors.white.withValues(alpha: 0.4), fontSize: 14)),
+                    color: Colors.white.withOpacity(0.4), fontSize: 14)),
           ],
         ),
       );
@@ -242,14 +272,14 @@ class _SportScoresScreenState extends State<SportScoresScreen>
         color: AppTheme.surfaceElevated,
         border: Border.all(
           color: live
-              ? Colors.redAccent.withValues(alpha: 0.45)
-              : Colors.white.withValues(alpha: 0.07),
+              ? Colors.redAccent.withOpacity(0.45)
+              : Colors.white.withOpacity(0.07),
           width: live ? 1.5 : 1,
         ),
         boxShadow: [
           if (live)
             BoxShadow(
-              color: Colors.redAccent.withValues(alpha: 0.12),
+              color: Colors.redAccent.withOpacity(0.12),
               blurRadius: 16,
               spreadRadius: 0,
             ),
@@ -291,10 +321,10 @@ class _SportScoresScreenState extends State<SportScoresScreen>
                         : m.kickoffTime,
                 style: TextStyle(
                   color: live
-                      ? Colors.redAccent.withValues(alpha: 0.9)
+                      ? Colors.redAccent.withOpacity(0.9)
                       : finished
-                          ? _accent.withValues(alpha: 0.7)
-                          : Colors.white.withValues(alpha: 0.5),
+                          ? _accent.withOpacity(0.7)
+                          : Colors.white.withOpacity(0.5),
                   fontSize: 11,
                   fontWeight: FontWeight.w600,
                 ),
@@ -336,13 +366,13 @@ class _SportScoresScreenState extends State<SportScoresScreen>
                 margin: const EdgeInsets.symmetric(horizontal: 8),
                 decoration: BoxDecoration(
                   color: live
-                      ? Colors.redAccent.withValues(alpha: 0.12)
-                      : Colors.white.withValues(alpha: 0.05),
+                      ? Colors.redAccent.withOpacity(0.12)
+                      : Colors.white.withOpacity(0.05),
                   borderRadius: BorderRadius.circular(10),
                   border: Border.all(
                     color: live
-                        ? Colors.redAccent.withValues(alpha: 0.25)
-                        : Colors.white.withValues(alpha: 0.08),
+                        ? Colors.redAccent.withOpacity(0.25)
+                        : Colors.white.withOpacity(0.08),
                   ),
                 ),
                 child: Center(
@@ -391,7 +421,7 @@ class _SportScoresScreenState extends State<SportScoresScreen>
             Text(
               m.venue!,
               style: TextStyle(
-                color: Colors.white.withValues(alpha: 0.25),
+                color: Colors.white.withOpacity(0.25),
                 fontSize: 10,
               ),
               maxLines: 1,
@@ -410,11 +440,11 @@ class _SportScoresScreenState extends State<SportScoresScreen>
         width: size,
         height: size,
         decoration: BoxDecoration(
-          color: Colors.white.withValues(alpha: 0.08),
+          color: Colors.white.withOpacity(0.08),
           shape: BoxShape.circle,
         ),
         child: Icon(Icons.shield_rounded,
-            size: 16, color: Colors.white.withValues(alpha: 0.25)),
+            size: 16, color: Colors.white.withOpacity(0.25)),
       );
     }
     return ClipOval(
@@ -426,17 +456,17 @@ class _SportScoresScreenState extends State<SportScoresScreen>
         placeholder: (_, __) => Container(
           width: size,
           height: size,
-          color: Colors.white.withValues(alpha: 0.06),
+          color: Colors.white.withOpacity(0.06),
         ),
         errorWidget: (_, __, ___) => Container(
           width: size,
           height: size,
           decoration: BoxDecoration(
-            color: Colors.white.withValues(alpha: 0.08),
+            color: Colors.white.withOpacity(0.08),
             shape: BoxShape.circle,
           ),
           child: Icon(Icons.shield_rounded,
-              size: 16, color: Colors.white.withValues(alpha: 0.25)),
+              size: 16, color: Colors.white.withOpacity(0.25)),
         ),
       ),
     );

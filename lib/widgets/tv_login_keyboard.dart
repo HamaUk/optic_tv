@@ -224,7 +224,7 @@ class _KeyButtonState extends State<_KeyButton> {
   @override
   Widget build(BuildContext context) {
     final border = Border.all(
-      color: _focused ? Colors.white.withValues(alpha: 0.55) : Colors.white24,
+      color: _focused ? Colors.white.withOpacity(0.55) : Colors.white24,
       width: _focused ? 2 : 1,
     );
 
