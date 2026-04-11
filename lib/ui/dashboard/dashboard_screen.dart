@@ -139,11 +139,17 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
   bool _isMovieChannel(Channel c) {
     final g = c.group.toLowerCase();
     final n = c.name.toLowerCase();
-    return g.contains('movie') ||
-        g.contains('film') ||
-        g.contains('cinema') ||
-        n.contains('movie') ||
-        n.contains('film');
+    // Inclusive keywords for movies/VOD content
+    final movieKeywords = [
+      'movie', 'film', 'cinema', 'vod', 'box office', 'uhd', '4k', 'action',
+      'comedy', 'horror', 'drama', 'thriller', 'animation', 'documentary'
+    ];
+    
+    final isTagged = movieKeywords.any((kw) => g.contains(kw) || n.contains(kw));
+    // Also explicitly include if the group is just "Movies" or "VOD"
+    final isMovieGroup = g == 'movies' || g == 'vod' || g == 'cinema';
+    
+    return isTagged || isMovieGroup;
   }
 
   List<Channel> _channelsForNav(List<Channel> all, List<Channel> favorites, List<Channel> recent) {
@@ -355,16 +361,20 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                 filtered.isEmpty
                     ? _buildEmptyState(
                         s,
-                        title: _navIndex == 3
-                            ? s.noFavorites
-                            : _navIndex == 4
-                                ? s.noRecent
-                                : null,
-                        subtitle: _navIndex == 3
-                            ? s.noFavoritesHint
-                            : _navIndex == 4
-                                ? s.noRecentHint
-                                : null,
+                        title: _navIndex == 1
+                            ? 'No movies found'
+                            : _navIndex == 3
+                                ? s.noFavorites
+                                : _navIndex == 4
+                                    ? s.noRecent
+                                    : null,
+                        subtitle: _navIndex == 1
+                            ? 'Try adding movies or VOD content in the Admin Portal'
+                            : _navIndex == 3
+                                ? s.noFavoritesHint
+                                : _navIndex == 4
+                                    ? s.noRecentHint
+                                    : null,
                       )
                     : _buildScrollableContent(
                         context,

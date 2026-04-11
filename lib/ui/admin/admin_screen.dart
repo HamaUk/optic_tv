@@ -1527,22 +1527,44 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
                     ],
                   ),
                 ),
-                if (_groupFilter != null)
+                if (_groupFilter != null && _channelSearchQuery.isEmpty)
                   Padding(
-                    padding: const EdgeInsets.only(top: 8),
-                    child: Row(
-                      children: [
-                        Icon(Icons.drag_indicator_rounded,
-                            size: 16, color: Colors.white.withValues(alpha: 0.3)),
-                        const SizedBox(width: 4),
-                        Text(
-                          'Drag to reorder within "${_groupFilter}"',
-                          style: TextStyle(
-                            fontSize: 11,
-                            color: AppTheme.accentTeal.withValues(alpha: 0.7),
+                    padding: const EdgeInsets.only(top: 12),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                      decoration: BoxDecoration(
+                        color: AppTheme.accentTeal.withValues(alpha: 0.1),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: AppTheme.accentTeal.withValues(alpha: 0.2)),
+                      ),
+                      child: Row(
+                        children: [
+                          Icon(Icons.drag_indicator_rounded, color: AppTheme.accentTeal, size: 20),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                const Text(
+                                  'Manual sorting active',
+                                  style: TextStyle(
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.white,
+                                  ),
+                                ),
+                                Text(
+                                  'Drag these channels to move them. The new order will sync to all users.',
+                                  style: TextStyle(
+                                    fontSize: 11,
+                                    color: Colors.white.withValues(alpha: 0.5),
+                                  ),
+                                ),
+                              ],
+                            ),
                           ),
-                        ),
-                      ],
+                        ],
+                      ),
                     ),
                   ),
               ],

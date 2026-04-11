@@ -20,7 +20,7 @@ class FootballApiService {
   };
 
   /// Current season (adjust if API returns 404).
-  static const int season = 2026;
+  static const int season = 2025;
 
   late final Dio _dio;
 

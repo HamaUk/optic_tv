@@ -6,12 +6,14 @@ class Channel {
   final String url;
   final String group;
   final String? logo;
+  final int order;
 
   Channel({
     required this.name,
     required this.url,
     this.group = 'General',
     this.logo,
+    this.order = 999999,
   });
 
   factory Channel.fromMap(Map<dynamic, dynamic> map) {
@@ -20,6 +22,7 @@ class Channel {
       url: map['url'] ?? '',
       group: map['group'] ?? map['category'] ?? 'General',
       logo: map['logo'] ?? map['icon_url'],
+      order: map['order'] is int ? map['order'] as int : 999999,
     );
   }
 
@@ -53,6 +56,12 @@ final channelsProvider = StreamProvider<List<Channel>>((ref) {
             .toList();
       }
     }
+
+    // Sort by order first, then by name alphabetically as fallback.
+    remoteChannels.sort((a, b) {
+      if (a.order != b.order) return a.order.compareTo(b.order);
+      return a.name.toLowerCase().compareTo(b.name.toLowerCase());
+    });
 
     return remoteChannels;
   });
