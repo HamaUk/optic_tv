@@ -265,7 +265,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
             return Dialog(
               backgroundColor: Colors.transparent,
               child: ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: 600),
+                constraints: const BoxConstraints(maxWidth: 800),
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [

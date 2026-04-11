@@ -27,58 +27,50 @@ class TvLoginKeyboard extends StatelessWidget {
   static const _row2 = 'asdfghjkl';
   static const _row3 = 'zxcvbnm';
 
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-
     return FocusTraversalGroup(
       policy: WidgetOrderTraversalPolicy(),
       child: Material(
-        color: const Color(0xFF2A2F38),
-        borderRadius: BorderRadius.circular(12),
+        color: const Color(0xFF1E2228), // Darker background
+        borderRadius: BorderRadius.circular(16),
         clipBehavior: Clip.antiAlias,
         child: Padding(
-          padding: const EdgeInsets.fromLTRB(8, 10, 8, 10),
+          padding: const EdgeInsets.all(12),
           child: Column(
             mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
+            crossAxisAlignment: CrossAxisAlignment.center,
             children: [
               _letterRow(context, theme, _digitRow.chars, firstKeyAutofocus: true),
-              const SizedBox(height: 6),
+              const SizedBox(height: 8),
               _letterRow(context, theme, _row1.chars),
-              const SizedBox(height: 6),
+              const SizedBox(height: 8),
               _letterRow(context, theme, _row2.chars),
-              const SizedBox(height: 6),
+              const SizedBox(height: 8),
+              _letterRow(context, theme, _row3.chars, trailing: [
+                _wideKey(
+                  context,
+                  theme,
+                  icon: Icons.backspace_outlined,
+                  onPressed: onBackspace,
+                ),
+              ]),
+              const SizedBox(height: 8),
               Row(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  for (final c in _row3.chars) _keyCell(context, theme, c),
-                  _wideKey(
-                    context,
-                    theme,
-                    icon: Icons.backspace_outlined,
-                    label: 'Backspace',
-                    onPressed: onBackspace,
-                  ),
-                ],
-              ),
-              const SizedBox(height: 6),
-              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   _symKey(context, theme, '-'),
                   _symKey(context, theme, '_'),
                   _symKey(context, theme, '.'),
-                  const SizedBox(width: 6),
+                  const SizedBox(width: 8),
                   Expanded(
                     flex: 3,
                     child: _wideKey(
                       context,
                       theme,
-                      label: 'Clear',
+                      label: 'CLEAR',
                       onPressed: onClear,
                     ),
                   ),
-                  const SizedBox(width: 6),
+                  const SizedBox(width: 8),
                   Expanded(
                     flex: 4,
                     child: _wideKey(
@@ -103,9 +95,10 @@ class TvLoginKeyboard extends StatelessWidget {
     ThemeData theme,
     List<String> chars, {
     bool firstKeyAutofocus = false,
+    List<Widget> trailing = const [],
   }) {
     return Row(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
+      mainAxisAlignment: MainAxisAlignment.center,
       children: [
         for (var i = 0; i < chars.length; i++)
           _keyCell(
@@ -114,6 +107,7 @@ class TvLoginKeyboard extends StatelessWidget {
             chars[i],
             autofocus: firstKeyAutofocus && i == 0,
           ),
+        ...trailing,
       ],
     );
   }
@@ -128,19 +122,20 @@ class TvLoginKeyboard extends StatelessWidget {
     String ch, {
     bool autofocus = false,
   }) {
-    return Expanded(
+    return SizedBox(
+      width: 50, // Fixed width for better QWERTY look
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 3),
+        padding: const EdgeInsets.symmetric(horizontal: 2),
         child: _KeyButton(
           autofocus: autofocus,
           onPressed: () => onCharacter(ch),
           maxLength: maxLength,
           child: Text(
             ch,
-            style: theme.textTheme.titleMedium?.copyWith(
+            style: const TextStyle(
               color: Colors.white,
-              fontWeight: FontWeight.w600,
-              fontSize: 18,
+              fontWeight: FontWeight.bold,
+              fontSize: 22, // Larger text
             ),
           ),
         ),
@@ -157,21 +152,25 @@ class TvLoginKeyboard extends StatelessWidget {
     bool isPrimary = false,
   }) {
     assert(label != null || icon != null);
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 3),
-      child: _KeyButton(
-        onPressed: onPressed,
-        maxLength: maxLength,
-        color: isPrimary ? AppTheme.primaryGold : null,
-        child: icon != null
-            ? Icon(icon, color: isPrimary ? Colors.black : Colors.white, size: 22)
-            : Text(
-                label!,
-                style: theme.textTheme.titleSmall?.copyWith(
-                  color: isPrimary ? Colors.black : Colors.white,
-                  fontWeight: FontWeight.w900,
+    return SizedBox(
+      width: label == null ? 80 : null, // Fixed width for backspace, adaptive for others
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 3),
+        child: _KeyButton(
+          onPressed: onPressed,
+          maxLength: maxLength,
+          color: isPrimary ? AppTheme.primaryGold : null,
+          child: icon != null
+              ? Icon(icon, color: isPrimary ? Colors.black : Colors.white, size: 26)
+              : Text(
+                  label!,
+                  style: theme.textTheme.titleSmall?.copyWith(
+                    color: isPrimary ? Colors.black : Colors.white,
+                    fontWeight: FontWeight.w900,
+                    letterSpacing: 1.0,
+                  ),
                 ),
-              ),
+        ),
       ),
     );
   }
@@ -239,32 +238,34 @@ class _KeyButtonState extends State<_KeyButton> {
 
   @override
   Widget build(BuildContext context) {
-    final border = Border.all(
-      color: _focused ? Colors.white.withOpacity(0.55) : Colors.white24,
-      width: _focused ? 2 : 1,
-    );
-
-    final baseColor = widget.color ?? const Color(0xFF3D434D);
-    final focusColor = widget.color?.withOpacity(0.8) ?? const Color(0xFF4A505A);
+    final baseColor = widget.color ?? const Color(0xFF2C323A); // Darker key color
+    final focusColor = widget.color?.withOpacity(0.8) ?? AppTheme.primaryGold.withOpacity(0.3);
 
     return Focus(
       focusNode: _focusNode,
       autofocus: widget.autofocus,
       onKeyEvent: _onKey,
-      child: Material(
-        color: _focused ? focusColor : baseColor,
-        borderRadius: BorderRadius.circular(6),
-        clipBehavior: Clip.antiAlias,
-        child: InkWell(
-          onTap: widget.onPressed,
-          canRequestFocus: false,
-          mouseCursor: SystemMouseCursors.click,
-          child: AnimatedContainer(
-            duration: const Duration(milliseconds: 90),
-            height: 44,
-            alignment: Alignment.center,
-            decoration: BoxDecoration(border: border, borderRadius: BorderRadius.circular(6)),
-            child: widget.child,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 100),
+        decoration: BoxDecoration(
+          color: _focused ? focusColor : baseColor,
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(
+            color: _focused ? AppTheme.primaryGold : Colors.white.withOpacity(0.1),
+            width: _focused ? 2 : 1,
+          ),
+        ),
+        child: Material(
+          color: Colors.transparent,
+          child: InkWell(
+            onTap: widget.onPressed,
+            canRequestFocus: false,
+            borderRadius: BorderRadius.circular(8),
+            child: Container(
+              height: 56, // Taller keys
+              alignment: Alignment.center,
+              child: widget.child,
+            ),
           ),
         ),
       ),
