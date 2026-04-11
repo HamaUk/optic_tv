@@ -279,83 +279,91 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
                     ),
                   ),
                 ),
-                Positioned(
-                  top: 10,
-                  left: 10,
-                  child: Material(
-                    color: Colors.black.withValues(alpha: 0.45),
-                    borderRadius: BorderRadius.circular(12),
-                    clipBehavior: Clip.antiAlias,
-                    child: InkWell(
-                      onTap: () => Navigator.pop(context),
-                      child: const Padding(
-                        padding: EdgeInsets.all(10),
-                        child: Icon(Icons.arrow_back_ios_new_rounded, color: Colors.white, size: 20),
-                      ),
-                    ),
-                  ),
-                ),
-                if (!_hideChannelLogoOverlay && _current.logo != null && _current.logo!.isNotEmpty)
-                  Positioned(
-                    top: 10,
-                    right: 10,
-                    child: Container(
-                      width: 52,
-                      height: 52,
-                      decoration: BoxDecoration(
-                        color: Colors.black.withValues(alpha: 0.35),
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: Colors.white.withValues(alpha: 0.12)),
-                      ),
-                      clipBehavior: Clip.antiAlias,
-                      child: ChannelLogoImage(
-                        logo: _current.logo,
-                        width: 52,
-                        height: 52,
-                        fit: BoxFit.contain,
-                        fallback: const Icon(Icons.tv_rounded, color: Colors.white54, size: 28),
-                      ),
-                    ),
-                  ),
-                Positioned(
-                  bottom: 12,
-                  left: 12,
-                  child: Material(
-                    color: Colors.black.withValues(alpha: 0.45),
-                    borderRadius: BorderRadius.circular(12),
-                    clipBehavior: Clip.antiAlias,
-                    child: InkWell(
-                      onTap: _toggleMute,
-                      child: Padding(
-                        padding: const EdgeInsets.all(10),
-                        child: Icon(
-                          _muted ? Icons.volume_off_rounded : Icons.volume_up_rounded,
-                          color: Colors.white,
-                          size: 22,
+                Directionality(
+                  textDirection: TextDirection.ltr,
+                  child: Stack(
+                    fit: StackFit.expand,
+                    children: [
+                      Positioned(
+                        top: 10,
+                        left: 10,
+                        child: Material(
+                          color: Colors.black.withValues(alpha: 0.45),
+                          borderRadius: BorderRadius.circular(12),
+                          clipBehavior: Clip.antiAlias,
+                          child: InkWell(
+                            onTap: () => Navigator.pop(context),
+                            child: const Padding(
+                              padding: EdgeInsets.all(10),
+                              child: Icon(Icons.arrow_back_ios_new_rounded, color: Colors.white, size: 20),
+                            ),
+                          ),
                         ),
                       ),
-                    ),
-                  ),
-                ),
-                Positioned(
-                  bottom: 12,
-                  right: 12,
-                  child: Material(
-                    color: Colors.black.withValues(alpha: 0.45),
-                    borderRadius: BorderRadius.circular(12),
-                    clipBehavior: Clip.antiAlias,
-                    child: InkWell(
-                      onTap: _toggleFullscreen,
-                      child: const Padding(
-                        padding: EdgeInsets.all(10),
-                        child: Icon(Icons.fullscreen_rounded, color: Colors.white, size: 24),
+                      if (!_hideChannelLogoOverlay && _current.logo != null && _current.logo!.isNotEmpty)
+                        Positioned(
+                          top: 10,
+                          right: 10,
+                          child: Container(
+                            width: 52,
+                            height: 52,
+                            decoration: BoxDecoration(
+                              color: Colors.black.withValues(alpha: 0.35),
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(color: Colors.white.withValues(alpha: 0.12)),
+                            ),
+                            clipBehavior: Clip.antiAlias,
+                            child: ChannelLogoImage(
+                              logo: _current.logo,
+                              width: 52,
+                              height: 52,
+                              fit: BoxFit.contain,
+                              fallback: const Icon(Icons.tv_rounded, color: Colors.white54, size: 28),
+                            ),
+                          ),
+                        ),
+                      Positioned(
+                        bottom: 12,
+                        left: 12,
+                        child: Material(
+                          color: Colors.black.withValues(alpha: 0.45),
+                          borderRadius: BorderRadius.circular(12),
+                          clipBehavior: Clip.antiAlias,
+                          child: InkWell(
+                            onTap: _toggleMute,
+                            child: Padding(
+                              padding: const EdgeInsets.all(10),
+                              child: Icon(
+                                _muted ? Icons.volume_off_rounded : Icons.volume_up_rounded,
+                                color: Colors.white,
+                                size: 22,
+                              ),
+                            ),
+                          ),
+                        ),
                       ),
-                    ),
+                      Positioned(
+                        bottom: 12,
+                        right: 12,
+                        child: Material(
+                          color: Colors.black.withValues(alpha: 0.45),
+                          borderRadius: BorderRadius.circular(12),
+                          clipBehavior: Clip.antiAlias,
+                          child: InkWell(
+                            onTap: _toggleFullscreen,
+                            child: const Padding(
+                              padding: EdgeInsets.all(10),
+                              child: Icon(Icons.fullscreen_rounded, color: Colors.white, size: 24),
+                            ),
+                          ),
+                        ),
+                      ),
+                      if (_showEngineSplash) _buildEngineSplash(),
+                      if (_buffering) _buildBufferingIndicator(),
+                      if (_isMovie) _buildMovieControlsOverlay(),
+                    ],
                   ),
                 ),
-                if (_showEngineSplash) _buildEngineSplash(),
-                if (_buffering) _buildBufferingIndicator(),
-                if (_isMovie) _buildMovieControlsOverlay(),
               ],
             ),
           ),
@@ -643,38 +651,64 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
                       Text(durStr, style: const TextStyle(fontSize: 12, color: Colors.white70, fontFamily: 'monospace')),
                     ],
                   ),
-                  const SizedBox(height: 16),
-                  // Buttons
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      _playerIconBtn(Icons.replay_10_rounded, () => _seek(const Duration(seconds: -10))),
-                      const SizedBox(width: 32),
-                      GestureDetector(
-                        onTap: _playPause,
-                        child: Container(
-                          padding: const EdgeInsets.all(16),
-                          decoration: const BoxDecoration(
-                            shape: BoxShape.circle,
-                            color: AppTheme.primaryGold,
-                          ),
-                          child: StreamBuilder<bool>(
-                            stream: _player.stream.playing,
-                            builder: (context, playing) {
-                              return Icon(
-                                playing.data == true ? Icons.pause_rounded : Icons.play_arrow_rounded,
-                                color: Colors.black,
-                                size: 38,
-                              );
-                            },
+                  const SizedBox(height: 12),
+                  // Buttons (Strictly LTR for playback logic)
+                  Directionality(
+                    textDirection: TextDirection.ltr,
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        _movieControlBtn(
+                          icon: Icons.stop_rounded,
+                          onPressed: () => Navigator.pop(context),
+                          color: Colors.redAccent.withValues(alpha: 0.8),
+                        ),
+                        const SizedBox(width: 20),
+                        _movieControlBtn(
+                          icon: Icons.replay_10_rounded,
+                          onPressed: () => _seek(const Duration(seconds: -10)),
+                        ),
+                        const SizedBox(width: 24),
+                        // Premium Play/Pause Toggle
+                        GestureDetector(
+                          onTap: _playPause,
+                          child: Container(
+                            width: 52,
+                            height: 52,
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              gradient: const LinearGradient(
+                                begin: Alignment.topLeft,
+                                end: Alignment.bottomRight,
+                                colors: [AppTheme.primaryGold, Color(0xFFC5A059)],
+                              ),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: AppTheme.primaryGold.withValues(alpha: 0.3),
+                                  blurRadius: 12,
+                                  offset: const Offset(0, 4),
+                                ),
+                              ],
+                            ),
+                            child: StreamBuilder<bool>(
+                              stream: _player.stream.playing,
+                              builder: (context, playing) {
+                                return Icon(
+                                  playing.data == true ? Icons.pause_rounded : Icons.play_arrow_rounded,
+                                  color: Colors.black,
+                                  size: 28,
+                                );
+                              },
+                            ),
                           ),
                         ),
-                      ),
-                      const SizedBox(width: 32),
-                      _playerIconBtn(Icons.forward_10_rounded, () => _seek(const Duration(seconds: 10))),
-                      const SizedBox(width: 48),
-                      _playerIconBtn(Icons.stop_rounded, () => Navigator.pop(context), color: Colors.redAccent),
-                    ],
+                        const SizedBox(width: 24),
+                        _movieControlBtn(
+                          icon: Icons.forward_10_rounded,
+                          onPressed: () => _seek(const Duration(seconds: 10)),
+                        ),
+                      ],
+                    ),
                   ),
                 ],
               ),
@@ -701,6 +735,30 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _movieControlBtn({
+    required IconData icon,
+    required VoidCallback onPressed,
+    Color color = Colors.white,
+  }) {
+    return Material(
+      color: Colors.white.withValues(alpha: 0.08),
+      borderRadius: BorderRadius.circular(12),
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        onTap: onPressed,
+        child: Container(
+          width: 42,
+          height: 42,
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
+          ),
+          child: Icon(icon, color: color.withValues(alpha: 0.9), size: 22),
+        ),
       ),
     );
   }

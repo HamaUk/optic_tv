@@ -6,6 +6,8 @@ import '../../widgets/optic_wordmark.dart';
 import '../../l10n/app_strings.dart';
 import '../../providers/app_locale_provider.dart';
 import '../../providers/session_provider.dart';
+import '../../platform/android_tv.dart';
+import '../../widgets/tv_login_keyboard.dart';
 
 class LoginScreen extends ConsumerStatefulWidget {
   const LoginScreen({super.key});
@@ -18,6 +20,18 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   final _codeController = TextEditingController();
   final _codeFocus = FocusNode();
   bool _busy = false;
+  bool _isTV = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _checkDevice();
+  }
+
+  Future<void> _checkDevice() async {
+    final tv = await queryAndroidTelevisionDevice();
+    if (mounted) setState(() => _isTV = tv);
+  }
 
   /// Use the platform UI font for the code field so Latin digits stay crisp on Android.
   TextStyle _loginTextStyle(BuildContext context, {required double opacity}) {
@@ -123,14 +137,18 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                       decoration: BoxDecoration(
                         color: const Color(0xFF1C2430),
                         borderRadius: BorderRadius.circular(16),
-                        border: Border.all(color: Colors.white.withValues(alpha: 0.15)),
+                        border: Border.all(
+                          color: _isTV ? AppTheme.primaryGold.withValues(alpha: 0.5) : Colors.white.withValues(alpha: 0.15),
+                          width: _isTV ? 2 : 1,
+                        ),
                       ),
                       child: Padding(
                         padding: const EdgeInsets.symmetric(horizontal: 16),
                         child: TextField(
                           focusNode: _codeFocus,
                           controller: _codeController,
-                          // visiblePassword is the 'magic' setting for Android TV D-pad compatibility
+                          readOnly: _isTV,
+                          showCursor: !_isTV,
                           keyboardType: TextInputType.visiblePassword,
                           textInputAction: TextInputAction.done,
                           obscureText: true,
@@ -146,6 +164,24 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                         ),
                       ),
                     ),
+                    if (_isTV) ...[
+                      const SizedBox(height: 16),
+                      Directionality(
+                        textDirection: TextDirection.ltr,
+                        child: TvLoginKeyboard(
+                          onCharacter: (ch) {
+                            _codeController.text += ch;
+                          },
+                          onBackspace: () {
+                            if (_codeController.text.isNotEmpty) {
+                              _codeController.text = _codeController.text
+                                  .substring(0, _codeController.text.length - 1);
+                            }
+                          },
+                          onClear: () => _codeController.clear(),
+                        ),
+                      ),
+                    ],
                     const SizedBox(height: 24),
                     SizedBox(
                       height: 56,
