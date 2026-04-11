@@ -98,8 +98,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   colors: [Color(0xFF0B0F14), Color(0xFF151B24), Color(0xFF0B0F14)],
                 ),
         ),
-        ),
-        child: SafeArea(
+        body: SafeArea(
           child: Center(
             child: SingleChildScrollView(
               padding: EdgeInsets.symmetric(
