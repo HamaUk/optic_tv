@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import '../core/theme.dart';
+
 /// Latin access-code entry tuned for D-pad / remote: predictable focus order,
 /// no system IME. Wrapped in [Directionality.ltr] by the parent so QWERTY stays
 /// left-to-right even when the app uses RTL for Kurdish.
