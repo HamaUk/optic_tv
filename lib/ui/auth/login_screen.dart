@@ -89,14 +89,16 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
         width: double.infinity,
         height: double.infinity,
         decoration: BoxDecoration(
-          color: _isTV ? Colors.black : AppTheme.backgroundBlack,
-          gradient: _isTV
-              ? null
-              : const LinearGradient(
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                  colors: [Color(0xFF0B0F14), Color(0xFF151B24), Color(0xFF0B0F14)],
-                ),
+          gradient: const LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [
+              Color(0xFF1A1F26), // Dark Slate Grey
+              Color(0xFF0E1217), // Deep Charcoal
+              Color(0xFF000000), // Black
+            ],
+            stops: [0.0, 0.4, 1.0],
+          ),
         ),
         child: SafeArea(
           child: Center(
@@ -152,7 +154,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
           ),
           SizedBox(height: _isTV ? 20 : 48),
           _buildInputField(s),
-          const SizedBox(height: 20),
+          const SizedBox(height: 24),
           SizedBox(
             height: 56,
             child: FilledButton(
@@ -164,7 +166,6 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(16),
                 ),
-                // Add border highlight when focused on TV
                 side: _isTV ? const BorderSide(color: Colors.white, width: 2) : null,
               ),
               child: _busy
@@ -195,31 +196,48 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   }
 
   Widget _buildInputField(AppStrings s) {
+    if (_isTV) {
+      return Material(
+        color: const Color(0xFF1C2430),
+        borderRadius: BorderRadius.circular(16),
+        clipBehavior: Clip.antiAlias,
+        child: InkWell(
+          onTap: () => _showTvKeyboardDialog(s),
+          focusNode: _codeFocus,
+          autofocus: true,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
+            child: Row(
+              children: [
+                const Icon(Icons.vpn_key_rounded, color: AppTheme.primaryGold, size: 24),
+                const SizedBox(width: 20),
+                Expanded(
+                  child: Text(
+                    _codeController.text.isEmpty ? s.loginHint : '●' * _codeController.text.length,
+                    style: _loginTextStyle(context, opacity: _codeController.text.isEmpty ? 0.35 : 1)
+                        .copyWith(fontSize: 18, letterSpacing: 2),
+                  ),
+                ),
+                const Icon(Icons.keyboard_alt_outlined, color: Colors.white24, size: 22),
+              ],
+            ),
+          ),
+        ),
+      );
+    }
+
     return Container(
       height: 60,
       decoration: BoxDecoration(
         color: const Color(0xFF1C2430),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: _isTV ? Colors.white.withOpacity(0.8) : Colors.white.withOpacity(0.15),
-          width: _isTV ? 2 : 1,
-        ),
-        boxShadow: _isTV
-            ? [
-                BoxShadow(
-                  color: AppTheme.primaryGold.withOpacity(0.1),
-                  blurRadius: 12,
-                  spreadRadius: 2,
-                )
-              ]
-            : null,
+        border: Border.all(color: Colors.white.withOpacity(0.15)),
       ),
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 16),
         child: TextField(
           focusNode: _codeFocus,
           controller: _codeController,
-          autofocus: _isTV,
           keyboardType: TextInputType.visiblePassword,
           textInputAction: TextInputAction.done,
           obscureText: true,
@@ -234,6 +252,85 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
           onSubmitted: (_) => _submit(s),
         ),
       ),
+    );
+  }
+
+  void _showTvKeyboardDialog(AppStrings s) {
+    showDialog(
+      context: context,
+      barrierColor: Colors.black.withOpacity(0.85),
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setDialogState) {
+            return Dialog(
+              backgroundColor: Colors.transparent,
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 600),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    // Preview box
+                    Container(
+                      padding: const EdgeInsets.all(24),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF151A22),
+                        borderRadius: BorderRadius.circular(20),
+                        border: Border.all(color: AppTheme.primaryGold.withOpacity(0.5)),
+                      ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          const Icon(Icons.password_rounded, color: AppTheme.primaryGold),
+                          const SizedBox(width: 16),
+                          Text(
+                            _codeController.text.isEmpty
+                                ? 'Enter code...'
+                                : '●' * _codeController.text.length,
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 28,
+                              letterSpacing: 4,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 24),
+                    // The Keyboard
+                    Directionality(
+                      textDirection: TextDirection.ltr,
+                      child: TvLoginKeyboard(
+                        onCharacter: (c) {
+                          if (_codeController.text.length < 64) {
+                            setDialogState(() => _codeController.text += c);
+                            setState(() {}); // Sync main UI
+                          }
+                        },
+                        onBackspace: () {
+                          if (_codeController.text.isNotEmpty) {
+                            setDialogState(() => _codeController.text =
+                                _codeController.text.substring(0, _codeController.text.length - 1));
+                            setState(() {}); // Sync main UI
+                          }
+                        },
+                        onClear: () {
+                          setDialogState(() => _codeController.clear());
+                          setState(() {}); // Sync main UI
+                        },
+                        onDone: () {
+                          Navigator.pop(context);
+                          _submit(s);
+                        },
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            );
+          },
+        );
+      },
     );
   }
 

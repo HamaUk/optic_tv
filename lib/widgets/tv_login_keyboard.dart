@@ -10,12 +10,14 @@ class TvLoginKeyboard extends StatelessWidget {
     required this.onCharacter,
     required this.onBackspace,
     required this.onClear,
+    required this.onDone,
     this.maxLength = 64,
   });
 
   final ValueChanged<String> onCharacter;
   final VoidCallback onBackspace;
   final VoidCallback onClear;
+  final VoidCallback onDone;
   final int maxLength;
 
   static const _digitRow = '1234567890';
@@ -64,14 +66,25 @@ class TvLoginKeyboard extends StatelessWidget {
                   _symKey(context, theme, '-'),
                   _symKey(context, theme, '_'),
                   _symKey(context, theme, '.'),
-                  const SizedBox(width: 8),
+                  const SizedBox(width: 6),
                   Expanded(
-                    flex: 2,
+                    flex: 3,
                     child: _wideKey(
                       context,
                       theme,
                       label: 'Clear',
                       onPressed: onClear,
+                    ),
+                  ),
+                  const SizedBox(width: 6),
+                  Expanded(
+                    flex: 4,
+                    child: _wideKey(
+                      context,
+                      theme,
+                      label: 'DONE',
+                      onPressed: onDone,
+                      isPrimary: true,
                     ),
                   ),
                 ],
@@ -139,25 +152,24 @@ class TvLoginKeyboard extends StatelessWidget {
     String? label,
     IconData? icon,
     required VoidCallback onPressed,
+    bool isPrimary = false,
   }) {
     assert(label != null || icon != null);
-    return Expanded(
-      flex: 2,
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 3),
-        child: _KeyButton(
-          onPressed: onPressed,
-          maxLength: maxLength,
-          child: icon != null
-              ? Icon(icon, color: Colors.white, size: 22)
-              : Text(
-                  label!,
-                  style: theme.textTheme.titleSmall?.copyWith(
-                    color: Colors.white,
-                    fontWeight: FontWeight.w700,
-                  ),
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 3),
+      child: _KeyButton(
+        onPressed: onPressed,
+        maxLength: maxLength,
+        color: isPrimary ? AppTheme.primaryGold : null,
+        child: icon != null
+            ? Icon(icon, color: isPrimary ? Colors.black : Colors.white, size: 22)
+            : Text(
+                label!,
+                style: theme.textTheme.titleSmall?.copyWith(
+                  color: isPrimary ? Colors.black : Colors.white,
+                  fontWeight: FontWeight.w900,
                 ),
-        ),
+              ),
       ),
     );
   }
@@ -173,12 +185,14 @@ class _KeyButton extends StatefulWidget {
     required this.onPressed,
     required this.maxLength,
     required this.child,
+    this.color,
   });
 
   final bool autofocus;
   final VoidCallback onPressed;
   final int maxLength;
   final Widget child;
+  final Color? color;
 
   @override
   State<_KeyButton> createState() => _KeyButtonState();
@@ -228,12 +242,15 @@ class _KeyButtonState extends State<_KeyButton> {
       width: _focused ? 2 : 1,
     );
 
+    final baseColor = widget.color ?? const Color(0xFF3D434D);
+    final focusColor = widget.color?.withOpacity(0.8) ?? const Color(0xFF4A505A);
+
     return Focus(
       focusNode: _focusNode,
       autofocus: widget.autofocus,
       onKeyEvent: _onKey,
       child: Material(
-        color: _focused ? const Color(0xFF4A505A) : const Color(0xFF3D434D),
+        color: _focused ? focusColor : baseColor,
         borderRadius: BorderRadius.circular(6),
         clipBehavior: Clip.antiAlias,
         child: InkWell(
