@@ -2,6 +2,15 @@ import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../core/theme.dart';
+import '../platform/android_tv.dart';
+
+/// Choice of media playback technology.
+enum PlayerEngine { 
+  /// Premium engine (mpv) with broad codec support.
+  mpv, 
+  /// Native platform engine (ExoPlayer on Android, AVPlayer on iOS).
+  native 
+}
 
 /// Persisted user preferences (read by [SettingsScreen] and [PlayerScreen]).
 class AppSettingsData {
@@ -12,6 +21,7 @@ class AppSettingsData {
   final bool tvFriendlyLayout;
   final bool reduceMotion;
   final AppGradientPreset gradientPreset;
+  final PlayerEngine playerEngine;
 
   const AppSettingsData({
     this.keepScreenOnWhilePlaying = true,
@@ -21,10 +31,17 @@ class AppSettingsData {
     this.tvFriendlyLayout = false,
     this.reduceMotion = false,
     this.gradientPreset = AppGradientPreset.classic,
+    this.playerEngine = PlayerEngine.mpv,
   });
 
   static Future<AppSettingsData> load() async {
     final p = await SharedPreferences.getInstance();
+    final isTv = await queryAndroidTelevisionDevice();
+    final rawEngine = p.getString(_kPlayerEngine);
+    final engine = rawEngine != null 
+        ? (rawEngine == 'native' ? PlayerEngine.native : PlayerEngine.mpv)
+        : (isTv ? PlayerEngine.native : PlayerEngine.mpv);
+
     return AppSettingsData(
       keepScreenOnWhilePlaying: p.getBool(_kKeepScreenOn) ?? true,
       videoFit: _decodeFit(p.getString(_kVideoFit) ?? 'contain'),
@@ -33,6 +50,7 @@ class AppSettingsData {
       tvFriendlyLayout: p.getBool(_kTvLayout) ?? false,
       reduceMotion: p.getBool(_kReduceMotion) ?? false,
       gradientPreset: _decodeGradientPreset(p.getString(_kGradientPreset)),
+      playerEngine: engine,
     );
   }
 
@@ -45,6 +63,7 @@ class AppSettingsData {
     await p.setBool(_kTvLayout, tvFriendlyLayout);
     await p.setBool(_kReduceMotion, reduceMotion);
     await p.setString(_kGradientPreset, gradientPreset.name);
+    await p.setString(_kPlayerEngine, playerEngine.name);
   }
 
   AppSettingsData copyWith({
@@ -55,6 +74,7 @@ class AppSettingsData {
     bool? tvFriendlyLayout,
     bool? reduceMotion,
     AppGradientPreset? gradientPreset,
+    PlayerEngine? playerEngine,
   }) {
     return AppSettingsData(
       keepScreenOnWhilePlaying: keepScreenOnWhilePlaying ?? this.keepScreenOnWhilePlaying,
@@ -64,6 +84,7 @@ class AppSettingsData {
       tvFriendlyLayout: tvFriendlyLayout ?? this.tvFriendlyLayout,
       reduceMotion: reduceMotion ?? this.reduceMotion,
       gradientPreset: gradientPreset ?? this.gradientPreset,
+      playerEngine: playerEngine ?? this.playerEngine,
     );
   }
 
@@ -119,3 +140,4 @@ const _kShowClock = 'settings_show_clock';
 const _kTvLayout = 'settings_tv_layout';
 const _kReduceMotion = 'settings_reduce_motion';
 const _kGradientPreset = 'settings_gradient_preset';
+const _kPlayerEngine = 'settings_player_engine';

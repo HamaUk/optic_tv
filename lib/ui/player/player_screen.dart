@@ -7,6 +7,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart' hide TextDirection;
 import 'package:media_kit/media_kit.dart';
 import 'package:media_kit_video/media_kit_video.dart';
+import 'package:video_player/video_player.dart' as vp;
 
 import '../../core/theme.dart';
 import '../../widgets/channel_logo_image.dart';
@@ -36,8 +37,14 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
   static const _accent = AppTheme.accentTeal;
 
   final GlobalKey<VideoState> _videoKey = GlobalKey<VideoState>();
-  late final Player _player;
-  late final VideoController _controller;
+  
+  // Media Kit (mpv)
+  Player? _player;
+  VideoController? _controller;
+  
+  // Native (video_player / ExoPlayer)
+  vp.VideoPlayerController? _vpController;
+
   late int _index;
   late String _selectedGroup;
   AppSettingsData _settings = const AppSettingsData();
@@ -83,67 +90,115 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
     super.initState();
     _index = widget.initialIndex.clamp(0, widget.channels.length - 1);
     _selectedGroup = widget.channels[_index].group;
-    _player = Player(
-      configuration: const PlayerConfiguration(),
-    );
 
-    // Apply native optimizations for Android TV clarity
-    if (_player.platform is NativePlayer) {
-      final native = _player.platform as NativePlayer;
-      Future.microtask(() async {
-        // Force native hardware decoding for sharpest resolution
-        await native.setProperty('hwdec', 'mediacodec');
-        // Prevent micro-stutter/jitter blurring
-        await native.setProperty('video-sync', 'display-resample');
-        // Enable high-quality scaling profile
-        await native.setProperty('profile', 'high-quality');
-        // Optimize demuxer for live streams on TV hardware
-        await native.setProperty('demuxer-max-bytes', '500MiB');
-        await native.setProperty('demuxer-max-back-bytes', '100MiB');
-      });
-    }
-
-    _controller = VideoController(
-      _player,
-      configuration: const VideoControllerConfiguration(
-        enableHardwareAcceleration: true, // Crucial for TV clarity
-      ),
-    );
-    _player.open(Media(_current.url));
-    _subscriptions.add(
-      _player.stream.volume.listen((v) {
-        if (mounted && v > 0 && _muted) setState(() => _muted = false);
-        if (mounted && v == 0 && !_muted) setState(() => _muted = true);
-      }),
-    );
-    _subscriptions.add(
-      _player.stream.buffering.listen((b) {
-        if (mounted) setState(() => _buffering = b);
-      }),
-    );
-    _subscriptions.add(
-      _player.stream.position.listen((p) {
-        if (mounted) setState(() => _position = p);
-      }),
-    );
-    _subscriptions.add(
-      _player.stream.duration.listen((d) {
-        if (mounted) setState(() => _duration = d);
-      }),
-    );
+    _initFlow();
+    
     // Hide engine splash after 3 seconds
     Timer(const Duration(seconds: 3), () {
       if (mounted) setState(() => _showEngineSplash = false);
     });
-    AppSettingsData.load().then((s) {
-      if (!mounted) return;
-      setState(() => _settings = s);
-      _ensureClockTimer();
-    });
+
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
       ref.read(recentChannelsProvider.notifier).record(_current);
     });
+  }
+
+  Future<void> _initFlow() async {
+    final s = await AppSettingsData.load();
+    if (!mounted) return;
+    setState(() => _settings = s);
+    _ensureClockTimer();
+    await _initializeEngine();
+  }
+
+  Future<void> _initializeEngine() async {
+    // Dispose previous if any (unlikely in initState but good for re-init)
+    await _disposeExistingEngines();
+
+    if (_settings.playerEngine == PlayerEngine.native) {
+      await _initNativeExo();
+    } else {
+      await _initMpv();
+    }
+  }
+
+  Future<void> _disposeExistingEngines() async {
+    for (final s in _subscriptions) {
+      s.cancel();
+    }
+    _subscriptions.clear();
+    
+    final oldMpv = _player;
+    final oldVp = _vpController;
+    
+    _player = null;
+    _controller = null;
+    _vpController = null;
+
+    await oldMpv?.dispose();
+    await oldVp?.dispose();
+  }
+
+  Future<void> _initMpv() async {
+    final p = Player(configuration: const PlayerConfiguration());
+    _player = p;
+
+    if (p.platform is NativePlayer) {
+      final native = p.platform as NativePlayer;
+      await native.setProperty('hwdec', 'mediacodec');
+      await native.setProperty('video-sync', 'display-resample');
+      await native.setProperty('profile', 'high-quality');
+      await native.setProperty('demuxer-max-bytes', '500MiB');
+      await native.setProperty('demuxer-max-back-bytes', '100MiB');
+    }
+
+    _controller = VideoController(
+      p,
+      configuration: const VideoControllerConfiguration(enableHardwareAcceleration: true),
+    );
+
+    _subscriptions.add(p.stream.volume.listen((v) {
+      if (mounted && v > 0 && _muted) setState(() => _muted = false);
+      if (mounted && v == 0 && !_muted) setState(() => _muted = true);
+    }));
+    _subscriptions.add(p.stream.buffering.listen((b) {
+      if (mounted) setState(() => _buffering = b);
+    }));
+    _subscriptions.add(p.stream.position.listen((pos) {
+      if (mounted) setState(() => _position = pos);
+    }));
+    _subscriptions.add(p.stream.duration.listen((d) {
+      if (mounted) setState(() => _duration = d);
+    }));
+
+    await p.open(Media(_current.url));
+  }
+
+  Future<void> _initNativeExo() async {
+    final vp.VideoPlayerController vpc = vp.VideoPlayerController.networkUrl(Uri.parse(_current.url));
+    _vpController = vpc;
+
+    setState(() => _buffering = true);
+
+    try {
+      await vpc.initialize();
+      if (!mounted) return;
+      
+      vpc.addListener(() {
+        if (!mounted) return;
+        setState(() {
+          _position = vpc.value.position;
+          _duration = vpc.value.duration;
+          _buffering = vpc.value.isBuffering || !vpc.value.isInitialized;
+        });
+      });
+
+      await vpc.play();
+      if (_muted) await vpc.setVolume(0);
+    } catch (e) {
+      debugPrint('Native Player Error: $e');
+    }
   }
 
   void _ensureClockTimer() {
@@ -161,16 +216,19 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
     for (final s in _subscriptions) {
       s.cancel();
     }
-    _player.dispose();
+    _player?.dispose();
+    _vpController?.dispose();
     super.dispose();
   }
 
   Future<void> _toggleMute() async {
     if (_muted) {
-      await _player.setVolume(100);
+      await _player?.setVolume(100);
+      await _vpController?.setVolume(1.0);
       setState(() => _muted = false);
     } else {
-      await _player.setVolume(0);
+      await _player?.setVolume(0);
+      await _vpController?.setVolume(0);
       setState(() => _muted = true);
     }
   }
@@ -182,16 +240,35 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
       _selectedGroup = widget.channels[_index].group;
       _buffering = true;
     });
-    _player.open(Media(_current.url));
+    
+    if (_settings.playerEngine == PlayerEngine.native) {
+      _initNativeExo();
+    } else {
+      _player?.open(Media(_current.url));
+    }
+    
     ref.read(recentChannelsProvider.notifier).record(_current);
   }
 
   Future<void> _toggleFullscreen() async {
+    if (_settings.playerEngine == PlayerEngine.native) {
+      // video_player doesn't have a built-in fullscreen toggle like media_kit_video
+      // For now, we rely on double-tap logic or just skip it if it's too complex for MVP
+      return; 
+    }
     await _videoKey.currentState?.toggleFullscreen();
   }
 
   Future<void> _playPause() async {
-    await _player.playOrPause();
+    if (_settings.playerEngine == PlayerEngine.native) {
+      if (_vpController?.value.isPlaying == true) {
+        await _vpController?.pause();
+      } else {
+        await _vpController?.play();
+      }
+    } else {
+      await _player?.playOrPause();
+    }
     _showControls();
   }
 
@@ -206,7 +283,12 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
   Future<void> _seek(Duration offset) async {
     final target = _position + offset;
     final clamped = target < Duration.zero ? Duration.zero : (target > _duration ? _duration : target);
-    await _player.seek(clamped);
+    
+    if (_settings.playerEngine == PlayerEngine.native) {
+      await _vpController?.seekTo(clamped);
+    } else {
+      await _player?.seek(clamped);
+    }
   }
 
   bool get _isMovie =>
@@ -306,14 +388,20 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
                           _showControls();
                         },
                         onDoubleTap: _toggleFullscreen,
-                        child: Video(
-                          key: _videoKey,
-                          controller: _controller,
-                          controls: NoVideoControls,
-                          wakelock: _settings.keepScreenOnWhilePlaying,
-                          fit: _settings.videoFit,
-                          fill: const Color(0xFF000000),
-                        ),
+                        child: _settings.playerEngine == PlayerEngine.native
+                            ? (_vpController != null && _vpController!.value.isInitialized
+                                ? vp.VideoPlayer(_vpController!)
+                                : const SizedBox.shrink())
+                            : (_controller != null
+                                ? Video(
+                                    key: _videoKey,
+                                    controller: _controller!,
+                                    controls: NoVideoControls,
+                                    wakelock: _settings.keepScreenOnWhilePlaying,
+                                    fit: _settings.videoFit,
+                                    fill: const Color(0xFF000000),
+                                  )
+                                : const SizedBox.shrink()),
                       ),
                       if (!isTv) // Mobile gradients/controls
                         IgnorePointer(

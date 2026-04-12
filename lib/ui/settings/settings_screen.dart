@@ -326,6 +326,43 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 ),
                 const SizedBox(height: 24),
                 Text(
+                  s.engineTitle,
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                        color: AppTheme.primaryGold,
+                        fontWeight: FontWeight.bold,
+                      ),
+                ),
+                const SizedBox(height: 8),
+                Text(s.engineSubTitle, style: TextStyle(color: Colors.white.withOpacity(0.45), fontSize: 13)),
+                const SizedBox(height: 12),
+                Card(
+                  color: AppTheme.surfaceGray,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                  child: Column(
+                    children: [
+                      RadioListTile<PlayerEngine>(
+                        value: PlayerEngine.mpv,
+                        groupValue: _data.playerEngine,
+                        activeColor: AppTheme.primaryGold,
+                        title: Text(s.enginePremiumTitle),
+                        onChanged: (v) {
+                          if (v != null) _apply(_data.copyWith(playerEngine: v));
+                        },
+                      ),
+                      RadioListTile<PlayerEngine>(
+                        value: PlayerEngine.native,
+                        groupValue: _data.playerEngine,
+                        activeColor: AppTheme.primaryGold,
+                        title: Text(s.engineNativeTitle),
+                        onChanged: (v) {
+                          if (v != null) _apply(_data.copyWith(playerEngine: v));
+                        },
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 24),
+                Text(
                   s.sectionVideo,
                   style: Theme.of(context).textTheme.titleMedium?.copyWith(
                         color: AppTheme.primaryGold,

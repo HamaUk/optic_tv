@@ -58,6 +58,13 @@ class AppStrings {
       isEnglish ? 'Fade player bars; tap to show' : 'شاردنەوەی شریتی پلەیەر، دەست لێ بدە بۆ پیشاندانەوە';
   String get clockTitle => isEnglish ? 'Clock in player' : 'کاتژمێر لە پلەیەر';
   String get clockSub => isEnglish ? 'Time in top bar' : 'پیشاندانی کات لە شریتی سەرەوە';
+  
+  String get engineTitle => isEnglish ? 'Player engine' : 'ماتۆڕی پەخشکەر';
+  String get enginePremiumTitle => isEnglish ? 'Premium (mpv)' : 'پریمیۆم (mpv)';
+  String get engineNativeTitle => isEnglish ? 'Native (ExoPlayer)' : 'بنەڕەتی (ExoPlayer)';
+  String get engineSubTitle => isEnglish 
+      ? 'Native is recommended for Android TV hardware stability' 
+      : 'شێوازی بنەڕەتی پێشنیار دەکرێت بۆ جێگیری لەسەر ئەندرۆید تیڤی';
   String get videoFitCaption =>
       isEnglish ? 'How video fills the screen' : 'چۆنیەتی گونجاندنی ڤیدیۆ لەسەر شاشە';
   String get tvLayoutTitle => isEnglish ? 'TV-friendly spacing' : 'شێوازی گونجاو بۆ تیڤی';
