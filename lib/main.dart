@@ -72,7 +72,7 @@ class _OpticTvAppState extends ConsumerState<OpticTvApp> {
       // Keep Material/Cupertino on English — `ckb` is not a full Material locale.
       locale: const Locale('en'),
       builder: (context, child) {
-        return const Directionality(
+        return Directionality(
           textDirection: TextDirection.ltr,
           child: child ?? const SizedBox.shrink(),
         );
