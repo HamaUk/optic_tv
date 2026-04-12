@@ -94,8 +94,8 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
 
     _initFlow();
     
-    // Hide engine splash after 3 seconds
-    Timer(const Duration(seconds: 3), () {
+    // Hide engine splash after 4 seconds per user request
+    Timer(const Duration(seconds: 4), () {
       if (mounted) setState(() => _showEngineSplash = false);
     });
 
@@ -408,6 +408,7 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
                                     wakelock: _settings.keepScreenOnWhilePlaying,
                                     fit: _settings.videoFit,
                                     fill: const Color(0xFF000000),
+                                    filterQuality: FilterQuality.high,
                                   )
                                 : const SizedBox.shrink()),
                       ),
@@ -725,21 +726,19 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
           Expanded(
             child: ListView.builder(
               padding: const EdgeInsets.only(bottom: 40),
-              itemCount: widget.channels.length,
+              itemCount: _channelsInSelectedGroup.length,
+              itemExtent: 64, // Fixed height prevents focus jumping on TV
               itemBuilder: (context, i) {
-                final ch = widget.channels[i];
-                final playing = i == _index;
+                final ch = _channelsInSelectedGroup[i];
+                final fullIdx = widget.channels.indexOf(ch);
+                final playing = fullIdx == _index;
+                
                 return Focus(
-                  onFocusChange: (f) {
-                    if (f) {
-                      // Optionally update internal preview or UI
-                    }
-                  },
                   onKeyEvent: (node, event) {
                     if (event is KeyDownEvent && 
                         (event.logicalKey == LogicalKeyboardKey.enter || 
                          event.logicalKey == LogicalKeyboardKey.select)) {
-                      _selectChannelByIndex(i);
+                      _selectChannelByIndex(fullIdx);
                       return KeyEventResult.handled;
                     }
                     return KeyEventResult.ignored;
@@ -750,31 +749,52 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
                       return AnimatedContainer(
                         duration: const Duration(milliseconds: 200),
                         margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                         decoration: BoxDecoration(
                           color: hasFocus ? AppTheme.primaryGold : (playing ? AppTheme.primaryGold.withOpacity(0.1) : Colors.transparent),
-                          borderRadius: BorderRadius.circular(12),
+                          borderRadius: BorderRadius.circular(10),
                         ),
                         child: Row(
                           children: [
-                            Icon(
-                              playing ? Icons.play_circle_filled_rounded : Icons.tv_rounded,
-                              size: 18,
-                              color: hasFocus ? Colors.black : (playing ? AppTheme.primaryGold : Colors.white54),
+                            // Channel Number
+                            SizedBox(
+                              width: 32,
+                              child: Text(
+                                '${i + 1}',
+                                style: TextStyle(
+                                  color: hasFocus ? Colors.black : Colors.white38,
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ),
+                            // Channel Logo
+                            Container(
+                              width: 32,
+                              height: 32,
+                              decoration: BoxDecoration(
+                                color: Colors.white.withOpacity(0.05),
+                                borderRadius: BorderRadius.circular(6),
+                              ),
+                              clipBehavior: Clip.antiAlias,
+                              child: ChannelLogoImage(url: ch.logo, size: 24),
                             ),
                             const SizedBox(width: 12),
                             Expanded(
                               child: Text(
-                                ch.name,
+                                ch.name.toUpperCase(),
                                 style: TextStyle(
                                   color: hasFocus ? Colors.black : (playing ? Colors.white : Colors.white70),
-                                  fontSize: 14,
-                                  fontWeight: playing || hasFocus ? FontWeight.w800 : FontWeight.w500,
+                                  fontSize: 13,
+                                  fontWeight: playing || hasFocus ? FontWeight.w800 : FontWeight.w600,
+                                  letterSpacing: 0.5,
                                 ),
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
                               ),
                             ),
+                            if (playing && !hasFocus)
+                              Icon(Icons.play_arrow_rounded, color: AppTheme.primaryGold, size: 16),
                           ],
                         ),
                       );

@@ -100,7 +100,7 @@ class _TVDashboardScreenState extends ConsumerState<TVDashboardScreen> {
                   ),
                 ),
               ),
-              _buildFooter(activeCodesCount),
+              const SizedBox(height: 60),
             ],
           ),
         ],
@@ -110,38 +110,31 @@ class _TVDashboardScreenState extends ConsumerState<TVDashboardScreen> {
 
   Widget _buildHeader() {
     final timeStr = DateFormat('HH:mm').format(_now);
-    final dateStr = DateFormat('EEEE, MMMM d').format(_now);
 
     return Padding(
-      padding: const EdgeInsets.fromLTRB(60, 50, 60, 0),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.center,
+      padding: const EdgeInsets.fromLTRB(60, 60, 60, 0),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
         children: [
-          const OpticWordmark(height: 54),
-          const Spacer(),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.end,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(
-                timeStr,
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 48,
-                  fontWeight: FontWeight.w900,
-                  letterSpacing: 1.5,
-                ),
-              ),
-              Text(
-                dateStr.toUpperCase(),
-                style: TextStyle(
-                  color: AppTheme.primaryGold.withOpacity(0.7),
-                  fontSize: 14,
-                  fontWeight: FontWeight.w800,
-                  letterSpacing: 1.2,
-                ),
-              ),
-            ],
+          const OpticWordmark(height: 64),
+          const SizedBox(height: 16),
+          Text(
+            timeStr,
+            style: TextStyle(
+              color: Colors.white.withOpacity(0.9),
+              fontSize: 28,
+              fontWeight: FontWeight.w700,
+              letterSpacing: 2,
+            ),
+          ),
+          Container(
+            width: 40,
+            height: 2,
+            margin: const EdgeInsets.only(top: 8),
+            decoration: BoxDecoration(
+              color: AppTheme.primaryGold.withOpacity(0.5),
+              borderRadius: BorderRadius.circular(2),
+            ),
           ),
         ],
       ),

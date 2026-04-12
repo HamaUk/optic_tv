@@ -331,10 +331,15 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
       return TVDashboardScreen(
         onOpenLiveTv: () {
           channelsAsync.whenData((channels) {
+            final live = channels.where((c) => !_isMovieChannel(c)).toList();
+            if (live.isEmpty) return;
             Navigator.push(
               context,
               MaterialPageRoute(
-                builder: (context) => TVChannelManagerScreen(allChannels: channels),
+                builder: (context) => PlayerScreen(
+                  channels: live,
+                  initialIndex: 0,
+                ),
               ),
             );
           });
@@ -342,10 +347,14 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
         onOpenMovies: () {
           channelsAsync.whenData((channels) {
             final movies = channels.where(_isMovieChannel).toList();
+            if (movies.isEmpty) return;
             Navigator.push(
               context,
               MaterialPageRoute(
-                builder: (context) => TVChannelManagerScreen(allChannels: movies),
+                builder: (context) => PlayerScreen(
+                  channels: movies,
+                  initialIndex: 0,
+                ),
               ),
             );
           });
