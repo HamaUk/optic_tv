@@ -15,11 +15,11 @@ class AppTheme {
     return style.merge(const TextStyle(fontFamily: rabarFontFamily));
   }
 
-  static const Color primaryGold = Color(0xFFFFD700); // Vibrant Gold/Yellow
+  static const Color primaryGold = Color(0xFFFFB100); // Premium Amber Gold
   static const Color primaryGoldDim = Color(0xFFB8860B);
-  static const Color accentTeal = Color(0xFFFFD700); // Unified with logic
-  static const Color primaryBlue = Color(0xFFFFD700); // Unified with logic
-  static const Color primaryPurple = Color(0xFFFFD700); // Unified with logic
+  static const Color accentTeal = Color(0xFFFFB100); 
+  static const Color primaryBlue = Color(0xFFFFB100); 
+  static const Color primaryPurple = Color(0xFFFFB100); 
   static const Color backgroundBlack = Color(0xFF000000); // Pure black
   static const Color surfaceGray = Color(0xFF101419);
   static const Color surfaceElevated = Color(0xFF161B22);

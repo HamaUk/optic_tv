@@ -5,6 +5,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import '../../core/theme.dart';
 import '../../widgets/optic_wordmark.dart';
+import '../../providers/app_locale_provider.dart';
+import '../../l10n/app_strings.dart';
 import '../../providers/login_codes_provider.dart';
 
 class TVDashboardScreen extends ConsumerStatefulWidget {
@@ -46,6 +48,7 @@ class _TVDashboardScreenState extends ConsumerState<TVDashboardScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final s = AppStrings(ref.watch(appLocaleProvider));
     final activeCodesCount = ref.watch(loginCodesCountProvider).asData?.value ?? 0;
 
     return Scaffold(
@@ -71,25 +74,25 @@ class _TVDashboardScreenState extends ConsumerState<TVDashboardScreen> {
               _buildHeader(),
               Expanded(
                 child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 60),
+                  padding: const EdgeInsets.symmetric(horizontal: 40),
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       _MenuCard(
-                        label: 'LIVE TV',
+                        label: s.navHome.toUpperCase(),
                         icon: Icons.tv_rounded,
                         onTap: widget.onOpenLiveTv,
                         autofocus: true,
                       ),
-                      const SizedBox(width: 30),
+                      const SizedBox(width: 24),
                       _MenuCard(
-                        label: 'MOVIES',
+                        label: s.navMovies.toUpperCase(),
                         icon: Icons.movie_filter_rounded,
                         onTap: widget.onOpenMovies,
                       ),
-                      const SizedBox(width: 30),
+                      const SizedBox(width: 24),
                       _MenuCard(
-                        label: 'SETTINGS',
+                        label: s.settingsTitle.toUpperCase(),
                         icon: Icons.settings_suggest_rounded,
                         onTap: widget.onOpenSettings,
                       ),
@@ -152,7 +155,7 @@ class _TVDashboardScreenState extends ConsumerState<TVDashboardScreen> {
         children: [
           _StatusCard(
             count: activeCodesCount,
-            label: 'ACTIVE CODES',
+            label: '',
             icon: Icons.admin_panel_settings_rounded,
           ),
           const Spacer(),
@@ -212,8 +215,8 @@ class _MenuCardState extends State<_MenuCard> {
           duration: const Duration(milliseconds: 250),
           curve: Curves.easeOutBack,
           child: Container(
-            width: 260,
-            height: 380,
+            width: 210,
+            height: 310,
             decoration: BoxDecoration(
               color: _focused ? AppTheme.primaryGold : Colors.white.withOpacity(0.04),
               borderRadius: BorderRadius.circular(32),
@@ -241,7 +244,7 @@ class _MenuCardState extends State<_MenuCard> {
                   ),
                   child: Icon(
                     widget.icon,
-                    size: 80,
+                    size: 64,
                     color: _focused ? Colors.black : AppTheme.primaryGold,
                   ),
                 ),
@@ -251,7 +254,7 @@ class _MenuCardState extends State<_MenuCard> {
                   textAlign: TextAlign.center,
                   style: TextStyle(
                     color: _focused ? Colors.black : Colors.white,
-                    fontSize: 22,
+                    fontSize: 18,
                     fontWeight: FontWeight.w900,
                     letterSpacing: 2,
                   ),

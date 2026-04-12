@@ -359,6 +359,49 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
                             ),
                           ),
                         ),
+                      
+                      // Secondary Controls (Top Right)
+                      if (!isTv || _controlsVisible)
+                        Positioned(
+                          top: 20,
+                          right: 20,
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              // Mute
+                              Material(
+                                color: Colors.black.withOpacity(0.45),
+                                borderRadius: BorderRadius.circular(12),
+                                clipBehavior: Clip.antiAlias,
+                                child: InkWell(
+                                  onTap: () => setState(() => _muted = !_muted),
+                                  child: Padding(
+                                    padding: const EdgeInsets.all(12),
+                                    child: Icon(
+                                      _muted ? Icons.volume_off_rounded : Icons.volume_up_rounded,
+                                      color: Colors.white,
+                                      size: 24,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(width: 12),
+                              // Fullscreen
+                              Material(
+                                color: Colors.black.withOpacity(0.45),
+                                borderRadius: BorderRadius.circular(12),
+                                clipBehavior: Clip.antiAlias,
+                                child: InkWell(
+                                  onTap: _toggleFullscreen,
+                                  child: const Padding(
+                                    padding: EdgeInsets.all(12),
+                                    child: Icon(Icons.fullscreen_rounded, color: Colors.white, size: 24),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
                     ],
                   ),
                 ),

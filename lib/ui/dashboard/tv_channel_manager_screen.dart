@@ -88,6 +88,7 @@ class _TVChannelManagerScreenState extends ConsumerState<TVChannelManagerScreen>
 
   void _openFullscreen() {
     if (_previewChannel == null) return;
+    _player.stop(); // Prevent audio overlap
     final index = widget.allChannels.indexOf(_previewChannel!);
     Navigator.push(
       context,

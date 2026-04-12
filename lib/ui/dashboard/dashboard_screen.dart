@@ -143,7 +143,13 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
   bool _isMovieChannel(Channel c) {
     final g = c.group.toLowerCase();
     final n = c.name.toLowerCase();
-    // Inclusive keywords for movies/VOD content
+    
+    // Exclude anything that explicitly marks itself as a Live stream
+    if (g.contains('live') || n.contains(' live')) return false;
+    
+    // If it's a TV channel category, it's likely not VOD unless "movie" is in the name
+    if (g.contains('tv') && !g.contains('movie') && !g.contains('cinema')) return false;
+
     final movieKeywords = [
       'movie', 'film', 'cinema', 'vod', 'box office', 'uhd', '4k', 'action',
       'comedy', 'horror', 'drama', 'thriller', 'animation', 'documentary'
