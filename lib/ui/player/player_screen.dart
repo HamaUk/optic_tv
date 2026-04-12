@@ -57,6 +57,7 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
   bool _controlsVisible = true;
   Timer? _hideTimer;
   bool _tvSidebarVisible = false;
+  bool _isPlaying = true; // Most streams auto-play upon open
 
   final List<StreamSubscription<dynamic>> _subscriptions = [];
 
@@ -171,6 +172,9 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
     _subscriptions.add(p.stream.duration.listen((d) {
       if (mounted) setState(() => _duration = d);
     }));
+    _subscriptions.add(p.stream.playing.listen((pl) {
+      if (mounted) setState(() => _isPlaying = pl);
+    }));
 
     await p.open(Media(_current.url));
   }
@@ -191,6 +195,7 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
           _position = vpc.value.position;
           _duration = vpc.value.duration;
           _buffering = vpc.value.isBuffering || !vpc.value.isInitialized;
+          _isPlaying = vpc.value.isPlaying;
         });
       });
 
@@ -280,15 +285,18 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
     });
   }
 
-  Future<void> _seek(Duration offset) async {
+  Future<void> _seekTo(Duration absolute) async {
+    if (_settings.playerEngine == PlayerEngine.native) {
+      await _vpController?.seekTo(absolute);
+    } else {
+      await _player?.seek(absolute);
+    }
+  }
+
+  Future<void> _seekRelative(Duration offset) async {
     final target = _position + offset;
     final clamped = target < Duration.zero ? Duration.zero : (target > _duration ? _duration : target);
-    
-    if (_settings.playerEngine == PlayerEngine.native) {
-      await _vpController?.seekTo(clamped);
-    } else {
-      await _player?.seek(clamped);
-    }
+    await _seekTo(clamped);
   }
 
   bool get _isMovie =>
@@ -885,7 +893,7 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
                             value: _position.inMilliseconds.toDouble(),
                             max: math.max(_duration.inMilliseconds.toDouble(), 1.0),
                             onChanged: (v) {
-                              _player.seek(Duration(milliseconds: v.toInt()));
+                              _seekTo(Duration(milliseconds: v.toInt()));
                             },
                           ),
                         ),
@@ -908,7 +916,7 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
                         const SizedBox(width: 20),
                         _movieControlBtn(
                           icon: Icons.replay_10_rounded,
-                          onPressed: () => _seek(const Duration(seconds: -10)),
+                          onPressed: () => _seekRelative(const Duration(seconds: -10)),
                         ),
                         const SizedBox(width: 24),
                         // Premium Play/Pause Toggle
@@ -932,22 +940,17 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
                                 ),
                               ],
                             ),
-                            child: StreamBuilder<bool>(
-                              stream: _player.stream.playing,
-                              builder: (context, playing) {
-                                return Icon(
-                                  playing.data == true ? Icons.pause_rounded : Icons.play_arrow_rounded,
-                                  color: Colors.black,
-                                  size: 28,
-                                );
-                              },
+                            child: Icon(
+                              _isPlaying ? Icons.pause_rounded : Icons.play_arrow_rounded,
+                              color: Colors.black,
+                              size: 28,
                             ),
                           ),
                         ),
                         const SizedBox(width: 24),
                         _movieControlBtn(
                           icon: Icons.forward_10_rounded,
-                          onPressed: () => _seek(const Duration(seconds: 10)),
+                          onPressed: () => _seekRelative(const Duration(seconds: 10)),
                         ),
                       ],
                     ),
