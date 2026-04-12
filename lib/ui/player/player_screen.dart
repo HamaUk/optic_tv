@@ -397,171 +397,173 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
             ),
           ),
           Expanded(
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                Expanded(
-                  flex: 11,
-                  child: Container(
-                    color: const Color(0xFF0E131A),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        Padding(
-                          padding: const EdgeInsets.fromLTRB(12, 12, 12, 8),
-                          child: Text(
-                            s.categoriesTitle,
-                            style: AppTheme.withRabarIfKurdish(
-                              uiLocale,
-                              TextStyle(
-                                color: Colors.white.withOpacity(0.45),
-                                fontSize: 13,
-                                fontWeight: FontWeight.w600,
+            child: _isMovie
+                ? _buildRelatedMovies(uiLocale, s, bottomPad)
+                : Row(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      Expanded(
+                        flex: 11,
+                        child: Container(
+                          color: const Color(0xFF0E131A),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: [
+                              Padding(
+                                padding: const EdgeInsets.fromLTRB(12, 12, 12, 8),
+                                child: Text(
+                                  s.categoriesTitle,
+                                  style: AppTheme.withRabarIfKurdish(
+                                    uiLocale,
+                                    TextStyle(
+                                      color: Colors.white.withOpacity(0.45),
+                                      fontSize: 13,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                ),
                               ),
-                            ),
-                          ),
-                        ),
-                        Expanded(
-                          child: ListView.builder(
-                            padding: const EdgeInsets.only(bottom: 12),
-                            itemCount: _groupNames.length,
-                            itemBuilder: (context, i) {
-                              final g = _groupNames[i];
-                              final selected = g == _selectedGroup;
-                              return Padding(
-                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                                child: Material(
-                                  color: selected ? const Color(0xFF15252A) : Colors.transparent,
-                                  borderRadius: BorderRadius.circular(10),
-                                  child: InkWell(
-                                    borderRadius: BorderRadius.circular(10),
-                                    onTap: () => setState(() => _selectedGroup = g),
-                                    child: Container(
-                                      decoration: BoxDecoration(
+                              Expanded(
+                                child: ListView.builder(
+                                  padding: const EdgeInsets.only(bottom: 12),
+                                  itemCount: _groupNames.length,
+                                  itemBuilder: (context, i) {
+                                    final g = _groupNames[i];
+                                    final selected = g == _selectedGroup;
+                                    return Padding(
+                                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                                      child: Material(
+                                        color: selected ? const Color(0xFF15252A) : Colors.transparent,
                                         borderRadius: BorderRadius.circular(10),
-                                        border: BorderDirectional(
-                                          end: BorderSide(
-                                            color: selected ? _accent : Colors.transparent,
-                                            width: 3,
-                                          ),
-                                        ),
-                                      ),
-                                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 12),
-                                      child: Row(
-                                        children: [
-                                          Icon(
-                                            Icons.folder_outlined,
-                                            size: 18,
-                                            color: selected ? _accent : Colors.white54,
-                                          ),
-                                          const SizedBox(width: 8),
-                                          Expanded(
-                                            child: Text(
-                                              g,
-                                              style: AppTheme.withRabarIfKurdish(
-                                                uiLocale,
-                                                TextStyle(
-                                                  color: selected ? _accent : Colors.white.withOpacity(0.82),
-                                                  fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
-                                                  fontSize: 13,
+                                        child: InkWell(
+                                          borderRadius: BorderRadius.circular(10),
+                                          onTap: () => setState(() => _selectedGroup = g),
+                                          child: Container(
+                                            decoration: BoxDecoration(
+                                              borderRadius: BorderRadius.circular(10),
+                                              border: BorderDirectional(
+                                                end: BorderSide(
+                                                  color: selected ? _accent : Colors.transparent,
+                                                  width: 3,
                                                 ),
                                               ),
-                                              maxLines: 2,
-                                              overflow: TextOverflow.ellipsis,
+                                            ),
+                                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 12),
+                                            child: Row(
+                                              children: [
+                                                Icon(
+                                                  Icons.folder_outlined,
+                                                  size: 18,
+                                                  color: selected ? _accent : Colors.white54,
+                                                ),
+                                                const SizedBox(width: 8),
+                                                Expanded(
+                                                  child: Text(
+                                                    g,
+                                                    style: AppTheme.withRabarIfKurdish(
+                                                      uiLocale,
+                                                      TextStyle(
+                                                        color: selected ? _accent : Colors.white.withOpacity(0.82),
+                                                        fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
+                                                        fontSize: 13,
+                                                      ),
+                                                    ),
+                                                    maxLines: 2,
+                                                    overflow: TextOverflow.ellipsis,
+                                                  ),
+                                                ),
+                                              ],
                                             ),
                                           ),
-                                        ],
+                                        ),
+                                      ),
+                                    );
+                                  },
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                      Container(width: 1, color: Colors.white.withOpacity(0.06)),
+                      Expanded(
+                        flex: 14,
+                        child: Container(
+                          color: AppTheme.backgroundBlack,
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: [
+                              Padding(
+                                padding: const EdgeInsets.fromLTRB(12, 12, 12, 8),
+                                child: Center(
+                                  child: Text(
+                                    s.channelListTitle,
+                                    style: AppTheme.withRabarIfKurdish(
+                                      uiLocale,
+                                      TextStyle(
+                                        color: Colors.white.withOpacity(0.45),
+                                        fontSize: 13,
+                                        fontWeight: FontWeight.w600,
                                       ),
                                     ),
                                   ),
                                 ),
-                              );
-                            },
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-                Container(width: 1, color: Colors.white.withOpacity(0.06)),
-                Expanded(
-                  flex: 14,
-                  child: Container(
-                    color: AppTheme.backgroundBlack,
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        Padding(
-                          padding: const EdgeInsets.fromLTRB(12, 12, 12, 8),
-                          child: Center(
-                            child: Text(
-                              s.channelListTitle,
-                              style: AppTheme.withRabarIfKurdish(
-                                uiLocale,
-                                TextStyle(
-                                  color: Colors.white.withOpacity(0.45),
-                                  fontSize: 13,
-                                  fontWeight: FontWeight.w600,
-                                ),
                               ),
-                            ),
-                          ),
-                        ),
-                        Expanded(
-                          child: ListView.separated(
-                            padding: EdgeInsets.fromLTRB(8, 0, 8, bottomPad + 12),
-                            itemCount: _channelsInSelectedGroup.length,
-                            separatorBuilder: (_, __) => Divider(height: 1, color: Colors.white.withOpacity(0.06)),
-                            itemBuilder: (context, i) {
-                              final ch = _channelsInSelectedGroup[i];
-                              final fullIdx = widget.channels.indexOf(ch);
-                              final playing = fullIdx == _index;
-                              return Material(
-                                color: Colors.transparent,
-                                child: InkWell(
-                                  onTap: () => _selectChannelByIndex(fullIdx),
-                                  child: Padding(
-                                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 14),
-                                    child: Row(
-                                      children: [
-                                        Expanded(
-                                          child: Text(
-                                            ch.name,
-                                            style: AppTheme.withRabarIfKurdish(
-                                              uiLocale,
-                                              TextStyle(
-                                                color: playing ? _accent : Colors.white.withOpacity(0.88),
-                                                fontWeight: playing ? FontWeight.w700 : FontWeight.w500,
-                                                fontSize: 14,
+                              Expanded(
+                                child: ListView.separated(
+                                  padding: EdgeInsets.fromLTRB(8, 0, 8, bottomPad + 12),
+                                  itemCount: _channelsInSelectedGroup.length,
+                                  separatorBuilder: (_, __) => Divider(height: 1, color: Colors.white.withOpacity(0.06)),
+                                  itemBuilder: (context, i) {
+                                    final ch = _channelsInSelectedGroup[i];
+                                    final fullIdx = widget.channels.indexOf(ch);
+                                    final playing = fullIdx == _index;
+                                    return Material(
+                                      color: Colors.transparent,
+                                      child: InkWell(
+                                        onTap: () => _selectChannelByIndex(fullIdx),
+                                        child: Padding(
+                                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 14),
+                                          child: Row(
+                                            children: [
+                                              Expanded(
+                                                child: Text(
+                                                  ch.name,
+                                                  style: AppTheme.withRabarIfKurdish(
+                                                    uiLocale,
+                                                    TextStyle(
+                                                      color: playing ? _accent : Colors.white.withOpacity(0.88),
+                                                      fontWeight: playing ? FontWeight.w700 : FontWeight.w500,
+                                                      fontSize: 14,
+                                                    ),
+                                                  ),
+                                                  maxLines: 2,
+                                                  overflow: TextOverflow.ellipsis,
+                                                ),
                                               ),
-                                            ),
-                                            maxLines: 2,
-                                            overflow: TextOverflow.ellipsis,
+                                              if (playing)
+                                                Container(
+                                                  width: 8,
+                                                  height: 8,
+                                                  decoration: const BoxDecoration(
+                                                    color: _accent,
+                                                    shape: BoxShape.circle,
+                                                  ),
+                                                ),
+                                            ],
                                           ),
                                         ),
-                                        if (playing)
-                                          Container(
-                                            width: 8,
-                                            height: 8,
-                                            decoration: const BoxDecoration(
-                                              color: _accent,
-                                              shape: BoxShape.circle,
-                                            ),
-                                          ),
-                                      ],
-                                    ),
-                                  ),
+                                      ),
+                                    );
+                                  },
                                 ),
-                              );
-                            },
+                              ),
+                            ],
                           ),
                         ),
-                      ],
-                    ),
+                      ),
+                    ],
                   ),
-                ),
-              ],
-            ),
           ),
         ],
       ),
@@ -765,6 +767,111 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
           ),
         ],
       ),
+    );
+  }
+
+  Widget _buildRelatedMovies(Locale uiLocale, AppStrings s, double bottomPad) {
+    final related = _channelsInSelectedGroup.where((c) => c.url != _current.url).toList();
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.fromLTRB(20, 16, 20, 12),
+          child: Row(
+            children: [
+              const Icon(Icons.movie_rounded, color: AppTheme.primaryGold, size: 20),
+              const SizedBox(width: 10),
+              Text(
+                'Related in ${_current.group}',
+                style: AppTheme.withRabarIfKurdish(
+                  uiLocale,
+                  const TextStyle(
+                    color: Colors.white,
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+        Expanded(
+          child: related.isEmpty
+              ? Center(
+                  child: Text(
+                    'No other movies in this category',
+                    style: TextStyle(color: Colors.white.withOpacity(0.35)),
+                  ),
+                )
+              : ListView.builder(
+                  scrollDirection: Axis.horizontal,
+                  padding: EdgeInsets.fromLTRB(20, 0, 20, bottomPad + 20),
+                  itemCount: related.length,
+                  itemBuilder: (context, i) {
+                    final movie = related[i];
+                    return Padding(
+                      padding: const EdgeInsets.only(right: 16),
+                      child: AspectRatio(
+                        aspectRatio: 0.68,
+                        child: Material(
+                          color: Colors.white.withOpacity(0.05),
+                          borderRadius: BorderRadius.circular(16),
+                          clipBehavior: Clip.antiAlias,
+                          child: InkWell(
+                            onTap: () => _selectChannelByIndex(widget.channels.indexOf(movie)),
+                            child: Stack(
+                              fit: StackFit.expand,
+                              children: [
+                                if (movie.logo != null && movie.logo!.isNotEmpty)
+                                  ChannelLogoImage(
+                                    logo: movie.logo,
+                                    fit: BoxFit.cover,
+                                    fallback: const Center(child: Icon(Icons.movie_outlined, color: Colors.white24)),
+                                  )
+                                else
+                                  const Center(child: Icon(Icons.movie_outlined, color: Colors.white24, size: 32)),
+                                Container(
+                                  decoration: BoxDecoration(
+                                    gradient: LinearGradient(
+                                      begin: Alignment.topCenter,
+                                      end: Alignment.bottomCenter,
+                                      colors: [
+                                        Colors.transparent,
+                                        Colors.black.withOpacity(0.8),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                                Positioned(
+                                  bottom: 12,
+                                  left: 10,
+                                  right: 10,
+                                  child: Text(
+                                    movie.name,
+                                    style: AppTheme.withRabarIfKurdish(
+                                      uiLocale,
+                                      const TextStyle(
+                                        color: Colors.white,
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                    maxLines: 2,
+                                    overflow: TextOverflow.ellipsis,
+                                    textAlign: TextAlign.center,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+                    );
+                  },
+                ),
+        ),
+      ],
     );
   }
 

@@ -19,6 +19,8 @@ import '../player/player_screen.dart';
 import '../settings/settings_screen.dart';
 import '../sport/sport_scores_screen.dart';
 import '../../services/tmdb_service.dart';
+import '../../providers/is_tv_provider.dart';
+import 'tv_dashboard_screen.dart';
 
 /// Hidden admin portal password.
 const String _kAdminPortalPassword = 'hamakoye99';
@@ -38,6 +40,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
   /// 0 Home, 1 Movies, 2 Sport, 3 Favorites, 4 Recent
   int _navIndex = 0;
   bool _searchOpen = false;
+  bool _tvHomeActive = true; 
   final TextEditingController _searchController = TextEditingController();
 
   static const _accent = AppTheme.accentTeal;
@@ -311,10 +314,33 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     final recent = ref.watch(recentChannelsProvider);
     final channelsAsync = ref.watch(channelsProvider);
     final settings = ref.watch(appUiSettingsProvider).asData?.value ?? const AppSettingsData();
-    final tv = settings.tvFriendlyLayout;
+    final isTvDevice = ref.watch(isTvProvider).asData?.value ?? false;
+    final tv = settings.tvFriendlyLayout || isTvDevice;
     final animMs = settings.reduceMotion ? 100 : 220;
     final pad = tv ? 24.0 : 16.0;
     final portrait = MediaQuery.orientationOf(context) == Orientation.portrait;
+
+    if (isTvDevice && _tvHomeActive) {
+      return TVDashboardScreen(
+        onOpenLiveTv: () => setState(() {
+          _navIndex = 0;
+          _tvHomeActive = false;
+        }),
+        onOpenMovies: () => setState(() {
+          _navIndex = 1;
+          _tvHomeActive = false;
+        }),
+        onOpenSport: () => setState(() {
+          _navIndex = 2;
+          _tvHomeActive = false;
+        }),
+        onOpenFavorites: () => setState(() {
+          _navIndex = 3;
+          _tvHomeActive = false;
+        }),
+        onOpenSettings: _openSettings,
+      );
+    }
 
     return Scaffold(
       backgroundColor: AppTheme.backgroundBlack,
