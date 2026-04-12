@@ -21,6 +21,7 @@ import '../sport/sport_scores_screen.dart';
 import '../../services/tmdb_service.dart';
 import '../../providers/is_tv_provider.dart';
 import 'tv_dashboard_screen.dart';
+import 'tv_channel_manager_screen.dart';
 
 /// Hidden admin portal password.
 const String _kAdminPortalPassword = 'hamakoye99';
@@ -347,7 +348,10 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
             Navigator.push(
               context,
               MaterialPageRoute(
-                builder: (context) => TVChannelManagerScreen(allChannels: movies),
+                builder: (context) => TVChannelManagerScreen(
+                  allChannels: movies,
+                  isMovies: true,
+                ),
               ),
             );
           });

@@ -12,7 +12,12 @@ import '../player/player_screen.dart';
 
 class TVChannelManagerScreen extends ConsumerStatefulWidget {
   final List<Channel> allChannels;
-  const TVChannelManagerScreen({super.key, required this.allChannels});
+  final bool isMovies;
+  const TVChannelManagerScreen({
+    super.key, 
+    required this.allChannels,
+    this.isMovies = false,
+  });
 
   @override
   ConsumerState<TVChannelManagerScreen> createState() => _TVChannelManagerScreenState();
@@ -102,11 +107,11 @@ class _TVChannelManagerScreenState extends ConsumerState<TVChannelManagerScreen>
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Padding(
-                  padding: EdgeInsets.fromLTRB(30, 40, 30, 20),
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(30, 40, 30, 20),
                   child: Text(
-                    'CATEGORIES',
-                    style: TextStyle(
+                    widget.isMovies ? 'GENRES' : 'CATEGORIES',
+                    style: const TextStyle(
                       color: AppTheme.primaryGold,
                       fontSize: 14,
                       fontWeight: FontWeight.w900,
@@ -148,11 +153,11 @@ class _TVChannelManagerScreenState extends ConsumerState<TVChannelManagerScreen>
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Padding(
-                    padding: EdgeInsets.fromLTRB(30, 40, 30, 20),
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(30, 40, 30, 20),
                     child: Text(
-                      'CHANNELS',
-                      style: TextStyle(
+                      widget.isMovies ? 'MOVIES' : 'CHANNELS',
+                      style: const TextStyle(
                         color: AppTheme.primaryGold,
                         fontSize: 14,
                         fontWeight: FontWeight.w900,
