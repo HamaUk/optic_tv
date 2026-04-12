@@ -80,8 +80,35 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
     super.initState();
     _index = widget.initialIndex.clamp(0, widget.channels.length - 1);
     _selectedGroup = widget.channels[_index].group;
-    _player = Player();
-    _controller = VideoController(_player);
+    _player = Player(
+      configuration: const PlayerConfiguration(
+        title: 'Optic TV Player',
+        logLevel: LogLevel.none,
+      ),
+    );
+
+    // Apply native optimizations for Android TV clarity
+    if (_player.platform is NativePlayer) {
+      final native = _player.platform as NativePlayer;
+      Future.microtask(() async {
+        // Force native hardware decoding for sharpest resolution
+        await native.setProperty('hwdec', 'mediacodec');
+        // Prevent micro-stutter/jitter blurring
+        await native.setProperty('video-sync', 'display-resample');
+        // Enable high-quality scaling profile
+        await native.setProperty('profile', 'high-quality');
+        // Optimize demuxer for live streams on TV hardware
+        await native.setProperty('demuxer-max-bytes', '500MiB');
+        await native.setProperty('demuxer-max-back-bytes', '100MiB');
+      });
+    }
+
+    _controller = VideoController(
+      _player,
+      configuration: const VideoControllerConfiguration(
+        enableHardwareAcceleration: true, // Crucial for TV clarity
+      ),
+    );
     _player.open(Media(_current.url));
     _subscriptions.add(
       _player.stream.volume.listen((v) {
