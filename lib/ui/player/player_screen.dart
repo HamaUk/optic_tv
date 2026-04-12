@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart' hide TextDirection;
 import 'package:media_kit/media_kit.dart';
@@ -15,6 +16,7 @@ import '../../providers/app_locale_provider.dart';
 import '../../providers/channel_library_provider.dart';
 import '../../services/playlist_service.dart';
 import '../../services/settings_service.dart';
+import '../../providers/is_tv_provider.dart';
 
 class PlayerScreen extends ConsumerStatefulWidget {
   final List<Channel> channels;
@@ -642,19 +644,6 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
                 );
               },
             ),
-          ),
-        ],
-      ),
-    );
-  }
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
           ),
         ],
       ),
