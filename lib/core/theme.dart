@@ -15,14 +15,14 @@ class AppTheme {
     return style.merge(const TextStyle(fontFamily: rabarFontFamily));
   }
 
-  static const Color primaryGold = Color(0xFFD4AF37);
-  static const Color primaryGoldDim = Color(0xFFB8922B);
-  static const Color accentTeal = Color(0xFF2DD4BF);
-  static const Color primaryBlue = Color(0xFF38BDF8);
-  static const Color primaryPurple = Color(0xFFA78BFA);
-  static const Color backgroundBlack = Color(0xFF0B0F14);
-  static const Color surfaceGray = Color(0xFF151B24);
-  static const Color surfaceElevated = Color(0xFF1C2430);
+  static const Color primaryGold = Color(0xFFFFD700); // Vibrant Gold/Yellow
+  static const Color primaryGoldDim = Color(0xFFB8860B);
+  static const Color accentTeal = Color(0xFFFFD700); // Unified with logic
+  static const Color primaryBlue = Color(0xFFFFD700); // Unified with logic
+  static const Color primaryPurple = Color(0xFFFFD700); // Unified with logic
+  static const Color backgroundBlack = Color(0xFF000000); // Pure black
+  static const Color surfaceGray = Color(0xFF101419);
+  static const Color surfaceElevated = Color(0xFF161B22);
 
   static ThemeData darkThemeForUi(Locale uiLocale) {
     const base = TextStyle(color: Colors.white);
@@ -30,30 +30,30 @@ class AppTheme {
     final rabar = useRabar ? const TextStyle(fontFamily: rabarFontFamily) : const TextStyle();
     return ThemeData(
       // Explicit icon colors so AppBar/leading icons stay visible with custom text font.
-      iconTheme: const IconThemeData(color: Colors.white),
+      iconTheme: const IconThemeData(color: primaryGold),
       brightness: Brightness.dark,
       primaryColor: primaryGold,
       scaffoldBackgroundColor: backgroundBlack,
       colorScheme: const ColorScheme.dark(
         primary: primaryGold,
-        secondary: accentTeal,
-        tertiary: primaryBlue,
+        secondary: primaryGold,
+        tertiary: primaryGold,
         surface: surfaceGray,
-        onPrimary: Color(0xFF0B0F14),
+        onPrimary: Color(0xFF000000),
         onSurface: Colors.white,
       ),
       textTheme: TextTheme(
-        displayLarge: base.copyWith(fontSize: 32, fontWeight: FontWeight.bold, color: Colors.white).merge(rabar),
-        displayMedium: base.copyWith(fontSize: 28, fontWeight: FontWeight.bold, color: Colors.white).merge(rabar),
-        headlineSmall: base.copyWith(fontSize: 22, fontWeight: FontWeight.bold, color: Colors.white).merge(rabar),
-        titleLarge: base.copyWith(fontSize: 20, fontWeight: FontWeight.w600, color: Colors.white).merge(rabar),
-        titleMedium: base.copyWith(fontSize: 16, fontWeight: FontWeight.w600, color: Colors.white).merge(rabar),
-        titleSmall: base.copyWith(fontSize: 14, fontWeight: FontWeight.w600, color: Colors.white).merge(rabar),
-        bodyLarge: base.copyWith(fontSize: 16, color: Colors.white70).merge(rabar),
-        bodyMedium: base.copyWith(fontSize: 14, color: Colors.white70).merge(rabar),
-        bodySmall: base.copyWith(fontSize: 12, color: Colors.white54).merge(rabar),
-        labelLarge: base.copyWith(fontSize: 14, fontWeight: FontWeight.w600).merge(rabar),
-        labelMedium: base.copyWith(fontSize: 12, fontWeight: FontWeight.w600).merge(rabar),
+        displayLarge: base.copyWith(fontSize: 32, fontWeight: FontWeight.w900, color: Colors.white).merge(rabar),
+        displayMedium: base.copyWith(fontSize: 28, fontWeight: FontWeight.w800, color: Colors.white).merge(rabar),
+        headlineSmall: base.copyWith(fontSize: 22, fontWeight: FontWeight.w800, color: Colors.white).merge(rabar),
+        titleLarge: base.copyWith(fontSize: 20, fontWeight: FontWeight.w700, color: Colors.white).merge(rabar),
+        titleMedium: base.copyWith(fontSize: 16, fontWeight: FontWeight.w700, color: Colors.white).merge(rabar),
+        titleSmall: base.copyWith(fontSize: 14, fontWeight: FontWeight.w700, color: Colors.white).merge(rabar),
+        bodyLarge: base.copyWith(fontSize: 16, color: Colors.white, fontWeight: FontWeight.w500).merge(rabar),
+        bodyMedium: base.copyWith(fontSize: 14, color: Colors.white.withOpacity(0.9), fontWeight: FontWeight.w500).merge(rabar),
+        bodySmall: base.copyWith(fontSize: 12, color: Colors.white.withOpacity(0.7)).merge(rabar),
+        labelLarge: base.copyWith(fontSize: 14, fontWeight: FontWeight.w800).merge(rabar),
+        labelMedium: base.copyWith(fontSize: 12, fontWeight: FontWeight.w800).merge(rabar),
       ),
       elevatedButtonTheme: ElevatedButtonThemeData(
         style: ElevatedButton.styleFrom(

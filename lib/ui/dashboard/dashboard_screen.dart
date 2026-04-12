@@ -322,22 +322,27 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
 
     if (isTvDevice && _tvHomeActive) {
       return TVDashboardScreen(
-        onOpenLiveTv: () => setState(() {
-          _navIndex = 0;
-          _tvHomeActive = false;
-        }),
-        onOpenMovies: () => setState(() {
-          _navIndex = 1;
-          _tvHomeActive = false;
-        }),
-        onOpenSport: () => setState(() {
-          _navIndex = 2;
-          _tvHomeActive = false;
-        }),
-        onOpenFavorites: () => setState(() {
-          _navIndex = 3;
-          _tvHomeActive = false;
-        }),
+        onOpenLiveTv: () {
+          channelsAsync.whenData((channels) {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => TVChannelManagerScreen(allChannels: channels),
+              ),
+            );
+          });
+        },
+        onOpenMovies: () {
+          channelsAsync.whenData((channels) {
+            final movies = channels.where(_isMovieChannel).toList();
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => TVChannelManagerScreen(allChannels: movies),
+              ),
+            );
+          });
+        },
         onOpenSettings: _openSettings,
       );
     }

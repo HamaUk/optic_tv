@@ -4,24 +4,22 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import '../../core/theme.dart';
-import '../../l10n/app_strings.dart';
-import '../../providers/app_locale_provider.dart';
 import '../../widgets/optic_wordmark.dart';
+import '../../providers/login_codes_provider.dart';
 
 class TVDashboardScreen extends ConsumerStatefulWidget {
   final VoidCallback onOpenLiveTv;
   final VoidCallback onOpenMovies;
-  final VoidCallback onOpenSport;
-  final VoidCallback onOpenFavorites;
   final VoidCallback onOpenSettings;
 
   const TVDashboardScreen({
     super.key,
     required this.onOpenLiveTv,
     required this.onOpenMovies,
-    required this.onOpenSport,
-    required this.onOpenFavorites,
     required this.onOpenSettings,
+    // Add these to satisfy the existing constructor calls in dashboard_screen.dart if needed
+    VoidCallback? onOpenSport,
+    VoidCallback? onOpenFavorites,
   });
 
   @override
@@ -48,142 +46,96 @@ class _TVDashboardScreenState extends ConsumerState<TVDashboardScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final uiLocale = ref.watch(appLocaleProvider);
-    final s = AppStrings(uiLocale);
+    final activeCodesCount = ref.watch(loginCodesCountProvider).asData?.value ?? 0;
 
     return Scaffold(
       backgroundColor: Colors.black,
-      body: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [
-              Color(0xFF0F172A),
-              Color(0xFF000000),
-            ],
+      body: Stack(
+        children: [
+          // Background Gradient
+          Container(
+            decoration: const BoxDecoration(
+              gradient: RadialGradient(
+                center: Alignment.center,
+                radius: 1.5,
+                colors: [
+                  Color(0xFF161B22),
+                  Colors.black,
+                ],
+              ),
+            ),
           ),
-        ),
-        child: Column(
-          children: [
-            _buildHeader(s),
-            Expanded(
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 40),
-                child: Center(
+          
+          Column(
+            children: [
+              _buildHeader(),
+              Expanded(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 60),
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      _MenuTile(
+                      _MenuCard(
                         label: 'LIVE TV',
                         icon: Icons.tv_rounded,
-                        color: const Color(0xFF3B82F6), // Smarters Blue
                         onTap: widget.onOpenLiveTv,
-                        isLarge: true,
                         autofocus: true,
                       ),
-                      const SizedBox(width: 20),
-                      Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          _MenuTile(
-                            label: 'MOVIES',
-                            icon: Icons.movie_filter_rounded,
-                            color: const Color(0xFF10B981), // Smarters Green
-                            onTap: widget.onOpenMovies,
-                          ),
-                        ],
+                      const SizedBox(width: 30),
+                      _MenuCard(
+                        label: 'MOVIES',
+                        icon: Icons.movie_filter_rounded,
+                        onTap: widget.onOpenMovies,
                       ),
-                      const SizedBox(width: 20),
-                      Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          _MenuTile(
-                            label: 'SPORT',
-                            icon: Icons.sports_soccer_rounded,
-                            color: const Color(0xFFF59E0B), // Smarters Orange
-                            onTap: widget.onOpenSport,
-                          ),
-                          const SizedBox(height: 20),
-                          _MenuTile(
-                            label: 'FAVORITES',
-                            icon: Icons.star_rounded,
-                            color: const Color(0xFFEAB308), // Smarters Yellow/Gold
-                            onTap: widget.onOpenFavorites,
-                          ),
-                        ],
-                      ),
-                      const SizedBox(width: 20),
-                      _MenuTile(
+                      const SizedBox(width: 30),
+                      _MenuCard(
                         label: 'SETTINGS',
                         icon: Icons.settings_suggest_rounded,
-                        color: const Color(0xFF64748B), // Smarters Grey
                         onTap: widget.onOpenSettings,
                       ),
                     ],
                   ),
                 ),
               ),
-            ),
-          ],
-        ),
+              _buildFooter(activeCodesCount),
+            ],
+          ),
+        ],
       ),
     );
   }
 
-  Widget _buildHeader(AppStrings s) {
+  Widget _buildHeader() {
     final timeStr = DateFormat('HH:mm').format(_now);
-    final dateStr = DateFormat('EEE, MMM d').format(_now);
+    final dateStr = DateFormat('EEEE, MMMM d').format(_now);
 
     return Padding(
-      padding: const EdgeInsets.fromLTRB(40, 40, 40, 0),
+      padding: const EdgeInsets.fromLTRB(60, 50, 60, 0),
       child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          const OpticWordmark(height: 48),
+          const OpticWordmark(height: 54),
           const Spacer(),
           Column(
             crossAxisAlignment: CrossAxisAlignment.end,
+            mainAxisSize: MainAxisSize.min,
             children: [
               Text(
                 timeStr,
                 style: const TextStyle(
                   color: Colors.white,
-                  fontSize: 42,
+                  fontSize: 48,
                   fontWeight: FontWeight.w900,
-                  letterSpacing: 2,
+                  letterSpacing: 1.5,
                 ),
               ),
               Text(
-                dateStr,
+                dateStr.toUpperCase(),
                 style: TextStyle(
-                  color: Colors.white.withOpacity(0.6),
-                  fontSize: 16,
-                  fontWeight: FontWeight.w500,
-                ),
-              ),
-              const SizedBox(height: 8),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-                decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: Colors.white.withOpacity(0.1)),
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    const Icon(Icons.account_circle_outlined, color: Colors.white70, size: 16),
-                    const SizedBox(width: 8),
-                    Text(
-                      'Expires: Perpetual',
-                      style: TextStyle(
-                        color: Colors.white.withOpacity(0.8),
-                        fontSize: 12,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ],
+                  color: AppTheme.primaryGold.withOpacity(0.7),
+                  fontSize: 14,
+                  fontWeight: FontWeight.w800,
+                  letterSpacing: 1.2,
                 ),
               ),
             ],
@@ -192,108 +144,184 @@ class _TVDashboardScreenState extends ConsumerState<TVDashboardScreen> {
       ),
     );
   }
+
+  Widget _buildFooter(int activeCodesCount) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(60, 0, 60, 50),
+      child: Row(
+        children: [
+          _StatusCard(
+            count: activeCodesCount,
+            label: 'ACTIVE CODES',
+            icon: Icons.admin_panel_settings_rounded,
+          ),
+          const Spacer(),
+          Text(
+            'ULTRA OPTIC V2.1.2',
+            style: TextStyle(
+              color: Colors.white.withOpacity(0.2),
+              fontSize: 12,
+              fontWeight: FontWeight.w900,
+              letterSpacing: 2,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 }
 
-class _MenuTile extends StatefulWidget {
+class _MenuCard extends StatefulWidget {
   final String label;
   final IconData icon;
-  final Color color;
   final VoidCallback onTap;
-  final bool isLarge;
   final bool autofocus;
-  final bool isEnabled;
 
-  const _MenuTile({
+  const _MenuCard({
     required this.label,
     required this.icon,
-    required this.color,
     required this.onTap,
-    this.isLarge = false,
     this.autofocus = false,
-    this.isEnabled = true,
   });
 
   @override
-  State<_MenuTile> createState() => _MenuTileState();
+  State<_MenuCard> createState() => _MenuCardState();
 }
 
-class _MenuTileState extends State<_MenuTile> {
+class _MenuCardState extends State<_MenuCard> {
   bool _focused = false;
 
   @override
   Widget build(BuildContext context) {
-    final double width = widget.isLarge ? 220 : 180;
-    final double height = widget.isLarge ? 320 : 150;
-
     return Focus(
       autofocus: widget.autofocus,
       onFocusChange: (f) => setState(() => _focused = f),
       onKeyEvent: (node, event) {
         if (event is KeyDownEvent && 
             (event.logicalKey == LogicalKeyboardKey.enter || 
-             event.logicalKey == LogicalKeyboardKey.select || 
-             event.logicalKey == LogicalKeyboardKey.gameButtonA)) {
-          if (widget.isEnabled) {
-            widget.onTap();
-            return KeyEventResult.handled;
-          }
+             event.logicalKey == LogicalKeyboardKey.select)) {
+          widget.onTap();
+          return KeyEventResult.handled;
         }
         return KeyEventResult.ignored;
       },
       child: GestureDetector(
-        onTap: widget.isEnabled ? widget.onTap : null,
+        onTap: widget.onTap,
         child: AnimatedScale(
-          scale: _focused ? 1.05 : 1.0,
-          duration: const Duration(milliseconds: 200),
-          curve: Curves.easeOutCubic,
-          child: AnimatedContainer(
-            duration: const Duration(milliseconds: 200),
-            width: width,
-            height: height,
+          scale: _focused ? 1.08 : 1.0,
+          duration: const Duration(milliseconds: 250),
+          curve: Curves.easeOutBack,
+          child: Container(
+            width: 260,
+            height: 380,
             decoration: BoxDecoration(
-              color: widget.isEnabled 
-                  ? ( _focused ? widget.color : widget.color.withOpacity(0.2))
-                  : Colors.grey.withOpacity(0.1),
-              borderRadius: BorderRadius.circular(24),
+              color: _focused ? AppTheme.primaryGold : Colors.white.withOpacity(0.04),
+              borderRadius: BorderRadius.circular(32),
               border: Border.all(
-                color: _focused ? Colors.white : widget.color.withOpacity(0.3),
-                width: _focused ? 3 : 1,
+                color: _focused ? Colors.white : Colors.white.withOpacity(0.1),
+                width: _focused ? 4 : 1,
               ),
-              boxShadow: _focused 
-                  ? [
-                      BoxShadow(
-                        color: widget.color.withOpacity(0.4),
-                        blurRadius: 20,
-                        spreadRadius: 2,
-                      )
-                    ]
-                  : [],
+              boxShadow: _focused ? [
+                BoxShadow(
+                  color: AppTheme.primaryGold.withOpacity(0.35),
+                  blurRadius: 30,
+                  spreadRadius: 5,
+                )
+              ] : [],
             ),
-            child: Opacity(
-              opacity: widget.isEnabled ? 1.0 : 0.4,
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(
+            padding: const EdgeInsets.all(40),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(20),
+                  decoration: BoxDecoration(
+                    color: _focused ? Colors.black.withOpacity(0.1) : AppTheme.primaryGold.withOpacity(0.1),
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(
                     widget.icon,
-                    size: widget.isLarge ? 64 : 48,
-                    color: _focused ? Colors.black : widget.color,
+                    size: 80,
+                    color: _focused ? Colors.black : AppTheme.primaryGold,
                   ),
-                  const SizedBox(height: 12),
-                  Text(
-                    widget.label,
-                    style: TextStyle(
-                      color: _focused ? Colors.black : Colors.white,
-                      fontSize: 18,
-                      fontWeight: FontWeight.w900,
-                      letterSpacing: 1.2,
-                    ),
+                ),
+                const SizedBox(height: 30),
+                Text(
+                  widget.label,
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    color: _focused ? Colors.black : Colors.white,
+                    fontSize: 22,
+                    fontWeight: FontWeight.w900,
+                    letterSpacing: 2,
                   ),
-                ],
-              ),
+                ),
+              ],
             ),
           ),
         ),
+      ),
+    );
+  }
+}
+
+class _StatusCard extends StatelessWidget {
+  final int count;
+  final String label;
+  final IconData icon;
+
+  const _StatusCard({
+    required this.count,
+    required this.label,
+    required this.icon,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+      decoration: BoxDecoration(
+        color: Colors.white.withOpacity(0.05),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: Colors.white.withOpacity(0.05)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(
+              color: AppTheme.primaryGold.withOpacity(0.15),
+              borderRadius: BorderRadius.circular(14),
+            ),
+            child: Icon(icon, color: AppTheme.primaryGold, size: 24),
+          ),
+          const SizedBox(width: 16),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                count.toString(),
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 28,
+                  fontWeight: FontWeight.w900,
+                  height: 1.0,
+                ),
+              ),
+              Text(
+                label,
+                style: TextStyle(
+                  color: Colors.white.withOpacity(0.5),
+                  fontSize: 10,
+                  fontWeight: FontWeight.w800,
+                  letterSpacing: 1.2,
+                ),
+              ),
+            ],
+          ),
+        ],
       ),
     );
   }

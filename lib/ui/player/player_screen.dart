@@ -47,6 +47,7 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
   Duration _duration = Duration.zero;
   bool _controlsVisible = true;
   Timer? _hideTimer;
+  bool _tvSidebarVisible = false;
 
   final List<StreamSubscription<dynamic>> _subscriptions = [];
 
@@ -227,359 +228,425 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
     final topPad = MediaQuery.paddingOf(context).top;
     final bottomPad = MediaQuery.paddingOf(context).bottom;
 
-    return Scaffold(
-      backgroundColor: AppTheme.backgroundBlack,
-      body: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Padding(
-            padding: EdgeInsets.fromLTRB(16, topPad + 8, 16, 6),
-            child: Row(
+    final isTv = ref.watch(isTvProvider).asData?.value ?? false;
+
+    return Focus(
+      autofocus: true,
+      onKeyEvent: (node, event) {
+        if (!isTv) return KeyEventResult.ignored;
+        if (event is KeyDownEvent) {
+          if (event.logicalKey == LogicalKeyboardKey.arrowLeft) {
+            setState(() => _tvSidebarVisible = !_tvSidebarVisible);
+            return KeyEventResult.handled;
+          }
+          if (_tvSidebarVisible) {
+            if (event.logicalKey == LogicalKeyboardKey.escape || 
+                event.logicalKey == LogicalKeyboardKey.browserBack ||
+                event.logicalKey == LogicalKeyboardKey.backspace) {
+              setState(() => _tvSidebarVisible = false);
+              return KeyEventResult.handled;
+            }
+          }
+        }
+        return KeyEventResult.ignored;
+      },
+      child: Scaffold(
+        backgroundColor: AppTheme.backgroundBlack,
+        body: Stack(
+          children: [
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
+                if (!isTv) ...[
+                  // Keep mobile header
+                  Padding(
+                    padding: EdgeInsets.fromLTRB(16, topPad + 8, 16, 6),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            _current.name,
+                            style: AppTheme.withRabarIfKurdish(
+                              uiLocale,
+                              const TextStyle(
+                                color: Colors.white,
+                                fontSize: 22,
+                                fontWeight: FontWeight.w700,
+                                letterSpacing: -0.3,
+                              ),
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                        IconButton(
+                          padding: EdgeInsets.zero,
+                          constraints: const BoxConstraints(minWidth: 40, minHeight: 40),
+                          tooltip: isFav ? s.unfavoriteChannel : s.favoriteChannel,
+                          icon: Icon(
+                            isFav ? Icons.star_rounded : Icons.star_border_rounded,
+                            color: AppTheme.primaryGold,
+                            size: 26,
+                          ),
+                          onPressed: () => ref.read(favoritesProvider.notifier).toggle(_current),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
                 Expanded(
+                  child: Stack(
+                    fit: StackFit.expand,
+                    children: [
+                      GestureDetector(
+                        onTap: () {
+                          _playPause();
+                          _showControls();
+                        },
+                        onDoubleTap: _toggleFullscreen,
+                        child: Video(
+                          key: _videoKey,
+                          controller: _controller,
+                          controls: NoVideoControls,
+                          wakelock: _settings.keepScreenOnWhilePlaying,
+                          fit: _settings.videoFit,
+                          fill: const Color(0xFF000000),
+                        ),
+                      ),
+                      if (!isTv) // Mobile gradients/controls
+                        IgnorePointer(
+                          child: DecoratedBox(
+                            decoration: BoxDecoration(
+                              gradient: LinearGradient(
+                                begin: Alignment.topCenter,
+                                end: Alignment.bottomCenter,
+                                colors: [
+                                  Colors.black.withOpacity(0.45),
+                                  Colors.transparent,
+                                  Colors.transparent,
+                                  Colors.black.withOpacity(0.55),
+                                ],
+                                stops: const [0, 0.25, 0.65, 1],
+                              ),
+                            ),
+                          ),
+                        ),
+                      
+                      // Shared Overlays
+                      if (_showEngineSplash) _buildEngineSplash(),
+                      if (_buffering) _buildBufferingIndicator(),
+                      
+                      // Movie Controls (Bottom bar)
+                      if (_isMovie) _buildMovieControlsOverlay(),
+
+                      // Back Button (TV/Mobile friendly)
+                      if (!isTv || _controlsVisible)
+                        Positioned(
+                          top: 20,
+                          left: 20,
+                          child: Material(
+                            color: Colors.black.withOpacity(0.45),
+                            borderRadius: BorderRadius.circular(12),
+                            clipBehavior: Clip.antiAlias,
+                            child: InkWell(
+                              onTap: () => Navigator.pop(context),
+                              child: const Padding(
+                                padding: EdgeInsets.all(12),
+                                child: Icon(Icons.arrow_back_rounded, color: Colors.white, size: 24),
+                              ),
+                            ),
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
+                if (!isTv) // Mobile lists
+                  Expanded(
+                    child: _isMovie
+                        ? _buildRelatedMovies(uiLocale, s, bottomPad)
+                        : _buildMobileChannelLists(uiLocale, s, bottomPad),
+                  ),
+              ],
+            ),
+
+            // TV SIDEBAR OVERLAY
+            if (isTv && _tvSidebarVisible)
+              Positioned(
+                left: 0,
+                top: 0,
+                bottom: 0,
+                child: _buildTvChannelSidebar(uiLocale, s),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildMobileChannelLists(Locale uiLocale, AppStrings s, double bottomPad) {
+    final accent = AppTheme.accentTeal;
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Expanded(
+          flex: 11,
+          child: Container(
+            color: const Color(0xFF0E131A),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(12, 12, 12, 8),
                   child: Text(
-                    _current.name,
+                    s.categoriesTitle,
                     style: AppTheme.withRabarIfKurdish(
                       uiLocale,
-                      const TextStyle(
-                        color: Colors.white,
-                        fontSize: 22,
-                        fontWeight: FontWeight.w700,
-                        letterSpacing: -0.3,
-                      ),
-                    ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ),
-                IconButton(
-                  padding: EdgeInsets.zero,
-                  constraints: const BoxConstraints(minWidth: 40, minHeight: 40),
-                  tooltip: isFav ? s.unfavoriteChannel : s.favoriteChannel,
-                  icon: Icon(
-                    isFav ? Icons.star_rounded : Icons.star_border_rounded,
-                    color: AppTheme.primaryGold,
-                    size: 26,
-                  ),
-                  onPressed: () => ref.read(favoritesProvider.notifier).toggle(_current),
-                ),
-                if (_settings.showOnScreenClock)
-                  Padding(
-                    padding: const EdgeInsetsDirectional.only(start: 4),
-                    child: Text(
-                      timeLabel,
-                      style: TextStyle(
-                        color: _accent.withOpacity(0.95),
+                      TextStyle(
+                        color: Colors.white.withOpacity(0.45),
                         fontSize: 13,
                         fontWeight: FontWeight.w600,
                       ),
                     ),
                   ),
+                ),
+                Expanded(
+                  child: ListView.builder(
+                    padding: const EdgeInsets.only(bottom: 12),
+                    itemCount: _groupNames.length,
+                    itemBuilder: (context, i) {
+                      final g = _groupNames[i];
+                      final selected = g == _selectedGroup;
+                      return Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                        child: Material(
+                          color: selected ? const Color(0xFF15252A) : Colors.transparent,
+                          borderRadius: BorderRadius.circular(10),
+                          child: InkWell(
+                            borderRadius: BorderRadius.circular(10),
+                            onTap: () => setState(() => _selectedGroup = g),
+                            child: Container(
+                              decoration: BoxDecoration(
+                                borderRadius: BorderRadius.circular(10),
+                                border: BorderDirectional(
+                                  end: BorderSide(
+                                    color: selected ? accent : Colors.transparent,
+                                    width: 3,
+                                  ),
+                                ),
+                              ),
+                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 12),
+                              child: Row(
+                                children: [
+                                  Icon(
+                                    Icons.folder_outlined,
+                                    size: 18,
+                                    color: selected ? accent : Colors.white54,
+                                  ),
+                                  const SizedBox(width: 8),
+                                  Expanded(
+                                    child: Text(
+                                      g,
+                                      style: AppTheme.withRabarIfKurdish(
+                                        uiLocale,
+                                        TextStyle(
+                                          color: selected ? accent : Colors.white.withOpacity(0.82),
+                                          fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
+                                          fontSize: 13,
+                                        ),
+                                      ),
+                                      maxLines: 2,
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+                ),
               ],
             ),
           ),
-          SizedBox(
-            height: _videoHeight(context),
-            width: double.infinity,
-            child: Stack(
-              fit: StackFit.expand,
+        ),
+        Container(width: 1, color: Colors.white.withOpacity(0.06)),
+        Expanded(
+          flex: 14,
+          child: Container(
+            color: AppTheme.backgroundBlack,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                GestureDetector(
-                  onTap: () {
-                    _playPause();
-                    _showControls();
-                  },
-                  onDoubleTap: _toggleFullscreen,
-                  child: Video(
-                    key: _videoKey,
-                    controller: _controller,
-                    controls: NoVideoControls,
-                    wakelock: _settings.keepScreenOnWhilePlaying,
-                    fit: _settings.videoFit,
-                    fill: const Color(0xFF000000),
-                  ),
-                ),
-                IgnorePointer(
-                  child: DecoratedBox(
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        begin: Alignment.topCenter,
-                        end: Alignment.bottomCenter,
-                        colors: [
-                          Colors.black.withOpacity(0.45),
-                          Colors.transparent,
-                          Colors.transparent,
-                          Colors.black.withOpacity(0.55),
-                        ],
-                        stops: const [0, 0.25, 0.65, 1],
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(12, 12, 12, 8),
+                  child: Center(
+                    child: Text(
+                      s.channelListTitle,
+                      style: AppTheme.withRabarIfKurdish(
+                        uiLocale,
+                        TextStyle(
+                          color: Colors.white.withOpacity(0.45),
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600,
+                        ),
                       ),
                     ),
                   ),
                 ),
-                Directionality(
-                  textDirection: TextDirection.ltr,
-                  child: Stack(
-                    fit: StackFit.expand,
-                    children: [
-                      Positioned(
-                        top: 10,
-                        left: 10,
-                        child: Material(
-                          color: Colors.black.withOpacity(0.45),
-                          borderRadius: BorderRadius.circular(12),
-                          clipBehavior: Clip.antiAlias,
-                          child: InkWell(
-                            onTap: () => Navigator.pop(context),
-                            child: const Padding(
-                              padding: EdgeInsets.all(10),
-                              child: Icon(Icons.arrow_back_ios_new_rounded, color: Colors.white, size: 20),
-                            ),
-                          ),
-                        ),
-                      ),
-                      if (!_hideChannelLogoOverlay && _current.logo != null && _current.logo!.isNotEmpty)
-                        Positioned(
-                          top: 10,
-                          right: 10,
-                          child: Container(
-                            width: 52,
-                            height: 52,
-                            decoration: BoxDecoration(
-                              color: Colors.black.withOpacity(0.35),
-                              borderRadius: BorderRadius.circular(12),
-                              border: Border.all(color: Colors.white.withOpacity(0.12)),
-                            ),
-                            clipBehavior: Clip.antiAlias,
-                            child: ChannelLogoImage(
-                              logo: _current.logo,
-                              width: 52,
-                              height: 52,
-                              fit: BoxFit.contain,
-                              fallback: const Icon(Icons.tv_rounded, color: Colors.white54, size: 28),
-                            ),
-                          ),
-                        ),
-                      if (_showEngineSplash) _buildEngineSplash(),
-                      if (_buffering) _buildBufferingIndicator(),
-                      if (_isMovie) _buildMovieControlsOverlay(),
-
-                      // Move Mute/Fullscreen here so they are ALWAYS on top of the bottom bar
-                      Positioned(
-                        bottom: 12,
-                        left: 12,
-                        child: AnimatedOpacity(
-                          opacity: (_isMovie && !_controlsVisible) ? 0.0 : 1.0,
-                          duration: const Duration(milliseconds: 300),
-                          child: IgnorePointer(
-                            ignoring: _isMovie && !_controlsVisible,
-                            child: Material(
-                              color: Colors.black.withOpacity(0.45),
-                              borderRadius: BorderRadius.circular(12),
-                              clipBehavior: Clip.antiAlias,
-                              child: InkWell(
-                                onTap: _toggleMute,
-                                child: Padding(
-                                  padding: const EdgeInsets.all(10),
-                                  child: Icon(
-                                    _muted ? Icons.volume_off_rounded : Icons.volume_up_rounded,
-                                    color: Colors.white,
-                                    size: 22,
+                Expanded(
+                  child: ListView.separated(
+                    padding: EdgeInsets.fromLTRB(8, 0, 8, bottomPad + 12),
+                    itemCount: _channelsInSelectedGroup.length,
+                    separatorBuilder: (_, __) => Divider(height: 1, color: Colors.white.withOpacity(0.06)),
+                    itemBuilder: (context, i) {
+                      final ch = _channelsInSelectedGroup[i];
+                      final fullIdx = widget.channels.indexOf(ch);
+                      final playing = fullIdx == _index;
+                      return Material(
+                        color: Colors.transparent,
+                        child: InkWell(
+                          onTap: () => _selectChannelByIndex(fullIdx),
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 14),
+                            child: Row(
+                              children: [
+                                Expanded(
+                                  child: Text(
+                                    ch.name,
+                                    style: AppTheme.withRabarIfKurdish(
+                                      uiLocale,
+                                      TextStyle(
+                                        color: playing ? accent : Colors.white.withOpacity(0.88),
+                                        fontWeight: playing ? FontWeight.w700 : FontWeight.w500,
+                                        fontSize: 14,
+                                      ),
+                                    ),
+                                    maxLines: 2,
+                                    overflow: TextOverflow.ellipsis,
                                   ),
                                 ),
-                              ),
+                                if (playing)
+                                  Container(
+                                    width: 8,
+                                    height: 8,
+                                    decoration: BoxDecoration(
+                                      color: accent,
+                                      shape: BoxShape.circle,
+                                    ),
+                                  ),
+                              ],
                             ),
                           ),
                         ),
-                      ),
-                      Positioned(
-                        bottom: 12,
-                        right: 12,
-                        child: AnimatedOpacity(
-                          opacity: (_isMovie && !_controlsVisible) ? 0.0 : 1.0,
-                          duration: const Duration(milliseconds: 300),
-                          child: IgnorePointer(
-                            ignoring: _isMovie && !_controlsVisible,
-                            child: Material(
-                              color: Colors.black.withOpacity(0.45),
-                              borderRadius: BorderRadius.circular(12),
-                              clipBehavior: Clip.antiAlias,
-                              child: InkWell(
-                                onTap: _toggleFullscreen,
-                                child: const Padding(
-                                  padding: EdgeInsets.all(10),
-                                  child: Icon(Icons.fullscreen_rounded, color: Colors.white, size: 24),
-                                ),
-                              ),
-                            ),
-                          ),
-                        ),
-                      ),
-                    ],
+                      );
+                    },
                   ),
                 ),
               ],
             ),
           ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildTvChannelSidebar(Locale uiLocale, AppStrings s) {
+    return Container(
+      width: 320,
+      decoration: BoxDecoration(
+        color: Colors.black.withOpacity(0.9),
+        border: const Border(right: BorderSide(color: AppTheme.primaryGold, width: 2)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.5),
+            blurRadius: 20,
+            spreadRadius: 5,
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(24, 40, 24, 20),
+            child: Text(
+              'LIVE CHANNELS',
+              style: TextStyle(
+                color: AppTheme.primaryGold,
+                fontSize: 14,
+                fontWeight: FontWeight.w900,
+                letterSpacing: 2,
+              ),
+            ),
+          ),
           Expanded(
-            child: _isMovie
-                ? _buildRelatedMovies(uiLocale, s, bottomPad)
-                : Row(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      Expanded(
-                        flex: 11,
-                        child: Container(
-                          color: const Color(0xFF0E131A),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.stretch,
-                            children: [
-                              Padding(
-                                padding: const EdgeInsets.fromLTRB(12, 12, 12, 8),
-                                child: Text(
-                                  s.categoriesTitle,
-                                  style: AppTheme.withRabarIfKurdish(
-                                    uiLocale,
-                                    TextStyle(
-                                      color: Colors.white.withOpacity(0.45),
-                                      fontSize: 13,
-                                      fontWeight: FontWeight.w600,
-                                    ),
-                                  ),
-                                ),
-                              ),
-                              Expanded(
-                                child: ListView.builder(
-                                  padding: const EdgeInsets.only(bottom: 12),
-                                  itemCount: _groupNames.length,
-                                  itemBuilder: (context, i) {
-                                    final g = _groupNames[i];
-                                    final selected = g == _selectedGroup;
-                                    return Padding(
-                                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                                      child: Material(
-                                        color: selected ? const Color(0xFF15252A) : Colors.transparent,
-                                        borderRadius: BorderRadius.circular(10),
-                                        child: InkWell(
-                                          borderRadius: BorderRadius.circular(10),
-                                          onTap: () => setState(() => _selectedGroup = g),
-                                          child: Container(
-                                            decoration: BoxDecoration(
-                                              borderRadius: BorderRadius.circular(10),
-                                              border: BorderDirectional(
-                                                end: BorderSide(
-                                                  color: selected ? _accent : Colors.transparent,
-                                                  width: 3,
-                                                ),
-                                              ),
-                                            ),
-                                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 12),
-                                            child: Row(
-                                              children: [
-                                                Icon(
-                                                  Icons.folder_outlined,
-                                                  size: 18,
-                                                  color: selected ? _accent : Colors.white54,
-                                                ),
-                                                const SizedBox(width: 8),
-                                                Expanded(
-                                                  child: Text(
-                                                    g,
-                                                    style: AppTheme.withRabarIfKurdish(
-                                                      uiLocale,
-                                                      TextStyle(
-                                                        color: selected ? _accent : Colors.white.withOpacity(0.82),
-                                                        fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
-                                                        fontSize: 13,
-                                                      ),
-                                                    ),
-                                                    maxLines: 2,
-                                                    overflow: TextOverflow.ellipsis,
-                                                  ),
-                                                ),
-                                              ],
-                                            ),
-                                          ),
-                                        ),
-                                      ),
-                                    );
-                                  },
-                                ),
-                              ),
-                            ],
-                          ),
+            child: ListView.builder(
+              padding: const EdgeInsets.only(bottom: 40),
+              itemCount: widget.channels.length,
+              itemBuilder: (context, i) {
+                final ch = widget.channels[i];
+                final playing = i == _index;
+                return Focus(
+                  onFocusChange: (f) {
+                    if (f) {
+                      // Optionally update internal preview or UI
+                    }
+                  },
+                  onKeyEvent: (node, event) {
+                    if (event is KeyDownEvent && 
+                        (event.logicalKey == LogicalKeyboardKey.enter || 
+                         event.logicalKey == LogicalKeyboardKey.select)) {
+                      _selectChannelByIndex(i);
+                      return KeyEventResult.handled;
+                    }
+                    return KeyEventResult.ignored;
+                  },
+                  child: Builder(
+                    builder: (ctx) {
+                      final hasFocus = Focus.of(ctx).hasFocus;
+                      return AnimatedContainer(
+                        duration: const Duration(milliseconds: 200),
+                        margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                        decoration: BoxDecoration(
+                          color: hasFocus ? AppTheme.primaryGold : (playing ? AppTheme.primaryGold.withOpacity(0.1) : Colors.transparent),
+                          borderRadius: BorderRadius.circular(12),
                         ),
-                      ),
-                      Container(width: 1, color: Colors.white.withOpacity(0.06)),
-                      Expanded(
-                        flex: 14,
-                        child: Container(
-                          color: AppTheme.backgroundBlack,
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.stretch,
-                            children: [
-                              Padding(
-                                padding: const EdgeInsets.fromLTRB(12, 12, 12, 8),
-                                child: Center(
-                                  child: Text(
-                                    s.channelListTitle,
-                                    style: AppTheme.withRabarIfKurdish(
-                                      uiLocale,
-                                      TextStyle(
-                                        color: Colors.white.withOpacity(0.45),
-                                        fontSize: 13,
-                                        fontWeight: FontWeight.w600,
-                                      ),
-                                    ),
-                                  ),
+                        child: Row(
+                          children: [
+                            Icon(
+                              playing ? Icons.play_circle_filled_rounded : Icons.tv_rounded,
+                              size: 18,
+                              color: hasFocus ? Colors.black : (playing ? AppTheme.primaryGold : Colors.white54),
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Text(
+                                ch.name,
+                                style: TextStyle(
+                                  color: hasFocus ? Colors.black : (playing ? Colors.white : Colors.white70),
+                                  fontSize: 14,
+                                  fontWeight: playing || hasFocus ? FontWeight.w800 : FontWeight.w500,
                                 ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
                               ),
-                              Expanded(
-                                child: ListView.separated(
-                                  padding: EdgeInsets.fromLTRB(8, 0, 8, bottomPad + 12),
-                                  itemCount: _channelsInSelectedGroup.length,
-                                  separatorBuilder: (_, __) => Divider(height: 1, color: Colors.white.withOpacity(0.06)),
-                                  itemBuilder: (context, i) {
-                                    final ch = _channelsInSelectedGroup[i];
-                                    final fullIdx = widget.channels.indexOf(ch);
-                                    final playing = fullIdx == _index;
-                                    return Material(
-                                      color: Colors.transparent,
-                                      child: InkWell(
-                                        onTap: () => _selectChannelByIndex(fullIdx),
-                                        child: Padding(
-                                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 14),
-                                          child: Row(
-                                            children: [
-                                              Expanded(
-                                                child: Text(
-                                                  ch.name,
-                                                  style: AppTheme.withRabarIfKurdish(
-                                                    uiLocale,
-                                                    TextStyle(
-                                                      color: playing ? _accent : Colors.white.withOpacity(0.88),
-                                                      fontWeight: playing ? FontWeight.w700 : FontWeight.w500,
-                                                      fontSize: 14,
-                                                    ),
-                                                  ),
-                                                  maxLines: 2,
-                                                  overflow: TextOverflow.ellipsis,
-                                                ),
-                                              ),
-                                              if (playing)
-                                                Container(
-                                                  width: 8,
-                                                  height: 8,
-                                                  decoration: const BoxDecoration(
-                                                    color: _accent,
-                                                    shape: BoxShape.circle,
-                                                  ),
-                                                ),
-                                            ],
-                                          ),
-                                        ),
-                                      ),
-                                    );
-                                  },
+                            ),
+                          ],
+                        ),
+                      );
+                    },
+                  ),
+                );
+              },
+            ),
+          ),
+        ],
+      ),
+    );
+  }
                                 ),
                               ),
                             ],
