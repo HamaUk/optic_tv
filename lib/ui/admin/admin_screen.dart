@@ -72,7 +72,7 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
 
   void initState() {
     super.initState();
-    _tabController = TabController(length: 7, vsync: this);
+    _tabController = TabController(length: 8, vsync: this);
     _channelGroupController.text = 'Live TV';
     _channelSearchController.addListener(() {
       setState(() => _channelSearchQuery = _channelSearchController.text.trim().toLowerCase());
@@ -1130,15 +1130,16 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
                 indicatorWeight: 3,
                 labelColor: AppTheme.primaryGold,
                 unselectedLabelColor: Colors.white54,
-                tabs: const [
-                  Tab(icon: Icon(Icons.space_dashboard_rounded, size: 20), text: 'Overview'),
-                  Tab(icon: Icon(Icons.live_tv_rounded, size: 20), text: 'Channels'),
-                  Tab(icon: Icon(Icons.add_circle_outline_rounded, size: 20), text: 'Publish'),
-                  Tab(icon: Icon(Icons.file_download_rounded, size: 20), text: 'Import'),
-                  Tab(icon: Icon(Icons.health_and_safety_rounded, size: 20), text: 'Health'),
-                  Tab(icon: Icon(Icons.key_rounded, size: 20), text: 'Access'),
-                  Tab(icon: Icon(Icons.campaign_rounded, size: 20), text: 'Broadcast'),
-                ],
+                  tabs: const [
+                    Tab(icon: Icon(Icons.space_dashboard_rounded, size: 20), text: 'Overview'),
+                    Tab(icon: Icon(Icons.live_tv_rounded, size: 20), text: 'Channels'),
+                    Tab(icon: Icon(Icons.movie_rounded, size: 20), text: 'Movies'),
+                    Tab(icon: Icon(Icons.add_circle_outline_rounded, size: 20), text: 'Publish'),
+                    Tab(icon: Icon(Icons.file_download_rounded, size: 20), text: 'Import'),
+                    Tab(icon: Icon(Icons.health_and_safety_rounded, size: 20), text: 'Health'),
+                    Tab(icon: Icon(Icons.key_rounded, size: 20), text: 'Access'),
+                    Tab(icon: Icon(Icons.campaign_rounded, size: 20), text: 'Broadcast'),
+                  ],
               ),
             ),
             Expanded(
@@ -1155,6 +1156,10 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
                     KeyedSubtree(
                       key: const PageStorageKey<String>('admin_channels'),
                       child: _KeepAliveTab(child: _buildChannelsTab()),
+                    ),
+                    KeyedSubtree(
+                      key: const PageStorageKey<String>('admin_movies'),
+                      child: _KeepAliveTab(child: _buildMoviesTab()),
                     ),
                     KeyedSubtree(
                       key: const PageStorageKey<String>('admin_publish'),
@@ -2738,6 +2743,168 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
             ],
           );
         },
+      ),
+    );
+  }
+
+  // ═══════════════════════════════════════════════════════════════
+  //  Tab: Movies
+  // ═══════════════════════════════════════════════════════════════
+
+  Widget _buildMoviesTab() {
+    return StreamBuilder<DatabaseEvent>(
+      stream: _playlistRef.onValue,
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Center(child: CircularProgressIndicator(color: AppTheme.primaryGold));
+        }
+        final raw = snapshot.data?.snapshot.value;
+        var items = _parsePlaylist(raw);
+
+        // Filter for Movies
+        items = items.where((e) {
+          final v = e.value;
+          if (v is! Map) return false;
+          final grp = '${v['group'] ?? v['category'] ?? ''}'.toLowerCase();
+          final isMovie = grp.contains('movie') || grp.contains('film') || grp.contains('cinema') || grp == 'vod';
+          if (!isMovie) return false;
+
+          final name = '${v['name'] ?? ''}'.toLowerCase();
+          if (_channelSearchQuery.isEmpty) return true;
+          return name.contains(_channelSearchQuery);
+        }).toList();
+
+        _sortChannelEntries(items);
+
+        return Column(
+          children: [
+            Padding(
+              padding: const EdgeInsets.all(16),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: FilledButton.icon(
+                      onPressed: _showAddMovieDialog,
+                      icon: const Icon(Icons.movie_rounded),
+                      label: const Text('Add New Movie'),
+                      style: FilledButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                        backgroundColor: AppTheme.primaryGold,
+                        foregroundColor: Colors.black,
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            if (items.isEmpty)
+              Padding(
+                padding: const EdgeInsets.only(top: 40),
+                child: Opacity(
+                  opacity: 0.3,
+                  child: Column(
+                    children: [
+                      const Icon(Icons.movie_filter_rounded, size: 64),
+                      const SizedBox(height: 16),
+                      const Text('No movies added yet'),
+                    ],
+                  ),
+                ),
+              )
+            else
+              Expanded(
+                child: ListView.builder(
+                  padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
+                  itemCount: items.length,
+                  itemBuilder: (context, i) {
+                    return Padding(
+                      padding: const EdgeInsets.only(bottom: 12),
+                      child: _adminChannelListTile(items[i]),
+                    );
+                  },
+                ),
+              ),
+          ],
+        );
+      },
+    );
+  }
+
+  void _showAddMovieDialog() {
+    final nameCtrl = TextEditingController();
+    final urlCtrl = TextEditingController();
+    final logoCtrl = TextEditingController();
+
+    showDialog<void>(
+      context: context,
+      builder: (ctx) => _adminEnglishLtr(
+        AlertDialog(
+          backgroundColor: AppTheme.surfaceElevated,
+          title: const Text('Add New Movie'),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TextField(
+                  controller: nameCtrl,
+                  decoration: const InputDecoration(
+                    labelText: 'Movie Title',
+                    border: OutlineInputBorder(),
+                  ),
+                  autofocus: true,
+                ),
+                const SizedBox(height: 16),
+                TextField(
+                  controller: urlCtrl,
+                  decoration: const InputDecoration(
+                    labelText: 'Stream URL',
+                    hintText: '.m3u8, .ts, .mp4...',
+                    border: OutlineInputBorder(),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                TextField(
+                  controller: logoCtrl,
+                  decoration: const InputDecoration(
+                    labelText: 'Logo / Poster URL (Optional)',
+                    border: OutlineInputBorder(),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
+            FilledButton(
+              onPressed: () async {
+                final name = nameCtrl.text.trim();
+                final url = urlCtrl.text.trim();
+                final logo = logoCtrl.text.trim();
+
+                if (name.isEmpty || url.isEmpty) {
+                  _snack('Title and URL are required', error: true);
+                  return;
+                }
+
+                try {
+                  final payload = _channelPayload(
+                    name: name,
+                    url: url,
+                    group: 'Movies',
+                    logo: logo,
+                  );
+                  await _playlistRef.push().set(payload);
+                  if (mounted) Navigator.pop(ctx);
+                  _snack('Movie added successfully');
+                } catch (e) {
+                  _snack('Failed to add movie: $e', error: true);
+                }
+              },
+              child: const Text('Add Movie'),
+            ),
+          ],
+        ),
       ),
     );
   }

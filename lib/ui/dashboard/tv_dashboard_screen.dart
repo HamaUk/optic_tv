@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import '../../core/theme.dart';
@@ -90,14 +91,6 @@ class _TVDashboardScreenState extends ConsumerState<TVDashboardScreen> {
                             icon: Icons.movie_filter_rounded,
                             color: const Color(0xFF10B981), // Smarters Green
                             onTap: widget.onOpenMovies,
-                          ),
-                          const SizedBox(height: 20),
-                          _MenuTile(
-                            label: 'SERIES',
-                            icon: Icons.video_library_rounded,
-                            color: const Color(0xFF8B5CF6), // Smarters Purple
-                            onTap: () {}, // Series not implemented yet
-                            isEnabled: false,
                           ),
                         ],
                       ),
@@ -235,6 +228,18 @@ class _MenuTileState extends State<_MenuTile> {
     return Focus(
       autofocus: widget.autofocus,
       onFocusChange: (f) => setState(() => _focused = f),
+      onKeyEvent: (node, event) {
+        if (event is KeyDownEvent && 
+            (event.logicalKey == LogicalKeyboardKey.enter || 
+             event.logicalKey == LogicalKeyboardKey.select || 
+             event.logicalKey == LogicalKeyboardKey.gameButtonA)) {
+          if (widget.isEnabled) {
+            widget.onTap();
+            return KeyEventResult.handled;
+          }
+        }
+        return KeyEventResult.ignored;
+      },
       child: GestureDetector(
         onTap: widget.isEnabled ? widget.onTap : null,
         child: AnimatedScale(
