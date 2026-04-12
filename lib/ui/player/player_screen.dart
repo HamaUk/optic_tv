@@ -777,7 +777,7 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
                                 borderRadius: BorderRadius.circular(6),
                               ),
                               clipBehavior: Clip.antiAlias,
-                              child: ChannelLogoImage(url: ch.logo, size: 24),
+                              child: ChannelLogoImage(logo: ch.logo, width: 24, height: 24),
                             ),
                             const SizedBox(width: 12),
                             Expanded(

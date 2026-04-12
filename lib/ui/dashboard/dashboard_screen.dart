@@ -21,7 +21,6 @@ import '../sport/sport_scores_screen.dart';
 import '../../services/tmdb_service.dart';
 import '../../providers/is_tv_provider.dart';
 import 'tv_dashboard_screen.dart';
-import 'tv_channel_manager_screen.dart';
 
 /// Hidden admin portal password.
 const String _kAdminPortalPassword = 'hamakoye99';
