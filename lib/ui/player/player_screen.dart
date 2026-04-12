@@ -81,7 +81,7 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
     _index = widget.initialIndex.clamp(0, widget.channels.length - 1);
     _selectedGroup = widget.channels[_index].group;
     _player = Player(
-      configuration: const PlayerConfiguration(
+      configuration: PlayerConfiguration(
         title: 'Optic TV Player',
         logLevel: LogLevel.none,
       ),
