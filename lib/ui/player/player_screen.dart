@@ -327,17 +327,49 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
       onKeyEvent: (node, event) {
         if (!isTv) return KeyEventResult.ignored;
         if (event is KeyDownEvent) {
-          if (event.logicalKey == LogicalKeyboardKey.arrowLeft) {
-            setState(() => _tvSidebarVisible = !_tvSidebarVisible);
+          // 1. Handle Sidebar Toggle (LEFT)
+          if (event.logicalKey == LogicalKeyboardKey.arrowLeft && !_tvSidebarVisible) {
+            setState(() => _tvSidebarVisible = true);
             return KeyEventResult.handled;
           }
+
+          // 2. Handle Sidebar Close (RIGHT or BACK while open)
           if (_tvSidebarVisible) {
-            if (event.logicalKey == LogicalKeyboardKey.escape || 
+            if (event.logicalKey == LogicalKeyboardKey.arrowRight ||
+                event.logicalKey == LogicalKeyboardKey.escape || 
                 event.logicalKey == LogicalKeyboardKey.browserBack ||
                 event.logicalKey == LogicalKeyboardKey.backspace) {
               setState(() => _tvSidebarVisible = false);
               return KeyEventResult.handled;
             }
+          }
+
+          // 3. Handle Up/Down Zapping (When Sidebar and Controls are closed)
+          if (!_tvSidebarVisible && !_controlsVisible) {
+            if (event.logicalKey == LogicalKeyboardKey.arrowUp) {
+              // User specified: UP to next channel
+              if (_index < widget.channels.length - 1) {
+                _selectChannelByIndex(_index + 1);
+              } else {
+                _selectChannelByIndex(0); // Loop to start
+              }
+              return KeyEventResult.handled;
+            }
+            if (event.logicalKey == LogicalKeyboardKey.arrowDown) {
+              // User specified: DOWN to previous channel
+              if (_index > 0) {
+                _selectChannelByIndex(_index - 1);
+              } else {
+                _selectChannelByIndex(widget.channels.length - 1); // Loop to end
+              }
+              return KeyEventResult.handled;
+            }
+          }
+          
+          // 4. Show controls on OK (Select/Enter)
+          if (!_controlsVisible && (event.logicalKey == LogicalKeyboardKey.select || event.logicalKey == LogicalKeyboardKey.enter)) {
+            _showControls();
+            return KeyEventResult.handled;
           }
         }
         return KeyEventResult.ignored;
@@ -517,7 +549,10 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
                 left: 0,
                 top: 0,
                 bottom: 0,
-                child: _buildTvChannelSidebar(uiLocale, s),
+                child: FocusScope(
+                  autofocus: true,
+                  child: _buildTvChannelSidebar(uiLocale, s),
+                ),
               ),
           ],
         ),

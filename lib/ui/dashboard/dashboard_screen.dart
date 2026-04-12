@@ -335,10 +335,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
             Navigator.push(
               context,
               MaterialPageRoute(
-                builder: (context) => PlayerScreen(
-                  channels: live,
-                  initialIndex: 0,
-                ),
+                builder: (context) => TVChannelManagerScreen(allChannels: live),
               ),
             );
           });
@@ -350,10 +347,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
             Navigator.push(
               context,
               MaterialPageRoute(
-                builder: (context) => PlayerScreen(
-                  channels: movies,
-                  initialIndex: 0,
-                ),
+                builder: (context) => TVChannelManagerScreen(allChannels: movies),
               ),
             );
           });
