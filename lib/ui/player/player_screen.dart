@@ -7,9 +7,12 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart' hide TextDirection;
 import 'package:media_kit/media_kit.dart';
 import 'package:media_kit_video/media_kit_video.dart';
+import 'package:simple_pip/simple_pip.dart';
+import 'package:flutter_cast_video/flutter_cast_video.dart';
 
 import '../../core/theme.dart';
 import '../../widgets/channel_logo_image.dart';
+import '../../widgets/player_control_button.dart';
 import '../../widgets/optic_wordmark.dart';
 import '../../l10n/app_strings.dart';
 import '../../providers/app_locale_provider.dart';
@@ -45,8 +48,10 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
   AppSettingsData _settings = const AppSettingsData();
   Timer? _clockTimer;
   bool _muted = false;
-  bool _buffering = true;
+  bool _showMiniGuide = false;
+  late final VideoController _videoKey = VideoController();
   bool _showEngineSplash = true;
+  bool _buffering = true;
   Duration _position = Duration.zero;
   Duration _duration = Duration.zero;
   bool _controlsVisible = true;
@@ -116,7 +121,9 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
     _controller = null;
     await old?.dispose();
 
-    final p = Player(configuration: const PlayerConfiguration());
+    final p = Player(configuration: const PlayerConfiguration(
+      title: 'Optic TV',
+    ));
     _player = p;
 
     if (p.platform is NativePlayer) {
@@ -229,6 +236,92 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
     await _seekTo(clamped);
   }
 
+  void _zapNext() {
+    final list = _channelsInSelectedGroup.isEmpty ? widget.channels : _channelsInSelectedGroup;
+    final currentIndexInList = list.indexWhere((c) => c.url == _current.url);
+    if (currentIndexInList == -1) return;
+    
+    final nextIndex = (currentIndexInList + 1) % list.length;
+    _selectChannelByIndex(widget.channels.indexOf(list[nextIndex]));
+    _showControls();
+  }
+
+  void _zapPrevious() {
+    final list = _channelsInSelectedGroup.isEmpty ? widget.channels : _channelsInSelectedGroup;
+    final currentIndexInList = list.indexWhere((c) => c.url == _current.url);
+    if (currentIndexInList == -1) return;
+    
+    final prevIndex = (currentIndexInList - 1 + list.length) % list.length;
+    _selectChannelByIndex(widget.channels.indexOf(list[prevIndex]));
+    _showControls();
+  }
+
+  Future<void> _enterPiP() async {
+    SimplePip().enterPipMode();
+  }
+
+  Future<void> _showTrackSelection(bool isAudio) async {
+    final s = AppStrings(ref.read(appLocaleProvider));
+    if (_player == null) return;
+
+    final tracks = isAudio ? _player!.state.tracks.audio : _player!.state.tracks.subtitle;
+    final current = isAudio ? _player!.state.track.audio : _player!.state.track.subtitle;
+
+    await showModalBottomSheet(
+      context: context,
+      backgroundColor: AppTheme.surfaceElevated,
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
+      builder: (ctx) {
+        return Padding(
+          padding: const EdgeInsets.symmetric(vertical: 20),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                isAudio ? 'Audio tracks' : 'Subtitles',
+                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+              ),
+              const SizedBox(height: 16),
+              Flexible(
+                child: ListView.builder(
+                  shrinkWrap: true,
+                  itemCount: tracks.length,
+                  itemBuilder: (context, i) {
+                    final t = tracks[i];
+                    final selected = t.id == current.id;
+                    return ListTile(
+                      leading: Icon(
+                        isAudio ? Icons.audiotrack_rounded : Icons.closed_caption_rounded,
+                        color: selected ? AppTheme.accentTeal : Colors.white30,
+                      ),
+                      title: Text(
+                        '${t.title ?? t.language ?? (isAudio ? 'Audio' : 'Sub')} ${t.id}',
+                        style: TextStyle(
+                          color: selected ? Colors.white : Colors.white70,
+                          fontWeight: selected ? FontWeight.bold : FontWeight.normal,
+                        ),
+                      ),
+                      trailing: selected ? const Icon(Icons.check_circle_rounded, color: AppTheme.accentTeal) : null,
+                      onTap: () {
+                        if (isAudio) {
+                          _player!.setAudioTrack(t);
+                        } else {
+                          _player!.setSubtitleTrack(t);
+                        }
+                        Navigator.pop(ctx);
+                        setState(() {});
+                      },
+                    );
+                  },
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
   bool get _isMovie =>
       _current.group.toLowerCase().contains('movie') ||
       _current.group.toLowerCase().contains('film') ||
@@ -276,16 +369,42 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
                     overflow: TextOverflow.ellipsis,
                   ),
                 ),
-                IconButton(
-                  padding: EdgeInsets.zero,
-                  constraints: const BoxConstraints(minWidth: 40, minHeight: 40),
+                PlayerControlButton(
+                  icon: isFav ? Icons.star_rounded : Icons.star_border_rounded,
                   tooltip: isFav ? s.unfavoriteChannel : s.favoriteChannel,
-                  icon: Icon(
-                    isFav ? Icons.star_rounded : Icons.star_border_rounded,
-                    color: AppTheme.primaryGold,
-                    size: 26,
+                  color: AppTheme.primaryGold,
+                  onTap: () => ref.read(favoritesProvider.notifier).toggle(_current),
+                ),
+                const SizedBox(width: 8),
+                SizedBox(
+                  width: 44,
+                  height: 44,
+                  child: ChromeCastButton(
+                    onButtonCreated: (controller) {
+                      controller.addSessionListener(ChromeCastSessionListener(
+                        onSessionStarted: () => controller.loadMedia(_current.url),
+                      ));
+                    },
+                    onSessionStarted: (controller) => controller.loadMedia(_current.url),
                   ),
-                  onPressed: () => ref.read(favoritesProvider.notifier).toggle(_current),
+                ),
+                const SizedBox(width: 8),
+                PlayerControlButton(
+                  icon: Icons.picture_in_picture_alt_rounded,
+                  tooltip: 'Picture-in-Picture',
+                  onTap: _enterPiP,
+                ),
+                const SizedBox(width: 8),
+                PlayerControlButton(
+                  icon: Icons.audiotrack_rounded,
+                  tooltip: 'Audio Tracks',
+                  onTap: () => _showTrackSelection(true),
+                ),
+                const SizedBox(width: 8),
+                PlayerControlButton(
+                  icon: Icons.closed_caption_rounded,
+                  tooltip: 'Subtitles',
+                  onTap: () => _showTrackSelection(false),
                 ),
               ],
             ),
@@ -334,25 +453,22 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
                 if (_showEngineSplash) _buildEngineSplash(),
                 if (_buffering) _buildBufferingIndicator(),
                 
-                // Movie Controls (Bottom bar)
-                if (_isMovie) _buildMovieControlsOverlay(),
+                // Dynamic Overlays
+                if (_isMovie) 
+                  _buildMovieControlsOverlay()
+                else 
+                  _buildLiveTvControlsOverlay(),
+
+                if (_showMiniGuide) _buildMiniGuideOverlay(),
 
                 // Back Button
                 if (_controlsVisible)
                   Positioned(
                     top: 20,
                     left: 20,
-                    child: Material(
-                      color: Colors.black.withOpacity(0.45),
-                      borderRadius: BorderRadius.circular(12),
-                      clipBehavior: Clip.antiAlias,
-                      child: InkWell(
-                        onTap: () => Navigator.pop(context),
-                        child: const Padding(
-                          padding: EdgeInsets.all(12),
-                          child: Icon(Icons.arrow_back_rounded, color: Colors.white, size: 24),
-                        ),
-                      ),
+                    child: PlayerControlButton(
+                      icon: Icons.arrow_back_rounded,
+                      onTap: () => Navigator.pop(context),
                     ),
                   ),
                 
@@ -364,36 +480,16 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        // Mute
-                        Material(
-                          color: Colors.black.withOpacity(0.45),
-                          borderRadius: BorderRadius.circular(12),
-                          clipBehavior: Clip.antiAlias,
-                          child: InkWell(
-                            onTap: () => setState(() => _muted = !_muted),
-                            child: Padding(
-                              padding: const EdgeInsets.all(12),
-                              child: Icon(
-                                _muted ? Icons.volume_off_rounded : Icons.volume_up_rounded,
-                                color: Colors.white,
-                                size: 24,
-                              ),
-                            ),
-                          ),
+                        PlayerControlButton(
+                          icon: _muted ? Icons.volume_off_rounded : Icons.volume_up_rounded,
+                          isToggle: true,
+                          toggled: _muted,
+                          onTap: () => setState(() => _muted = !_muted),
                         ),
                         const SizedBox(width: 12),
-                        // Fullscreen
-                        Material(
-                          color: Colors.black.withOpacity(0.45),
-                          borderRadius: BorderRadius.circular(12),
-                          clipBehavior: Clip.antiAlias,
-                          child: InkWell(
-                            onTap: _toggleFullscreen,
-                            child: const Padding(
-                              padding: const EdgeInsets.all(12),
-                              child: Icon(Icons.fullscreen_rounded, color: Colors.white, size: 24),
-                            ),
-                          ),
+                        PlayerControlButton(
+                          icon: Icons.fullscreen_rounded,
+                          onTap: _toggleFullscreen,
                         ),
                       ],
                     ),
@@ -700,49 +796,26 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        _movieControlBtn(
-                          icon: Icons.stop_rounded,
-                          onPressed: () => Navigator.pop(context),
-                          color: Colors.redAccent.withOpacity(0.8),
-                        ),
-                        const SizedBox(width: 20),
-                        _movieControlBtn(
+                        PlayerControlButton(
                           icon: Icons.replay_10_rounded,
-                          onPressed: () => _seekRelative(const Duration(seconds: -10)),
+                          size: 48,
+                          onTap: () => _seekRelative(const Duration(seconds: -10)),
                         ),
-                        const SizedBox(width: 24),
+                        const SizedBox(width: 32),
                         // Premium Play/Pause Toggle
-                        GestureDetector(
+                        PlayerControlButton(
+                          icon: _isPlaying ? Icons.pause_rounded : Icons.play_arrow_rounded,
+                          size: 64,
+                          color: Colors.black,
                           onTap: _playPause,
-                          child: Container(
-                            width: 52,
-                            height: 52,
-                            decoration: BoxDecoration(
-                              shape: BoxShape.circle,
-                              gradient: const LinearGradient(
-                                begin: Alignment.topLeft,
-                                end: Alignment.bottomRight,
-                                colors: [AppTheme.primaryGold, Color(0xFFC5A059)],
-                              ),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: AppTheme.primaryGold.withOpacity(0.3),
-                                  blurRadius: 12,
-                                  offset: const Offset(0, 4),
-                                ),
-                              ],
-                            ),
-                            child: Icon(
-                              _isPlaying ? Icons.pause_rounded : Icons.play_arrow_rounded,
-                              color: Colors.black,
-                              size: 28,
-                            ),
-                          ),
+                          isToggle: true,
+                          toggled: _isPlaying,
                         ),
-                        const SizedBox(width: 24),
-                        _movieControlBtn(
+                        const SizedBox(width: 32),
+                        PlayerControlButton(
                           icon: Icons.forward_10_rounded,
-                          onPressed: () => _seekRelative(const Duration(seconds: 10)),
+                          size: 48,
+                          onTap: () => _seekRelative(const Duration(seconds: 10)),
                         ),
                       ],
                     ),
@@ -772,6 +845,195 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildLiveTvControlsOverlay() {
+    return AnimatedOpacity(
+      opacity: _controlsVisible ? 1.0 : 0.0,
+      duration: const Duration(milliseconds: 300),
+      child: Stack(
+        children: [
+          // Header: Channel Info
+          Align(
+            alignment: Alignment.topCenter,
+            child: Container(
+              width: double.infinity,
+              padding: const EdgeInsets.fromLTRB(24, 24, 24, 48),
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [Colors.black.withOpacity(0.8), Colors.transparent],
+                ),
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    _current.name,
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w900, color: Colors.white),
+                  ),
+                  const SizedBox(height: 8),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: Colors.redAccent,
+                      borderRadius: BorderRadius.circular(4),
+                    ),
+                    child: const Text(
+                      'LIVE',
+                      style: TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold, letterSpacing: 1.5),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+
+          // Center: Zap Buttons
+          Center(
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                PlayerControlButton(
+                  icon: Icons.keyboard_arrow_left_rounded,
+                  size: 60,
+                  onTap: _zapPrevious,
+                  tooltip: 'Previous Channel',
+                ),
+                const SizedBox(width: 60),
+                PlayerControlButton(
+                  icon: Icons.keyboard_arrow_right_rounded,
+                  size: 60,
+                  onTap: _zapNext,
+                  tooltip: 'Next Channel',
+                ),
+              ],
+            ),
+          ),
+
+          // Bottom Bar: Program Info
+          Align(
+            alignment: Alignment.bottomCenter,
+            child: Container(
+              padding: const EdgeInsets.fromLTRB(24, 60, 24, 32),
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.bottomCenter,
+                  end: Alignment.topCenter,
+                  colors: [Colors.black.withOpacity(0.9), Colors.transparent],
+                ),
+              ),
+              child: Row(
+                children: [
+                  const Icon(Icons.info_outline_rounded, color: AppTheme.primaryGold, size: 20),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          'Now Playing',
+                          style: TextStyle(color: Colors.white54, fontSize: 12, fontWeight: FontWeight.bold),
+                        ),
+                        Text(
+                          _current.name,
+                          style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  PlayerControlButton(
+                    icon: Icons.list_alt_rounded,
+                    isToggle: true,
+                    toggled: _showMiniGuide,
+                    onTap: () => setState(() => _showMiniGuide = !_showMiniGuide),
+                    tooltip: 'Mini Guide',
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildMiniGuideOverlay() {
+    return Positioned(
+      right: 0,
+      top: 0,
+      bottom: 0,
+      width: 260,
+      child: Material(
+        color: Colors.black.withOpacity(0.85),
+        child: BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+          child: Container(
+            decoration: BoxDecoration(
+              border: Border(left: BorderSide(color: Colors.white.withOpacity(0.1))),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 40, 16, 16),
+                  child: Row(
+                    children: [
+                      const Icon(Icons.list_rounded, color: AppTheme.primaryGold, size: 20),
+                      const SizedBox(width: 10),
+                      const Text(
+                        'Guide',
+                        style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
+                      ),
+                      const Spacer(),
+                      IconButton(
+                        icon: const Icon(Icons.close_rounded, color: Colors.white54),
+                        onPressed: () => setState(() => _showMiniGuide = false),
+                      ),
+                    ],
+                  ),
+                ),
+                Expanded(
+                  child: ListView.builder(
+                    padding: const EdgeInsets.only(bottom: 24),
+                    itemCount: _channelsInSelectedGroup.length,
+                    itemBuilder: (context, i) {
+                      final c = _channelsInSelectedGroup[i];
+                      final selected = c.url == _current.url;
+                      return ListTile(
+                        selected: selected,
+                        selectedTileColor: AppTheme.primaryGold.withOpacity(0.1),
+                        leading: selected 
+                          ? const Icon(Icons.play_arrow_rounded, color: AppTheme.primaryGold)
+                          : const SizedBox(width: 24),
+                        title: Text(
+                          c.name,
+                          style: TextStyle(
+                            color: selected ? AppTheme.primaryGold : Colors.white70,
+                            fontWeight: selected ? FontWeight.bold : FontWeight.normal,
+                            fontSize: 14,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        onTap: () {
+                          _selectChannelByIndex(widget.channels.indexOf(c));
+                          setState(() => _showMiniGuide = false);
+                        },
+                      );
+                    },
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
       ),
     );
   }
@@ -881,34 +1143,4 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
     );
   }
 
-  Widget _movieControlBtn({
-    required IconData icon,
-    required VoidCallback onPressed,
-    Color color = Colors.white,
-  }) {
-    return Material(
-      color: Colors.white.withOpacity(0.08),
-      borderRadius: BorderRadius.circular(12),
-      clipBehavior: Clip.antiAlias,
-      child: InkWell(
-        onTap: onPressed,
-        child: Container(
-          width: 42,
-          height: 42,
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: Colors.white.withOpacity(0.1)),
-          ),
-          child: Icon(icon, color: color.withOpacity(0.9), size: 22),
-        ),
-      ),
-    );
-  }
-
-  Widget _playerIconBtn(IconData icon, VoidCallback onTap, {Color color = Colors.white}) {
-    return IconButton(
-      onPressed: onTap,
-      icon: Icon(icon, color: color, size: 30),
-    );
-  }
 }

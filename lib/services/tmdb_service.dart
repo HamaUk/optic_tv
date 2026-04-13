@@ -25,7 +25,6 @@ class TmdbService {
   Future<TmdbMovie?> findMovie(String title) async {
     if (!isConfigured) return null;
     try {
-      // Clean title: remove year in brackets or common IPTV tags
       final cleanTitle = title
           .replaceAll(RegExp(r'\[.*?\]'), '')
           .replaceAll(RegExp(r'\(.*?\)'), '')
@@ -44,6 +43,39 @@ class TmdbService {
       return null;
     }
   }
+
+  /// Get recommendations for a specific movie ID.
+  Future<List<TmdbMovie>> getRecommendations(int movieId) async {
+    if (!isConfigured) return [];
+    try {
+      final res = await _dio.get('/movie/$movieId/recommendations');
+      final results = res.data['results'] as List?;
+      if (results == null) return [];
+
+      return results
+          .map((m) => TmdbMovie.fromJson(m as Map<String, dynamic>, _imageBaseUrl))
+          .toList();
+    } catch (_) {
+      return [];
+    }
+  }
+
+  /// Get cast and crew for a specific movie ID.
+  Future<List<TmdbCast>> getCredits(int movieId) async {
+    if (!isConfigured) return [];
+    try {
+      final res = await _dio.get('/movie/$movieId/credits');
+      final cast = res.data['cast'] as List?;
+      if (cast == null) return [];
+
+      return cast
+          .take(10) // Only top 10 cast members
+          .map((c) => TmdbCast.fromJson(c as Map<String, dynamic>, _imageBaseUrl))
+          .toList();
+    } catch (_) {
+      return [];
+    }
+  }
 }
 
 class TmdbMovie {
@@ -51,6 +83,7 @@ class TmdbMovie {
   final String title;
   final String overview;
   final String? posterUrl;
+  final String? backdropUrl;
   final double rating;
   final String? releaseDate;
 
@@ -59,19 +92,43 @@ class TmdbMovie {
     required this.title,
     required this.overview,
     this.posterUrl,
+    this.backdropUrl,
     required this.rating,
     this.releaseDate,
   });
 
   factory TmdbMovie.fromJson(Map<String, dynamic> json, String imageBase) {
     final posterPath = json['poster_path'] as String?;
+    final backdropPath = json['backdrop_path'] as String?;
     return TmdbMovie(
       id: json['id'] as int? ?? 0,
       title: json['title'] as String? ?? '',
       overview: json['overview'] as String? ?? 'No description available.',
       posterUrl: posterPath != null ? '$imageBase$posterPath' : null,
+      backdropUrl: backdropPath != null ? '$imageBase$backdropPath' : null,
       rating: (json['vote_average'] as num? ?? 0.0).toDouble(),
       releaseDate: json['release_date'] as String?,
+    );
+  }
+}
+
+class TmdbCast {
+  final String name;
+  final String character;
+  final String? profileUrl;
+
+  TmdbCast({
+    required this.name,
+    required this.character,
+    this.profileUrl,
+  });
+
+  factory TmdbCast.fromJson(Map<String, dynamic> json, String imageBase) {
+    final path = json['profile_path'] as String?;
+    return TmdbCast(
+      name: json['name'] as String? ?? '',
+      character: json['character'] as String? ?? '',
+      profileUrl: path != null ? '$imageBase$path' : null,
     );
   }
 }

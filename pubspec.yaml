@@ -43,6 +43,12 @@ dependencies:
   glassmorphism: ^3.0.0
   cached_network_image: ^3.3.1
   flutter_spinkit: ^5.2.1
+  palette_generator: ^0.3.3+3
+  lottie: ^3.2.0
+  simple_pip: ^1.1.0
+  # Note: flutter_cast_video requires native setup
+  flutter_cast_video: ^0.1.0 
+  dio_cache_interceptor: ^3.5.0
 
 dev_dependencies:
   flutter_test:

@@ -19,6 +19,9 @@ import '../player/player_screen.dart';
 import '../settings/settings_screen.dart';
 import '../sport/sport_scores_screen.dart';
 import '../../services/tmdb_service.dart';
+import '../../widgets/dynamic_background.dart';
+import './movie_details_screen.dart';
+import 'package:lottie/lottie.dart';
 
 /// Hidden admin portal password.
 const String _kAdminPortalPassword = 'hamakoye99';
@@ -206,13 +209,38 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Center(
-                    child: Container(
-                      width: 40,
-                      height: 4,
-                      decoration: BoxDecoration(
-                        color: Colors.white24,
-                        borderRadius: BorderRadius.circular(2),
-                      ),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Container(
+                          width: 40,
+                          height: 4,
+                          decoration: BoxDecoration(
+                            color: Colors.white24,
+                            borderRadius: BorderRadius.circular(2),
+                          ),
+                        ),
+                        if (isMovie) ...[
+                          const SizedBox(height: 12),
+                          TextButton.icon(
+                            onPressed: () {
+                              Navigator.pop(ctx);
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (_) => MovieDetailsScreen(
+                                    allChannels: allChannels,
+                                    channel: channel,
+                                  ),
+                                ),
+                              );
+                            },
+                            icon: const Icon(Icons.info_outline_rounded, size: 18),
+                            label: const Text('More Details', style: TextStyle(fontWeight: FontWeight.bold)),
+                            style: TextButton.styleFrom(foregroundColor: AppTheme.accentTeal),
+                          ),
+                        ],
+                      ],
                     ),
                   ),
                   const SizedBox(height: 24),
@@ -338,23 +366,41 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                   _buildEmptyState(
                     s,
                     title: s.noChannels,
-                    subtitle: s.noChannelsHint,
-                  ),
-                );
-              }
+    return ref.watch(playlistProvider).when(
+      data: (channels) {
+        final favorites = ref.watch(favoritesProvider);
+        final recent = ref.watch(recentChannelsProvider);
+        final filtered = _applySearch(
+          _channelsForNav(channels, favorites, recent),
+        );
+        final groups = _groupMap(filtered);
 
-              final navScoped = _channelsForNav(channels, favorites, recent);
-              final filtered = _applySearch(navScoped);
-              final groups = _groupMap(filtered);
-
-              // Sport tab: show live scores widget instead of channel grid.
-              if (_navIndex == 2) {
-                return _buildDashboardShell(
+        // Sport tab: show live scores widget instead of channel grid.
+        if (_navIndex == 2) {
+          return Scaffold(
+            backgroundColor: AppTheme.backgroundBlack,
+            body: DynamicBackground(
+              imageUrl: null, // Sport screen has its own theme
+              child: SafeArea(
+                bottom: false,
+                child: _buildDashboardShell(
                   context, s, 16.0, false, const SportScoresScreen(),
-                );
-              }
+                ),
+              ),
+            ),
+            bottomNavigationBar: portrait ? _buildBottomNav(s, MediaQuery.paddingOf(context).bottom) : null,
+          );
+        }
 
-              return _buildDashboardShell(
+        final heroImage = filtered.isNotEmpty ? filtered.first.logo : null;
+
+        return Scaffold(
+          backgroundColor: AppTheme.backgroundBlack,
+          body: DynamicBackground(
+            imageUrl: heroImage,
+            child: SafeArea(
+              bottom: false,
+              child: _buildDashboardShell(
                 context,
                 s,
                 16.0,
@@ -387,40 +433,52 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                         settings.reduceMotion ? 100 : 220,
                         16.0,
                       ),
-              );
-            },
-            loading: () => _buildDashboardShell(
-              context,
-              s,
-              16.0,
-              false,
-              const Center(child: CircularProgressIndicator(color: _accent)),
-            ),
-            error: (e, _) => _buildDashboardShell(
-              context,
-              s,
-              16.0,
-              false,
-              Center(
-                child: Text(
-                  '${s.channelLoadError}: $e',
-                  style: AppTheme.withRabarIfKurdish(
-                    s.locale,
-                    const TextStyle(color: Colors.white70),
-                  ),
-                  textAlign: TextAlign.center,
-                ),
               ),
+            ),
+          ),
+          bottomNavigationBar: portrait ? _buildBottomNav(s, MediaQuery.paddingOf(context).bottom) : null,
+        );
+      },
+      loading: () => Scaffold(
+        backgroundColor: AppTheme.backgroundBlack,
+        body: Center(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Lottie.network(
+                'https://lottie.host/81a96758-f2b7-4c31-901c-6a3c99026725/I0m9T5vU7d.json',
+                width: 180,
+                height: 180,
+              ),
+              const SizedBox(height: 16),
+              Text(
+                'Loading your entertainment...',
+                style: TextStyle(color: Colors.white.withOpacity(0.5), fontWeight: FontWeight.bold),
+              ),
+            ],
+          ),
+        ),
+      ),
+      error: (e, _) => Scaffold(
+        backgroundColor: AppTheme.backgroundBlack,
+        body: Center(
+          child: Padding(
+            padding: const EdgeInsets.all(32),
+            child: Text(
+              '${s.channelLoadError}: $e',
+              style: AppTheme.withRabarIfKurdish(
+                s.locale,
+                const TextStyle(color: Colors.white70),
+              ),
+              textAlign: TextAlign.center,
             ),
           ),
         ),
       ),
-      bottomNavigationBar:
-          portrait ? _buildBottomNav(s, MediaQuery.paddingOf(context).bottom) : null,
     );
   }
 
-  /// Portrait: column only. Landscape: fixed rail on the **physical left** (like KRD TV) + content with correct RTL.
+  /// Combined column/shell.
   Widget _buildDashboardShell(
     BuildContext context,
     AppStrings s,
@@ -624,12 +682,13 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(
-              Icons.tv_off_rounded,
-              size: 52,
-              color: Colors.white.withOpacity(0.12),
+            Lottie.network(
+              'https://lottie.host/e2b6a5b8-5c4d-4467-b50e-3b2d71c4639a/y8ZUr3K4M3.json',
+              width: 140,
+              height: 140,
+              fit: BoxFit.contain,
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 24),
             Text(
               message,
               style: AppTheme.withRabarIfKurdish(
@@ -866,9 +925,17 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
             ),
             child: Material(
               color: Colors.transparent,
-              child: InkWell(
-                borderRadius: BorderRadius.circular(kTileRadius),
-                onTap: () => _openPlayer(allChannels, channel),
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => MovieDetailsScreen(
+                        allChannels: allChannels,
+                        channel: channel,
+                      ),
+                    ),
+                  );
+                },
                 onLongPress: () => _showChannelSheet(s, allChannels, channel),
                 child: ClipRRect(
                   borderRadius: BorderRadius.circular(kTileRadius - 1),
