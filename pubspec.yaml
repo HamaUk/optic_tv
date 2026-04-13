@@ -47,7 +47,7 @@ dependencies:
   lottie: ^3.2.0
   simple_pip: ^1.1.0
   # Note: flutter_cast_video requires native setup
-  flutter_cast_video: ^0.1.0 
+  flutter_cast_video: ^1.2.0 
   dio_cache_interceptor: ^3.5.0
 
 dev_dependencies:
