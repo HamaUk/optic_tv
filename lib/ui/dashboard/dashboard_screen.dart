@@ -707,6 +707,11 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     );
   }
 
+  Widget _buildGroupSection(
+    BuildContext context,
+    AppStrings s,
+    List<Channel> allChannels,
+    String title,
     List<Channel> sectionChannels,
     int crossCount,
     int animMs,
@@ -744,7 +749,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
             shrinkWrap: true,
             physics: const NeverScrollableScrollPhysics(),
             gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: isMovie ? (tv ? 3 : 2) : crossCount,
+              crossAxisCount: isMovie ? 2 : crossCount,
               crossAxisSpacing: isMovie ? 14 : 10,
               mainAxisSpacing: isMovie ? 16 : 12,
               childAspectRatio: isMovie ? 0.62 : 0.72,
@@ -759,6 +764,9 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     );
   }
 
+  Widget _buildGridChannelTile(
+    BuildContext context,
+    AppStrings s,
     List<Channel> allChannels,
     Channel channel,
     int animMs,
@@ -826,6 +834,9 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
 
   /// Larger poster-style tile for Movies. The logo/poster fills
   /// the card and the title sits on a gradient strip at the bottom.
+  Widget _buildMovieTile(
+    BuildContext context,
+    AppStrings s,
     List<Channel> allChannels,
     Channel channel,
     int animMs,
