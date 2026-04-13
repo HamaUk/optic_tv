@@ -7,7 +7,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart' hide TextDirection;
 import 'package:media_kit/media_kit.dart';
 import 'package:media_kit_video/media_kit_video.dart';
-import 'package:simple_pip/simple_pip.dart';
+import 'package:simple_pip_mode/simple_pip.dart';
 import 'package:flutter_cast_video/flutter_cast_video.dart';
 
 import '../../core/theme.dart';
