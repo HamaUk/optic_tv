@@ -6,8 +6,6 @@ import '../../widgets/optic_wordmark.dart';
 import '../../l10n/app_strings.dart';
 import '../../providers/app_locale_provider.dart';
 import '../../providers/session_provider.dart';
-import '../../platform/android_tv.dart';
-import '../../widgets/tv_login_keyboard.dart';
 
 class LoginScreen extends ConsumerStatefulWidget {
   const LoginScreen({super.key});
@@ -20,23 +18,10 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   final _codeController = TextEditingController();
   final _codeFocus = FocusNode();
   bool _busy = false;
-  bool _isTV = false;
 
   @override
   void initState() {
     super.initState();
-    _codeController.addListener(_onCodeChanged);
-    _checkDevice();
-  }
-
-  void _onCodeChanged() {
-    if (_isTV && mounted) setState(() {});
-  }
-
-  Future<void> _checkDevice() async {
-    final tv = await queryAndroidTelevisionDevice();
-    if (!mounted) return;
-    setState(() => _isTV = tv);
   }
 
   /// Use the platform UI font for the code field so Latin digits stay crisp on Android.
@@ -52,7 +37,6 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
 
   @override
   void dispose() {
-    _codeController.removeListener(_onCodeChanged);
     _codeFocus.dispose();
     _codeController.dispose();
     super.dispose();
@@ -103,11 +87,11 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
         child: SafeArea(
           child: Center(
             child: SingleChildScrollView(
-              padding: EdgeInsets.symmetric(
-                horizontal: _isTV ? 40 : 28,
-                vertical: _isTV ? 12 : 24,
+              padding: const EdgeInsets.symmetric(
+                horizontal: 28,
+                vertical: 24,
               ),
-              child: _buildContent(uiLocale, s, _isTV ? 540 : 400),
+              child: _buildContent(uiLocale, s, 400),
             ),
           ),
         ),
@@ -122,37 +106,37 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Center(
-            child: OpticWordmark(height: _isTV ? 40 : 52),
+          const Center(
+            child: OpticWordmark(height: 52),
           ),
-          SizedBox(height: _isTV ? 12 : 32),
+          const SizedBox(height: 32),
           Text(
             s.loginTitle,
             textAlign: TextAlign.center,
             style: AppTheme.withRabarIfKurdish(
               uiLocale,
-              TextStyle(
-                fontSize: _isTV ? 18 : 24,
+              const TextStyle(
+                fontSize: 24,
                 fontWeight: FontWeight.bold,
                 color: Colors.white,
                 letterSpacing: -0.5,
               ),
             ),
           ),
-          SizedBox(height: _isTV ? 4 : 12),
+          const SizedBox(height: 12),
           Text(
             s.loginSubtitle,
             textAlign: TextAlign.center,
             style: AppTheme.withRabarIfKurdish(
               uiLocale,
               TextStyle(
-                fontSize: _isTV ? 12 : 15,
+                fontSize: 15,
                 color: Colors.white.withOpacity(0.6),
                 height: 1.4,
               ),
             ),
           ),
-          SizedBox(height: _isTV ? 20 : 48),
+          const SizedBox(height: 48),
           _buildInputField(s),
           const SizedBox(height: 24),
           SizedBox(
@@ -166,7 +150,6 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(16),
                 ),
-                side: _isTV ? const BorderSide(color: Colors.white, width: 2) : null,
               ),
               child: _busy
                   ? const SizedBox(
@@ -196,36 +179,6 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   }
 
   Widget _buildInputField(AppStrings s) {
-    if (_isTV) {
-      return Material(
-        color: const Color(0xFF1C2430),
-        borderRadius: BorderRadius.circular(16),
-        clipBehavior: Clip.antiAlias,
-        child: InkWell(
-          onTap: () => _showTvKeyboardDialog(s),
-          focusNode: _codeFocus,
-          autofocus: true,
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
-            child: Row(
-              children: [
-                const Icon(Icons.vpn_key_rounded, color: AppTheme.primaryGold, size: 24),
-                const SizedBox(width: 20),
-                Expanded(
-                  child: Text(
-                    _codeController.text.isEmpty ? s.loginHint : '●' * _codeController.text.length,
-                    style: _loginTextStyle(context, opacity: _codeController.text.isEmpty ? 0.35 : 1)
-                        .copyWith(fontSize: 18, letterSpacing: 2),
-                  ),
-                ),
-                const Icon(Icons.keyboard_alt_outlined, color: Colors.white24, size: 22),
-              ],
-            ),
-          ),
-        ),
-      );
-    }
-
     return Container(
       height: 60,
       decoration: BoxDecoration(
@@ -254,84 +207,4 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       ),
     );
   }
-
-  void _showTvKeyboardDialog(AppStrings s) {
-    showDialog(
-      context: context,
-      barrierColor: Colors.black.withOpacity(0.85),
-      builder: (context) {
-        return StatefulBuilder(
-          builder: (context, setDialogState) {
-            return Dialog(
-              backgroundColor: Colors.transparent,
-              child: ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: 800),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    // Preview box
-                    Container(
-                      padding: const EdgeInsets.all(24),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFF151A22),
-                        borderRadius: BorderRadius.circular(20),
-                        border: Border.all(color: AppTheme.primaryGold.withOpacity(0.5)),
-                      ),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          const Icon(Icons.password_rounded, color: AppTheme.primaryGold),
-                          const SizedBox(width: 16),
-                          Text(
-                            _codeController.text.isEmpty
-                                ? 'Enter code...'
-                                : '●' * _codeController.text.length,
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 28,
-                              letterSpacing: 4,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(height: 24),
-                    // The Keyboard
-                    Directionality(
-                      textDirection: TextDirection.ltr,
-                      child: TvLoginKeyboard(
-                        onCharacter: (c) {
-                          if (_codeController.text.length < 64) {
-                            setDialogState(() => _codeController.text += c);
-                            setState(() {}); // Sync main UI
-                          }
-                        },
-                        onBackspace: () {
-                          if (_codeController.text.isNotEmpty) {
-                            setDialogState(() => _codeController.text =
-                                _codeController.text.substring(0, _codeController.text.length - 1));
-                            setState(() {}); // Sync main UI
-                          }
-                        },
-                        onClear: () {
-                          setDialogState(() => _codeController.clear());
-                          setState(() {}); // Sync main UI
-                        },
-                        onDone: () {
-                          Navigator.pop(context);
-                          _submit(s);
-                        },
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            );
-          },
-        );
-      },
-    );
-  }
-
 }

@@ -7,7 +7,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart' hide TextDirection;
 import 'package:media_kit/media_kit.dart';
 import 'package:media_kit_video/media_kit_video.dart';
-import 'package:video_player/video_player.dart' as vp;
 
 import '../../core/theme.dart';
 import '../../widgets/channel_logo_image.dart';
@@ -17,7 +16,6 @@ import '../../providers/app_locale_provider.dart';
 import '../../providers/channel_library_provider.dart';
 import '../../services/playlist_service.dart';
 import '../../services/settings_service.dart';
-import '../../providers/is_tv_provider.dart';
 
 class PlayerScreen extends ConsumerStatefulWidget {
   final List<Channel> channels;
@@ -42,9 +40,6 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
   Player? _player;
   VideoController? _controller;
   
-  // Native (video_player / ExoPlayer)
-  vp.VideoPlayerController? _vpController;
-
   late int _index;
   late String _selectedGroup;
   AppSettingsData _settings = const AppSettingsData();
@@ -56,7 +51,6 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
   Duration _duration = Duration.zero;
   bool _controlsVisible = true;
   Timer? _hideTimer;
-  bool _tvSidebarVisible = false;
   bool _isPlaying = true; // Most streams auto-play upon open
 
   final List<StreamSubscription<dynamic>> _subscriptions = [];
@@ -110,48 +104,36 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
     if (!mounted) return;
     setState(() => _settings = s);
     _ensureClockTimer();
-    await _initializeEngine();
+    await _initPlayer();
   }
 
-  Future<void> _initializeEngine() async {
-    // Dispose previous if any (unlikely in initState but good for re-init)
-    await _disposeExistingEngines();
-
-    if (_settings.playerEngine == PlayerEngine.native) {
-      await _initNativeExo();
-    } else {
-      await _initMpv();
-    }
-  }
-
-  Future<void> _disposeExistingEngines() async {
-    for (final s in _subscriptions) {
-      s.cancel();
-    }
+  Future<void> _initPlayer() async {
+    for (final s in _subscriptions) s.cancel();
     _subscriptions.clear();
     
-    final oldMpv = _player;
-    final oldVp = _vpController;
-    
+    final old = _player;
     _player = null;
     _controller = null;
-    _vpController = null;
+    await old?.dispose();
 
-    await oldMpv?.dispose();
-    await oldVp?.dispose();
-  }
-
-  Future<void> _initMpv() async {
     final p = Player(configuration: const PlayerConfiguration());
     _player = p;
 
     if (p.platform is NativePlayer) {
       final native = p.platform as NativePlayer;
-      await native.setProperty('hwdec', 'mediacodec');
+      // PERFORMANCE & QUALITY UPGRADES
+      await native.setProperty('hwdec', 'mediacodec'); // Hardware acceleration
+      await native.setProperty('profile', 'high-quality'); // Premium scaling/rendering
+      await native.setProperty('cache', 'yes'); // Enable caching
+      await native.setProperty('demuxer-max-bytes', '1000MiB'); // Buffer 1GB for stability
+      await native.setProperty('demuxer-max-back-bytes', '200MiB');
+      await native.setProperty('demuxer-readahead-secs', '45'); // Pre-buffer 45s
+      await native.setProperty('cache-secs', '60'); // Keep 60s in RAM
+      await native.setProperty('vd-lavc-threads', '4'); // Multi-threaded video decoding
+      await native.setProperty('ad-lavc-threads', '2'); // Multi-threaded audio
+      await native.setProperty('opengl-pbo', 'yes'); // Fast pixel buffer transfers
+      await native.setProperty('hr-seek', 'yes'); // High-resolution seeking
       await native.setProperty('video-sync', 'display-resample');
-      await native.setProperty('profile', 'high-quality');
-      await native.setProperty('demuxer-max-bytes', '500MiB');
-      await native.setProperty('demuxer-max-back-bytes', '100MiB');
     }
 
     _controller = VideoController(
@@ -179,33 +161,6 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
     await p.open(Media(_current.url));
   }
 
-  Future<void> _initNativeExo() async {
-    final vp.VideoPlayerController vpc = vp.VideoPlayerController.networkUrl(Uri.parse(_current.url));
-    _vpController = vpc;
-
-    setState(() => _buffering = true);
-
-    try {
-      await vpc.initialize();
-      if (!mounted) return;
-      
-      vpc.addListener(() {
-        if (!mounted) return;
-        setState(() {
-          _position = vpc.value.position;
-          _duration = vpc.value.duration;
-          _buffering = vpc.value.isBuffering || !vpc.value.isInitialized;
-          _isPlaying = vpc.value.isPlaying;
-        });
-      });
-
-      await vpc.play();
-      if (_muted) await vpc.setVolume(0);
-    } catch (e) {
-      debugPrint('Native Player Error: $e');
-    }
-  }
-
   void _ensureClockTimer() {
     _clockTimer?.cancel();
     if (_settings.showOnScreenClock) {
@@ -222,18 +177,15 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
       s.cancel();
     }
     _player?.dispose();
-    _vpController?.dispose();
     super.dispose();
   }
 
   Future<void> _toggleMute() async {
     if (_muted) {
       await _player?.setVolume(100);
-      await _vpController?.setVolume(1.0);
       setState(() => _muted = false);
     } else {
       await _player?.setVolume(0);
-      await _vpController?.setVolume(0);
       setState(() => _muted = true);
     }
   }
@@ -246,34 +198,16 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
       _buffering = true;
     });
     
-    if (_settings.playerEngine == PlayerEngine.native) {
-      _initNativeExo();
-    } else {
-      _player?.open(Media(_current.url));
-    }
-    
+    _player?.open(Media(_current.url));
     ref.read(recentChannelsProvider.notifier).record(_current);
   }
 
   Future<void> _toggleFullscreen() async {
-    if (_settings.playerEngine == PlayerEngine.native) {
-      // video_player doesn't have a built-in fullscreen toggle like media_kit_video
-      // For now, we rely on double-tap logic or just skip it if it's too complex for MVP
-      return; 
-    }
     await _videoKey.currentState?.toggleFullscreen();
   }
 
   Future<void> _playPause() async {
-    if (_settings.playerEngine == PlayerEngine.native) {
-      if (_vpController?.value.isPlaying == true) {
-        await _vpController?.pause();
-      } else {
-        await _vpController?.play();
-      }
-    } else {
-      await _player?.playOrPause();
-    }
+    await _player?.playOrPause();
     _showControls();
   }
 
@@ -286,11 +220,7 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
   }
 
   Future<void> _seekTo(Duration absolute) async {
-    if (_settings.playerEngine == PlayerEngine.native) {
-      await _vpController?.seekTo(absolute);
-    } else {
-      await _player?.seek(absolute);
-    }
+    await _player?.seek(absolute);
   }
 
   Future<void> _seekRelative(Duration offset) async {
@@ -320,242 +250,163 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
     final topPad = MediaQuery.paddingOf(context).top;
     final bottomPad = MediaQuery.paddingOf(context).bottom;
 
-    final isTv = ref.watch(isTvProvider).asData?.value ?? false;
-
-    return Focus(
-      autofocus: true,
-      onKeyEvent: (node, event) {
-        if (!isTv) return KeyEventResult.ignored;
-        if (event is KeyDownEvent) {
-          // 1. Handle Sidebar Toggle (LEFT)
-          if (event.logicalKey == LogicalKeyboardKey.arrowLeft && !_tvSidebarVisible) {
-            setState(() => _tvSidebarVisible = true);
-            return KeyEventResult.handled;
-          }
-
-          // 2. Handle Sidebar Close (RIGHT or BACK while open)
-          if (_tvSidebarVisible) {
-            if (event.logicalKey == LogicalKeyboardKey.arrowRight ||
-                event.logicalKey == LogicalKeyboardKey.escape || 
-                event.logicalKey == LogicalKeyboardKey.browserBack ||
-                event.logicalKey == LogicalKeyboardKey.backspace) {
-              setState(() => _tvSidebarVisible = false);
-              return KeyEventResult.handled;
-            }
-          }
-
-          // 3. Handle Up/Down Zapping (When Sidebar and Controls are closed)
-          if (!_tvSidebarVisible && !_controlsVisible) {
-            if (event.logicalKey == LogicalKeyboardKey.arrowUp) {
-              // User specified: UP to next channel
-              if (_index < widget.channels.length - 1) {
-                _selectChannelByIndex(_index + 1);
-              } else {
-                _selectChannelByIndex(0); // Loop to start
-              }
-              return KeyEventResult.handled;
-            }
-            if (event.logicalKey == LogicalKeyboardKey.arrowDown) {
-              // User specified: DOWN to previous channel
-              if (_index > 0) {
-                _selectChannelByIndex(_index - 1);
-              } else {
-                _selectChannelByIndex(widget.channels.length - 1); // Loop to end
-              }
-              return KeyEventResult.handled;
-            }
-          }
-          
-          // 4. Show controls on OK (Select/Enter)
-          if (!_controlsVisible && (event.logicalKey == LogicalKeyboardKey.select || event.logicalKey == LogicalKeyboardKey.enter)) {
-            _showControls();
-            return KeyEventResult.handled;
-          }
-        }
-        return KeyEventResult.ignored;
-      },
-      child: Scaffold(
-        backgroundColor: AppTheme.backgroundBlack,
-        body: Stack(
-          children: [
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
+    return Scaffold(
+      backgroundColor: AppTheme.backgroundBlack,
+      body: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          // Header
+          Padding(
+            padding: EdgeInsets.fromLTRB(16, topPad + 8, 16, 6),
+            child: Row(
               children: [
-                if (!isTv) ...[
-                  // Keep mobile header
-                  Padding(
-                    padding: EdgeInsets.fromLTRB(16, topPad + 8, 16, 6),
+                Expanded(
+                  child: Text(
+                    _current.name,
+                    style: AppTheme.withRabarIfKurdish(
+                      uiLocale,
+                      const TextStyle(
+                        color: Colors.white,
+                        fontSize: 22,
+                        fontWeight: FontWeight.w700,
+                        letterSpacing: -0.3,
+                      ),
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+                IconButton(
+                  padding: EdgeInsets.zero,
+                  constraints: const BoxConstraints(minWidth: 40, minHeight: 40),
+                  tooltip: isFav ? s.unfavoriteChannel : s.favoriteChannel,
+                  icon: Icon(
+                    isFav ? Icons.star_rounded : Icons.star_border_rounded,
+                    color: AppTheme.primaryGold,
+                    size: 26,
+                  ),
+                  onPressed: () => ref.read(favoritesProvider.notifier).toggle(_current),
+                ),
+              ],
+            ),
+          ),
+          Expanded(
+            child: Stack(
+              fit: StackFit.expand,
+              children: [
+                GestureDetector(
+                  onTap: () {
+                    _playPause();
+                    _showControls();
+                  },
+                  onDoubleTap: _toggleFullscreen,
+                  child: _controller != null
+                      ? Video(
+                          key: _videoKey,
+                          controller: _controller!,
+                          controls: NoVideoControls,
+                          wakelock: _settings.keepScreenOnWhilePlaying,
+                          fit: _settings.videoFit,
+                          fill: const Color(0xFF000000),
+                          filterQuality: FilterQuality.high,
+                        )
+                      : const SizedBox.shrink(),
+                ),
+                IgnorePointer(
+                  child: DecoratedBox(
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: Alignment.topCenter,
+                        end: Alignment.bottomCenter,
+                        colors: [
+                          Colors.black.withOpacity(0.45),
+                          Colors.transparent,
+                          Colors.transparent,
+                          Colors.black.withOpacity(0.55),
+                        ],
+                        stops: const [0, 0.25, 0.65, 1],
+                      ),
+                    ),
+                  ),
+                ),
+                
+                // Shared Overlays
+                if (_showEngineSplash) _buildEngineSplash(),
+                if (_buffering) _buildBufferingIndicator(),
+                
+                // Movie Controls (Bottom bar)
+                if (_isMovie) _buildMovieControlsOverlay(),
+
+                // Back Button
+                if (_controlsVisible)
+                  Positioned(
+                    top: 20,
+                    left: 20,
+                    child: Material(
+                      color: Colors.black.withOpacity(0.45),
+                      borderRadius: BorderRadius.circular(12),
+                      clipBehavior: Clip.antiAlias,
+                      child: InkWell(
+                        onTap: () => Navigator.pop(context),
+                        child: const Padding(
+                          padding: EdgeInsets.all(12),
+                          child: Icon(Icons.arrow_back_rounded, color: Colors.white, size: 24),
+                        ),
+                      ),
+                    ),
+                  ),
+                
+                // Secondary Controls (Top Right)
+                if (_controlsVisible)
+                  Positioned(
+                    top: 20,
+                    right: 20,
                     child: Row(
+                      mainAxisSize: MainAxisSize.min,
                       children: [
-                        Expanded(
-                          child: Text(
-                            _current.name,
-                            style: AppTheme.withRabarIfKurdish(
-                              uiLocale,
-                              const TextStyle(
+                        // Mute
+                        Material(
+                          color: Colors.black.withOpacity(0.45),
+                          borderRadius: BorderRadius.circular(12),
+                          clipBehavior: Clip.antiAlias,
+                          child: InkWell(
+                            onTap: () => setState(() => _muted = !_muted),
+                            child: Padding(
+                              padding: const EdgeInsets.all(12),
+                              child: Icon(
+                                _muted ? Icons.volume_off_rounded : Icons.volume_up_rounded,
                                 color: Colors.white,
-                                fontSize: 22,
-                                fontWeight: FontWeight.w700,
-                                letterSpacing: -0.3,
+                                size: 24,
                               ),
                             ),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
                           ),
                         ),
-                        IconButton(
-                          padding: EdgeInsets.zero,
-                          constraints: const BoxConstraints(minWidth: 40, minHeight: 40),
-                          tooltip: isFav ? s.unfavoriteChannel : s.favoriteChannel,
-                          icon: Icon(
-                            isFav ? Icons.star_rounded : Icons.star_border_rounded,
-                            color: AppTheme.primaryGold,
-                            size: 26,
+                        const SizedBox(width: 12),
+                        // Fullscreen
+                        Material(
+                          color: Colors.black.withOpacity(0.45),
+                          borderRadius: BorderRadius.circular(12),
+                          clipBehavior: Clip.antiAlias,
+                          child: InkWell(
+                            onTap: _toggleFullscreen,
+                            child: const Padding(
+                              padding: const EdgeInsets.all(12),
+                              child: Icon(Icons.fullscreen_rounded, color: Colors.white, size: 24),
+                            ),
                           ),
-                          onPressed: () => ref.read(favoritesProvider.notifier).toggle(_current),
                         ),
                       ],
                     ),
                   ),
-                ],
-                Expanded(
-                  child: Stack(
-                    fit: StackFit.expand,
-                    children: [
-                      GestureDetector(
-                        onTap: () {
-                          _playPause();
-                          _showControls();
-                        },
-                        onDoubleTap: _toggleFullscreen,
-                        child: _settings.playerEngine == PlayerEngine.native
-                            ? (_vpController != null && _vpController!.value.isInitialized
-                                ? vp.VideoPlayer(_vpController!)
-                                : const SizedBox.shrink())
-                            : (_controller != null
-                                ? Video(
-                                    key: _videoKey,
-                                    controller: _controller!,
-                                    controls: NoVideoControls,
-                                    wakelock: _settings.keepScreenOnWhilePlaying,
-                                    fit: _settings.videoFit,
-                                    fill: const Color(0xFF000000),
-                                    filterQuality: FilterQuality.high,
-                                  )
-                                : const SizedBox.shrink()),
-                      ),
-                      if (!isTv) // Mobile gradients/controls
-                        IgnorePointer(
-                          child: DecoratedBox(
-                            decoration: BoxDecoration(
-                              gradient: LinearGradient(
-                                begin: Alignment.topCenter,
-                                end: Alignment.bottomCenter,
-                                colors: [
-                                  Colors.black.withOpacity(0.45),
-                                  Colors.transparent,
-                                  Colors.transparent,
-                                  Colors.black.withOpacity(0.55),
-                                ],
-                                stops: const [0, 0.25, 0.65, 1],
-                              ),
-                            ),
-                          ),
-                        ),
-                      
-                      // Shared Overlays
-                      if (_showEngineSplash) _buildEngineSplash(),
-                      if (_buffering) _buildBufferingIndicator(),
-                      
-                      // Movie Controls (Bottom bar)
-                      if (_isMovie) _buildMovieControlsOverlay(),
-
-                      // Back Button (TV/Mobile friendly)
-                      if (!isTv || _controlsVisible)
-                        Positioned(
-                          top: 20,
-                          left: 20,
-                          child: Material(
-                            color: Colors.black.withOpacity(0.45),
-                            borderRadius: BorderRadius.circular(12),
-                            clipBehavior: Clip.antiAlias,
-                            child: InkWell(
-                              onTap: () => Navigator.pop(context),
-                              child: const Padding(
-                                padding: EdgeInsets.all(12),
-                                child: Icon(Icons.arrow_back_rounded, color: Colors.white, size: 24),
-                              ),
-                            ),
-                          ),
-                        ),
-                      
-                      // Secondary Controls (Top Right)
-                      if (!isTv || _controlsVisible)
-                        Positioned(
-                          top: 20,
-                          right: 20,
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              // Mute
-                              Material(
-                                color: Colors.black.withOpacity(0.45),
-                                borderRadius: BorderRadius.circular(12),
-                                clipBehavior: Clip.antiAlias,
-                                child: InkWell(
-                                  onTap: () => setState(() => _muted = !_muted),
-                                  child: Padding(
-                                    padding: const EdgeInsets.all(12),
-                                    child: Icon(
-                                      _muted ? Icons.volume_off_rounded : Icons.volume_up_rounded,
-                                      color: Colors.white,
-                                      size: 24,
-                                    ),
-                                  ),
-                                ),
-                              ),
-                              const SizedBox(width: 12),
-                              // Fullscreen
-                              Material(
-                                color: Colors.black.withOpacity(0.45),
-                                borderRadius: BorderRadius.circular(12),
-                                clipBehavior: Clip.antiAlias,
-                                child: InkWell(
-                                  onTap: _toggleFullscreen,
-                                  child: const Padding(
-                                    padding: EdgeInsets.all(12),
-                                    child: Icon(Icons.fullscreen_rounded, color: Colors.white, size: 24),
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                    ],
-                  ),
-                ),
-                if (!isTv) // Mobile lists
-                  Expanded(
-                    child: _isMovie
-                        ? _buildRelatedMovies(uiLocale, s, bottomPad)
-                        : _buildMobileChannelLists(uiLocale, s, bottomPad),
-                  ),
               ],
             ),
-
-            // TV SIDEBAR OVERLAY
-            if (isTv && _tvSidebarVisible)
-              Positioned(
-                left: 0,
-                top: 0,
-                bottom: 0,
-                child: FocusScope(
-                  autofocus: true,
-                  child: _buildTvChannelSidebar(uiLocale, s),
-                ),
-              ),
-          ],
-        ),
+          ),
+          Expanded(
+            child: _isMovie
+                ? _buildRelatedMovies(uiLocale, s, bottomPad)
+                : _buildMobileChannelLists(uiLocale, s, bottomPad),
+          ),
+        ],
       ),
     );
   }
@@ -729,12 +580,6 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
     );
   }
 
-  Widget _buildTvChannelSidebar(Locale uiLocale, AppStrings s) {
-    return Container(
-      width: 320,
-      decoration: BoxDecoration(
-        color: Colors.black.withOpacity(0.9),
-        border: const Border(right: BorderSide(color: AppTheme.primaryGold, width: 2)),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withOpacity(0.5),

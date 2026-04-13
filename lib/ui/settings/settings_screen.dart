@@ -256,19 +256,6 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                   color: AppTheme.surfaceGray,
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                   child: SwitchListTile(
-                    title: Text(s.tvLayoutTitle),
-                    subtitle: Text(s.tvLayoutSub),
-                    value: _data.tvFriendlyLayout,
-                    activeTrackColor: AppTheme.primaryGold.withOpacity(0.45),
-                    activeColor: AppTheme.primaryGold,
-                    onChanged: (v) => _apply(_data.copyWith(tvFriendlyLayout: v)),
-                  ),
-                ),
-                const SizedBox(height: 8),
-                Card(
-                  color: AppTheme.surfaceGray,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                  child: SwitchListTile(
                     title: Text(s.reduceMotionTitle),
                     subtitle: Text(s.reduceMotionSub),
                     value: _data.reduceMotion,
@@ -322,43 +309,6 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                     activeTrackColor: AppTheme.primaryGold.withOpacity(0.45),
                     activeColor: AppTheme.primaryGold,
                     onChanged: (v) => _apply(_data.copyWith(showOnScreenClock: v)),
-                  ),
-                ),
-                const SizedBox(height: 24),
-                Text(
-                  s.engineTitle,
-                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                        color: AppTheme.primaryGold,
-                        fontWeight: FontWeight.bold,
-                      ),
-                ),
-                const SizedBox(height: 8),
-                Text(s.engineSubTitle, style: TextStyle(color: Colors.white.withOpacity(0.45), fontSize: 13)),
-                const SizedBox(height: 12),
-                Card(
-                  color: AppTheme.surfaceGray,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                  child: Column(
-                    children: [
-                      RadioListTile<PlayerEngine>(
-                        value: PlayerEngine.mpv,
-                        groupValue: _data.playerEngine,
-                        activeColor: AppTheme.primaryGold,
-                        title: Text(s.enginePremiumTitle),
-                        onChanged: (v) {
-                          if (v != null) _apply(_data.copyWith(playerEngine: v));
-                        },
-                      ),
-                      RadioListTile<PlayerEngine>(
-                        value: PlayerEngine.native,
-                        groupValue: _data.playerEngine,
-                        activeColor: AppTheme.primaryGold,
-                        title: Text(s.engineNativeTitle),
-                        onChanged: (v) {
-                          if (v != null) _apply(_data.copyWith(playerEngine: v));
-                        },
-                      ),
-                    ],
                   ),
                 ),
                 const SizedBox(height: 24),

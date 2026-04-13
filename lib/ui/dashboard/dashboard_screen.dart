@@ -19,9 +19,6 @@ import '../player/player_screen.dart';
 import '../settings/settings_screen.dart';
 import '../sport/sport_scores_screen.dart';
 import '../../services/tmdb_service.dart';
-import '../../providers/is_tv_provider.dart';
-import 'tv_dashboard_screen.dart';
-import 'tv_channel_manager_screen.dart';
 
 /// Hidden admin portal password.
 const String _kAdminPortalPassword = 'hamakoye99';
@@ -321,44 +318,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     final recent = ref.watch(recentChannelsProvider);
     final channelsAsync = ref.watch(channelsProvider);
     final settings = ref.watch(appUiSettingsProvider).asData?.value ?? const AppSettingsData();
-    final isTvDevice = ref.watch(isTvProvider).asData?.value ?? false;
-    final tv = settings.tvFriendlyLayout || isTvDevice;
-    final animMs = settings.reduceMotion ? 100 : 220;
-    final pad = tv ? 24.0 : 16.0;
     final portrait = MediaQuery.orientationOf(context) == Orientation.portrait;
-
-    if (isTvDevice && _tvHomeActive) {
-      return TVDashboardScreen(
-        onOpenLiveTv: () {
-          channelsAsync.whenData((channels) {
-            final live = channels.where((c) => !_isMovieChannel(c)).toList();
-            if (live.isEmpty) return;
-            Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (context) => TVChannelManagerScreen(allChannels: live),
-              ),
-            );
-          });
-        },
-        onOpenMovies: () {
-          channelsAsync.whenData((channels) {
-            final movies = channels.where(_isMovieChannel).toList();
-            if (movies.isEmpty) return;
-            Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (context) => TVChannelManagerScreen(
-                  allChannels: movies,
-                  isMovies: true,
-                ),
-              ),
-            );
-          });
-        },
-        onOpenSettings: _openSettings,
-      );
-    }
 
     return Scaffold(
       backgroundColor: AppTheme.backgroundBlack,
@@ -373,8 +333,8 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                 return _buildDashboardShell(
                   context,
                   s,
-                  pad,
-                  tv,
+                  16.0,
+                  false,
                   _buildEmptyState(
                     s,
                     title: s.noChannels,
@@ -390,15 +350,15 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
               // Sport tab: show live scores widget instead of channel grid.
               if (_navIndex == 2) {
                 return _buildDashboardShell(
-                  context, s, pad, tv, const SportScoresScreen(),
+                  context, s, 16.0, false, const SportScoresScreen(),
                 );
               }
 
               return _buildDashboardShell(
                 context,
                 s,
-                pad,
-                tv,
+                16.0,
+                false,
                 filtered.isEmpty
                     ? _buildEmptyState(
                         s,
@@ -424,23 +384,23 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                         filtered,
                         groups,
                         settings,
-                        animMs,
-                        pad,
+                        settings.reduceMotion ? 100 : 220,
+                        16.0,
                       ),
               );
             },
             loading: () => _buildDashboardShell(
               context,
               s,
-              pad,
-              tv,
+              16.0,
+              false,
               const Center(child: CircularProgressIndicator(color: _accent)),
             ),
             error: (e, _) => _buildDashboardShell(
               context,
               s,
-              pad,
-              tv,
+              16.0,
+              false,
               Center(
                 child: Text(
                   '${s.channelLoadError}: $e',
@@ -705,8 +665,8 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     int animMs,
     double pad,
   ) {
-    final tv = settings.tvFriendlyLayout;
-    final crossCount = tv ? 4 : 4;
+    const tv = false;
+    const crossCount = 4;
     final slideChannels = filteredFlat.take(5).toList();
 
     return CustomScrollView(
@@ -721,7 +681,6 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
               child: _FeaturedCarousel(
                 slides: slideChannels,
                 s: s,
-                tv: tv,
                 animMs: animMs,
                 gradientPreset: settings.gradientPreset,
                 reduceMotion: settings.reduceMotion,
@@ -738,7 +697,6 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
               entry.key,
               entry.value,
               crossCount,
-              tv,
               animMs,
               pad,
             ),
@@ -749,21 +707,15 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     );
   }
 
-  Widget _buildGroupSection(
-    BuildContext context,
-    AppStrings s,
-    List<Channel> allChannels,
-    String title,
     List<Channel> sectionChannels,
     int crossCount,
-    bool tv,
     int animMs,
     double pad,
   ) {
     final isMovie = _navIndex == 1;
-    final titleSize = tv ? 18.0 : 16.0;
+    const titleSize = 16.0;
     return Padding(
-      padding: EdgeInsets.only(left: pad, right: pad, top: tv ? 20 : 16, bottom: 8),
+      padding: EdgeInsets.only(left: pad, right: pad, top: 16, bottom: 8),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -799,23 +751,19 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
             ),
             itemCount: sectionChannels.length,
             itemBuilder: (context, index) => isMovie
-                ? _buildMovieTile(context, s, allChannels, sectionChannels[index], tv, animMs)
-                : _buildGridChannelTile(context, s, allChannels, sectionChannels[index], tv, animMs),
+                ? _buildMovieTile(context, s, allChannels, sectionChannels[index], animMs)
+                : _buildGridChannelTile(context, s, allChannels, sectionChannels[index], animMs),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildGridChannelTile(
-    BuildContext context,
-    AppStrings s,
     List<Channel> allChannels,
     Channel channel,
-    bool tv,
     int animMs,
   ) {
-    final logoSize = tv ? 26.0 : 22.0;
+    const logoSize = 22.0;
     const kTileRadius = 16.0;
     return Focus(
       child: Builder(
@@ -859,7 +807,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                         channel.name,
                         style: AppTheme.withRabarIfKurdish(
                           s.locale,
-                          TextStyle(fontSize: tv ? 11 : 10, color: Colors.white.withOpacity(0.78)),
+                          TextStyle(fontSize: 10, color: Colors.white.withOpacity(0.78)),
                         ),
                         overflow: TextOverflow.ellipsis,
                         maxLines: 2,
@@ -878,12 +826,8 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
 
   /// Larger poster-style tile for Movies. The logo/poster fills
   /// the card and the title sits on a gradient strip at the bottom.
-  Widget _buildMovieTile(
-    BuildContext context,
-    AppStrings s,
     List<Channel> allChannels,
     Channel channel,
-    bool tv,
     int animMs,
   ) {
     const kTileRadius = 18.0;
@@ -927,10 +871,10 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                           width: double.infinity,
                           height: double.infinity,
                           fit: BoxFit.cover,
-                          fallback: _movieFallback(tv),
+                          fallback: _movieFallback(),
                         )
                       else
-                        _movieFallback(tv),
+                        _movieFallback(),
                       // Gradient overlay bottom
                       Positioned.fill(
                         child: DecoratedBox(
@@ -952,8 +896,8 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                       // Play icon center
                       Center(
                         child: Container(
-                          width: tv ? 48 : 40,
-                          height: tv ? 48 : 40,
+                          width: 40,
+                          height: 40,
                           decoration: BoxDecoration(
                             color: Colors.black.withOpacity(0.45),
                             shape: BoxShape.circle,
@@ -962,7 +906,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                           child: Icon(
                             Icons.play_arrow_rounded,
                             color: Colors.white.withOpacity(0.85),
-                            size: tv ? 28 : 22,
+                            size: 22,
                           ),
                         ),
                       ),
@@ -976,7 +920,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                           style: AppTheme.withRabarIfKurdish(
                             s.locale,
                             TextStyle(
-                              fontSize: tv ? 13 : 12,
+                              fontSize: 12,
                               fontWeight: FontWeight.w700,
                               color: Colors.white,
                               shadows: [
@@ -999,13 +943,13 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     );
   }
 
-  Widget _movieFallback(bool tv) {
+  Widget _movieFallback() {
     return Container(
       color: const Color(0xFF1C2430),
       child: Center(
         child: Icon(
           Icons.movie_rounded,
-          size: tv ? 48 : 40,
+          size: 40,
           color: AppTheme.primaryGold.withOpacity(0.2),
         ),
       ),
@@ -1244,7 +1188,6 @@ class _FeaturedCarousel extends StatefulWidget {
   const _FeaturedCarousel({
     required this.slides,
     required this.s,
-    required this.tv,
     required this.animMs,
     required this.gradientPreset,
     required this.reduceMotion,
@@ -1253,7 +1196,6 @@ class _FeaturedCarousel extends StatefulWidget {
 
   final List<Channel> slides;
   final AppStrings s;
-  final bool tv;
   final int animMs;
   final AppGradientPreset gradientPreset;
   final bool reduceMotion;
@@ -1328,12 +1270,11 @@ class _FeaturedCarouselState extends State<_FeaturedCarousel> {
   @override
   Widget build(BuildContext context) {
     final s = widget.s;
-    final tv = widget.tv;
-    final logoBlock = tv ? 86.0 : 78.0;
+    const logoBlock = 78.0;
     final textDir = s.locale.languageCode == 'ckb' ? TextDirection.rtl : TextDirection.ltr;
 
     return Container(
-      height: tv ? 210 : 196,
+      height: 196,
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(20),
         gradient: AppTheme.featuredHeroGradient(widget.gradientPreset),
@@ -1352,7 +1293,7 @@ class _FeaturedCarouselState extends State<_FeaturedCarousel> {
           Positioned(
             right: -20,
             bottom: 20,
-            child: Icon(Icons.live_tv_rounded, size: tv ? 96 : 108, color: Colors.black.withOpacity(0.07)),
+            child: Icon(Icons.live_tv_rounded, size: 108, color: Colors.black.withOpacity(0.07)),
           ),
           Column(
             children: [
@@ -1390,12 +1331,12 @@ class _FeaturedCarouselState extends State<_FeaturedCarousel> {
                                       TextStyle(
                                         color: Colors.white.withOpacity(0.58),
                                         fontWeight: FontWeight.w800,
-                                        fontSize: tv ? 11.5 : 10.5,
+                                        fontSize: 10.5,
                                         letterSpacing: 0.3,
                                       ),
                                     ),
                                   ),
-                                  SizedBox(height: tv ? 6 : 5),
+                                  const SizedBox(height: 5),
                                   Text(
                                     s.featuredNewHint,
                                     maxLines: 3,
@@ -1404,13 +1345,13 @@ class _FeaturedCarouselState extends State<_FeaturedCarousel> {
                                       s.locale,
                                       TextStyle(
                                         color: Colors.white.withOpacity(0.72),
-                                        fontSize: tv ? 12.5 : 11.5,
+                                        fontSize: 11.5,
                                         height: 1.35,
                                         fontWeight: FontWeight.w500,
                                       ),
                                     ),
                                   ),
-                                  SizedBox(height: tv ? 8 : 6),
+                                  const SizedBox(height: 6),
                                   Text(
                                     ch.name,
                                     maxLines: 2,
@@ -1418,7 +1359,7 @@ class _FeaturedCarouselState extends State<_FeaturedCarousel> {
                                     style: AppTheme.withRabarIfKurdish(
                                       s.locale,
                                       TextStyle(
-                                        fontSize: tv ? 17 : 16,
+                                        fontSize: 16,
                                         fontWeight: FontWeight.w800,
                                         color: Colors.white,
                                         height: 1.15,
@@ -1435,7 +1376,7 @@ class _FeaturedCarouselState extends State<_FeaturedCarousel> {
                                         foregroundColor: Colors.black,
                                         elevation: 2,
                                         shadowColor: AppTheme.accentTeal.withOpacity(0.5),
-                                        padding: EdgeInsets.symmetric(horizontal: tv ? 22 : 18, vertical: 11),
+                                        padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 11),
                                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                                       ),
                                       child: Text(

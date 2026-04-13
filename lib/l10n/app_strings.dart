@@ -59,17 +59,8 @@ class AppStrings {
   String get clockTitle => isEnglish ? 'Clock in player' : 'کاتژمێر لە پلەیەر';
   String get clockSub => isEnglish ? 'Time in top bar' : 'پیشاندانی کات لە شریتی سەرەوە';
   
-  String get engineTitle => isEnglish ? 'Player engine' : 'ماتۆڕی پەخشکەر';
-  String get enginePremiumTitle => isEnglish ? 'Premium (mpv)' : 'پریمیۆم (mpv)';
-  String get engineNativeTitle => isEnglish ? 'Native (ExoPlayer)' : 'بنەڕەتی (ExoPlayer)';
-  String get engineSubTitle => isEnglish 
-      ? 'Native is recommended for Android TV hardware stability' 
-      : 'شێوازی بنەڕەتی پێشنیار دەکرێت بۆ جێگیری لەسەر ئەندرۆید تیڤی';
   String get videoFitCaption =>
       isEnglish ? 'How video fills the screen' : 'چۆنیەتی گونجاندنی ڤیدیۆ لەسەر شاشە';
-  String get tvLayoutTitle => isEnglish ? 'TV-friendly spacing' : 'شێوازی گونجاو بۆ تیڤی';
-  String get tvLayoutSub =>
-      isEnglish ? 'Larger rows for remote / D-pad' : 'بەکارهێنانی ڕیزبەندی گەورەتر بۆ کۆنترۆڵ';
   String get reduceMotionTitle => isEnglish ? 'Reduce motion' : 'کەمکردنەوەی جوڵە';
   String get reduceMotionSub => isEnglish ? 'Shorter animations' : 'بەکارهێنانی جوڵەی کورتتر';
   String get logoutTitle => isEnglish ? 'Sign out' : 'چوونەدەرەوە';
