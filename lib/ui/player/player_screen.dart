@@ -312,7 +312,6 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
                       },
                     );
                   },
-                  },
                 ),
               ),
             ],
@@ -383,7 +382,7 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
                     onButtonCreated: (controller) {
                       // Session management handled via onSessionStarted
                     },
-                    onSessionStarted: (controller) => controller.loadMedia(_current.url),
+                    onSessionStarted: () => _player?.play(), // Simpler robust callback
                   ),
                 ),
                 const SizedBox(width: 8),
@@ -1017,12 +1016,14 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
                             fontWeight: selected ? FontWeight.bold : FontWeight.normal,
                             fontSize: 14,
                           ),
+                        ),
                         onTap: () {
                           _selectChannelByIndex(widget.channels.indexOf(c));
                           setState(() => _showMiniGuide = false);
                         },
                       );
                     },
+                  ),
                 ),
               ],
             ),
