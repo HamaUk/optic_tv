@@ -8,7 +8,6 @@ import 'package:intl/intl.dart' hide TextDirection;
 import 'package:media_kit/media_kit.dart';
 import 'package:media_kit_video/media_kit_video.dart';
 import 'package:simple_pip_mode/simple_pip.dart';
-import 'package:flutter_cast_video/flutter_cast_video.dart';
 import 'dart:ui' show ImageFilter;
 
 import '../../core/theme.dart';
@@ -373,17 +372,6 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
                   tooltip: isFav ? s.unfavoriteChannel : s.favoriteChannel,
                   color: AppTheme.primaryGold,
                   onTap: () => ref.read(favoritesProvider.notifier).toggle(_current),
-                ),
-                const SizedBox(width: 8),
-                SizedBox(
-                  width: 44,
-                  height: 44,
-                  child: ChromeCastButton(
-                    onButtonCreated: (controller) {
-                      // Session management handled via onSessionStarted
-                    },
-                    onSessionStarted: () => _player?.play(), // Simpler robust callback
-                  ),
                 ),
                 const SizedBox(width: 8),
                 PlayerControlButton(
