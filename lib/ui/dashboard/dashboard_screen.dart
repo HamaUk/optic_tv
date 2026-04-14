@@ -342,45 +342,27 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
   @override
   Widget build(BuildContext context) {
     final s = AppStrings(ref.watch(appLocaleProvider));
-    final favorites = ref.watch(favoritesProvider);
-    final recent = ref.watch(recentChannelsProvider);
-    final channelsAsync = ref.watch(channelsProvider);
     final settings = ref.watch(appUiSettingsProvider).asData?.value ?? const AppSettingsData();
     final portrait = MediaQuery.orientationOf(context) == Orientation.portrait;
+    final channelsAsync = ref.watch(channelsProvider);
 
-    return Scaffold(
-      backgroundColor: AppTheme.backgroundBlack,
-      body: Container(
-        decoration: BoxDecoration(
-          gradient: AppTheme.shellGradient(settings.gradientPreset),
-        ),
-        child: SafeArea(
-          child: channelsAsync.when(
-            data: (channels) {
-              if (channels.isEmpty) {
-                return _buildDashboardShell(
-                  context,
-                  s,
-                  16.0,
-                  false,
-                  _buildEmptyState(
-                    s,
-                    title: s.noChannels,
-    return ref.watch(playlistProvider).when(
+    return channelsAsync.when(
       data: (channels) {
         final favorites = ref.watch(favoritesProvider);
         final recent = ref.watch(recentChannelsProvider);
-        final filtered = _applySearch(
-          _channelsForNav(channels, favorites, recent),
-        );
+        
+        final filteredForNav = _channelsForNav(channels, favorites, recent);
+        final filtered = _applySearch(filteredForNav);
         final groups = _groupMap(filtered);
 
         // Sport tab: show live scores widget instead of channel grid.
         if (_navIndex == 2) {
           return Scaffold(
             backgroundColor: AppTheme.backgroundBlack,
-            body: DynamicBackground(
-              imageUrl: null, // Sport screen has its own theme
+            body: Container(
+              decoration: BoxDecoration(
+                gradient: AppTheme.shellGradient(settings.gradientPreset),
+              ),
               child: SafeArea(
                 bottom: false,
                 child: _buildDashboardShell(
@@ -925,6 +907,8 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
             ),
             child: Material(
               color: Colors.transparent,
+              child: InkWell(
+                borderRadius: BorderRadius.circular(kTileRadius),
                 onTap: () {
                   Navigator.push(
                     context,

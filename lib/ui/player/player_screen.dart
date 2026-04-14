@@ -9,6 +9,7 @@ import 'package:media_kit/media_kit.dart';
 import 'package:media_kit_video/media_kit_video.dart';
 import 'package:simple_pip_mode/simple_pip.dart';
 import 'package:flutter_cast_video/flutter_cast_video.dart';
+import 'dart:ui' show ImageFilter;
 
 import '../../core/theme.dart';
 import '../../widgets/channel_logo_image.dart';
@@ -49,7 +50,6 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
   Timer? _clockTimer;
   bool _muted = false;
   bool _showMiniGuide = false;
-  late final VideoController _videoKey = VideoController();
   bool _showEngineSplash = true;
   bool _buffering = true;
   Duration _position = Duration.zero;
@@ -304,14 +304,14 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
                       trailing: selected ? const Icon(Icons.check_circle_rounded, color: AppTheme.accentTeal) : null,
                       onTap: () {
                         if (isAudio) {
-                          _player!.setAudioTrack(t);
+                           _player!.setAudioTrack(t as AudioTrack);
                         } else {
-                          _player!.setSubtitleTrack(t);
+                           _player!.setSubtitleTrack(t as SubtitleTrack);
                         }
-                        Navigator.pop(ctx);
-                        setState(() {});
+                        Navigator.pop(context);
                       },
                     );
+                  },
                   },
                 ),
               ),
@@ -381,9 +381,7 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
                   height: 44,
                   child: ChromeCastButton(
                     onButtonCreated: (controller) {
-                      controller.addSessionListener(ChromeCastSessionListener(
-                        onSessionStarted: () => controller.loadMedia(_current.url),
-                      ));
+                      // Session management handled via onSessionStarted
                     },
                     onSessionStarted: (controller) => controller.loadMedia(_current.url),
                   ),
@@ -1019,16 +1017,12 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
                             fontWeight: selected ? FontWeight.bold : FontWeight.normal,
                             fontSize: 14,
                           ),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
                         onTap: () {
                           _selectChannelByIndex(widget.channels.indexOf(c));
                           setState(() => _showMiniGuide = false);
                         },
                       );
                     },
-                  ),
                 ),
               ],
             ),

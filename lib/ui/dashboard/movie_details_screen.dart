@@ -1,11 +1,11 @@
-import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import 'dart:ui' show ImageFilter;
 import '../../core/theme.dart';
-import '../../models/channel.dart';
+import '../../services/playlist_service.dart';
 import '../../services/tmdb_service.dart';
-import '../../providers/favorites_provider.dart';
+import '../../providers/channel_library_provider.dart';
 import '../player/player_screen.dart';
 
 class MovieDetailsScreen extends ConsumerStatefulWidget {
@@ -68,7 +68,7 @@ class _MovieDetailsScreenState extends ConsumerState<MovieDetailsScreen> {
       MaterialPageRoute(
         builder: (_) => PlayerScreen(
           channels: widget.allChannels,
-          index: widget.allChannels.indexOf(widget.channel),
+          initialIndex: widget.allChannels.indexOf(widget.channel),
         ),
       ),
     );
@@ -253,7 +253,7 @@ class _MovieDetailsScreenState extends ConsumerState<MovieDetailsScreen> {
               color: isFavorite ? Colors.redAccent : Colors.white,
             ),
             onPressed: () {
-              ref.read(favoritesProvider.notifier).toggleFavorite(widget.channel);
+              ref.read(favoritesProvider.notifier).toggle(widget.channel);
             },
           ),
         ),
