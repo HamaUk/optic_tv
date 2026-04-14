@@ -48,9 +48,10 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
   AppSettingsData _settings = const AppSettingsData();
   Timer? _clockTimer;
   bool _muted = false;
-  bool _showMiniGuide = false;
   bool _showEngineSplash = true;
-  bool _buffering = true;
+  /// Full-screen loading overlay only after sustained stalls (avoids flicker on fast joins).
+  bool _showBufferingOverlay = false;
+  Timer? _bufferingOverlayTimer;
   Duration _position = Duration.zero;
   Duration _duration = Duration.zero;
   bool _controlsVisible = true;
@@ -111,6 +112,61 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
     await _initPlayer();
   }
 
+  /// mpv tuning: live IPTV needs more read-ahead and patient HTTP timeouts; VOD keeps large file cache + seek.
+  Future<void> _configureNativePlayer(NativePlayer native, {required bool isVod}) async {
+    Future<void> safe(String key, String value) async {
+      try {
+        await native.setProperty(key, value);
+      } catch (_) {/* option may be absent on some libmpv builds */}
+    }
+
+    await safe('hwdec', 'mediacodec');
+    await safe('opengl-pbo', 'yes');
+    await safe('vd-lavc-threads', '4');
+    await safe('ad-lavc-threads', '2');
+    await safe('video-sync', 'display-resample');
+
+    if (isVod) {
+      await safe('profile', 'high-quality');
+      await safe('cache', 'yes');
+      await safe('demuxer-max-bytes', '1000MiB');
+      await safe('demuxer-max-back-bytes', '200MiB');
+      await safe('demuxer-readahead-secs', '45');
+      await safe('cache-secs', '60');
+      await safe('hr-seek', 'yes');
+      await safe('network-timeout', '90');
+    } else {
+      await safe('profile', 'high-quality');
+      await safe('cache', 'yes');
+      await safe('cache-pause', 'yes');
+      await safe('demuxer-max-bytes', '400MiB');
+      await safe('demuxer-max-back-bytes', '48MiB');
+      await safe('demuxer-readahead-secs', '120');
+      await safe('cache-secs', '120');
+      await safe('network-timeout', '120');
+      await safe('force-seekable', 'no');
+      await safe('hr-seek', 'no');
+      await safe(
+        'demuxer-lavf-o',
+        'reconnect=1,reconnect_streamed=1,reconnect_delay_max=15',
+      );
+    }
+  }
+
+  void _onPlayerBuffering(bool buffering) {
+    _bufferingOverlayTimer?.cancel();
+    if (!buffering) {
+      if (_showBufferingOverlay && mounted) {
+        setState(() => _showBufferingOverlay = false);
+      }
+      return;
+    }
+    _bufferingOverlayTimer = Timer(const Duration(milliseconds: 800), () {
+      if (!mounted) return;
+      setState(() => _showBufferingOverlay = true);
+    });
+  }
+
   Future<void> _initPlayer() async {
     for (final s in _subscriptions) s.cancel();
     _subscriptions.clear();
@@ -126,20 +182,7 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
     _player = p;
 
     if (p.platform is NativePlayer) {
-      final native = p.platform as NativePlayer;
-      // PERFORMANCE & QUALITY UPGRADES
-      await native.setProperty('hwdec', 'mediacodec'); // Hardware acceleration
-      await native.setProperty('profile', 'high-quality'); // Premium scaling/rendering
-      await native.setProperty('cache', 'yes'); // Enable caching
-      await native.setProperty('demuxer-max-bytes', '1000MiB'); // Buffer 1GB for stability
-      await native.setProperty('demuxer-max-back-bytes', '200MiB');
-      await native.setProperty('demuxer-readahead-secs', '45'); // Pre-buffer 45s
-      await native.setProperty('cache-secs', '60'); // Keep 60s in RAM
-      await native.setProperty('vd-lavc-threads', '4'); // Multi-threaded video decoding
-      await native.setProperty('ad-lavc-threads', '2'); // Multi-threaded audio
-      await native.setProperty('opengl-pbo', 'yes'); // Fast pixel buffer transfers
-      await native.setProperty('hr-seek', 'yes'); // High-resolution seeking
-      await native.setProperty('video-sync', 'display-resample');
+      await _configureNativePlayer(p.platform as NativePlayer, isVod: _isMovie);
     }
 
     _controller = VideoController(
@@ -151,9 +194,7 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
       if (mounted && v > 0 && _muted) setState(() => _muted = false);
       if (mounted && v == 0 && !_muted) setState(() => _muted = true);
     }));
-    _subscriptions.add(p.stream.buffering.listen((b) {
-      if (mounted) setState(() => _buffering = b);
-    }));
+    _subscriptions.add(p.stream.buffering.listen(_onPlayerBuffering));
     _subscriptions.add(p.stream.position.listen((pos) {
       if (mounted) setState(() => _position = pos);
     }));
@@ -179,6 +220,7 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
   @override
   void dispose() {
     _clockTimer?.cancel();
+    _bufferingOverlayTimer?.cancel();
     for (final s in _subscriptions) {
       s.cancel();
     }
@@ -201,11 +243,18 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
     setState(() {
       _index = fullListIndex;
       _selectedGroup = widget.channels[_index].group;
-      _buffering = true;
     });
-    
-    _player?.open(Media(_current.url));
     ref.read(recentChannelsProvider.notifier).record(_current);
+    unawaited(_reopenCurrentStream());
+  }
+
+  Future<void> _reopenCurrentStream() async {
+    final p = _player;
+    if (p == null) return;
+    if (p.platform is NativePlayer) {
+      await _configureNativePlayer(p.platform as NativePlayer, isVod: _isMovie);
+    }
+    await p.open(Media(_current.url));
   }
 
   Future<void> _toggleFullscreen() async {
@@ -233,26 +282,6 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
     final target = _position + offset;
     final clamped = target < Duration.zero ? Duration.zero : (target > _duration ? _duration : target);
     await _seekTo(clamped);
-  }
-
-  void _zapNext() {
-    final list = _channelsInSelectedGroup.isEmpty ? widget.channels : _channelsInSelectedGroup;
-    final currentIndexInList = list.indexWhere((c) => c.url == _current.url);
-    if (currentIndexInList == -1) return;
-    
-    final nextIndex = (currentIndexInList + 1) % list.length;
-    _selectChannelByIndex(widget.channels.indexOf(list[nextIndex]));
-    _showControls();
-  }
-
-  void _zapPrevious() {
-    final list = _channelsInSelectedGroup.isEmpty ? widget.channels : _channelsInSelectedGroup;
-    final currentIndexInList = list.indexWhere((c) => c.url == _current.url);
-    if (currentIndexInList == -1) return;
-    
-    final prevIndex = (currentIndexInList - 1 + list.length) % list.length;
-    _selectChannelByIndex(widget.channels.indexOf(list[prevIndex]));
-    _showControls();
   }
 
   Future<void> _enterPiP() async {
@@ -373,24 +402,26 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
                   color: AppTheme.primaryGold,
                   onTap: () => ref.read(favoritesProvider.notifier).toggle(_current),
                 ),
-                const SizedBox(width: 8),
-                PlayerControlButton(
-                  icon: Icons.picture_in_picture_alt_rounded,
-                  tooltip: 'Picture-in-Picture',
-                  onTap: _enterPiP,
-                ),
-                const SizedBox(width: 8),
-                PlayerControlButton(
-                  icon: Icons.audiotrack_rounded,
-                  tooltip: 'Audio Tracks',
-                  onTap: () => _showTrackSelection(true),
-                ),
-                const SizedBox(width: 8),
-                PlayerControlButton(
-                  icon: Icons.closed_caption_rounded,
-                  tooltip: 'Subtitles',
-                  onTap: () => _showTrackSelection(false),
-                ),
+                if (_isMovie) ...[
+                  const SizedBox(width: 8),
+                  PlayerControlButton(
+                    icon: Icons.picture_in_picture_alt_rounded,
+                    tooltip: 'Picture-in-Picture',
+                    onTap: _enterPiP,
+                  ),
+                  const SizedBox(width: 8),
+                  PlayerControlButton(
+                    icon: Icons.audiotrack_rounded,
+                    tooltip: 'Audio Tracks',
+                    onTap: () => _showTrackSelection(true),
+                  ),
+                  const SizedBox(width: 8),
+                  PlayerControlButton(
+                    icon: Icons.closed_caption_rounded,
+                    tooltip: 'Subtitles',
+                    onTap: () => _showTrackSelection(false),
+                  ),
+                ],
               ],
             ),
           ),
@@ -436,15 +467,13 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
                 
                 // Shared Overlays
                 if (_showEngineSplash) _buildEngineSplash(),
-                if (_buffering) _buildBufferingIndicator(),
+                if (_showBufferingOverlay) _buildBufferingIndicator(),
                 
                 // Dynamic Overlays
                 if (_isMovie) 
                   _buildMovieControlsOverlay()
                 else 
                   _buildLiveTvControlsOverlay(),
-
-                if (_showMiniGuide) _buildMiniGuideOverlay(),
 
                 // Back Button
                 if (_controlsVisible)
@@ -878,68 +907,24 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
             ),
           ),
 
-          // Center: Zap Buttons
-          Center(
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                PlayerControlButton(
-                  icon: Icons.keyboard_arrow_left_rounded,
-                  size: 60,
-                  onTap: _zapPrevious,
-                  tooltip: 'Previous Channel',
-                ),
-                const SizedBox(width: 60),
-                PlayerControlButton(
-                  icon: Icons.keyboard_arrow_right_rounded,
-                  size: 60,
-                  onTap: _zapNext,
-                  tooltip: 'Next Channel',
-                ),
-              ],
-            ),
-          ),
-
-          // Bottom Bar: Program Info
+          // Bottom bar: pill-style info + PiP / audio / subtitles (matches reference layout)
           Align(
             alignment: Alignment.bottomCenter,
             child: Container(
-              padding: const EdgeInsets.fromLTRB(24, 60, 24, 32),
+              padding: const EdgeInsets.fromLTRB(16, 48, 16, 24),
               decoration: BoxDecoration(
                 gradient: LinearGradient(
                   begin: Alignment.bottomCenter,
                   end: Alignment.topCenter,
-                  colors: [Colors.black.withOpacity(0.9), Colors.transparent],
+                  colors: [Colors.black.withOpacity(0.92), Colors.transparent],
                 ),
               ),
               child: Row(
+                crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
-                  const Icon(Icons.info_outline_rounded, color: AppTheme.primaryGold, size: 20),
+                  Expanded(child: _buildLiveTvNowPlayingPill()),
                   const SizedBox(width: 12),
-                  Expanded(
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Text(
-                          'Now Playing',
-                          style: TextStyle(color: Colors.white54, fontSize: 12, fontWeight: FontWeight.bold),
-                        ),
-                        Text(
-                          _current.name,
-                          style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  PlayerControlButton(
-                    icon: Icons.list_alt_rounded,
-                    isToggle: true,
-                    toggled: _showMiniGuide,
-                    onTap: () => setState(() => _showMiniGuide = !_showMiniGuide),
-                    tooltip: 'Mini Guide',
-                  ),
+                  _buildLiveTvBottomActionPill(),
                 ],
               ),
             ),
@@ -949,72 +934,102 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
     );
   }
 
-  Widget _buildMiniGuideOverlay() {
-    return Positioned(
-      right: 0,
-      top: 0,
-      bottom: 0,
-      width: 260,
+  /// Dark frosted capsule like the reference player — grouped controls in one pill.
+  Widget _buildLiveTvBottomActionPill() {
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(28),
+      child: BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 14, sigmaY: 14),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 6),
+          decoration: BoxDecoration(
+            color: Colors.black.withOpacity(0.52),
+            borderRadius: BorderRadius.circular(28),
+            border: Border.all(color: Colors.white.withOpacity(0.14), width: 1),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              _liveTvPillIconButton(
+                icon: Icons.picture_in_picture_alt_rounded,
+                tooltip: 'Picture-in-Picture',
+                onTap: _enterPiP,
+              ),
+              _liveTvPillIconButton(
+                icon: Icons.audiotrack_rounded,
+                tooltip: 'Audio tracks',
+                onTap: () => _showTrackSelection(true),
+              ),
+              _liveTvPillIconButton(
+                icon: Icons.closed_caption_rounded,
+                tooltip: 'Subtitles',
+                onTap: () => _showTrackSelection(false),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildLiveTvNowPlayingPill() {
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(28),
+      child: BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 14, sigmaY: 14),
+        child: Container(
+          padding: const EdgeInsets.fromLTRB(14, 10, 14, 10),
+          decoration: BoxDecoration(
+            color: Colors.black.withOpacity(0.52),
+            borderRadius: BorderRadius.circular(28),
+            border: Border.all(color: Colors.white.withOpacity(0.14), width: 1),
+          ),
+          child: Row(
+            children: [
+              const Icon(Icons.info_outline_rounded, color: AppTheme.primaryGold, size: 20),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Now Playing',
+                      style: TextStyle(color: Colors.white.withOpacity(0.45), fontSize: 11, fontWeight: FontWeight.w600),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      _current.name,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w700),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _liveTvPillIconButton({
+    required IconData icon,
+    required String tooltip,
+    required VoidCallback onTap,
+  }) {
+    return Tooltip(
+      message: tooltip,
       child: Material(
-        color: Colors.black.withOpacity(0.85),
-        child: BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-          child: Container(
-            decoration: BoxDecoration(
-              border: Border(left: BorderSide(color: Colors.white.withOpacity(0.1))),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(16, 40, 16, 16),
-                  child: Row(
-                    children: [
-                      const Icon(Icons.list_rounded, color: AppTheme.primaryGold, size: 20),
-                      const SizedBox(width: 10),
-                      const Text(
-                        'Guide',
-                        style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
-                      ),
-                      const Spacer(),
-                      IconButton(
-                        icon: const Icon(Icons.close_rounded, color: Colors.white54),
-                        onPressed: () => setState(() => _showMiniGuide = false),
-                      ),
-                    ],
-                  ),
-                ),
-                Expanded(
-                  child: ListView.builder(
-                    padding: const EdgeInsets.only(bottom: 24),
-                    itemCount: _channelsInSelectedGroup.length,
-                    itemBuilder: (context, i) {
-                      final c = _channelsInSelectedGroup[i];
-                      final selected = c.url == _current.url;
-                      return ListTile(
-                        selected: selected,
-                        selectedTileColor: AppTheme.primaryGold.withOpacity(0.1),
-                        leading: selected 
-                          ? const Icon(Icons.play_arrow_rounded, color: AppTheme.primaryGold)
-                          : const SizedBox(width: 24),
-                        title: Text(
-                          c.name,
-                          style: TextStyle(
-                            color: selected ? AppTheme.primaryGold : Colors.white70,
-                            fontWeight: selected ? FontWeight.bold : FontWeight.normal,
-                            fontSize: 14,
-                          ),
-                        ),
-                        onTap: () {
-                          _selectChannelByIndex(widget.channels.indexOf(c));
-                          setState(() => _showMiniGuide = false);
-                        },
-                      );
-                    },
-                  ),
-                ),
-              ],
-            ),
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: onTap,
+          customBorder: const CircleBorder(),
+          child: SizedBox(
+            width: 44,
+            height: 44,
+            child: Icon(icon, color: Colors.white, size: 22),
           ),
         ),
       ),
