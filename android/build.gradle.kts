@@ -28,8 +28,22 @@ subprojects {
     afterEvaluate {
         if (plugins.hasPlugin("com.android.application") || plugins.hasPlugin("com.android.library")) {
             val android = extensions.findByName("android") as? com.android.build.gradle.BaseExtension
-            if (android != null && android.namespace.isNullOrEmpty()) {
-                android.namespace = project.group.toString()
+            if (android != null) {
+                if (android.namespace.isNullOrEmpty()) {
+                    android.namespace = project.group.toString()
+                }
+                android.compileOptions {
+                    sourceCompatibility = JavaVersion.VERSION_17
+                    targetCompatibility = JavaVersion.VERSION_17
+                }
+                (android as? org.gradle.api.plugins.ExtensionAware)?.extensions?.findByName("kotlinOptions")?.let { kotlinOptions ->
+                    try {
+                        val setJvmTarget = kotlinOptions.javaClass.getMethod("setJvmTarget", String::class.java)
+                        setJvmTarget.invoke(kotlinOptions, "17")
+                    } catch (e: Exception) {
+                        // Fallback or ignore if not available
+                    }
+                }
             }
         }
     }
