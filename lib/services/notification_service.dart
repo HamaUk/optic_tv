@@ -121,7 +121,7 @@ class NotificationService {
           'high_importance_channel',
           'High Importance Notifications',
           channelDescription: 'This channel is used for important notifications.',
-          icon: '@mipmap/ic_launcher',
+          icon: '@drawable/ic_notification',
           largeIcon: largeIconBitmap,
           importance: Importance.high,
           priority: Priority.high,
@@ -162,7 +162,7 @@ class NotificationService {
     }
 
     const AndroidInitializationSettings initializationSettingsAndroid =
-        AndroidInitializationSettings('@mipmap/ic_launcher');
+        AndroidInitializationSettings('@drawable/ic_notification');
 
     // Currently defaulting to iOS settings if ever building for iOS
     const InitializationSettings initializationSettings =
@@ -216,7 +216,7 @@ class NotificationService {
             'high_importance_channel',
             'High Importance Notifications',
             channelDescription: 'This channel is used for important notifications.',
-            icon: '@mipmap/ic_launcher',
+            icon: '@drawable/ic_notification',
             importance: Importance.high,
             priority: Priority.high,
           ),
