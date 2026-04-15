@@ -123,15 +123,15 @@ class _SportScoresScreenState extends State<SportScoresScreen> {
   }
 
   Widget _buildDateTabs() {
-    // Generate dates dynamically based on current selected index or just relative to now
-    final KurdishLabels = ['دوێنێ', 'ئەمڕۆ', 'سبەی', 'دووشەممە', 'سێشەممە', 'چوارشەممە', 'پێنجشەممە'];
+    // Generate dates dynamically
+    final labels = ['دوێنێ', 'ئەمڕۆ', 'سبەی', 'دووشەممە', 'سێشەممە', 'چوارشەممە', 'پێنجشەممە'];
     
     return SizedBox(
       height: 50,
       child: ListView.builder(
         scrollDirection: Axis.horizontal,
         padding: const EdgeInsets.symmetric(horizontal: 16),
-        itemCount: KurdishLabels.length,
+        itemCount: labels.length,
         itemBuilder: (context, i) {
           final active = _selectedDateIndex == i;
           return GestureDetector(
@@ -148,7 +148,7 @@ class _SportScoresScreenState extends State<SportScoresScreen> {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Text(
-                    KurdishLabels[i],
+                    labels[i],
                     style: TextStyle(
                       color: active ? Colors.white : Colors.white24,
                       fontWeight: active ? FontWeight.w900 : FontWeight.w600,

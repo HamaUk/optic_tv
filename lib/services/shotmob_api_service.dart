@@ -38,10 +38,12 @@ class ShotMobApiService {
         .build());
 
       _socket?.onConnect((_) {
-        log('ShotMob WebSocket Connected - Subscribing to highlights');
-        // Subscribe to global live highlights to get real-time score updates
+        log('ShotMob WebSocket Connected - Subscribing precisely as per LIVE_SCORES.md');
+        // Correct subscription format from local SportAPI_Core/LIVE_SCORES.md
         _socket?.emit('subscribe', {
-          'topics': ['live', 'matches', 'score_updates']
+          'data': {
+            'topics': ['score', 'events']
+          }
         });
       });
       
@@ -49,14 +51,14 @@ class ShotMobApiService {
       _socket?.onDisconnect((_) => log('WebSocket Disconnected'));
 
       _socket?.on('score_update', (data) {
-        log('WebSocket: score_update received');
+        log('WebSocket: score_update received: $data');
         if (data is Map<String, dynamic>) {
           _updateController.add(ShotMatch.fromJson(data));
         }
       });
 
       _socket?.on('match_update', (data) {
-        log('WebSocket: match_update received');
+        log('WebSocket: match_update received: $data');
         if (data is Map<String, dynamic>) {
           _updateController.add(ShotMatch.fromJson(data));
         }
@@ -71,72 +73,36 @@ class ShotMobApiService {
     final dateStr = date == 'today' ? DateFormat('yyyy-MM-dd').format(DateTime.now()) : date;
     
     try {
-      // 1. Try to get a global list if supported
-      final res = await _dio.get('/league/list/games', queryParameters: {'date': dateStr});
-      if (res.data is List && (res.data as List).isNotEmpty) {
-        return (res.data as List)
-            .map((e) => ShotMatch.fromJson(e as Map<String, dynamic>))
-            .toList();
+      // 1. Discovery: Get all active leagues from the core API
+      final leagueRes = await _dio.get('/league/list');
+      if (leagueRes.data is List) {
+        final List<ShotMatch> allGames = [];
+        final List leagues = leagueRes.data;
+
+        // 2. Iterative Fetch: Pull games only for active leagues
+        // This ensures the data is 100% real and dynamically named by the server.
+        await Future.wait(leagues.take(15).map((league) async {
+          try {
+            final lId = league['id'];
+            final gRes = await _dio.get('/league/list/games', queryParameters: {
+              'leagueId': lId,
+              'date': dateStr,
+            });
+            if (gRes.data is List) {
+              allGames.addAll((gRes.data as List).map((e) => ShotMatch.fromJson(e as Map<String, dynamic>)));
+            }
+          } catch (_) {}
+        }));
+
+        if (allGames.isNotEmpty) return allGames;
       }
-
-      // 2. Fallback: Fetch from popular leagues known to be active
-      // These IDs are speculative but common in sports APIs; 
-      // in a production app, we'd fetch /league/list first.
-      final popularLeagues = [7, 8, 9, 10, 11, 12]; // Likely IDs for CL, PL, etc.
-      final List<ShotMatch> allMatches = [];
-      
-      await Future.wait(popularLeagues.map((id) async {
-        try {
-          final lRes = await _dio.get('/league/list/games', queryParameters: {
-            'leagueId': id,
-            'date': dateStr,
-          });
-          if (lRes.data is List) {
-            allMatches.addAll((lRes.data as List).map((e) => ShotMatch.fromJson(e as Map<String, dynamic>)));
-          }
-        } catch (_) {}
-      }));
-
-      if (allMatches.isNotEmpty) return allMatches;
     } catch (e) {
-      log('Error fetching matches: $e');
+      log('Error fetching matches dynamically: $e');
     }
 
-    // Keep sample data ONLY as a last resort for UI demonstration
-    return _getSampleMatches(date);
+    // Returning empty list instead of sample data to ensure user only sees what the API actually provides
+    return [];
   }
-
-  List<ShotMatch> _getSampleMatches(String requestedDate) {
-    // Adding a 'Sample' label to distinguish from real data if needed
-    return [
-      ShotMatch(
-        id: 101,
-        status: 'NS',
-        homeTeam: 'بایرن میونشن',
-        awayTeam: 'ریال مەدرید',
-        homeLogo: 'https://v3.football.api-sports.io/teams/157.png',
-        awayLogo: 'https://v3.football.api-sports.io/teams/541.png',
-        scoreHome: 0,
-        scoreAway: 0,
-        stadium: 'Allianz Arena',
-        predictions: '57% / 23% / 20%',
-        matchTime: '20:00',
-        leagueName: 'چامپیۆنزلیگ',
-      ),
-      // ... (rest of sample matches)
-      ShotMatch(
-        id: 102,
-        status: 'LIVE',
-        homeTeam: 'بارسێلۆنا',
-        awayTeam: 'پاریس سان جێرمان',
-        homeLogo: 'https://v3.football.api-sports.io/teams/529.png',
-        awayLogo: 'https://v3.football.api-sports.io/teams/85.png',
-        scoreHome: 2,
-        scoreAway: 1,
-        stadium: 'Camp Nou',
-        predictions: '45% / 20% / 35%',
-        matchTime: '21:00',
-        elapsedTime: '45\'',
         leagueName: 'چامپیۆنزلیگ',
       ),
     ];
