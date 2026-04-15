@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:developer';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
@@ -129,6 +130,15 @@ class NotificationService {
   Future<String> _downloadAndSaveImage(String url, String fileName) async {
     final Directory directory = await getApplicationDocumentsDirectory();
     final String filePath = p.join(directory.path, '$fileName.jpg');
+    
+    if (url.startsWith('data:image')) {
+      final String base64String = url.split(',').last;
+      final bytes = base64Decode(base64String);
+      final File file = File(filePath);
+      await file.writeAsBytes(bytes);
+      return filePath;
+    }
+
     final Response response = await Dio().get(
       url,
       options: Options(responseType: ResponseType.bytes),
