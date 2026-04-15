@@ -258,6 +258,13 @@ class _SportScoresScreenState extends State<SportScoresScreen> {
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
+                if (m.isLive && m.elapsedTime != null) ...[
+                  Text(
+                    m.elapsedTime!,
+                    style: const TextStyle(color: _accent, fontSize: 10, fontWeight: FontWeight.bold),
+                  ),
+                  const SizedBox(height: 2),
+                ],
                 Text(m.isLive ? '${m.scoreHome} - ${m.scoreAway}' : m.matchTime,
                   style: TextStyle(
                     color: m.isLive ? _accent : Colors.white,
@@ -265,7 +272,8 @@ class _SportScoresScreenState extends State<SportScoresScreen> {
                     fontWeight: FontWeight.w900,
                   ),
                 ),
-                Text('PM', style: TextStyle(color: Colors.white24, fontSize: 10, fontWeight: FontWeight.bold)),
+                if (!m.isLive)
+                  const Text('PM', style: TextStyle(color: Colors.white24, fontSize: 10, fontWeight: FontWeight.bold)),
               ],
             ),
           ),
