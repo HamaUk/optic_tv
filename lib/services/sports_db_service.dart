@@ -4,7 +4,7 @@ import 'dart:developer';
 
 /// Service to fetch high-quality team logos from TheSportsDB.
 class SportsDbService {
-  static const String baseUrl = 'https://www.thesportsdb.com/api/v1/json/1';
+  static const String baseUrl = 'https://www.thesportsdb.com/api/v1/json/123';
   static const String testKey = '123'; // Free test key from TheSportsDB
 
   final Dio _dio = Dio();
@@ -34,8 +34,8 @@ class SportsDbService {
           final String? badgeUrl = teams.first['strTeamBadge'];
           
           if (badgeUrl != null && badgeUrl.isNotEmpty) {
-            // Append /preview for better performance in list views
-            final optimizedUrl = '$badgeUrl/preview';
+            // Use documented TheSportsDB image size modifier.
+            final optimizedUrl = '$badgeUrl/small';
             _logoCache[teamName] = optimizedUrl;
             return optimizedUrl;
           }

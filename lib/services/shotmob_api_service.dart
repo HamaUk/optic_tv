@@ -71,37 +71,74 @@ class ShotMobApiService {
   /// Fetch matches for a specific date (YYYY-MM-DD or 'today')
   Future<List<ShotMatch>> getMatches({String date = 'today'}) async {
     final dateStr = date == 'today' ? DateFormat('yyyy-MM-dd').format(DateTime.now()) : date;
-    
+
     try {
-      // 1. Discovery: Get all active leagues from the core API
       final leagueRes = await _dio.get('/league/list');
-      if (leagueRes.data is List) {
-        final List<ShotMatch> allGames = [];
-        final List leagues = leagueRes.data;
+      final leagues = _leaguesFromListResponse(leagueRes.data);
+      if (leagues.isEmpty) return [];
 
-        // 2. Iterative Fetch: Pull games only for active leagues
-        // This ensures the data is 100% real and dynamically named by the server.
-        await Future.wait(leagues.take(15).map((league) async {
-          try {
-            final lId = league['id'];
-            final gRes = await _dio.get('/league/list/games', queryParameters: {
-              'leagueId': lId,
-              'date': dateStr,
-            });
-            if (gRes.data is List) {
-              allGames.addAll((gRes.data as List).map((e) => ShotMatch.fromJson(e as Map<String, dynamic>)));
-            }
-          } catch (_) {}
-        }));
+      final List<ShotMatch> allGames = [];
 
-        if (allGames.isNotEmpty) return allGames;
-      }
+      await Future.wait(leagues.take(15).map((league) async {
+        try {
+          final lId = league['id'];
+          if (lId == null) return;
+          final leagueTitle = league['title']?.toString() ?? 'League';
+          final gRes = await _dio.get('/league/list/games', queryParameters: {
+            'leagueId': lId,
+            'date': dateStr,
+          });
+          allGames.addAll(_matchesFromGamesResponse(gRes.data, fallbackLeagueName: leagueTitle));
+        } catch (e) {
+          log('ShotMob games fetch error (league ${league['id']}): $e');
+        }
+      }));
+
+      return allGames;
     } catch (e) {
       log('Error fetching matches dynamically: $e');
     }
 
-    // Returning empty list instead of sample data to ensure user only sees what the API actually provides
     return [];
+  }
+
+  /// API returns either a raw list or `{ "leagues": [ ... ] }`.
+  List<Map<String, dynamic>> _leaguesFromListResponse(dynamic data) {
+    if (data is List) {
+      return data.whereType<Map>().map((e) => Map<String, dynamic>.from(e)).toList();
+    }
+    if (data is Map && data['leagues'] is List) {
+      return (data['leagues'] as List).whereType<Map>().map((e) => Map<String, dynamic>.from(e)).toList();
+    }
+    return [];
+  }
+
+  /// API returns `{ "leagues": [ { "title", "games": [ ... ] } ] }` or a flat list of match maps.
+  List<ShotMatch> _matchesFromGamesResponse(dynamic data, {required String fallbackLeagueName}) {
+    final out = <ShotMatch>[];
+    if (data is List) {
+      for (final e in data) {
+        if (e is Map) {
+          out.add(ShotMatch.fromJson(Map<String, dynamic>.from(e)));
+        }
+      }
+      return out;
+    }
+    if (data is Map && data['leagues'] is List) {
+      for (final bucket in data['leagues'] as List) {
+        if (bucket is! Map) continue;
+        final b = Map<String, dynamic>.from(bucket);
+        final title = b['title']?.toString() ?? fallbackLeagueName;
+        final games = b['games'];
+        if (games is! List) continue;
+        for (final g in games) {
+          if (g is Map) {
+            out.add(ShotMatch.fromShotMobGame(Map<String, dynamic>.from(g), leagueName: title));
+          }
+        }
+      }
+    }
+    return out;
   }
 
   void dispose() {
@@ -146,9 +183,15 @@ class ShotMatch {
   });
 
   bool get isLive => status.toUpperCase() == 'LIVE' || status.toUpperCase() == 'IN_PLAY';
-  bool get isFinished => status.toUpperCase() == 'FINISHED' || status.toUpperCase() == 'FT';
+  bool get isFinished =>
+      status.toUpperCase() == 'FINISHED' ||
+      status.toUpperCase() == 'FT' ||
+      status.toUpperCase() == 'END';
 
   factory ShotMatch.fromJson(Map<String, dynamic> json) {
+    if (json['homeTeam'] is Map || json['awayTeam'] is Map) {
+      return ShotMatch.fromShotMobGame(json, leagueName: json['league_name'] as String? ?? 'League');
+    }
     return ShotMatch(
       id: json['id'] as int? ?? 0,
       status: json['status'] as String? ?? 'NS',
@@ -165,6 +208,48 @@ class ShotMatch {
       matchTime: json['match_time'] ?? json['start_at'] ?? '',
       elapsedTime: json['elapsed_time'] ?? json['minute']?.toString(), // Map time counter
       leagueName: json['league_name'] ?? 'League',
+    );
+  }
+
+  /// `/league/list/games` nested game row (`homeTeam` / `awayTeam` objects, `homeTeamScore`, etc.).
+  factory ShotMatch.fromShotMobGame(Map<String, dynamic> json, {required String leagueName}) {
+    final homeMap = json['homeTeam'] is Map ? Map<String, dynamic>.from(json['homeTeam'] as Map) : <String, dynamic>{};
+    final awayMap = json['awayTeam'] is Map ? Map<String, dynamic>.from(json['awayTeam'] as Map) : <String, dynamic>{};
+
+    final raw = (json['status'] as String? ?? 'NS').toLowerCase();
+    String status;
+    if (raw == 'end') {
+      status = 'FT';
+    } else if (raw == 'live' || raw == 'in_play' || raw == 'ongoing') {
+      status = 'LIVE';
+    } else {
+      status = (json['status'] as String? ?? 'NS').toUpperCase();
+    }
+
+    final dateStr = json['date'] as String?;
+    var matchTime = '';
+    if (dateStr != null) {
+      try {
+        matchTime = DateFormat('hh:mm a').format(DateTime.parse(dateStr).toLocal());
+      } catch (_) {}
+    }
+
+    return ShotMatch(
+      id: json['id'] as int? ?? 0,
+      status: status,
+      homeTeam: homeMap['name'] as String? ?? 'Home',
+      awayTeam: awayMap['name'] as String? ?? 'Away',
+      homeLogo: homeMap['logo'] as String?,
+      awayLogo: awayMap['logo'] as String?,
+      scoreHome: json['homeTeamScore'] as int? ?? json['score_home'] as int? ?? 0,
+      scoreAway: json['awayTeamScore'] as int? ?? json['score_away'] as int? ?? 0,
+      stadium: json['stadium'] ?? json['venue'],
+      attendance: json['attendance']?.toString(),
+      referee: json['referee']?.toString(),
+      predictions: json['predictions']?.toString(),
+      matchTime: matchTime,
+      elapsedTime: json['minute']?.toString(),
+      leagueName: leagueName,
     );
   }
 }
