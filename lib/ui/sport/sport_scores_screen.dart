@@ -7,8 +7,8 @@ import 'package:intl/intl.dart';
 import '../../core/theme.dart';
 import '../../services/shotmob_api_service.dart';
 
-/// Embedded sport-scores widget upgraded to ShotMob Core API.
-/// Supports real-time WebSocket updates and detailed match analytics.
+/// Upgraded Sport-Scores screen.
+/// Removed hardcoded filters to show all dynamic content from ShotMob API.
 class SportScoresScreen extends StatefulWidget {
   const SportScoresScreen({super.key});
 
@@ -16,33 +16,21 @@ class SportScoresScreen extends StatefulWidget {
   State<SportScoresScreen> createState() => _SportScoresScreenState();
 }
 
-class _SportScoresScreenState extends State<SportScoresScreen>
-    with SingleTickerProviderStateMixin {
+class _SportScoresScreenState extends State<SportScoresScreen> {
   static const _accent = AppTheme.accentTeal;
 
   late final ShotMobApiService _api;
   StreamSubscription? _wsSubscription;
 
-  late TabController _leagueTab;
-  int _dateTab = 0; 
-
-  static const _leagueKeys = ['Premier League', 'La Liga', 'Iraqi League'];
-  final Map<String, List<ShotMatch>> _cache = {};
-  final Map<String, bool> _loading = {};
+  List<ShotMatch> _matches = [];
+  bool _loading = true;
 
   @override
   void initState() {
     super.initState();
     _api = ShotMobApiService();
     
-    _leagueTab = TabController(length: _leagueKeys.length, vsync: this);
-    _leagueTab.addListener(() {
-      if (!_leagueTab.indexIsChanging) {
-        _fetch();
-      }
-    });
-
-    // Listen for real-time WebSocket events (Goals, Match Status)
+    // Listen for real-time WebSocket events
     _wsSubscription = _api.matchUpdates.listen((updatedMatch) {
       if (mounted) {
         _handleRealTimeUpdate(updatedMatch);
@@ -56,48 +44,37 @@ class _SportScoresScreenState extends State<SportScoresScreen>
   void dispose() {
     _wsSubscription?.cancel();
     _api.dispose();
-    _leagueTab.dispose();
     super.dispose();
   }
 
-  String get _currentLeague => _leagueKeys[_leagueTab.index];
-  int get _currentLeagueId => ShotMobApiService.leagueIds[_currentLeague] ?? 7;
-
   Future<void> _fetch() async {
-    final key = _currentLeague;
-    final lid = _currentLeagueId;
-
-    setState(() => _loading[key] = true);
+    setState(() => _loading = true);
 
     try {
-      final list = await _api.getMatches(leagueId: lid);
+      // Fetch matches without specific league filtering for a global view
+      final list = await _api.getMatches();
       
-      // Sort: Live first, then by dateTime
+      // Sort: Live first, then by matchTime
       list.sort((a, b) {
         if (a.isLive && !b.isLive) return -1;
         if (!a.isLive && b.isLive) return 1;
         return a.matchTime.compareTo(b.matchTime);
       });
 
-      _cache[key] = list;
+      _matches = list;
     } catch (_) {
-      _cache[key] ??= [];
+      _matches = [];
     } finally {
-      if (mounted) setState(() => _loading[key] = false);
+      if (mounted) setState(() => _loading = false);
     }
   }
 
   void _handleRealTimeUpdate(ShotMatch update) {
-    // Find and update the match in cache regardless of active league
-    for (final league in _cache.keys) {
-      final list = _cache[league]!;
-      final index = list.indexWhere((m) => m.id == update.id);
-      if (index != -1) {
-        setState(() {
-          _cache[league]![index] = update;
-        });
-        return;
-      }
+    final index = _matches.indexWhere((m) => m.id == update.id);
+    if (index != -1) {
+      setState(() {
+        _matches[index] = update;
+      });
     }
   }
 
@@ -105,61 +82,65 @@ class _SportScoresScreenState extends State<SportScoresScreen>
   Widget build(BuildContext context) {
     return Column(
       children: [
+        _buildHeader(),
         const SizedBox(height: 10),
-        _buildLeagueTabs(),
-        const SizedBox(height: 14),
         Expanded(child: _buildBody()),
       ],
     );
   }
 
-  Widget _buildLeagueTabs() {
+  Widget _buildHeader() {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 14),
-      child: Container(
-        decoration: BoxDecoration(
-          color: AppTheme.surfaceElevated,
-          borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: Colors.white.withOpacity(0.08)),
-        ),
-        child: TabBar(
-          controller: _leagueTab,
-          isScrollable: false,
-          indicatorSize: TabBarIndicatorSize.tab,
-          indicator: BoxDecoration(
-            gradient: LinearGradient(colors: [
-              _accent.withOpacity(0.45),
-              AppTheme.primaryGold.withOpacity(0.25),
-            ]),
-            borderRadius: BorderRadius.circular(12),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+            decoration: BoxDecoration(
+              color: _accent.withOpacity(0.12),
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(color: _accent.withOpacity(0.2)),
+            ),
+            child: Row(
+              children: [
+                const Icon(Icons.flash_on_rounded, color: _accent, size: 14),
+                const SizedBox(width: 6),
+                const Text(
+                  'LIVE & UPCOMING',
+                  style: TextStyle(
+                    color: _accent,
+                    fontSize: 10,
+                    fontWeight: FontWeight.w900,
+                    letterSpacing: 1,
+                  ),
+                ),
+              ],
+            ),
           ),
-          dividerColor: Colors.transparent,
-          labelColor: Colors.white,
-          unselectedLabelColor: Colors.white54,
-          labelStyle: const TextStyle(fontWeight: FontWeight.w700, fontSize: 11),
-          tabs: _leagueKeys.map((name) => Tab(text: name)).toList(),
-        ),
+          const Spacer(),
+          IconButton(
+            icon: const Icon(Icons.refresh_rounded, color: Colors.white54, size: 20),
+            onPressed: _fetch,
+          ),
+        ],
       ),
     );
   }
 
   Widget _buildBody() {
-    final list = _cache[_currentLeague] ?? [];
-    final loading = _loading[_currentLeague] == true;
-
-    if (loading && list.isEmpty) {
+    if (_loading && _matches.isEmpty) {
       return const Center(child: CircularProgressIndicator(color: _accent));
     }
 
-    if (list.isEmpty) {
+    if (_matches.isEmpty) {
       return Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Icon(Icons.sports_soccer_rounded, size: 48, color: Colors.white.withOpacity(0.12)),
             const SizedBox(height: 14),
-            Text('No scheduled matches found', 
-              style: TextStyle(color: Colors.white.withOpacity(0.4), fontSize: 14)),
+            Text('No live matches found', 
+              style: TextStyle(color: Colors.white.withOpacity(0.4), fontSize: 13)),
           ],
         ),
       );
@@ -167,10 +148,10 @@ class _SportScoresScreenState extends State<SportScoresScreen>
 
     return ListView.separated(
       physics: const BouncingScrollPhysics(),
-      padding: const EdgeInsets.fromLTRB(14, 0, 14, 24),
-      itemCount: list.length,
+      padding: const EdgeInsets.fromLTRB(14, 0, 14, 100),
+      itemCount: _matches.length,
       separatorBuilder: (_, __) => const SizedBox(height: 12),
-      itemBuilder: (context, i) => _buildMatchCard(list[i]),
+      itemBuilder: (context, i) => _buildMatchCard(_matches[i]),
     );
   }
 
@@ -179,7 +160,7 @@ class _SportScoresScreenState extends State<SportScoresScreen>
     
     return Container(
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(22),
         color: AppTheme.surfaceElevated,
         border: Border.all(
           color: live ? Colors.redAccent.withOpacity(0.4) : Colors.white.withOpacity(0.06),
@@ -189,18 +170,31 @@ class _SportScoresScreenState extends State<SportScoresScreen>
       padding: const EdgeInsets.all(16),
       child: Column(
         children: [
-          _buildStatusHeader(m),
-          const SizedBox(height: 16),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              _buildLeagueBadge(m.leagueName),
+              _buildStatusHeader(m),
+            ],
+          ),
+          const SizedBox(height: 20),
           _buildTeamsRow(m),
           if (m.predictions != null) ...[
-            const SizedBox(height: 18),
+            const SizedBox(height: 20),
             _buildPredictionBar(m.predictions!),
           ],
           if (m.stadium != null) ...[
-            const SizedBox(height: 12),
-            Text(
-              '🏟️ ${m.stadium}${m.attendance != null ? " • Att: ${m.attendance}" : ""}',
-              style: TextStyle(color: Colors.white24, fontSize: 10, letterSpacing: 0.5),
+            const SizedBox(height: 14),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(Icons.location_on_rounded, size: 10, color: Colors.white.withOpacity(0.15)),
+                const SizedBox(width: 4),
+                Text(
+                  '${m.stadium}${m.attendance != null ? " • Att: ${m.attendance}" : ""}',
+                  style: TextStyle(color: Colors.white24, fontSize: 9, letterSpacing: 0.5),
+                ),
+              ],
             ),
           ],
         ],
@@ -208,25 +202,43 @@ class _SportScoresScreenState extends State<SportScoresScreen>
     );
   }
 
+  Widget _buildLeagueBadge(String name) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        color: Colors.white.withOpacity(0.05),
+        borderRadius: BorderRadius.circular(6),
+      ),
+      child: Text(
+        name.toUpperCase(),
+        style: const TextStyle(
+          color: Colors.white38,
+          fontSize: 8,
+          fontWeight: FontWeight.w900,
+          letterSpacing: 0.5,
+        ),
+      ),
+    );
+  }
+
   Widget _buildStatusHeader(ShotMatch m) {
     final live = m.isLive;
     return Row(
-      mainAxisAlignment: MainAxisAlignment.center,
+      mainAxisSize: MainAxisSize.min,
       children: [
         if (live) ...[
           const _PulseDot(),
-          const SizedBox(width: 8),
-          const Text('LIVE', style: TextStyle(color: Colors.redAccent, fontSize: 11, fontWeight: FontWeight.w900, letterSpacing: 1)),
-          const SizedBox(width: 12),
-        ],
-        Text(
-          live ? 'Match in Progress' : m.isFinished ? 'Final Result' : 'Kickoff ${m.timeDisplay}',
-          style: TextStyle(
-            color: live ? Colors.redAccent : m.isFinished ? _accent : Colors.white54,
-            fontSize: 11,
-            fontWeight: FontWeight.w700,
+          const SizedBox(width: 6),
+          const Text('LIVE', style: TextStyle(color: Colors.redAccent, fontSize: 10, fontWeight: FontWeight.w900)),
+        ] else
+          Text(
+            m.isFinished ? 'FINISHED' : m.timeDisplay,
+            style: TextStyle(
+              color: m.isFinished ? _accent.withOpacity(0.8) : Colors.white54,
+              fontSize: 10,
+              fontWeight: FontWeight.w800,
+            ),
           ),
-        ),
       ],
     );
   }
@@ -238,34 +250,20 @@ class _SportScoresScreenState extends State<SportScoresScreen>
           child: Column(
             children: [
               _teamLogo(m.homeLogo),
-              const SizedBox(height: 8),
-              Text(m.homeTeam, textAlign: TextAlign.center, style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold)),
+              const SizedBox(height: 10),
+              Text(m.homeTeam, textAlign: TextAlign.center, maxLines: 2, overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w800)),
             ],
           ),
         ),
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-          decoration: BoxDecoration(
-            color: Colors.black26,
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: Colors.white10),
-          ),
-          child: Text(
-            '${m.scoreHome} - ${m.scoreAway}',
-            style: TextStyle(
-              color: m.isLive ? Colors.white : Colors.white70,
-              fontSize: 22,
-              fontWeight: FontWeight.w900,
-              letterSpacing: 2,
-            ),
-          ),
-        ),
+        _buildScoreBox(m),
         Expanded(
           child: Column(
             children: [
               _teamLogo(m.awayLogo),
-              const SizedBox(height: 8),
-              Text(m.awayTeam, textAlign: TextAlign.center, style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold)),
+              const SizedBox(height: 10),
+              Text(m.awayTeam, textAlign: TextAlign.center, maxLines: 2, overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w800)),
             ],
           ),
         ),
@@ -273,53 +271,93 @@ class _SportScoresScreenState extends State<SportScoresScreen>
     );
   }
 
+  Widget _buildScoreBox(ShotMatch m) {
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 12),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+      decoration: BoxDecoration(
+        color: m.isLive ? Colors.redAccent.withOpacity(0.08) : Colors.black26,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: m.isLive ? Colors.redAccent.withOpacity(0.2) : Colors.white10),
+      ),
+      child: Text(
+        '${m.scoreHome} - ${m.scoreAway}',
+        style: TextStyle(
+          color: m.isLive ? Colors.white : Colors.white70,
+          fontSize: 24,
+          fontWeight: FontWeight.w900,
+          letterSpacing: 2,
+        ),
+      ),
+    );
+  }
+
   Widget _buildPredictionBar(String raw) {
-    // Expected format: "57% / 23% / 20%"
     final parts = raw.split('/').map((s) => double.tryParse(s.replaceAll('%', '').trim()) ?? 33.3).toList();
     if (parts.length < 3) return const SizedBox.shrink();
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const Text('WIN PROBABILITY', style: TextStyle(color: Colors.white24, fontSize: 8, fontWeight: FontWeight.w900, letterSpacing: 1)),
-        const SizedBox(height: 6),
-        ClipRRect(
-          borderRadius: BorderRadius.circular(4),
-          child: SizedBox(
-            height: 6,
-            child: Row(
-              children: [
-                Expanded(flex: parts[0].round(), child: Container(color: _accent)),
-                const SizedBox(width: 1),
-                Expanded(flex: parts[1].round(), child: Container(color: Colors.white24)),
-                const SizedBox(width: 1),
-                Expanded(flex: parts[2].round(), child: Container(color: AppTheme.primaryGold)),
-              ],
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: Colors.white.withOpacity(0.03),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Text('WIN PROBABILITY', style: TextStyle(color: Colors.white30, fontSize: 8, fontWeight: FontWeight.w900, letterSpacing: 1)),
+              const Spacer(),
+              Text('${parts[0].round()}% - ${parts[1].round()}% - ${parts[2].round()}%', 
+                style: const TextStyle(color: Colors.white12, fontSize: 8, fontWeight: FontWeight.w800)),
+            ],
+          ),
+          const SizedBox(height: 10),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(10),
+            child: SizedBox(
+              height: 4,
+              child: Row(
+                children: [
+                  Expanded(flex: parts[0].round(), child: Container(color: _accent)),
+                  const SizedBox(width: 2),
+                  Expanded(flex: parts[1].round(), child: Container(color: Colors.white12)),
+                  const SizedBox(width: 2),
+                  Expanded(flex: parts[2].round(), child: Container(color: AppTheme.primaryGold)),
+                ],
+              ),
             ),
           ),
-        ),
-        const SizedBox(height: 4),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Text('${parts[0].round()}% Home', style: const TextStyle(color: _accent, fontSize: 9, fontWeight: FontWeight.bold)),
-            Text('${parts[1].round()}% Draw', style: const TextStyle(color: Colors.white38, fontSize: 9)),
-            Text('${parts[2].round()}% Away', style: const TextStyle(color: AppTheme.primaryGold, fontSize: 9, fontWeight: FontWeight.bold)),
-          ],
-        ),
-      ],
+          const SizedBox(height: 8),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(m.homeTeam.split(' ').last, style: const TextStyle(color: _accent, fontSize: 8, fontWeight: FontWeight.bold)),
+              const Text('DRAW', style: TextStyle(color: Colors.white24, fontSize: 8)),
+              Text(m.awayTeam.split(' ').last, style: const TextStyle(color: AppTheme.primaryGold, fontSize: 8, fontWeight: FontWeight.bold)),
+            ],
+          ),
+        ],
+      ),
     );
   }
 
   Widget _teamLogo(String? url) {
     return Container(
-      width: 44,
-      height: 44,
+      width: 48,
+      height: 48,
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.04),
-        shape: BoxShape.circle,
+        color: Colors.white.withOpacity(0.03),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: Colors.white.withOpacity(0.05)),
       ),
-      child: url != null ? CachedNetworkImage(imageUrl: url, fit: BoxFit.contain) : const Icon(Icons.shield, color: Colors.white10),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(12),
+        child: url != null 
+          ? CachedNetworkImage(imageUrl: url, fit: BoxFit.contain, padding: const EdgeInsets.all(6)) 
+          : const Icon(Icons.shield_rounded, color: Colors.white10, size: 24),
+      ),
     );
   }
 }
@@ -341,6 +379,6 @@ class _PulseDotState extends State<_PulseDot> with SingleTickerProviderStateMixi
   void dispose() { _ctrl.dispose(); super.dispose(); }
   @override
   Widget build(BuildContext context) {
-    return FadeTransition(opacity: _ctrl, child: Container(width: 8, height: 8, decoration: const BoxDecoration(color: Colors.redAccent, shape: BoxShape.circle)));
+    return FadeTransition(opacity: _ctrl, child: Container(width: 7, height: 7, decoration: const BoxDecoration(color: Colors.redAccent, shape: BoxShape.circle)));
   }
 }
