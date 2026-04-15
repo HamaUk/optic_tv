@@ -103,10 +103,6 @@ class ShotMobApiService {
     // Returning empty list instead of sample data to ensure user only sees what the API actually provides
     return [];
   }
-        leagueName: 'چامپیۆنزلیگ',
-      ),
-    ];
-  }
 
   void dispose() {
     _socket?.dispose();
