@@ -95,14 +95,17 @@ class NotificationService {
 
   Future<void> _showBroadcastNotification(String title, String body, String? imageUrl) async {
     BigPictureStyleInformation? bigPictureStyleInformation;
+    FilePathAndroidBitmap? largeIconBitmap;
     
     if (imageUrl != null && imageUrl.isNotEmpty) {
       try {
-        final String localPath = await _downloadAndSaveImage(imageUrl, 'notification_img');
+        final String localPath = await _downloadAndSaveImage(imageUrl, 'notification_img_${DateTime.now().millisecondsSinceEpoch}');
+        largeIconBitmap = FilePathAndroidBitmap(localPath);
         bigPictureStyleInformation = BigPictureStyleInformation(
-          FilePathAndroidBitmap(localPath),
+          largeIconBitmap,
           contentTitle: title,
           summaryText: body,
+          largeIcon: largeIconBitmap,
         );
       } catch (e) {
         log('Error downloading notification image: $e');
@@ -119,6 +122,7 @@ class NotificationService {
           'High Importance Notifications',
           channelDescription: 'This channel is used for important notifications.',
           icon: '@mipmap/ic_launcher',
+          largeIcon: largeIconBitmap,
           importance: Importance.high,
           priority: Priority.high,
           styleInformation: bigPictureStyleInformation,
@@ -128,11 +132,15 @@ class NotificationService {
   }
 
   Future<String> _downloadAndSaveImage(String url, String fileName) async {
-    final Directory directory = await getApplicationDocumentsDirectory();
+    final Directory directory = await getTemporaryDirectory();
     final String filePath = p.join(directory.path, '$fileName.jpg');
     
     if (url.startsWith('data:image')) {
-      final String base64String = url.split(',').last;
+      String base64String = url.split(',').last.replaceAll(RegExp(r'\s+'), '');
+      final int padding = base64String.length % 4;
+      if (padding != 0) {
+        base64String += '=' * (4 - padding);
+      }
       final bytes = base64Decode(base64String);
       final File file = File(filePath);
       await file.writeAsBytes(bytes);
