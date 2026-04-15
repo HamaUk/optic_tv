@@ -5,9 +5,10 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
 import '../../core/theme.dart';
-import '../../services/football_api_service.dart';
+import '../../services/shotmob_api_service.dart';
 
-/// Embedded sport-scores widget shown when the user selects the Sport nav tab.
+/// Embedded sport-scores widget upgraded to ShotMob Core API.
+/// Supports real-time WebSocket updates and detailed match analytics.
 class SportScoresScreen extends StatefulWidget {
   const SportScoresScreen({super.key});
 
@@ -19,176 +20,99 @@ class _SportScoresScreenState extends State<SportScoresScreen>
     with SingleTickerProviderStateMixin {
   static const _accent = AppTheme.accentTeal;
 
-  final _api = FootballApiService();
+  late final ShotMobApiService _api;
+  StreamSubscription? _wsSubscription;
 
   late TabController _leagueTab;
-  // 0 = Live/Matches combined
   int _dateTab = 0; 
 
-  /// League keys in display order.
-  static const _leagueKeys = ['Premier League', 'La Liga', 'Iraqi Stars League'];
-
-  /// Cached data: leagueKey → dateTab → list.
-  final Map<String, Map<int, List<MatchData>>> _cache = {};
-  final Map<String, Map<int, bool>> _loading = {};
-  Timer? _liveRefresh;
+  static const _leagueKeys = ['Premier League', 'La Liga', 'Iraqi League'];
+  final Map<String, List<ShotMatch>> _cache = {};
+  final Map<String, bool> _loading = {};
 
   @override
   void initState() {
     super.initState();
+    _api = ShotMobApiService();
+    
     _leagueTab = TabController(length: _leagueKeys.length, vsync: this);
     _leagueTab.addListener(() {
       if (!_leagueTab.indexIsChanging) {
-        _fetchIfNeeded();
-        setState(() {});
+        _fetch();
       }
     });
-    _fetchIfNeeded();
-    // Auto-refresh match list every 60s.
-    _liveRefresh = Timer.periodic(const Duration(seconds: 60), (_) {
-      _fetch(force: true);
+
+    // Listen for real-time WebSocket events (Goals, Match Status)
+    _wsSubscription = _api.matchUpdates.listen((updatedMatch) {
+      if (mounted) {
+        _handleRealTimeUpdate(updatedMatch);
+      }
     });
+
+    _fetch();
   }
 
   @override
   void dispose() {
-    _liveRefresh?.cancel();
+    _wsSubscription?.cancel();
+    _api.dispose();
     _leagueTab.dispose();
     super.dispose();
   }
 
   String get _currentLeague => _leagueKeys[_leagueTab.index];
-  int get _currentLeagueId =>
-      FootballApiService.leagueIds[_currentLeague] ?? 39;
+  int get _currentLeagueId => ShotMobApiService.leagueIds[_currentLeague] ?? 7;
 
-  void _fetchIfNeeded() {
-    final key = _currentLeague;
-    if (_cache[key]?[_dateTab] != null) return;
-    _fetch();
-  }
-
-  Future<void> _fetch({bool force = false}) async {
+  Future<void> _fetch() async {
     final key = _currentLeague;
     final lid = _currentLeagueId;
-    if (!force && _cache[key]?[_dateTab] != null) return;
 
-    _loading.putIfAbsent(key, () => {});
-    _loading[key]![_dateTab] = true;
-    if (mounted) setState(() {});
+    setState(() => _loading[key] = true);
 
     try {
-      final now = DateTime.now();
-      final todayStr = DateFormat('yyyy-MM-dd').format(now);
-      final tomorrowStr = DateFormat('yyyy-MM-dd').format(now.add(const Duration(days: 1)));
-
-      // Fetch live, today, and tomorrow in parallel
-      final results = await Future.wait([
-        _api.getLiveMatches(lid),
-        _api.getMatches(leagueId: lid, date: todayStr),
-        _api.getMatches(leagueId: lid, date: tomorrowStr),
-      ]);
-
-      final live = results[0];
-      final today = results[1];
-      final tomorrow = results[2];
-
-      // Merge results avoiding duplicates (prioritize live data)
-      final Map<int, MatchData> merged = {};
-      for (final m in live) {
-        merged[m.fixtureId] = m;
-      }
-      for (final m in today) {
-        merged.putIfAbsent(m.fixtureId, () => m);
-      }
-      for (final m in tomorrow) {
-        merged.putIfAbsent(m.fixtureId, () => m);
-      }
-
-      final list = merged.values.toList();
-
-      // Sort: Live first, then by date/time
+      final list = await _api.getMatches(leagueId: lid);
+      
+      // Sort: Live first, then by dateTime
       list.sort((a, b) {
         if (a.isLive && !b.isLive) return -1;
         if (!a.isLive && b.isLive) return 1;
-        return a.date.compareTo(b.date);
+        return a.matchTime.compareTo(b.matchTime);
       });
 
-      _cache.putIfAbsent(key, () => {});
-      _cache[key]![_dateTab] = list;
+      _cache[key] = list;
     } catch (_) {
-      // Keep existing cache on error or set empty if none
-      _cache.putIfAbsent(key, () => {});
-      _cache[key]![_dateTab] ??= [];
+      _cache[key] ??= [];
     } finally {
-      _loading[key]![_dateTab] = false;
-      if (mounted) setState(() {});
+      if (mounted) setState(() => _loading[key] = false);
     }
   }
 
-  bool get _isLoading =>
-      _loading[_currentLeague]?[_dateTab] == true;
-
-  List<MatchData> get _matches =>
-      _cache[_currentLeague]?[_dateTab] ?? [];
-
-  // ────────────────────────── Build ──────────────────────────
+  void _handleRealTimeUpdate(ShotMatch update) {
+    // Find and update the match in cache regardless of active league
+    for (final league in _cache.keys) {
+      final list = _cache[league]!;
+      final index = list.indexWhere((m) => m.id == update.id);
+      if (index != -1) {
+        setState(() {
+          _cache[league]![index] = update;
+        });
+        return;
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
-    if (!_api.isConfigured) return _buildSetupMessage();
-
     return Column(
       children: [
         const SizedBox(height: 10),
         _buildLeagueTabs(),
-        const SizedBox(height: 10),
-        // _buildDateSubTabs() removed as requested
-        const SizedBox(height: 8),
+        const SizedBox(height: 14),
         Expanded(child: _buildBody()),
       ],
     );
   }
 
-  // ─── Setup Required ───
-  Widget _buildSetupMessage() {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(36),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(Icons.sports_soccer_rounded,
-                size: 64, color: AppTheme.primaryGold.withOpacity(0.35)),
-            const SizedBox(height: 20),
-            const Text(
-              'Live Scores — Setup Required',
-              style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 18,
-                  fontWeight: FontWeight.w800),
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: 12),
-            Text(
-              'To show live match scores, you need a free API key from api-football.com.\n\n'
-              '1. Register at api-football.com (free)\n'
-              '2. Copy your API key\n'
-              '3. Paste it in:\n'
-              '   lib/services/football_api_service.dart\n'
-              '   (replace YOUR_API_KEY_HERE)',
-              style: TextStyle(
-                  color: Colors.white.withOpacity(0.5),
-                  fontSize: 13,
-                  height: 1.6),
-              textAlign: TextAlign.center,
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  // ─── League Tabs ───
   Widget _buildLeagueTabs() {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 14),
@@ -212,41 +136,30 @@ class _SportScoresScreenState extends State<SportScoresScreen>
           dividerColor: Colors.transparent,
           labelColor: Colors.white,
           unselectedLabelColor: Colors.white54,
-          labelStyle:
-              const TextStyle(fontWeight: FontWeight.w700, fontSize: 11),
-          unselectedLabelStyle:
-              const TextStyle(fontWeight: FontWeight.w500, fontSize: 11),
-          tabs: const [
-            Tab(text: 'Premier League'),
-            Tab(text: 'La Liga'),
-            Tab(text: 'Iraqi League'),
-          ],
+          labelStyle: const TextStyle(fontWeight: FontWeight.w700, fontSize: 11),
+          tabs: _leagueKeys.map((name) => Tab(text: name)).toList(),
         ),
       ),
     );
   }
 
-  // Date sub-tabs removed as requested.
-
-  // ─── Body ───
   Widget _buildBody() {
-    if (_isLoading && _matches.isEmpty) {
-      return const Center(
-        child: CircularProgressIndicator(color: _accent),
-      );
+    final list = _cache[_currentLeague] ?? [];
+    final loading = _loading[_currentLeague] == true;
+
+    if (loading && list.isEmpty) {
+      return const Center(child: CircularProgressIndicator(color: _accent));
     }
-    if (_matches.isEmpty) {
-      final msg = 'No matches found at the moment';
+
+    if (list.isEmpty) {
       return Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.sports_soccer_rounded,
-                size: 48, color: Colors.white.withOpacity(0.12)),
+            Icon(Icons.sports_soccer_rounded, size: 48, color: Colors.white.withOpacity(0.12)),
             const SizedBox(height: 14),
-            Text(msg,
-                style: TextStyle(
-                    color: Colors.white.withOpacity(0.4), fontSize: 14)),
+            Text('No scheduled matches found', 
+              style: TextStyle(color: Colors.white.withOpacity(0.4), fontSize: 14)),
           ],
         ),
       );
@@ -254,178 +167,40 @@ class _SportScoresScreenState extends State<SportScoresScreen>
 
     return ListView.separated(
       physics: const BouncingScrollPhysics(),
-      padding: const EdgeInsets.fromLTRB(14, 4, 14, 24),
-      itemCount: _matches.length,
-      separatorBuilder: (_, __) => const SizedBox(height: 10),
-      itemBuilder: (context, i) => _buildMatchCard(_matches[i]),
+      padding: const EdgeInsets.fromLTRB(14, 0, 14, 24),
+      itemCount: list.length,
+      separatorBuilder: (_, __) => const SizedBox(height: 12),
+      itemBuilder: (context, i) => _buildMatchCard(list[i]),
     );
   }
 
-  // ─── Match Card ───
-  Widget _buildMatchCard(MatchData m) {
+  Widget _buildMatchCard(ShotMatch m) {
     final live = m.isLive;
-    final finished = m.isFinished;
-
+    
     return Container(
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(18),
+        borderRadius: BorderRadius.circular(20),
         color: AppTheme.surfaceElevated,
         border: Border.all(
-          color: live
-              ? Colors.redAccent.withOpacity(0.45)
-              : Colors.white.withOpacity(0.07),
+          color: live ? Colors.redAccent.withOpacity(0.4) : Colors.white.withOpacity(0.06),
           width: live ? 1.5 : 1,
         ),
-        boxShadow: [
-          if (live)
-            BoxShadow(
-              color: Colors.redAccent.withOpacity(0.12),
-              blurRadius: 16,
-              spreadRadius: 0,
-            ),
-        ],
       ),
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+      padding: const EdgeInsets.all(16),
       child: Column(
         children: [
-          // Status row
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              if (live) ...[
-                Container(
-                  width: 8,
-                  height: 8,
-                  decoration: const BoxDecoration(
-                    color: Colors.redAccent,
-                    shape: BoxShape.circle,
-                  ),
-                ),
-                const SizedBox(width: 6),
-                const Text(
-                  'LIVE',
-                  style: TextStyle(
-                    color: Colors.redAccent,
-                    fontSize: 11,
-                    fontWeight: FontWeight.w800,
-                    letterSpacing: 1,
-                  ),
-                ),
-                const SizedBox(width: 8),
-              ],
-              Text(
-                live
-                    ? m.statusDisplay
-                    : finished
-                        ? m.statusDisplay
-                        : m.kickoffTime,
-                style: TextStyle(
-                  color: live
-                      ? Colors.redAccent.withOpacity(0.9)
-                      : finished
-                          ? _accent.withOpacity(0.7)
-                          : Colors.white.withOpacity(0.5),
-                  fontSize: 11,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 12),
-          // Teams row
-          Row(
-            children: [
-              // Home team
-              Expanded(
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.end,
-                  children: [
-                    Flexible(
-                      child: Text(
-                        m.homeTeam,
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 13,
-                          fontWeight: FontWeight.w700,
-                        ),
-                        textAlign: TextAlign.end,
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    _teamLogo(m.homeLogo),
-                  ],
-                ),
-              ),
-              // Score
-              Container(
-                width: 70,
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                margin: const EdgeInsets.symmetric(horizontal: 8),
-                decoration: BoxDecoration(
-                  color: live
-                      ? Colors.redAccent.withOpacity(0.12)
-                      : Colors.white.withOpacity(0.05),
-                  borderRadius: BorderRadius.circular(10),
-                  border: Border.all(
-                    color: live
-                        ? Colors.redAccent.withOpacity(0.25)
-                        : Colors.white.withOpacity(0.08),
-                  ),
-                ),
-                child: Center(
-                  child: Text(
-                    m.isNotStarted
-                        ? 'vs'
-                        : '${m.homeGoals ?? 0} - ${m.awayGoals ?? 0}',
-                    style: TextStyle(
-                      color: live
-                          ? Colors.white
-                          : finished
-                              ? _accent
-                              : Colors.white70,
-                      fontSize: m.isNotStarted ? 13 : 18,
-                      fontWeight: FontWeight.w800,
-                      letterSpacing: m.isNotStarted ? 0 : 2,
-                    ),
-                  ),
-                ),
-              ),
-              // Away team
-              Expanded(
-                child: Row(
-                  children: [
-                    _teamLogo(m.awayLogo),
-                    const SizedBox(width: 8),
-                    Flexible(
-                      child: Text(
-                        m.awayTeam,
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 13,
-                          fontWeight: FontWeight.w700,
-                        ),
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-          if (m.venue != null && m.venue!.isNotEmpty) ...[
-            const SizedBox(height: 8),
+          _buildStatusHeader(m),
+          const SizedBox(height: 16),
+          _buildTeamsRow(m),
+          if (m.predictions != null) ...[
+            const SizedBox(height: 18),
+            _buildPredictionBar(m.predictions!),
+          ],
+          if (m.stadium != null) ...[
+            const SizedBox(height: 12),
             Text(
-              m.venue!,
-              style: TextStyle(
-                color: Colors.white.withOpacity(0.25),
-                fontSize: 10,
-              ),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
+              '🏟️ ${m.stadium}${m.attendance != null ? " • Att: ${m.attendance}" : ""}',
+              style: TextStyle(color: Colors.white24, fontSize: 10, letterSpacing: 0.5),
             ),
           ],
         ],
@@ -433,42 +208,139 @@ class _SportScoresScreenState extends State<SportScoresScreen>
     );
   }
 
-  Widget _teamLogo(String? url) {
-    const size = 30.0;
-    if (url == null || url.isEmpty) {
-      return Container(
-        width: size,
-        height: size,
-        decoration: BoxDecoration(
-          color: Colors.white.withOpacity(0.08),
-          shape: BoxShape.circle,
-        ),
-        child: Icon(Icons.shield_rounded,
-            size: 16, color: Colors.white.withOpacity(0.25)),
-      );
-    }
-    return ClipOval(
-      child: CachedNetworkImage(
-        imageUrl: url,
-        width: size,
-        height: size,
-        fit: BoxFit.contain,
-        placeholder: (_, __) => Container(
-          width: size,
-          height: size,
-          color: Colors.white.withOpacity(0.06),
-        ),
-        errorWidget: (_, __, ___) => Container(
-          width: size,
-          height: size,
-          decoration: BoxDecoration(
-            color: Colors.white.withOpacity(0.08),
-            shape: BoxShape.circle,
+  Widget _buildStatusHeader(ShotMatch m) {
+    final live = m.isLive;
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        if (live) ...[
+          const _PulseDot(),
+          const SizedBox(width: 8),
+          const Text('LIVE', style: TextStyle(color: Colors.redAccent, fontSize: 11, fontWeight: FontWeight.w900, letterSpacing: 1)),
+          const SizedBox(width: 12),
+        ],
+        Text(
+          live ? 'Match in Progress' : m.isFinished ? 'Final Result' : 'Kickoff ${m.timeDisplay}',
+          style: TextStyle(
+            color: live ? Colors.redAccent : m.isFinished ? _accent : Colors.white54,
+            fontSize: 11,
+            fontWeight: FontWeight.w700,
           ),
-          child: Icon(Icons.shield_rounded,
-              size: 16, color: Colors.white.withOpacity(0.25)),
         ),
-      ),
+      ],
     );
+  }
+
+  Widget _buildTeamsRow(ShotMatch m) {
+    return Row(
+      children: [
+        Expanded(
+          child: Column(
+            children: [
+              _teamLogo(m.homeLogo),
+              const SizedBox(height: 8),
+              Text(m.homeTeam, textAlign: TextAlign.center, style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold)),
+            ],
+          ),
+        ),
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          decoration: BoxDecoration(
+            color: Colors.black26,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: Colors.white10),
+          ),
+          child: Text(
+            '${m.scoreHome} - ${m.scoreAway}',
+            style: TextStyle(
+              color: m.isLive ? Colors.white : Colors.white70,
+              fontSize: 22,
+              fontWeight: FontWeight.w900,
+              letterSpacing: 2,
+            ),
+          ),
+        ),
+        Expanded(
+          child: Column(
+            children: [
+              _teamLogo(m.awayLogo),
+              const SizedBox(height: 8),
+              Text(m.awayTeam, textAlign: TextAlign.center, style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold)),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildPredictionBar(String raw) {
+    // Expected format: "57% / 23% / 20%"
+    final parts = raw.split('/').map((s) => double.tryParse(s.replaceAll('%', '').trim()) ?? 33.3).toList();
+    if (parts.length < 3) return const SizedBox.shrink();
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text('WIN PROBABILITY', style: TextStyle(color: Colors.white24, fontSize: 8, fontWeight: FontWeight.w900, letterSpacing: 1)),
+        const SizedBox(height: 6),
+        ClipRRect(
+          borderRadius: BorderRadius.circular(4),
+          child: SizedBox(
+            height: 6,
+            child: Row(
+              children: [
+                Expanded(flex: parts[0].round(), child: Container(color: _accent)),
+                const SizedBox(width: 1),
+                Expanded(flex: parts[1].round(), child: Container(color: Colors.white24)),
+                const SizedBox(width: 1),
+                Expanded(flex: parts[2].round(), child: Container(color: AppTheme.primaryGold)),
+              ],
+            ),
+          ),
+        ),
+        const SizedBox(height: 4),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text('${parts[0].round()}% Home', style: const TextStyle(color: _accent, fontSize: 9, fontWeight: FontWeight.bold)),
+            Text('${parts[1].round()}% Draw', style: const TextStyle(color: Colors.white38, fontSize: 9)),
+            Text('${parts[2].round()}% Away', style: const TextStyle(color: AppTheme.primaryGold, fontSize: 9, fontWeight: FontWeight.bold)),
+          ],
+        ),
+      ],
+    );
+  }
+
+  Widget _teamLogo(String? url) {
+    return Container(
+      width: 44,
+      height: 44,
+      decoration: BoxDecoration(
+        color: Colors.white.withOpacity(0.04),
+        shape: BoxShape.circle,
+      ),
+      child: url != null ? CachedNetworkImage(imageUrl: url, fit: BoxFit.contain) : const Icon(Icons.shield, color: Colors.white10),
+    );
+  }
+}
+
+class _PulseDot extends StatefulWidget {
+  const _PulseDot();
+  @override
+  State<_PulseDot> createState() => _PulseDotState();
+}
+
+class _PulseDotState extends State<_PulseDot> with SingleTickerProviderStateMixin {
+  late AnimationController _ctrl;
+  @override
+  void initState() {
+    super.initState();
+    _ctrl = AnimationController(vsync: this, duration: const Duration(seconds: 1))..repeat(reverse: true);
+  }
+  @override
+  void dispose() { _ctrl.dispose(); super.dispose(); }
+  @override
+  Widget build(BuildContext context) {
+    return FadeTransition(opacity: _ctrl, child: Container(width: 8, height: 8, decoration: const BoxDecoration(color: Colors.redAccent, shape: BoxShape.circle)));
   }
 }

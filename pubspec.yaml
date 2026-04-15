@@ -32,6 +32,7 @@ dependencies:
   # Networking & Parsing
   dio: ^5.4.3+1
   m3u_nullsafe: ^1.0.4
+  socket_io_client: ^3.0.0
 
   # Settings & persistence
   shared_preferences: ^2.2.3
