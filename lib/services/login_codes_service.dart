@@ -41,8 +41,16 @@ class LoginCodesService {
   }
 
   static bool _matchSnapshot(dynamic data, String normalized) {
-    if (data is! Map) return false;
-    for (final v in data.values) {
+    Iterable values;
+    if (data is Map) {
+      values = data.values;
+    } else if (data is List) {
+      values = data.where((v) => v != null);
+    } else {
+      return false;
+    }
+
+    for (final v in values) {
       if (v is! Map) continue;
       final active = v['active'] != false;
       final code = _normalize('${v['code'] ?? ''}');

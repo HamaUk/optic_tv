@@ -51,19 +51,18 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       return;
     }
     setState(() => _busy = true);
-    final ok = await ref.read(sessionProvider.notifier).loginWithCode(code);
+    final result = await ref.read(sessionProvider.notifier).loginWithCode(code);
     if (!mounted) return;
     setState(() => _busy = false);
-    if (!ok) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(s.loginErrorInvalid)),
-      );
+    if (!result) {
+      // The error message is now handled by the UI watching the provider
     }
   }
 
   @override
   Widget build(BuildContext context) {
     final uiLocale = ref.watch(appLocaleProvider);
+    final session = ref.watch(sessionProvider);
     final s = AppStrings(uiLocale);
 
     return Scaffold(
@@ -86,12 +85,32 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
         ),
         child: SafeArea(
           child: Center(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.symmetric(
-                horizontal: 28,
-                vertical: 24,
-              ),
-              child: _buildContent(uiLocale, s, 400),
+            child: Column(
+              children: [
+                Expanded(
+                  child: SingleChildScrollView(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 28,
+                      vertical: 24,
+                    ),
+                    child: _buildContent(uiLocale, s, 400),
+                  ),
+                ),
+                if (session.error != null)
+                  Padding(
+                    padding: const EdgeInsets.all(16.0),
+                    child: Text(
+                      'DIAGNOSTIC LOG: ${session.error}',
+                      style: const TextStyle(
+                        color: Color(0xFFFF4B4B), // Premium red
+                        fontSize: 11,
+                        fontWeight: FontWeight.w600,
+                        fontFamily: 'monospace',
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                  ),
+              ],
             ),
           ),
         ),

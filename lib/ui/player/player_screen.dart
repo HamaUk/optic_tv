@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart' hide TextDirection;
@@ -114,9 +115,11 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
 
   /// mpv tuning: live IPTV needs more read-ahead and patient HTTP timeouts; VOD keeps large file cache + seek.
   Future<void> _configureNativePlayer(NativePlayer native, {required bool isVod}) async {
+    if (kIsWeb) return;
+
     Future<void> safe(String key, String value) async {
       try {
-        await native.setProperty(key, value);
+        await (native as dynamic).setProperty(key, value);
       } catch (_) {/* option may be absent on some libmpv builds */}
     }
 

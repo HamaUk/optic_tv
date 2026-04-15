@@ -1,6 +1,7 @@
 {
     "name": "optic_tv",
     "short_name": "optic_tv",
+    "gcm_sender_id": "103953800507",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#0175C2",
