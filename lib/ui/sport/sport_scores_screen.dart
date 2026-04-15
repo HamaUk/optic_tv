@@ -7,6 +7,7 @@ import 'package:intl/intl.dart';
 
 import '../../core/theme.dart';
 import '../../services/shotmob_api_service.dart';
+import '../../services/sports_db_service.dart';
 
 /// Professional ShotMob-style Sport UI.
 /// Matches the provided Kurdish-localized screenshot exactly.
@@ -22,6 +23,7 @@ class SportScoresScreen extends StatefulWidget {
 class _SportScoresScreenState extends State<SportScoresScreen> {
 
   late final ShotMobApiService _api;
+  late final SportsDbService _sdb;
   StreamSubscription? _wsSubscription;
 
   List<ShotMatch> _matches = [];
@@ -35,6 +37,7 @@ class _SportScoresScreenState extends State<SportScoresScreen> {
   void initState() {
     super.initState();
     _api = ShotMobApiService();
+    _sdb = SportsDbService();
     
     _wsSubscription = _api.matchUpdates.listen((updatedMatch) {
       if (mounted) _handleRealTimeUpdate(updatedMatch);
@@ -246,7 +249,7 @@ class _SportScoresScreenState extends State<SportScoresScreen> {
           Expanded(
             child: Row(
               children: [
-                _teamLogo(m.awayLogo, size: 22),
+                _TeamBadge(teamName: m.awayTeam, fallbackUrl: m.awayLogo, size: 22, sdb: _sdb),
                 const SizedBox(width: 12),
                 Expanded(child: Text(m.awayTeam, style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w600))),
               ],
@@ -284,7 +287,7 @@ class _SportScoresScreenState extends State<SportScoresScreen> {
               children: [
                 Expanded(child: Text(m.homeTeam, textAlign: TextAlign.right, style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w600))),
                 const SizedBox(width: 12),
-                _teamLogo(m.homeLogo, size: 22),
+                _TeamBadge(teamName: m.homeTeam, fallbackUrl: m.homeLogo, size: 22, sdb: _sdb),
               ],
             ),
           ),
@@ -292,19 +295,48 @@ class _SportScoresScreenState extends State<SportScoresScreen> {
       ),
     );
   }
+}
 
-  Widget _teamLogo(String? url, {double size = 30}) {
-    return Container(
-      width: size,
-      height: size,
-      padding: const EdgeInsets.all(2),
-      decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.04),
-        shape: BoxShape.circle,
-      ),
-      child: url != null 
-        ? CachedNetworkImage(imageUrl: url, fit: BoxFit.contain) 
-        : const Icon(Icons.shield_rounded, color: Colors.white10, size: 14),
+class _TeamBadge extends StatelessWidget {
+  final String teamName;
+  final String? fallbackUrl;
+  final double size;
+  final SportsDbService sdb;
+
+  const _TeamBadge({
+    required this.teamName,
+    this.fallbackUrl,
+    required this.size,
+    required this.sdb,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return FutureBuilder<String?>(
+      future: sdb.getTeamLogo(teamName),
+      builder: (context, snapshot) {
+        final url = snapshot.data ?? fallbackUrl;
+
+        return Container(
+          width: size,
+          height: size,
+          padding: const EdgeInsets.all(2),
+          decoration: BoxDecoration(
+            color: Colors.white.withOpacity(0.04),
+            shape: BoxShape.circle,
+          ),
+          child: ClipOval(
+            child: url != null
+                ? CachedNetworkImage(
+                    imageUrl: url,
+                    fit: BoxFit.contain,
+                    placeholder: (_, __) => const SizedBox.shrink(),
+                    errorWidget: (_, __, ___) => const Icon(Icons.shield_rounded, color: Colors.white10, size: 14),
+                  )
+                : const Icon(Icons.shield_rounded, color: Colors.white10, size: 14),
+          ),
+        );
+      },
     );
   }
 }
