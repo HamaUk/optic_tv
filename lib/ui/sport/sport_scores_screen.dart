@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:ui' as ui;
 
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
@@ -9,6 +10,8 @@ import '../../services/shotmob_api_service.dart';
 
 /// Professional ShotMob-style Sport UI.
 /// Matches the provided Kurdish-localized screenshot exactly.
+const _accent = Color(0xFF2ECC71); // ShotMob Green style
+
 class SportScoresScreen extends StatefulWidget {
   const SportScoresScreen({super.key});
 
@@ -17,7 +20,6 @@ class SportScoresScreen extends StatefulWidget {
 }
 
 class _SportScoresScreenState extends State<SportScoresScreen> {
-  static const _accent = Color(0xFF2ECC71); // ShotMob Green style
 
   late final ShotMobApiService _api;
   StreamSubscription? _wsSubscription;
@@ -71,7 +73,7 @@ class _SportScoresScreenState extends State<SportScoresScreen> {
   @override
   Widget build(BuildContext context) {
     return Directionality(
-      textDirection: TextDirection.rtl, // Set Kurdish RTL context
+      textDirection: ui.TextDirection.rtl, // Set Kurdish RTL context
       child: Column(
         children: [
           _buildShotMobHeader(),
