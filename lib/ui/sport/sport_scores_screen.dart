@@ -299,8 +299,6 @@ class _SportScoresScreenState extends State<SportScoresScreen> {
         : const Icon(Icons.shield_rounded, color: Colors.white10, size: 14),
     );
   }
-
-  }
 }
 
 class _HeaderIcon extends StatelessWidget {
