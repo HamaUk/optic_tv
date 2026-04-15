@@ -181,7 +181,7 @@ class _SportScoresScreenState extends State<SportScoresScreen> {
           _buildTeamsRow(m),
           if (m.predictions != null) ...[
             const SizedBox(height: 20),
-            _buildPredictionBar(m.predictions!),
+            _buildPredictionBar(m, m.predictions!),
           ],
           if (m.stadium != null) ...[
             const SizedBox(height: 14),
@@ -292,7 +292,7 @@ class _SportScoresScreenState extends State<SportScoresScreen> {
     );
   }
 
-  Widget _buildPredictionBar(String raw) {
+  Widget _buildPredictionBar(ShotMatch m, String raw) {
     final parts = raw.split('/').map((s) => double.tryParse(s.replaceAll('%', '').trim()) ?? 33.3).toList();
     if (parts.length < 3) return const SizedBox.shrink();
 
@@ -355,7 +355,10 @@ class _SportScoresScreenState extends State<SportScoresScreen> {
       child: ClipRRect(
         borderRadius: BorderRadius.circular(12),
         child: url != null 
-          ? CachedNetworkImage(imageUrl: url, fit: BoxFit.contain, padding: const EdgeInsets.all(6)) 
+          ? Padding(
+              padding: const EdgeInsets.all(6),
+              child: CachedNetworkImage(imageUrl: url, fit: BoxFit.contain),
+            ) 
           : const Icon(Icons.shield_rounded, color: Colors.white10, size: 24),
       ),
     );
