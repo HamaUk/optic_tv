@@ -7,8 +7,8 @@ import 'package:intl/intl.dart';
 import '../../core/theme.dart';
 import '../../services/shotmob_api_service.dart';
 
-/// Upgraded Sport-Scores screen.
-/// Removed hardcoded filters to show all dynamic content from ShotMob API.
+/// Professional ShotMob-style Sport UI.
+/// Matches the provided Kurdish-localized screenshot exactly.
 class SportScoresScreen extends StatefulWidget {
   const SportScoresScreen({super.key});
 
@@ -17,7 +17,7 @@ class SportScoresScreen extends StatefulWidget {
 }
 
 class _SportScoresScreenState extends State<SportScoresScreen> {
-  static const _accent = AppTheme.accentTeal;
+  static const _accent = Color(0xFF2ECC71); // ShotMob Green style
 
   late final ShotMobApiService _api;
   StreamSubscription? _wsSubscription;
@@ -25,16 +25,17 @@ class _SportScoresScreenState extends State<SportScoresScreen> {
   List<ShotMatch> _matches = [];
   bool _loading = true;
 
+  // Date indexing
+  int _selectedDateIndex = 1; // 1 = Today
+  final List<DateTime> _dates = List.generate(7, (i) => DateTime.now().add(Duration(days: i - 1)));
+
   @override
   void initState() {
     super.initState();
     _api = ShotMobApiService();
     
-    // Listen for real-time WebSocket events
     _wsSubscription = _api.matchUpdates.listen((updatedMatch) {
-      if (mounted) {
-        _handleRealTimeUpdate(updatedMatch);
-      }
+      if (mounted) _handleRealTimeUpdate(updatedMatch);
     });
 
     _fetch();
@@ -49,18 +50,9 @@ class _SportScoresScreenState extends State<SportScoresScreen> {
 
   Future<void> _fetch() async {
     setState(() => _loading = true);
-
     try {
-      // Fetch matches without specific league filtering for a global view
-      final list = await _api.getMatches();
-      
-      // Sort: Live first, then by matchTime
-      list.sort((a, b) {
-        if (a.isLive && !b.isLive) return -1;
-        if (!a.isLive && b.isLive) return 1;
-        return a.matchTime.compareTo(b.matchTime);
-      });
-
+      final dateStr = DateFormat('yyyy-MM-dd').format(_dates[_selectedDateIndex]);
+      final list = await _api.getMatches(date: dateStr);
       _matches = list;
     } catch (_) {
       _matches = [];
@@ -72,57 +64,101 @@ class _SportScoresScreenState extends State<SportScoresScreen> {
   void _handleRealTimeUpdate(ShotMatch update) {
     final index = _matches.indexWhere((m) => m.id == update.id);
     if (index != -1) {
-      setState(() {
-        _matches[index] = update;
-      });
+      setState(() => _matches[index] = update);
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      children: [
-        _buildHeader(),
-        const SizedBox(height: 10),
-        Expanded(child: _buildBody()),
-      ],
+    return Directionality(
+      textDirection: TextDirection.rtl, // Set Kurdish RTL context
+      child: Column(
+        children: [
+          _buildShotMobHeader(),
+          _buildDateTabs(),
+          const SizedBox(height: 8),
+          Expanded(child: _buildBody()),
+          _buildBottomNavPlaceholder(),
+        ],
+      ),
     );
   }
 
-  Widget _buildHeader() {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+  Widget _buildShotMobHeader() {
+    return Container(
+      padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
       child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-            decoration: BoxDecoration(
-              color: _accent.withOpacity(0.12),
-              borderRadius: BorderRadius.circular(20),
-              border: Border.all(color: _accent.withOpacity(0.2)),
-            ),
-            child: Row(
-              children: [
-                const Icon(Icons.flash_on_rounded, color: _accent, size: 14),
-                const SizedBox(width: 6),
-                const Text(
-                  'LIVE & UPCOMING',
-                  style: TextStyle(
-                    color: _accent,
-                    fontSize: 10,
-                    fontWeight: FontWeight.w900,
-                    letterSpacing: 1,
-                  ),
-                ),
-              ],
+          const Text(
+            'SHOTMOB',
+            style: TextStyle(
+              color: Colors.white,
+              fontSize: 22,
+              fontWeight: FontWeight.w900,
+              letterSpacing: -1,
             ),
           ),
-          const Spacer(),
-          IconButton(
-            icon: const Icon(Icons.refresh_rounded, color: Colors.white54, size: 20),
-            onPressed: _fetch,
+          Row(
+            children: [
+              const _HeaderIcon(icon: Icons.search_rounded),
+              const _HeaderIcon(icon: Icons.calendar_month_rounded),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(0.08),
+                  borderRadius: BorderRadius.circular(6),
+                ),
+                child: const Text('LIVE', style: TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.w900)),
+              ),
+            ],
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildDateTabs() {
+    final KurdishLabels = ['دوێنێ', 'ئەمڕۆ', 'سبەی', 'دووشەممە', 'سێشەممە', 'چوارشەممە', 'پێنجشەممە'];
+    
+    return SizedBox(
+      height: 50,
+      child: ListView.builder(
+        scrollDirection: Axis.horizontal,
+        padding: const EdgeInsets.symmetric(horizontal: 16),
+        itemCount: _dates.length,
+        itemBuilder: (context, i) {
+          final active = _selectedDateIndex == i;
+          return GestureDetector(
+            onTap: () {
+              if (_selectedDateIndex != i) {
+                setState(() => _selectedDateIndex = i);
+                _fetch();
+              }
+            },
+            child: Container(
+              alignment: Alignment.center,
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    KurdishLabels[i],
+                    style: TextStyle(
+                      color: active ? Colors.white : Colors.white30,
+                      fontWeight: active ? FontWeight.w900 : FontWeight.w500,
+                      fontSize: 14,
+                    ),
+                  ),
+                  if (active) ...[
+                    const SizedBox(height: 6),
+                    Container(width: 24, height: 2, color: Colors.white),
+                  ],
+                ],
+              ),
+            ),
+          );
+        },
       ),
     );
   }
@@ -132,256 +168,166 @@ class _SportScoresScreenState extends State<SportScoresScreen> {
       return const Center(child: CircularProgressIndicator(color: _accent));
     }
 
-    if (_matches.isEmpty) {
-      return Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(Icons.sports_soccer_rounded, size: 48, color: Colors.white.withOpacity(0.12)),
-            const SizedBox(height: 14),
-            Text('No live matches found', 
-              style: TextStyle(color: Colors.white.withOpacity(0.4), fontSize: 13)),
-          ],
-        ),
-      );
+    // Grouping logic by leagueName
+    final Map<String, List<ShotMatch>> grouped = {};
+    for (var m in _matches) {
+      grouped.putIfAbsent(m.leagueName, () => []).add(m);
     }
 
-    return ListView.separated(
+    final leagues = grouped.keys.toList();
+
+    return ListView.builder(
       physics: const BouncingScrollPhysics(),
-      padding: const EdgeInsets.fromLTRB(14, 0, 14, 100),
-      itemCount: _matches.length,
-      separatorBuilder: (_, __) => const SizedBox(height: 12),
-      itemBuilder: (context, i) => _buildMatchCard(_matches[i]),
+      itemCount: leagues.length,
+      padding: const EdgeInsets.only(bottom: 24),
+      itemBuilder: (context, lIdx) {
+        final leagueName = leagues[lIdx];
+        final matches = grouped[leagueName]!;
+
+        return Column(
+          children: [
+            _buildLeagueHeader(leagueName),
+            ...matches.map((m) => _buildMatchItem(m)),
+            const SizedBox(height: 12),
+          ],
+        );
+      },
     );
   }
 
-  Widget _buildMatchCard(ShotMatch m) {
-    final live = m.isLive;
-    
+  Widget _buildLeagueHeader(String name) {
     return Container(
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(22),
-        color: AppTheme.surfaceElevated,
-        border: Border.all(
-          color: live ? Colors.redAccent.withOpacity(0.4) : Colors.white.withOpacity(0.06),
-          width: live ? 1.5 : 1,
-        ),
-      ),
-      padding: const EdgeInsets.all(16),
-      child: Column(
+      padding: const EdgeInsets.fromLTRB(16, 20, 16, 12),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              _buildLeagueBadge(m.leagueName),
-              _buildStatusHeader(m),
+              const Icon(Icons.keyboard_arrow_down_rounded, color: Colors.white24, size: 24),
+              const SizedBox(width: 12),
+              Text(name, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13)),
             ],
           ),
-          const SizedBox(height: 20),
-          _buildTeamsRow(m),
-          if (m.predictions != null) ...[
-            const SizedBox(height: 20),
-            _buildPredictionBar(m, m.predictions!),
-          ],
-          if (m.stadium != null) ...[
-            const SizedBox(height: 14),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
+          const Icon(Icons.shield_outlined, color: Colors.white24, size: 24),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildMatchItem(ShotMatch m) {
+    return Container(
+      height: 70,
+      margin: const EdgeInsets.symmetric(vertical: 1),
+      padding: const EdgeInsets.symmetric(horizontal: 24),
+      decoration: BoxDecoration(
+        color: AppTheme.surfaceElevated.withOpacity(0.5),
+      ),
+      child: Row(
+        children: [
+          // Away Team (Left)
+          Expanded(
+            child: Row(
               children: [
-                Icon(Icons.location_on_rounded, size: 10, color: Colors.white.withOpacity(0.15)),
-                const SizedBox(width: 4),
-                Text(
-                  '${m.stadium}${m.attendance != null ? " • Att: ${m.attendance}" : ""}',
-                  style: TextStyle(color: Colors.white24, fontSize: 9, letterSpacing: 0.5),
-                ),
+                _teamLogo(m.awayLogo, size: 22),
+                const SizedBox(width: 12),
+                Expanded(child: Text(m.awayTeam, style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w600))),
               ],
             ),
-          ],
-        ],
-      ),
-    );
-  }
-
-  Widget _buildLeagueBadge(String name) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-      decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.05),
-        borderRadius: BorderRadius.circular(6),
-      ),
-      child: Text(
-        name.toUpperCase(),
-        style: const TextStyle(
-          color: Colors.white38,
-          fontSize: 8,
-          fontWeight: FontWeight.w900,
-          letterSpacing: 0.5,
-        ),
-      ),
-    );
-  }
-
-  Widget _buildStatusHeader(ShotMatch m) {
-    final live = m.isLive;
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        if (live) ...[
-          const _PulseDot(),
-          const SizedBox(width: 6),
-          const Text('LIVE', style: TextStyle(color: Colors.redAccent, fontSize: 10, fontWeight: FontWeight.w900)),
-        ] else
-          Text(
-            m.isFinished ? 'FINISHED' : m.timeDisplay,
-            style: TextStyle(
-              color: m.isFinished ? _accent.withOpacity(0.8) : Colors.white54,
-              fontSize: 10,
-              fontWeight: FontWeight.w800,
+          ),
+          // Time/Score (Center)
+          SizedBox(
+            width: 80,
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Text(m.isLive ? '${m.scoreHome} - ${m.scoreAway}' : m.matchTime,
+                  style: TextStyle(
+                    color: m.isLive ? _accent : Colors.white,
+                    fontSize: 14,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+                Text('PM', style: TextStyle(color: Colors.white24, fontSize: 10, fontWeight: FontWeight.bold)),
+              ],
             ),
           ),
-      ],
-    );
-  }
-
-  Widget _buildTeamsRow(ShotMatch m) {
-    return Row(
-      children: [
-        Expanded(
-          child: Column(
-            children: [
-              _teamLogo(m.homeLogo),
-              const SizedBox(height: 10),
-              Text(m.homeTeam, textAlign: TextAlign.center, maxLines: 2, overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w800)),
-            ],
-          ),
-        ),
-        _buildScoreBox(m),
-        Expanded(
-          child: Column(
-            children: [
-              _teamLogo(m.awayLogo),
-              const SizedBox(height: 10),
-              Text(m.awayTeam, textAlign: TextAlign.center, maxLines: 2, overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w800)),
-            ],
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildScoreBox(ShotMatch m) {
-    return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 12),
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-      decoration: BoxDecoration(
-        color: m.isLive ? Colors.redAccent.withOpacity(0.08) : Colors.black26,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: m.isLive ? Colors.redAccent.withOpacity(0.2) : Colors.white10),
-      ),
-      child: Text(
-        '${m.scoreHome} - ${m.scoreAway}',
-        style: TextStyle(
-          color: m.isLive ? Colors.white : Colors.white70,
-          fontSize: 24,
-          fontWeight: FontWeight.w900,
-          letterSpacing: 2,
-        ),
-      ),
-    );
-  }
-
-  Widget _buildPredictionBar(ShotMatch m, String raw) {
-    final parts = raw.split('/').map((s) => double.tryParse(s.replaceAll('%', '').trim()) ?? 33.3).toList();
-    if (parts.length < 3) return const SizedBox.shrink();
-
-    return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.03),
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              const Text('WIN PROBABILITY', style: TextStyle(color: Colors.white30, fontSize: 8, fontWeight: FontWeight.w900, letterSpacing: 1)),
-              const Spacer(),
-              Text('${parts[0].round()}% - ${parts[1].round()}% - ${parts[2].round()}%', 
-                style: const TextStyle(color: Colors.white12, fontSize: 8, fontWeight: FontWeight.w800)),
-            ],
-          ),
-          const SizedBox(height: 10),
-          ClipRRect(
-            borderRadius: BorderRadius.circular(10),
-            child: SizedBox(
-              height: 4,
-              child: Row(
-                children: [
-                  Expanded(flex: parts[0].round(), child: Container(color: _accent)),
-                  const SizedBox(width: 2),
-                  Expanded(flex: parts[1].round(), child: Container(color: Colors.white12)),
-                  const SizedBox(width: 2),
-                  Expanded(flex: parts[2].round(), child: Container(color: AppTheme.primaryGold)),
-                ],
-              ),
+          // Home Team (Right)
+          Expanded(
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.end,
+              children: [
+                Expanded(child: Text(m.homeTeam, textAlign: TextAlign.right, style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w600))),
+                const SizedBox(width: 12),
+                _teamLogo(m.homeLogo, size: 22),
+              ],
             ),
-          ),
-          const SizedBox(height: 8),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(m.homeTeam.split(' ').last, style: const TextStyle(color: _accent, fontSize: 8, fontWeight: FontWeight.bold)),
-              const Text('DRAW', style: TextStyle(color: Colors.white24, fontSize: 8)),
-              Text(m.awayTeam.split(' ').last, style: const TextStyle(color: AppTheme.primaryGold, fontSize: 8, fontWeight: FontWeight.bold)),
-            ],
           ),
         ],
       ),
     );
   }
 
-  Widget _teamLogo(String? url) {
+  Widget _teamLogo(String? url, {double size = 30}) {
     return Container(
-      width: 48,
-      height: 48,
+      width: size,
+      height: size,
+      padding: const EdgeInsets.all(2),
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.03),
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: Colors.white.withOpacity(0.05)),
+        color: Colors.white.withOpacity(0.04),
+        shape: BoxShape.circle,
       ),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(12),
-        child: url != null 
-          ? Padding(
-              padding: const EdgeInsets.all(6),
-              child: CachedNetworkImage(imageUrl: url, fit: BoxFit.contain),
-            ) 
-          : const Icon(Icons.shield_rounded, color: Colors.white10, size: 24),
+      child: url != null 
+        ? CachedNetworkImage(imageUrl: url, fit: BoxFit.contain) 
+        : const Icon(Icons.shield_rounded, color: Colors.white10, size: 14),
+    );
+  }
+
+  Widget _buildBottomNavPlaceholder() {
+    return Container(
+      height: 70,
+      decoration: BoxDecoration(
+        border: Border(top: BorderSide(color: Colors.white.withOpacity(0.05))),
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceAround,
+        children: const [
+          _BottomNavItem(icon: Icons.sports_soccer_rounded, label: 'یارییەکان', active: true),
+          _BottomNavItem(icon: Icons.newspaper_rounded, label: 'هەواڵەکان'),
+          _BottomNavItem(icon: Icons.emoji_events_rounded, label: 'خولەکان'),
+          _BottomNavItem(icon: Icons.star_rounded, label: 'دڵخوازەکانم'),
+          _BottomNavItem(icon: Icons.menu_rounded, label: 'زیاتر'),
+        ],
       ),
     );
   }
 }
 
-class _PulseDot extends StatefulWidget {
-  const _PulseDot();
-  @override
-  State<_PulseDot> createState() => _PulseDotState();
-}
-
-class _PulseDotState extends State<_PulseDot> with SingleTickerProviderStateMixin {
-  late AnimationController _ctrl;
-  @override
-  void initState() {
-    super.initState();
-    _ctrl = AnimationController(vsync: this, duration: const Duration(seconds: 1))..repeat(reverse: true);
-  }
-  @override
-  void dispose() { _ctrl.dispose(); super.dispose(); }
+class _HeaderIcon extends StatelessWidget {
+  final IconData icon;
+  const _HeaderIcon({required this.icon});
   @override
   Widget build(BuildContext context) {
-    return FadeTransition(opacity: _ctrl, child: Container(width: 7, height: 7, decoration: const BoxDecoration(color: Colors.redAccent, shape: BoxShape.circle)));
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 10),
+      child: Icon(icon, color: Colors.white70, size: 22),
+    );
+  }
+}
+
+class _BottomNavItem extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final bool active;
+  const _BottomNavItem({required this.icon, required this.label, this.active = false});
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        Icon(icon, color: active ? _accent : Colors.white24, size: 24),
+        const SizedBox(height: 4),
+        Text(label, style: TextStyle(color: active ? _accent : Colors.white24, fontSize: 9, fontWeight: FontWeight.bold)),
+      ],
+    );
   }
 }
