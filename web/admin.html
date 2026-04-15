@@ -179,7 +179,7 @@
         <li class="nav-item" onclick="switchTab('playlist')"><i class="fas fa-play-circle"></i> Channels</li>
         <li class="nav-item" onclick="switchTab('groups')"><i class="fas fa-folder-tree"></i> Categories</li>
         <li class="nav-item" onclick="switchTab('codes')"><i class="fas fa-key"></i> Login Codes</li>
-        <li class="nav-item" onclick="switchTab('announcement')"><i class="fas fa-bullhorn"></i> Announcement</li>
+        <li class="nav-item" onclick="switchTab('announcement')"><i class="fas fa-bell"></i> Notifications</li>
         <li class="nav-item" onclick="switchTab('tools')"><i class="fas fa-gear"></i> Systems</li>
       </nav>
       <div class="sidebar-footer"><div class="logout-btn" onclick="logout()"><i class="fas fa-sign-out-alt"></i> Exit Control</div></div>
@@ -277,6 +277,10 @@
             <div class="form-group">
               <label>Message Content</label>
               <textarea id="notifBody" class="form-input" style="min-height:120px;" placeholder="What should the users see?"></textarea>
+            </div>
+            <div class="form-group">
+              <label>Attachment Image URL (Optional)</label>
+              <input type="text" id="notifImage" class="form-input" placeholder="e.g. https://.../image.jpg">
             </div>
             <button class="primary-btn" onclick="publishNotification()">
               <i class="fas fa-paper-plane"></i> PUBLISH TO ALL UNITS
@@ -517,12 +521,14 @@
     window.publishNotification = async () => {
       const title = document.getElementById('notifTitle').value;
       const body = document.getElementById('notifBody').value;
+      const imageUrl = document.getElementById('notifImage').value;
       if (!title || !body) return alert("Please fill Title and Content");
 
       const notifObj = {
         id: Date.now().toString(),
         title: title,
         body: body,
+        image: imageUrl || null,
         timestamp: new Date().toISOString()
       };
 
@@ -534,6 +540,7 @@
 
       document.getElementById('notifTitle').value = '';
       document.getElementById('notifBody').value = '';
+      document.getElementById('notifImage').value = '';
       showToast("Notification Broadcasted!");
     };
 
@@ -544,7 +551,10 @@
         const tr = document.createElement('tr');
         tr.innerHTML = `
           <td style="font-size:0.7rem; color:var(--text-dim)">${new Date(v.timestamp).toLocaleString()}</td>
-          <td style="font-weight:700">${v.title}</td>
+          <td style="font-weight:700">
+            ${v.image ? `<img src="${v.image}" style="width:24px; height:24px; border-radius:4px; margin-right:8px; vertical-align:middle; object-fit:cover">` : ''}
+            ${v.title}
+          </td>
           <td style="max-width:300px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap">${v.body}</td>
         `;
         tbody.appendChild(tr);

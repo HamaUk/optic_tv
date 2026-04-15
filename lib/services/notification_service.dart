@@ -4,6 +4,10 @@ import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:dio/dio.dart';
+import 'package:path_provider/path_provider.dart';
+import 'dart:io';
+import 'package:path/path.dart' as p;
 
 /// Top-level function for background message handling.
 /// Must be outside of any class.
@@ -72,6 +76,7 @@ class NotificationService {
       final id = data['id']?.toString();
       final title = data['title']?.toString();
       final body = data['body']?.toString();
+      final imageUrl = data['image']?.toString();
 
       if (id == null || title == null || body == null) return;
 
@@ -82,17 +87,32 @@ class NotificationService {
       if (lastId != id) {
         // New broadcast detected!
         await prefs.setString('last_broadcast_id', id);
-        _showBroadcastNotification(title, body);
+        _showBroadcastNotification(title, body, imageUrl);
       }
     });
   }
 
-  void _showBroadcastNotification(String title, String body) {
+  Future<void> _showBroadcastNotification(String title, String body, String? imageUrl) async {
+    BigPictureStyleInformation? bigPictureStyleInformation;
+    
+    if (imageUrl != null && imageUrl.isNotEmpty) {
+      try {
+        final String localPath = await _downloadAndSaveImage(imageUrl, 'notification_img');
+        bigPictureStyleInformation = BigPictureStyleInformation(
+          FilePathAndroidBitmap(localPath),
+          contentTitle: title,
+          summaryText: body,
+        );
+      } catch (e) {
+        log('Error downloading notification image: $e');
+      }
+    }
+
     _localNotificationsPlugin.show(
       DateTime.now().millisecond,
       title,
       body,
-      const NotificationDetails(
+      NotificationDetails(
         android: AndroidNotificationDetails(
           'high_importance_channel',
           'High Importance Notifications',
@@ -100,9 +120,22 @@ class NotificationService {
           icon: '@mipmap/ic_launcher',
           importance: Importance.high,
           priority: Priority.high,
+          styleInformation: bigPictureStyleInformation,
         ),
       ),
     );
+  }
+
+  Future<String> _downloadAndSaveImage(String url, String fileName) async {
+    final Directory directory = await getApplicationDocumentsDirectory();
+    final String filePath = p.join(directory.path, '$fileName.jpg');
+    final Response response = await Dio().get(
+      url,
+      options: Options(responseType: ResponseType.bytes),
+    );
+    final File file = File(filePath);
+    await file.writeAsBytes(response.data);
+    return filePath;
   }
 
   Future<void> _setupFlutterLocalNotifications() async {
