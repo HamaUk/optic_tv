@@ -427,15 +427,38 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Lottie.network(
-                'https://lottie.host/81a96758-f2b7-4c31-901c-6a3c99026725/I0m9T5vU7d.json',
-                width: 180,
-                height: 180,
+              OpticWordmark(height: 46),
+              const SizedBox(height: 40),
+              Container(
+                width: 220,
+                height: 5,
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(5),
+                  boxShadow: [
+                    BoxShadow(
+                      color: AppTheme.accentTeal.withOpacity(0.6),
+                      blurRadius: 12,
+                      offset: const Offset(0, 0),
+                    ),
+                  ],
+                ),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(5),
+                  child: const LinearProgressIndicator(
+                    backgroundColor: Colors.white10,
+                    valueColor: AlwaysStoppedAnimation<Color>(AppTheme.accentTeal),
+                  ),
+                ),
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: 28),
               Text(
                 'Loading your entertainment...',
-                style: TextStyle(color: Colors.white.withOpacity(0.5), fontWeight: FontWeight.bold),
+                style: TextStyle(
+                  color: Colors.white.withOpacity(0.6),
+                  fontWeight: FontWeight.w500,
+                  letterSpacing: 1.5,
+                  fontSize: 14,
+                ),
               ),
             ],
           ),
