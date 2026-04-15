@@ -34,8 +34,8 @@ class SportsDbService {
           final String? badgeUrl = teams.first['strTeamBadge'];
           
           if (badgeUrl != null && badgeUrl.isNotEmpty) {
-            // Use documented TheSportsDB image size modifier.
-            final optimizedUrl = '$badgeUrl/small';
+            // TheSportsDB image size modifier (see docs_artwork).
+            final optimizedUrl = '$badgeUrl/medium';
             _logoCache[teamName] = optimizedUrl;
             return optimizedUrl;
           }

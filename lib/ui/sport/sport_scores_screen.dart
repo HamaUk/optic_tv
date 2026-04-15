@@ -25,6 +25,7 @@ class _SportScoresScreenState extends State<SportScoresScreen> {
   late final ShotMobApiService _api;
   late final SportsDbService _sdb;
   StreamSubscription? _wsSubscription;
+  Timer? _pollTimer;
 
   List<ShotMatch> _matches = [];
   bool _loading = true;
@@ -43,34 +44,45 @@ class _SportScoresScreenState extends State<SportScoresScreen> {
       if (mounted) _handleRealTimeUpdate(updatedMatch);
     });
 
+    _pollTimer = Timer.periodic(const Duration(seconds: 35), (_) {
+      if (!mounted || _loading) return;
+      _fetch(silent: true);
+    });
+
     _fetch();
   }
 
   @override
   void dispose() {
+    _pollTimer?.cancel();
     _wsSubscription?.cancel();
     _api.dispose();
     super.dispose();
   }
 
-  Future<void> _fetch() async {
-    setState(() => _loading = true);
+  Future<void> _fetch({bool silent = false}) async {
+    if (!silent && mounted) setState(() => _loading = true);
     try {
       final dateStr = DateFormat('yyyy-MM-dd').format(_dates[_selectedDateIndex]);
       final list = await _api.getMatches(date: dateStr);
-      _matches = list;
+      if (mounted) {
+        setState(() => _matches = list);
+      }
     } catch (_) {
-      _matches = [];
+      if (mounted) setState(() => _matches = []);
     } finally {
-      if (mounted) setState(() => _loading = false);
+      if (mounted && !silent) setState(() => _loading = false);
     }
   }
 
   void _handleRealTimeUpdate(ShotMatch update) {
     final index = _matches.indexWhere((m) => m.id == update.id);
-    if (index != -1) {
-      setState(() => _matches[index] = update);
-    }
+    if (index == -1) return;
+    final cur = _matches[index];
+    final isFullRow = update.homeTeam != 'Home' || update.awayTeam != 'Away';
+    setState(() {
+      _matches[index] = isFullRow ? update : cur.applyPatch(update);
+    });
   }
 
   @override
@@ -79,7 +91,7 @@ class _SportScoresScreenState extends State<SportScoresScreen> {
       textDirection: ui.TextDirection.rtl, // Set Kurdish RTL context
       child: Column(
         children: [
-          _buildShotMobHeader(),
+          _buildSportToolbar(),
           _buildDateTabs(),
           const SizedBox(height: 8),
           Expanded(child: _buildBody()),
@@ -88,34 +100,23 @@ class _SportScoresScreenState extends State<SportScoresScreen> {
     );
   }
 
-  Widget _buildShotMobHeader() {
+  Widget _buildSportToolbar() {
     return Container(
+      width: double.infinity,
       padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
+      alignment: AlignmentDirectional.centerEnd,
       child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        mainAxisSize: MainAxisSize.min,
         children: [
-          const Text(
-            'SHOTMOB',
-            style: TextStyle(
-              color: Colors.white,
-              fontSize: 22,
-              fontWeight: FontWeight.w900,
-              letterSpacing: -1,
+          const _HeaderIcon(icon: Icons.search_rounded),
+          const _HeaderIcon(icon: Icons.calendar_month_rounded),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+            decoration: BoxDecoration(
+              color: Colors.white.withOpacity(0.08),
+              borderRadius: BorderRadius.circular(6),
             ),
-          ),
-          Row(
-            children: [
-              const _HeaderIcon(icon: Icons.search_rounded),
-              const _HeaderIcon(icon: Icons.calendar_month_rounded),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.08),
-                  borderRadius: BorderRadius.circular(6),
-                ),
-                child: const Text('LIVE', style: TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.w900)),
-              ),
-            ],
+            child: const Text('LIVE', style: TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.w900)),
           ),
         ],
       ),
@@ -182,11 +183,25 @@ class _SportScoresScreenState extends State<SportScoresScreen> {
     for (var m in otherMatches) {
       grouped.putIfAbsent(m.leagueName, () => []).add(m);
     }
+    for (final list in grouped.values) {
+      list.sort((a, b) {
+        if (a.isFinished != b.isFinished) {
+          return a.isFinished ? 1 : -1;
+        }
+        final ka = a.kickoffLocal;
+        final kb = b.kickoffLocal;
+        if (ka != null && kb != null) return ka.compareTo(kb);
+        return 0;
+      });
+    }
 
     final leagues = grouped.keys.toList();
 
-    return ListView.builder(
-      physics: const BouncingScrollPhysics(),
+    return RefreshIndicator(
+      color: _accent,
+      onRefresh: () => _fetch(silent: true),
+      child: ListView.builder(
+      physics: const AlwaysScrollableScrollPhysics(parent: BouncingScrollPhysics()),
       itemCount: (liveMatches.isNotEmpty ? 1 : 0) + leagues.length,
       padding: const EdgeInsets.only(bottom: 24),
       itemBuilder: (context, idx) {
@@ -213,6 +228,7 @@ class _SportScoresScreenState extends State<SportScoresScreen> {
           ],
         );
       },
+    ),
     );
   }
 
@@ -237,7 +253,7 @@ class _SportScoresScreenState extends State<SportScoresScreen> {
 
   Widget _buildMatchItem(ShotMatch m) {
     return Container(
-      height: 70,
+      constraints: BoxConstraints(minHeight: m.isLive ? 78 : 70),
       margin: const EdgeInsets.symmetric(vertical: 1),
       padding: const EdgeInsets.symmetric(horizontal: 24),
       decoration: BoxDecoration(
@@ -257,26 +273,69 @@ class _SportScoresScreenState extends State<SportScoresScreen> {
           ),
           // Time/Score (Center)
           SizedBox(
-            width: 80,
+            width: 88,
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                if (m.isLive && m.elapsedTime != null) ...[
-                  Text(
-                    m.elapsedTime!,
-                    style: const TextStyle(color: _accent, fontSize: 10, fontWeight: FontWeight.bold),
+                if (m.isLive) ...[
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: _accent.withOpacity(0.2),
+                          borderRadius: BorderRadius.circular(4),
+                        ),
+                        child: const Text(
+                          'LIVE',
+                          style: TextStyle(color: _accent, fontSize: 8, fontWeight: FontWeight.w900, letterSpacing: 0.5),
+                        ),
+                      ),
+                      if (m.elapsedTime != null && m.elapsedTime!.isNotEmpty) ...[
+                        const SizedBox(width: 4),
+                        Flexible(
+                          child: Text(
+                            m.elapsedTime!,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(color: _accent, fontSize: 9, fontWeight: FontWeight.bold),
+                          ),
+                        ),
+                      ],
+                    ],
                   ),
-                  const SizedBox(height: 2),
+                  const SizedBox(height: 4),
                 ],
-                Text(m.isLive ? '${m.scoreHome} - ${m.scoreAway}' : m.matchTime,
+                Text(
+                  (m.isLive || m.isFinished)
+                      ? '${m.scoreHome} - ${m.scoreAway}'
+                      : m.matchTime,
                   style: TextStyle(
                     color: m.isLive ? _accent : Colors.white,
                     fontSize: 14,
                     fontWeight: FontWeight.w900,
                   ),
                 ),
-                if (!m.isLive)
-                  const Text('PM', style: TextStyle(color: Colors.white24, fontSize: 10, fontWeight: FontWeight.bold)),
+                if (m.isScheduled)
+                  Text(
+                    'NS',
+                    style: TextStyle(
+                      color: Colors.white.withOpacity(0.35),
+                      fontSize: 9,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                if (m.isFinished)
+                  Text(
+                    'FT',
+                    style: TextStyle(
+                      color: Colors.white.withOpacity(0.35),
+                      fontSize: 10,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
               ],
             ),
           ),
