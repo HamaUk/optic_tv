@@ -80,7 +80,6 @@ class _SportScoresScreenState extends State<SportScoresScreen> {
           _buildDateTabs(),
           const SizedBox(height: 8),
           Expanded(child: _buildBody()),
-          _buildBottomNavPlaceholder(),
         ],
       ),
     );
@@ -121,6 +120,7 @@ class _SportScoresScreenState extends State<SportScoresScreen> {
   }
 
   Widget _buildDateTabs() {
+    // Generate dates dynamically based on current selected index or just relative to now
     final KurdishLabels = ['دوێنێ', 'ئەمڕۆ', 'سبەی', 'دووشەممە', 'سێشەممە', 'چوارشەممە', 'پێنجشەممە'];
     
     return SizedBox(
@@ -128,7 +128,7 @@ class _SportScoresScreenState extends State<SportScoresScreen> {
       child: ListView.builder(
         scrollDirection: Axis.horizontal,
         padding: const EdgeInsets.symmetric(horizontal: 16),
-        itemCount: _dates.length,
+        itemCount: KurdishLabels.length,
         itemBuilder: (context, i) {
           final active = _selectedDateIndex == i;
           return GestureDetector(
@@ -147,14 +147,14 @@ class _SportScoresScreenState extends State<SportScoresScreen> {
                   Text(
                     KurdishLabels[i],
                     style: TextStyle(
-                      color: active ? Colors.white : Colors.white30,
-                      fontWeight: active ? FontWeight.w900 : FontWeight.w500,
+                      color: active ? Colors.white : Colors.white24,
+                      fontWeight: active ? FontWeight.w900 : FontWeight.w600,
                       fontSize: 14,
                     ),
                   ),
                   if (active) ...[
                     const SizedBox(height: 6),
-                    Container(width: 24, height: 2, color: Colors.white),
+                    Container(width: 20, height: 2, decoration: BoxDecoration(color: _accent, borderRadius: BorderRadius.circular(2))),
                   ],
                 ],
               ),
@@ -170,9 +170,13 @@ class _SportScoresScreenState extends State<SportScoresScreen> {
       return const Center(child: CircularProgressIndicator(color: _accent));
     }
 
-    // Grouping logic by leagueName
+    // Separating Live and Others for prioritization
+    final List<ShotMatch> liveMatches = _matches.where((m) => m.isLive).toList();
+    final List<ShotMatch> otherMatches = _matches.where((m) => !m.isLive).toList();
+
+    // Grouping logic for non-live matches by leagueName
     final Map<String, List<ShotMatch>> grouped = {};
-    for (var m in _matches) {
+    for (var m in otherMatches) {
       grouped.putIfAbsent(m.leagueName, () => []).add(m);
     }
 
@@ -180,9 +184,21 @@ class _SportScoresScreenState extends State<SportScoresScreen> {
 
     return ListView.builder(
       physics: const BouncingScrollPhysics(),
-      itemCount: leagues.length,
+      itemCount: (liveMatches.isNotEmpty ? 1 : 0) + leagues.length,
       padding: const EdgeInsets.only(bottom: 24),
-      itemBuilder: (context, lIdx) {
+      itemBuilder: (context, idx) {
+        // Show Live matches at the very top
+        if (liveMatches.isNotEmpty && idx == 0) {
+          return Column(
+            children: [
+              _buildLeagueHeader('یارییە زیندووەکان', isLive: true), // "Live Matches"
+              ...liveMatches.map((m) => _buildMatchItem(m)),
+              const SizedBox(height: 12),
+            ],
+          );
+        }
+
+        final lIdx = liveMatches.isNotEmpty ? idx - 1 : idx;
         final leagueName = leagues[lIdx];
         final matches = grouped[leagueName]!;
 
@@ -197,7 +213,7 @@ class _SportScoresScreenState extends State<SportScoresScreen> {
     );
   }
 
-  Widget _buildLeagueHeader(String name) {
+  Widget _buildLeagueHeader(String name, {bool isLive = false}) {
     return Container(
       padding: const EdgeInsets.fromLTRB(16, 20, 16, 12),
       child: Row(
@@ -205,12 +221,12 @@ class _SportScoresScreenState extends State<SportScoresScreen> {
         children: [
           Row(
             children: [
-              const Icon(Icons.keyboard_arrow_down_rounded, color: Colors.white24, size: 24),
+              Icon(Icons.keyboard_arrow_down_rounded, color: isLive ? _accent : Colors.white24, size: 24),
               const SizedBox(width: 12),
-              Text(name, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13)),
+              Text(name, style: TextStyle(color: isLive ? _accent : Colors.white, fontWeight: FontWeight.bold, fontSize: 13)),
             ],
           ),
-          const Icon(Icons.shield_outlined, color: Colors.white24, size: 24),
+          Icon(isLive ? Icons.flash_on_rounded : Icons.shield_outlined, color: isLive ? _accent : Colors.white24, size: 24),
         ],
       ),
     );
@@ -284,23 +300,6 @@ class _SportScoresScreenState extends State<SportScoresScreen> {
     );
   }
 
-  Widget _buildBottomNavPlaceholder() {
-    return Container(
-      height: 70,
-      decoration: BoxDecoration(
-        border: Border(top: BorderSide(color: Colors.white.withOpacity(0.05))),
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceAround,
-        children: const [
-          _BottomNavItem(icon: Icons.sports_soccer_rounded, label: 'یارییەکان', active: true),
-          _BottomNavItem(icon: Icons.newspaper_rounded, label: 'هەواڵەکان'),
-          _BottomNavItem(icon: Icons.emoji_events_rounded, label: 'خولەکان'),
-          _BottomNavItem(icon: Icons.star_rounded, label: 'دڵخوازەکانم'),
-          _BottomNavItem(icon: Icons.menu_rounded, label: 'زیاتر'),
-        ],
-      ),
-    );
   }
 }
 

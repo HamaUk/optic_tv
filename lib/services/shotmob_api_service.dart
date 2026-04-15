@@ -34,17 +34,29 @@ class ShotMobApiService {
       _socket = io.io(wsUrl, io.OptionBuilder()
         .setTransports(['websocket'])
         .enableAutoConnect()
+        .setReconnectionAttempts(10)
         .build());
 
-      _socket?.onConnect((_) => log('ShotMob WebSocket Connected'));
+      _socket?.onConnect((_) {
+        log('ShotMob WebSocket Connected - Subscribing to highlights');
+        // Subscribe to global live highlights to get real-time score updates
+        _socket?.emit('subscribe', {
+          'topics': ['live', 'matches', 'score_updates']
+        });
+      });
       
+      _socket?.onConnectError((err) => log('WebSocket Connect Error: $err'));
+      _socket?.onDisconnect((_) => log('WebSocket Disconnected'));
+
       _socket?.on('score_update', (data) {
+        log('WebSocket: score_update received');
         if (data is Map<String, dynamic>) {
           _updateController.add(ShotMatch.fromJson(data));
         }
       });
 
       _socket?.on('match_update', (data) {
+        log('WebSocket: match_update received');
         if (data is Map<String, dynamic>) {
           _updateController.add(ShotMatch.fromJson(data));
         }
