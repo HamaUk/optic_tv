@@ -14,6 +14,9 @@ dependencies:
   media_kit_video: ^2.0.1
   media_kit_libs_video: ^1.0.7
   url_launcher: ^6.3.0
+  animations: ^2.0.11
+  rxdart: ^0.27.7
+  collection: ^1.18.0
 
   # State Management & DI
   flutter_riverpod: ^3.3.1
@@ -77,4 +80,8 @@ flutter:
     - family: Rabar
       fonts:
         - asset: assets/fonts/Rabar_021.ttf
+          weight: 400
+    - family: RobotoCondensed
+      fonts:
+        - asset: assets/fonts/RobotoCondensed-Regular.ttf
           weight: 400
