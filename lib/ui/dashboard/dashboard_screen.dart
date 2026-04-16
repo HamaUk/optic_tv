@@ -344,16 +344,12 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                             ? 'No movies found'
                             : _navIndex == 3
                                 ? s.noFavorites
-                                : _navIndex == 4
-                                    ? s.noRecent
-                                    : null,
+                                : null,
                         subtitle: _navIndex == 1
                             ? 'Try adding movies or VOD content in the Admin Portal'
                             : _navIndex == 3
                                 ? s.noFavoritesHint
-                                : _navIndex == 4
-                                    ? s.noRecentHint
-                                    : null,
+                                : null,
                       )
                     : _buildScrollableContent(
                         context,
@@ -1013,7 +1009,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
           _navItem(s, icon: Icons.movie_rounded, label: s.navMovies, index: 1),
           _navItem(s, icon: Icons.sports_soccer_rounded, label: s.navSport, index: 2),
           _navItem(s, icon: Icons.star_rounded, label: s.navFavorites, index: 3),
-          _navItem(s, icon: Icons.history_rounded, label: s.navRecent, index: 4),
+          _navItem(s, icon: Icons.info_outline_rounded, label: 'About', index: 4),
         ],
       ),
     );
@@ -1655,10 +1651,15 @@ class _AboutTab extends StatelessWidget {
       await _launchUrl(url);
     } else {
       if (context.mounted) {
+        // High-visibility snackbar with theme accent
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('You are on the latest version'),
-            backgroundColor: AppTheme.surfaceGray,
+          SnackBar(
+            content: const Text(
+              'You are on the latest version',
+              style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+            ),
+            backgroundColor: AppTheme.accentColor(settings.gradientPreset),
+            duration: const Duration(seconds: 4),
           ),
         );
       }
@@ -1684,12 +1685,25 @@ class _AboutTab extends StatelessWidget {
             child: Column(
               children: [
                 Text(
-                  'If you have any problem text me here is my telegram',
-                  style: TextStyle(
-                    fontSize: 16,
+                  "ئەگەر تووشی هەر کێشەیەک بوویت یان پێویستت بە هاوکاری بوو، تکایە ڕاستەوخۆ لە تێلیگرام پەیوەندیم پێوە بکە. من لێرەم بۆ یارمەتیدانت!",
+                  style: AppTheme.withRabarIfKurdish(
+                    const Locale('ckb'),
+                    const TextStyle(
+                      color: Colors.white,
+                      fontSize: 16,
+                      height: 1.6,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 20),
+                Text(
+                  "If you encounter any issues or require assistance, please reach out to me directly on Telegram. I am here to help!",
+                  style: const TextStyle(
+                    color: Colors.white70,
+                    fontSize: 14,
                     height: 1.5,
-                    color: Colors.white.withOpacity(0.85),
-                    fontWeight: FontWeight.w500,
                   ),
                   textAlign: TextAlign.center,
                 ),
