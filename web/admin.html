@@ -90,7 +90,17 @@
       cursor: pointer; transition: 0.2s; font-weight: 600;
     }
     .nav-item:hover { background: rgba(255,255,255,0.05); color: var(--text-main); }
-    .nav-item.active { background: rgba(212, 175, 55, 0.1); color: var(--accent-gold); }
+    .nav-item.active { background: var(--accent-gold-glow); color: var(--accent-gold); }
+
+    /* Bulk Action Bar */
+    #bulkActionBar {
+      position: fixed; bottom: 40px; left: 50%; transform: translateX(-50%) translateY(100px);
+      background: var(--bg-surface-elevated); border: 1px solid var(--accent-gold);
+      padding: 12px 24px; border-radius: 20px; display: flex; align-items: center; gap: 20px;
+      z-index: 5000; transition: transform 0.3s var(--ease); box-shadow: 0 20px 50px rgba(0,0,0,0.8);
+    }
+    #bulkActionBar.active { transform: translateX(-50%) translateY(0); }
+    .bulk-sep { width: 1px; height: 24px; background: var(--glass-border); }
 
     /* Content Area */
     .main-content { padding: 40px; max-width: 1400px; margin: 0 auto; width: 100%; }
@@ -191,6 +201,7 @@
         <li class="nav-item" onclick="switchTab('codes')"><i class="fas fa-key"></i> Login Codes</li>
         <li class="nav-item" onclick="switchTab('announcement')"><i class="fas fa-bell"></i> Notifications</li>
         <li class="nav-item" onclick="switchTab('health')"><i class="fas fa-heart-pulse"></i> Health Check</li>
+        <li class="nav-item" onclick="switchTab('monitor')"><i class="fas fa-tower-broadcast"></i> Live Monitor</li>
         <li class="nav-item" onclick="switchTab('tools')"><i class="fas fa-gear"></i> Systems</li>
       </nav>
       <div class="sidebar-footer"><div class="logout-btn" id="logoutBtn" style="cursor:pointer; color:var(--accent-danger); padding:10px; font-weight:700;"><i class="fas fa-sign-out-alt"></i> Exit Control</div></div>
@@ -354,12 +365,52 @@
         </div>
       </section>
 
+      <!-- Monitor -->
+      <section id="tab-monitor" class="tab-content">
+        <div class="header-row"><div class="page-title"><h2>Live Session Monitor</h2><p>Real-time viewer activity tracking</p></div></div>
+        <div class="content-panel">
+          <table>
+            <thead><tr><th>Device ID</th><th>Session Code</th><th>Channel Activity</th><th>Uptime</th><th>Status</th></tr></thead>
+            <tbody id="monitorBody"></tbody>
+          </table>
+        </div>
+      </section>
+
       <!-- Systems -->
       <section id="tab-tools" class="tab-content">
-        <div class="header-row"><div class="page-title"><h2>System Core</h2><p>Administrative recovery & backup</p></div></div>
+        <div class="header-row"><div class="page-title"><h2>System Core</h2><p>Branding, exports and recovery</p></div></div>
+        
         <div class="dashboard-grid">
+          <!-- Branding -->
+          <div class="content-panel">
+            <h4 style="margin-bottom:15px">Theme & Branding</h4>
+            <div class="form-group"><label>App Name</label><input type="text" id="brandNameInput" class="form-input" placeholder="e.g. Optic Pro"></div>
+            <div class="form-group">
+              <label>Accent Color</label>
+              <div style="display:flex; gap:10px;">
+                <div class="color-swatch" style="background:#d4af37; width:30px; height:30px; border-radius:50%; cursor:pointer" onclick="updateBrandColor('#d4af37')"></div>
+                <div class="color-swatch" style="background:#14b8a6; width:30px; height:30px; border-radius:50%; cursor:pointer" onclick="updateBrandColor('#14b8a6')"></div>
+                <div class="color-swatch" style="background:#3b82f6; width:30px; height:30px; border-radius:50%; cursor:pointer" onclick="updateBrandColor('#3b82f6')"></div>
+                <div class="color-swatch" style="background:#ef4444; width:30px; height:30px; border-radius:50%; cursor:pointer" onclick="updateBrandColor('#ef4444')"></div>
+              </div>
+            </div>
+            <button class="btn-sm btn-primary" onclick="saveBranding()">Apply Theme</button>
+          </div>
+
+          <!-- M3U Export -->
+          <div class="content-panel">
+            <h4>Playlist Engine</h4>
+            <p style="color:var(--text-dim); margin:10px 0; font-size:0.8rem">Generate a standard M3U playlist for external players.</p>
+            <div style="display:flex; flex-direction:column; gap:8px">
+              <button class="btn-sm btn-outline" onclick="exportM3U()"><i class="fas fa-file-export"></i> Download .M3U File</button>
+              <button class="btn-sm btn-outline" onclick="copyM3U()"><i class="fas fa-copy"></i> Copy Playlist Text</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="dashboard-grid" style="margin-top:20px;">
           <div class="content-panel"><h4>Database Backup</h4><p style="color:var(--text-dim); margin:10px 0">Download 1:1 replica of the RTDB.</p><button class="btn-sm btn-outline" onclick="exportJSON()"><i class="fas fa-file-code"></i> Export JSON</button></div>
-          <div class="content-panel"><h4>Security</h4><p style="color:var(--text-dim); margin:10px 0">Revoke current administrative token.</p><button class="btn-sm btn-danger" onclick="logout()">Terminate Session</button></div>
+          <div class="content-panel"><h4>Security</h4><p style="color:var(--text-dim); margin:10px 0">Archive logs and terminate administrative session.</p><button class="btn-sm btn-danger" onclick="logout()">Terminate Session</button></div>
         </div>
       </section>
     </main>
@@ -491,6 +542,8 @@
     const P_NOTIF = 'sync/global/notifications/broadcast';
     const P_NOTIF_HIST = 'sync/global/notifications/history';
     const P_NOTIF_CLEAR = 'sync/global/notifications/broadcast';
+    const P_BRAND = 'sync/global/settings/branding';
+    const P_SESS = 'sync/global/activeSessions';
 
     window.plData = {};
     window.grpData = {};
@@ -501,6 +554,8 @@
       onValue(ref(db, P_GRP), s => { window.grpData = s.val() || {}; renderGroups(); updateStats(); });
       onValue(ref(db, P_CODE), s => { window.codeData = s.val() || {}; renderCodes(); updateStats(); });
       onValue(ref(db, P_NOTIF_HIST), s => { renderNotificationHistory(s.val() || {}); });
+      onValue(ref(db, P_BRAND), s => { applyBranding(s.val() || {}); });
+      onValue(ref(db, P_SESS), s => { renderMonitor(s.val() || {}); });
     };
 
     function updateStats() {
@@ -748,6 +803,78 @@
         });
     };
 
+    // --- Monitor & Branding ---
+    window.renderMonitor = (data) => {
+      const tbody = document.getElementById('monitorBody');
+      tbody.innerHTML = '';
+      Object.entries(data).forEach(([id, sess]) => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td style="font-family:monospace; font-size:0.75rem">${id}</td>
+          <td style="font-weight:700; color:var(--accent-gold)">${sess.code || 'Bypassed'}</td>
+          <td>${sess.channel || '-'}</td>
+          <td style="color:var(--text-dim)">${new Date(sess.lastSeen).toLocaleTimeString()}</td>
+          <td><span class="status-badge status-active">ONLINE</span></td>
+        `;
+        tbody.appendChild(tr);
+      });
+    };
+
+    window.applyBranding = (b) => {
+      if(b.name) {
+        document.querySelectorAll('.brand-text').forEach(el => el.textContent = b.name);
+        document.getElementById('brandNameInput').value = b.name;
+      }
+      if(b.color) {
+        document.documentElement.style.setProperty('--accent-gold', b.color);
+        document.documentElement.style.setProperty('--accent-gold-glow', b.color + '22');
+      }
+    };
+
+    window.saveBranding = async () => {
+      const name = document.getElementById('brandNameInput').value;
+      const color = getComputedStyle(document.documentElement).getPropertyValue('--accent-gold').trim();
+      await set(ref(db, P_BRAND), { name, color });
+      showToast("Branding updated");
+    };
+
+    window.updateBrandColor = (c) => {
+      document.documentElement.style.setProperty('--accent-gold', c);
+      document.documentElement.style.setProperty('--accent-gold-glow', c + '22');
+    };
+
+    // --- Bulk Studio ---
+    window.bulkMoveCategory = async () => {
+      const selected = Array.from(document.querySelectorAll('.ch-select:checked')).map(el => el.dataset.key);
+      const newCat = prompt("Enter the new Category name for " + selected.length + " channels:");
+      if(!newCat) return;
+      
+      const updates = {};
+      selected.forEach(k => updates[`${k}/group`] = newCat);
+      await update(ref(db, P_PLAY), updates);
+      showToast("Bulk moved successful");
+    };
+
+    // --- M3U Engine ---
+    window.generateM3U = () => {
+      let m3u = "#EXTM3U\n";
+      Object.values(window.plData).forEach(ch => {
+        m3u += `#EXTINF:-1 tvg-logo="${ch.logo||''}" group-title="${ch.group}",${ch.name}\n${ch.url}\n`;
+      });
+      return m3u;
+    };
+
+    window.copyM3U = () => {
+      const text = window.generateM3U();
+      navigator.clipboard.writeText(text).then(() => showToast("M3U Playlist copied to clipboard"));
+    };
+
+    window.exportM3U = () => {
+      const blob = new Blob([window.generateM3U()], {type: 'text/plain'});
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a'); a.href = url; a.download = `optic_v2_playlist.m3u`; a.click();
+    };
+
     document.getElementById('current-date').textContent = new Date().toDateString();
   </script>
 
@@ -802,11 +929,27 @@
     function openCodeModal() { document.getElementById('codeModal').style.display = 'flex'; }
     function closeModals() { document.querySelectorAll('.modal-overlay').forEach(el=>el.style.display='none'); }
     function showToast(m) { const t = document.getElementById('toast'); t.textContent = m; t.style.display='block'; setTimeout(()=>t.style.display='none', 3000); }
-    function checkBulkState() { document.getElementById('bulkDelBtn').style.display = document.querySelectorAll('.ch-select:checked').length > 0 ? 'inline-flex' : 'none'; }
+    function checkBulkState() { 
+      const count = document.querySelectorAll('.ch-select:checked').length;
+      const bar = document.getElementById('bulkActionBar');
+      document.getElementById('bulkCount').textContent = count + " SELECTED";
+      if(count > 0) bar.classList.add('active');
+      else bar.classList.remove('active');
+    }
     function toggleSelectAll(el) { document.querySelectorAll('.ch-select').forEach(cb => cb.checked = el.checked); checkBulkState(); }
     function logout() { window.logout(); }
     document.getElementById('loginPassword').onkeydown = e => { if(e.key === 'Enter') tryLogin(); };
   </script>
+
+  <!-- Bulk Action Bar -->
+  <div id="bulkActionBar">
+    <div id="bulkCount" style="font-weight:800; color:var(--accent-gold)">0 SELECTED</div>
+    <div class="bulk-sep"></div>
+    <button class="btn-sm btn-outline" onclick="bulkMoveCategory()"><i class="fas fa-folder-tree"></i> Move</button>
+    <button class="btn-sm btn-outline" onclick="bulkDeleteChannels()"><i class="fas fa-trash"></i> Delete</button>
+    <div class="bulk-sep"></div>
+    <button class="btn-sm btn-outline" onclick="toggleSelectAll({checked:false})">Dismiss</button>
+  </div>
 
 </body>
 </html>
