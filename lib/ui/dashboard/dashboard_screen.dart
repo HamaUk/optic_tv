@@ -47,16 +47,22 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
   bool _tvHomeActive = true; 
   final TextEditingController _searchController = TextEditingController();
   
-  Channel? _focusedChannel; 
+  Channel? _focusedChannel;
   bool _sidebarFocused = false;
-  String? _selectedTvGroup; // Categorical selection for 3-pane TV layout
+  String? _selectedTvGroup;
 
   // Professional TV State
   final GlobalKey<ScaffoldState> _tvScaffoldKey = GlobalKey<ScaffoldState>();
   int _tvTabIndex = 0;
-  String? _selectedTvGroup;
 
-  Color get _accent => AppTheme.accentColor(ref.read(settingsProvider).gradientPreset);
+  Color get _accent {
+    final settings = ref.read(appUiSettingsProvider);
+    return settings.when(
+      data: (data) => AppTheme.accentColor(data.gradientPreset),
+      loading: () => AppTheme.accentColor(AppGradientPreset.classic),
+      error: (_, __) => AppTheme.accentColor(AppGradientPreset.classic),
+    );
+  }
 
   @override
   void dispose() {
@@ -392,19 +398,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                 16.0,
                 false,
                 filtered.isEmpty
-                    ? _buildEmptyState(
-                        s,
-                        title: _navIndex == 1
-                            ? 'No movies found'
-                            : _navIndex == 3
-                                ? s.noFavorites
-                                : null,
-                        subtitle: _navIndex == 1
-                            ? 'Try adding movies or VOD content in the Admin Portal'
-                            : _navIndex == 3
-                                ? s.noFavoritesHint
-                                : null,
-                      )
+                    ? _buildEmptyState(s)
                     : _buildScrollableContent(
                         context,
                         s,
@@ -1307,143 +1301,288 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     );
   }
 
-  Widget _tvCategoryItem(String name, int count, bool active, VoidCallback onTap) {
-    return TvFocusWrapper(
-      onTap: onTap,
-      borderRadius: 14,
-      scale: 1.04,
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
-        decoration: BoxDecoration(
-          color: active ? _accent.withOpacity(0.15) : Colors.transparent,
-          borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: active ? _accent.withOpacity(0.3) : Colors.transparent),
-        ),
+
+  // Ã¢â€â‚¬Ã¢â€â‚¬ TV-only methods (gated by isTv check in build) Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
+
+  PreferredSizeWidget _buildTvTopAppbar(AppStrings s, AppSettingsData settings) {
+    return PreferredSize(
+      preferredSize: const Size.fromHeight(100),
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(48, 24, 48, 0),
         child: Row(
           children: [
-            Expanded(
-              child: Text(
-                name,
-                style: TextStyle(
-                  color: active ? Colors.white : Colors.white60,
-                  fontSize: 16,
-                  fontWeight: active ? FontWeight.w900 : FontWeight.w500,
-                ),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
+            const OpticWordmark(height: 38),
+            const SizedBox(width: 80),
+            _TvTabs(
+              activeIndex: _tvTabIndex,
+              tabs: const ['Live TV', 'Movies', 'Favorites'],
+              onTabChange: (i) => setState(() {
+                _tvTabIndex = i;
+                _selectedTvGroup = null;
+              }),
+            ),
+            const Spacer(),
+            TvFocusWrapper(
+              onTap: () => _tvScaffoldKey.currentState?.openEndDrawer(),
+              borderRadius: 30,
+              child: Container(
+                padding: const EdgeInsets.all(12),
+                child: const Icon(Icons.settings_outlined, color: Colors.white70, size: 28),
               ),
             ),
-            const SizedBox(width: 8),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-              decoration: BoxDecoration(
-                color: active ? _accent.withOpacity(0.2) : Colors.white.withOpacity(0.05),
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Text(
-                count.toString(),
-                style: TextStyle(
-                  color: active ? _accent : Colors.white38,
-                  fontSize: 12,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-            ),
+            const SizedBox(width: 24),
+            const _TvClock(),
           ],
         ),
       ),
     );
   }
 
-  /// High-density Channel Grid (Pane 3) for TV. No Hero section as requested.
-  Widget _buildTvChannelGrid(BuildContext context, AppStrings s, AppSettingsData settings) {
-    final channelsAsync = ref.watch(channelsProvider);
-    return channelsAsync.when(
-      data: (all) {
-        final favorites = ref.watch(favoritesProvider);
-        final base = _channelsForNav(all, favorites, []);
-        final filtered = _applySearch(base);
-        
-        final displayChannels = _selectedTvGroup == null 
-            ? filtered 
-            : filtered.where((c) => c.group == _selectedTvGroup).toList();
+  Widget _buildTvLiveTvTab(AppStrings s, List<Channel> all, List<Channel> favs, AppSettingsData settings) {
+    return _buildTvDualPaneView(s, all.where((c) => !_isMovieChannel(c)).toList(), settings);
+  }
 
-        if (displayChannels.isEmpty) return _buildEmptyState(s);
+  Widget _buildTvMoviesTab(AppStrings s, List<Channel> all, List<Channel> favs, AppSettingsData settings) {
+    return _buildTvDualPaneView(s, all.where(_isMovieChannel).toList(), settings);
+  }
 
-        return Container(
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topCenter,
-              end: Alignment.bottomCenter,
-              colors: [
-                const Color(0xFF0D1118),
-                Colors.black,
+  Widget _buildTvFavoritesTab(AppStrings s, List<Channel> favs, AppSettingsData settings) {
+    return _buildTvDualPaneView(s, favs, settings);
+  }
+
+  Widget _buildTvDualPaneView(AppStrings s, List<Channel> channels, AppSettingsData settings) {
+    final groups = _groupMap(channels);
+    final sortedKeys = groups.keys.toList()..sort();
+    final displayChannels = _selectedTvGroup == null
+        ? channels
+        : groups[_selectedTvGroup] ?? [];
+    return Row(
+      children: [
+        Container(
+          width: 300,
+          color: const Color(0xFF0A0E14),
+          padding: const EdgeInsets.fromLTRB(24, 40, 24, 24),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('Categories',
+                  style: TextStyle(
+                      color: Colors.white.withValues(alpha: 0.3),
+                      fontSize: 12,
+                      fontWeight: FontWeight.bold,
+                      letterSpacing: 1.4)),
+              const SizedBox(height: 16),
+              Expanded(
+                child: ListView(
+                  children: [
+                    _tvCategoryItem('All', channels.length, _selectedTvGroup == null,
+                        () => setState(() => _selectedTvGroup = null)),
+                    const SizedBox(height: 8),
+                    for (final g in sortedKeys) ...[
+                      _tvCategoryItem(g, groups[g]?.length ?? 0, _selectedTvGroup == g,
+                          () => setState(() => _selectedTvGroup = g)),
+                      const SizedBox(height: 8),
+                    ],
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+        Expanded(
+          child: displayChannels.isEmpty
+              ? _buildEmptyState(s)
+              : GridView.builder(
+                  padding: const EdgeInsets.all(40),
+                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                    crossAxisCount: 5,
+                    mainAxisSpacing: 28,
+                    crossAxisSpacing: 28,
+                    childAspectRatio: 0.82,
+                  ),
+                  itemCount: displayChannels.length,
+                  itemBuilder: (context, idx) {
+                    final ch = displayChannels[idx];
+                    return _tvTabIndex == 1
+                        ? _buildMovieTile(context, s, channels, ch, 250)
+                        : _buildTvCinemaTile(s, channels, ch);
+                  },
+                ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildTvSettingsDrawer(AppStrings s) {
+    return Container(
+      width: 480,
+      color: const Color(0xFF0F1115),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(40, 80, 40, 40),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('Settings',
+                    style: TextStyle(
+                        fontSize: 42,
+                        fontWeight: FontWeight.w900,
+                        color: _accent,
+                        letterSpacing: -1)),
+                const SizedBox(height: 8),
+                Text('Configure your professional experience',
+                    style: TextStyle(color: Colors.white.withValues(alpha: 0.3), fontSize: 16)),
               ],
             ),
           ),
-          child: GridView.builder(
-            padding: const EdgeInsets.fromLTRB(32, 48, 32, 32),
-            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: 5,
-              mainAxisSpacing: 32,
-              crossAxisSpacing: 32,
-              childAspectRatio: 0.82,
+          Expanded(
+            child: ListView(
+              padding: const EdgeInsets.symmetric(horizontal: 24),
+              children: [
+                _buildTvMenuItem(Icons.account_circle_outlined, 'My Account', 'Manage subscription & profile', () {}),
+                _buildTvMenuItem(Icons.palette_outlined, 'Appearance', 'Custom colors & dashboard layout', _openSettings),
+                _buildTvMenuItem(Icons.settings_input_component_rounded, 'Video Engine', 'Codec & hardware acceleration', () {}),
+                _buildTvMenuItem(Icons.dns_outlined, 'Server Status', 'Connection & latency check', () {}),
+                _buildTvMenuItem(Icons.help_outline_rounded, 'Help & Support', 'Reach out to Optic TV team', () {}),
+                _buildTvMenuItem(Icons.info_outline_rounded, 'About Optic TV', 'Version info & legal', () {}),
+              ],
             ),
-            itemCount: displayChannels.length,
-            itemBuilder: (context, idx) {
-              final ch = displayChannels[idx];
-              return _buildTvCinemaTile(s, all, ch);
-            },
           ),
-        );
-      },
-      loading: () => const SizedBox.shrink(),
-      error: (_, __) => const SizedBox.shrink(),
+          Padding(
+            padding: const EdgeInsets.all(40),
+            child: Row(
+              children: [
+                const OpticWordmark(height: 24),
+                const Spacer(),
+                Text('v1.0.0 Pro',
+                    style: TextStyle(
+                        color: Colors.white.withValues(alpha: 0.1),
+                        fontSize: 12,
+                        fontWeight: FontWeight.bold)),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildTvMenuItem(IconData icon, String label, String subtitle, VoidCallback onTap) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 16),
+      child: TvFocusWrapper(
+        onTap: onTap,
+        borderRadius: 20,
+        child: Container(
+          padding: const EdgeInsets.all(20),
+          decoration: BoxDecoration(
+            color: Colors.white.withValues(alpha: 0.04),
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(color: Colors.white.withValues(alpha: 0.06)),
+          ),
+          child: Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: _accent.withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(14),
+                ),
+                child: Icon(icon, color: _accent, size: 28),
+              ),
+              const SizedBox(width: 20),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(label,
+                        style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold)),
+                    const SizedBox(height: 4),
+                    Text(subtitle,
+                        style: TextStyle(
+                            color: Colors.white.withValues(alpha: 0.4),
+                            fontSize: 13)),
+                  ],
+                ),
+              ),
+              Icon(Icons.chevron_right_rounded,
+                  color: Colors.white.withValues(alpha: 0.2)),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _tvCategoryItem(String label, int count, bool active, VoidCallback onTap) {
+    return TvFocusWrapper(
+      onTap: onTap,
+      borderRadius: 12,
+      accentColor: _accent,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+        decoration: BoxDecoration(
+          color: active ? _accent.withValues(alpha: 0.15) : Colors.white.withValues(alpha: 0.04),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: active ? _accent : Colors.white10),
+        ),
+        child: Row(
+          children: [
+            Expanded(
+              child: Text(label,
+                  style: TextStyle(
+                      color: active ? Colors.white : Colors.white70,
+                      fontSize: 16,
+                      fontWeight:
+                          active ? FontWeight.bold : FontWeight.w500)),
+            ),
+            Text(count.toString(),
+                style: TextStyle(
+                    color: active ? _accent : Colors.white24,
+                    fontSize: 14,
+                    fontWeight: FontWeight.bold)),
+          ],
+        ),
+      ),
     );
   }
 
   Widget _buildTvCinemaTile(AppStrings s, List<Channel> all, Channel ch) {
     return TvFocusWrapper(
-      onTap: () => _openPlayer(all, ch),
-      borderRadius: 18,
-      scale: 1.08,
-      child: Focus(
-        onFocusChange: (f) {
-           if (f && mounted) setState(() => _focusedChannel = ch);
-        },
+      onTap: () => Navigator.push(
+          context,
+          MaterialPageRoute(
+              builder: (c) =>
+                  PlayerScreen(channels: all, initialIndex: all.indexOf(ch)))),
+      borderRadius: 16,
+      child: Container(
+        decoration: BoxDecoration(
+          color: Colors.white.withValues(alpha: 0.05),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
+        ),
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.center,
           children: [
             Expanded(
-              child: Container(
-                decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.05),
-                  borderRadius: BorderRadius.circular(18),
-                  border: Border.all(color: Colors.white.withOpacity(0.05)),
-                ),
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(18),
-                  child: Center(
-                    child: ChannelLogoImage(
-                      logo: ch.logo,
-                      fit: BoxFit.contain,
-                    ),
-                  ),
-                ),
+              child: ClipRRect(
+                borderRadius:
+                    const BorderRadius.vertical(top: Radius.circular(16)),
+                child: ChannelLogoImage(logo: ch.logo, fit: BoxFit.contain),
               ),
             ),
-            const SizedBox(height: 12),
-            Text(
-              ch.name,
-              style: const TextStyle(
-                color: Colors.white,
-                fontSize: 14,
-                fontWeight: FontWeight.w600,
-                letterSpacing: 0.2,
-              ),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              textAlign: TextAlign.center,
+            Padding(
+              padding: const EdgeInsets.all(12),
+              child: Text(ch.name,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                      color: Colors.white, fontWeight: FontWeight.bold)),
             ),
           ],
         ),
@@ -1452,7 +1591,8 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
   }
 }
 
-/// Pulsing channel logo
+
+
 class _PulsingLogoBox extends StatefulWidget {
   const _PulsingLogoBox({
     required this.channel,
@@ -1828,224 +1968,6 @@ class _FeaturedCarouselState extends State<_FeaturedCarousel> {
   }
 }
 
-  Widget _buildTvSettingsDrawer(AppStrings s) {
-    return Container(
-      width: 480,
-      color: const Color(0xFF0F1115),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Padding(
-            padding: const EdgeInsets.fromLTRB(40, 80, 40, 40),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Settings',
-                  style: TextStyle(
-                    fontSize: 42,
-                    fontWeight: FontWeight.w900,
-                    color: _accent,
-                    letterSpacing: -1,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  'Configure your professional experience',
-                  style: TextStyle(color: Colors.white.withOpacity(0.3), fontSize: 16),
-                ),
-              ],
-            ),
-          ),
-          Expanded(
-            child: ListView(
-              padding: const EdgeInsets.symmetric(horizontal: 24),
-              children: [
-                _buildTvMenuItem(Icons.account_circle_outlined, 'My Account', 'Manage subscription & profile', () {}),
-                _buildTvMenuItem(Icons.palette_outlined, 'Appearance', 'Custom colors & dashboard layout', _openSettings),
-                _buildTvMenuItem(Icons.settings_input_component_rounded, 'Video Engine', 'Codec & hardware acceleration', () {}),
-                _buildTvMenuItem(Icons.dns_outlined, 'Server Status', 'Connection & latency check', () {}),
-                _buildTvMenuItem(Icons.help_outline_rounded, 'Help & Support', 'Reach out to Optic TV team', () {}),
-                _buildTvMenuItem(Icons.info_outline_rounded, 'About Optic TV', 'Version info & legal', () {}),
-              ],
-            ),
-          ),
-          Padding(
-            padding: const EdgeInsets.all(40),
-            child: Row(
-              children: [
-                const OpticWordmark(height: 24),
-                const Spacer(),
-                Text('v1.0.0 Pro', style: TextStyle(color: Colors.white.withOpacity(0.1), fontSize: 12, fontWeight: FontWeight.bold)),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildTvMenuItem(IconData icon, String label, String subtitle, VoidCallback onTap) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 16),
-      child: TvFocusWrapper(
-        onTap: onTap,
-        borderRadius: 20,
-        child: Container(
-          padding: const EdgeInsets.all(20),
-          decoration: BoxDecoration(
-            color: Colors.white.withOpacity(0.04),
-            borderRadius: BorderRadius.circular(20),
-            border: Border.all(color: Colors.white.withOpacity(0.06)),
-          ),
-          child: Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: _accent.withOpacity(0.12),
-                  borderRadius: BorderRadius.circular(14),
-                ),
-                child: Icon(icon, color: _accent, size: 28),
-              ),
-              const SizedBox(width: 20),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      label,
-                      style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      subtitle,
-                      style: TextStyle(color: Colors.white.withOpacity(0.4), fontSize: 13),
-                    ),
-                  ],
-                ),
-              ),
-              Icon(Icons.chevron_right_rounded, color: Colors.white.withOpacity(0.2)),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-  Widget _tvCategoryItem(String label, int count, bool active, VoidCallback onTap) {
-    return TvFocusWrapper(
-      onTap: onTap,
-      borderRadius: 12,
-      accentColor: _accent,
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 200),
-        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
-        decoration: BoxDecoration(
-          color: active ? _accent.withOpacity(0.15) : Colors.white.withOpacity(0.04),
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: active ? _accent : Colors.white10),
-        ),
-        child: Row(
-          children: [
-            Expanded(
-              child: Text(
-                label,
-                style: TextStyle(
-                  color: active ? Colors.white : Colors.white70,
-                  fontSize: 16,
-                  fontWeight: active ? FontWeight.bold : FontWeight.w500,
-                ),
-              ),
-            ),
-            Text(
-              count.toString(),
-              style: TextStyle(
-                color: active ? _accent : Colors.white24,
-                fontSize: 14,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildEmptyState(AppStrings s) {
-    return Center(
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(Icons.folder_open_rounded, size: 80, color: Colors.white10),
-          const SizedBox(height: 16),
-          Text('No channels found', style: TextStyle(color: Colors.white30, fontSize: 20)),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildMovieTile(BuildContext context, AppStrings s, List<Channel> all, Channel ch, double width) {
-    return TvFocusWrapper(
-      onTap: () => Navigator.push(context, MaterialPageRoute(builder: (c) => PlayerScreen(channels: all, initialIndex: all.indexOf(ch)))),
-      borderRadius: 16,
-      child: AspectRatio(
-        aspectRatio: 0.68,
-        child: ClipRRect(
-          borderRadius: BorderRadius.circular(16),
-          child: Stack(
-            fit: StackFit.expand,
-            children: [
-              ChannelLogoImage(logo: ch.logo, fit: BoxFit.cover),
-              Container(
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.topCenter,
-                    end: Alignment.bottomCenter,
-                    colors: [Colors.transparent, Colors.black.withOpacity(0.8)],
-                  ),
-                ),
-              ),
-              Positioned(
-                bottom: 12,
-                left: 10,
-                right: 10,
-                child: Text(ch.name, textAlign: TextAlign.center, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13)),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildTvCinemaTile(AppStrings s, List<Channel> all, Channel ch) {
-    return TvFocusWrapper(
-      onTap: () => Navigator.push(context, MaterialPageRoute(builder: (c) => PlayerScreen(channels: all, initialIndex: all.indexOf(ch)))),
-      borderRadius: 16,
-      child: Container(
-        decoration: BoxDecoration(
-          color: Colors.white.withOpacity(0.05),
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: Colors.white.withOpacity(0.08)),
-        ),
-        child: Column(
-          children: [
-            Expanded(
-              child: ClipRRect(
-                borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
-                child: ChannelLogoImage(logo: ch.logo, fit: BoxFit.contain),
-              ),
-            ),
-            Padding(
-              padding: const EdgeInsets.all(12),
-              child: Text(ch.name, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
 
 class _TvClock extends StatefulWidget {
   const _TvClock();
@@ -2343,7 +2265,7 @@ class _AboutTab extends StatelessWidget {
             child: Column(
               children: [
                 Text(
-                  "ئەگەر تووشی هەر کێشەیەک بوویت یان پێویستت بە هاوکاری بوو، تکایە ڕاستەوخۆ لە تێلیگرام پەیوەندیم پێوە بکە. من لێرەم بۆ یارمەتیدانت!",
+                  "Ã˜Â¦Ã›â€¢ÃšÂ¯Ã›â€¢Ã˜Â± Ã˜ÂªÃ™Ë†Ã™Ë†Ã˜Â´Ã›Å’ Ã™â€¡Ã›â€¢Ã˜Â± ÃšÂ©Ã›Å½Ã˜Â´Ã›â€¢Ã›Å’Ã›â€¢ÃšÂ© Ã˜Â¨Ã™Ë†Ã™Ë†Ã›Å’Ã˜Âª Ã›Å’Ã˜Â§Ã™â€  Ã™Â¾Ã›Å½Ã™Ë†Ã›Å’Ã˜Â³Ã˜ÂªÃ˜Âª Ã˜Â¨Ã›â€¢ Ã™â€¡Ã˜Â§Ã™Ë†ÃšÂ©Ã˜Â§Ã˜Â±Ã›Å’ Ã˜Â¨Ã™Ë†Ã™Ë†Ã˜Å’ Ã˜ÂªÃšÂ©Ã˜Â§Ã›Å’Ã›â€¢ Ãšâ€¢Ã˜Â§Ã˜Â³Ã˜ÂªÃ›â€¢Ã™Ë†Ã˜Â®Ã›â€  Ã™â€žÃ›â€¢ Ã˜ÂªÃ›Å½Ã™â€žÃ›Å’ÃšÂ¯Ã˜Â±Ã˜Â§Ã™â€¦ Ã™Â¾Ã›â€¢Ã›Å’Ã™Ë†Ã›â€¢Ã™â€ Ã˜Â¯Ã›Å’Ã™â€¦ Ã™Â¾Ã›Å½Ã™Ë†Ã›â€¢ Ã˜Â¨ÃšÂ©Ã›â€¢. Ã™â€¦Ã™â€  Ã™â€žÃ›Å½Ã˜Â±Ã›â€¢Ã™â€¦ Ã˜Â¨Ã›â€  Ã›Å’Ã˜Â§Ã˜Â±Ã™â€¦Ã›â€¢Ã˜ÂªÃ›Å’Ã˜Â¯Ã˜Â§Ã™â€ Ã˜Âª!",
                   style: AppTheme.withRabarIfKurdish(
                     const Locale('ckb'),
                     const TextStyle(
@@ -2410,7 +2332,7 @@ class _AboutTab extends StatelessWidget {
           ),
           const SizedBox(height: 8),
           Text(
-            '© 2026 Optic TV. All rights reserved.',
+            'Ã‚Â© 2026 Optic TV. All rights reserved.',
             style: TextStyle(color: Colors.white10, fontSize: 10),
           ),
         ],
