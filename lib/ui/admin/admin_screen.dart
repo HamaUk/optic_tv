@@ -38,9 +38,11 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
   final _channelUrlController = TextEditingController();
   final _channelGroupController = TextEditingController();
   final _channelLogoController = TextEditingController();
+  final _channelBackdropController = TextEditingController();
   final _newGroupController = TextEditingController();
   final _newLoginCodeController = TextEditingController();
   final _channelSearchController = TextEditingController();
+  bool _isFeaturedAdmin = false;
   final _announcementController = TextEditingController();
   final _notifTitleController = TextEditingController();
   final _notifBodyController = TextEditingController();
@@ -102,6 +104,7 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
     _channelUrlController.dispose();
     _channelGroupController.dispose();
     _channelLogoController.dispose();
+    _channelBackdropController.dispose();
     _newGroupController.dispose();
     _newLoginCodeController.dispose();
     _channelSearchController.dispose();
@@ -400,11 +403,10 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
     return r;
   }
 
-  Map<String, dynamic> _channelPayload({
-    required String name,
-    required String url,
     required String group,
     required String logo,
+    String? backdrop,
+    bool? featured,
     int? order,
   }) {
     final map = <String, dynamic>{
@@ -413,6 +415,8 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
       'group': group.isEmpty ? 'General' : group,
     };
     if (logo.isNotEmpty) map['logo'] = logo;
+    if (backdrop != null && backdrop.isNotEmpty) map['backdrop'] = backdrop;
+    if (featured == true) map['featured'] = true;
     if (order != null) map['order'] = order;
     return map;
   }
@@ -514,11 +518,21 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
     }
     try {
       final logo = _channelLogoController.text.trim();
-      await _playlistRef.push().set(_channelPayload(name: name, url: url, group: group, logo: logo));
+      final backdrop = _channelBackdropController.text.trim();
+      await _playlistRef.push().set(_channelPayload(
+            name: name,
+            url: url,
+            group: group,
+            logo: logo,
+            backdrop: backdrop,
+            featured: _isFeaturedAdmin,
+          ));
       _channelNameController.clear();
       _channelUrlController.clear();
       _channelLogoController.clear();
+      _channelBackdropController.clear();
       setState(() {
+        _isFeaturedAdmin = false;
         _publishShelf = _PublishShelf.liveTv;
         _channelGroupController.text = 'Live TV';
       });
@@ -577,7 +591,20 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
     try {
       final ref = _playlistRef.child(key);
       final g = group.isEmpty ? 'General' : group;
-      await ref.update({'name': name, 'url': url, 'group': g});
+      final updates = <String, dynamic>{
+        'name': name,
+        'url': url,
+        'group': g,
+        'featured': featured,
+      };
+
+      if (backdrop != null && backdrop.trim().isNotEmpty) {
+        updates['backdrop'] = backdrop.trim();
+      } else {
+        await ref.child('backdrop').remove();
+      }
+
+      await ref.update(updates);
       final logoTrim = logo.trim();
       if (logoTrim.isEmpty) {
         await ref.child('logo').remove();
@@ -1063,6 +1090,8 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
     final urlCtrl = TextEditingController(text: '${raw['url'] ?? ''}');
     final groupCtrl = TextEditingController(text: '${raw['group'] ?? raw['category'] ?? 'General'}');
     final logoCtrl = TextEditingController(text: '${raw['logo'] ?? raw['icon_url'] ?? ''}');
+    final backdropCtrl = TextEditingController(text: '${raw['backdrop'] ?? ''}');
+    bool isFeatured = raw['featured'] == true;
 
     showModalBottomSheet<void>(
       context: context,
@@ -1118,6 +1147,29 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
                           ),
                         ],
                       ),
+                      const SizedBox(height: 12),
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Expanded(
+                            child: _sheetField(backdropCtrl, 'Hero Backdrop URL', Icons.wallpaper_rounded, maxLines: 2),
+                          ),
+                          const SizedBox(width: 8),
+                          IconButton.filledTonal(
+                            tooltip: 'Pick from gallery',
+                            onPressed: () => _pickLogoInto(backdropCtrl, () => setModalState(() {})),
+                            icon: const Icon(Icons.image_search_rounded),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 16),
+                      SwitchListTile(
+                        title: const Text('Featured in Carousel', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
+                        subtitle: const Text('Spotlight this in the home hero card', style: TextStyle(fontSize: 12)),
+                        value: isFeatured,
+                        activeColor: AppTheme.primaryGold,
+                        onChanged: (v) => setModalState(() => isFeatured = v),
+                      ),
                       const SizedBox(height: 24),
                       Row(
                         children: [
@@ -1150,13 +1202,15 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
                                 for (final c in [nameCtrl, urlCtrl, groupCtrl, logoCtrl]) {
                                   Future.microtask(c.dispose);
                                 }
-                                _updateChannel(
-                                  key,
-                                  name: name,
-                                  url: url,
-                                  group: groupCtrl.text.trim(),
-                                  logo: logoCtrl.text.trim(),
-                                );
+                                  _updateChannel(
+                                    key,
+                                    name: name,
+                                    url: url,
+                                    group: groupCtrl.text.trim(),
+                                    logo: logoCtrl.text.trim(),
+                                    backdrop: backdropCtrl.text.trim(),
+                                    featured: isFeatured,
+                                  );
                               },
                               child: const Text('Save changes'),
                             ),
@@ -2077,22 +2131,33 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
                   ),
                 ],
                 const SizedBox(height: 14),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 14),
                 Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Expanded(
-                      child: _field(_channelLogoController, 'Logo URL (optional)', Icons.image_outlined, maxLines: 2),
+                      child: _field(_channelBackdropController, 'Hero Backdrop URL', Icons.wallpaper_rounded, maxLines: 2),
                     ),
                     const SizedBox(width: 8),
                     Padding(
                       padding: const EdgeInsets.only(top: 6),
                       child: IconButton.filledTonal(
                         tooltip: 'Pick from gallery',
-                        onPressed: () => _pickLogoInto(_channelLogoController),
-                        icon: const Icon(Icons.add_photo_alternate_outlined),
+                        onPressed: () => _pickLogoInto(_channelBackdropController),
+                        icon: const Icon(Icons.image_search_rounded),
                       ),
                     ),
                   ],
+                ),
+                const SizedBox(height: 14),
+                SwitchListTile(
+                  title: const Text('Spotlight (Featured)', style: TextStyle(color: AppTheme.primaryGold, fontWeight: FontWeight.bold)),
+                  value: _isFeaturedAdmin,
+                  activeColor: AppTheme.primaryGold,
+                  onChanged: (v) => setState(() => _isFeaturedAdmin = v),
                 ),
                 const SizedBox(height: 22),
                 FilledButton.icon(

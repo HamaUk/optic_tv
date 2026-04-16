@@ -430,15 +430,19 @@
         <div class="form-group"><label>Stream URL</label><input type="url" id="ch_url" class="form-input" required></div>
         <div class="form-group"><label>Category</label><input type="text" id="ch_group" class="form-input" required list="groupList"></div>
         <div class="form-group">
-          <label>Logo Asset</label>
+          <label>Hero Artwork (Backdrop)</label>
           <div class="logo-studio">
-            <img id="logoPrev" class="logo-preview" src="https://via.placeholder.com/100?text=TV">
+            <img id="bgPrev" class="logo-preview" style="aspect-ratio:16/9; width:100px; object-fit:cover" src="https://via.placeholder.com/160x90?text=Hero">
             <div class="logo-actions">
-              <input type="text" id="ch_logo" class="form-input" placeholder="URL or Base64" style="font-size:0.7rem">
-              <button type="button" class="btn-sm btn-outline" onclick="document.getElementById('logoFile').click()"><i class="fas fa-upload"></i> Upload Local File</button>
-              <input type="file" id="logoFile" hidden accept="image/*" onchange="processLogoFile(this)">
+              <input type="text" id="ch_backdrop" class="form-input" placeholder="Hero background URL or Base64" style="font-size:0.7rem">
+              <button type="button" class="btn-sm btn-outline" onclick="document.getElementById('bgFile').click()"><i class="fas fa-image"></i> Upload Poster</button>
+              <input type="file" id="bgFile" hidden accept="image/*" onchange="processBgFile(this)">
             </div>
           </div>
+        </div>
+        <div class="form-group" style="display:flex; align-items:center; gap:10px; margin-top:10px; background:rgba(212,175,55,0.1); padding:10px; border-radius:8px; border:1px solid rgba(212,175,55,0.2)">
+          <input type="checkbox" id="ch_featured" style="width:20px; height:20px; cursor:pointer">
+          <label for="ch_featured" style="margin:0; cursor:pointer; font-weight:700; color:var(--accent-primary)">Featured in Hero Carousel</label>
         </div>
         <div style="display:flex; gap:10px; margin-top:20px"><button type="submit" class="btn-sm btn-primary" style="flex:1">Apply Changes</button><button type="button" class="btn-sm btn-outline" style="flex:1" onclick="closeModals()">Cancel</button></div>
       </form>
@@ -579,9 +583,12 @@
           tr.innerHTML = `
             <td><input type="checkbox" class="ch-select bulk-check" data-key="${k}" onchange="checkBulkState()"></td>
             <td><img src="${v.logo||'https://via.placeholder.com/100?text=TV'}" class="logo-thumb"></td>
-            <td style="font-weight:700">${v.name}</td>
+            <td style="font-weight:700">
+              ${v.featured ? '<i class="fas fa-star" style="color:var(--accent-primary); margin-right:5px" title="Featured"></i>' : ''}
+              ${v.name}
+            </td>
             <td><span class="group-badge">${v.group}</span></td>
-            <td style="font-size:0.7rem; color:var(--text-dim)">${v.url}</td>
+            <td><span style="font-size:0.7rem; color:var(--text-dim); display:block; max-width:200px; overflow:hidden; text-overflow:ellipsis">${v.url}</span></td>
             <td>
               <i class="fas fa-edit" style="cursor:pointer; color:var(--text-muted); margin-right:10px" onclick="openChannelModal('${k}')"></i>
               <i class="fas fa-trash" style="cursor:pointer; color:var(--accent-danger)" onclick="delChannel('${k}')"></i>
@@ -598,6 +605,10 @@
         name: document.getElementById('ch_name').value,
         url: document.getElementById('ch_url').value,
         group: document.getElementById('ch_group').value,
+        logo: document.getElementById('ch_logo').value,
+        backdrop: document.getElementById('ch_backdrop').value,
+        featured: document.getElementById('ch_featured').checked
+      };
         logo: document.getElementById('ch_logo').value
       };
       if(k) await update(ref(db, `${P_PLAY}/${k}`), payload);
@@ -897,26 +908,37 @@
       const f = document.getElementById('chForm'); f.reset();
       document.getElementById('editKey').value = k || '';
       document.getElementById('logoPrev').src = 'https://via.placeholder.com/100?text=TV';
+      document.getElementById('bgPrev').src = 'https://via.placeholder.com/160x90?text=Hero';
       if(k) {
         const d = window.plData[k];
         document.getElementById('ch_name').value = d.name;
         document.getElementById('ch_url').value = d.url;
         document.getElementById('ch_group').value = d.group;
         document.getElementById('ch_logo').value = d.logo || '';
+        document.getElementById('ch_backdrop').value = d.backdrop || '';
+        document.getElementById('ch_featured').checked = d.featured === true;
         if(d.logo) document.getElementById('logoPrev').src = d.logo;
+        if(d.backdrop) document.getElementById('bgPrev').src = d.backdrop;
       }
     }
 
-    function processLogoFile(input) {
-      const file = input.files[0];
-      if(!file) return;
+    window.processLogoFile = (el) => {
       const reader = new FileReader();
-      reader.onload = e => {
+      reader.onload = (e) => {
         document.getElementById('ch_logo').value = e.target.result;
         document.getElementById('logoPrev').src = e.target.result;
       };
-      reader.readAsDataURL(file);
-    }
+      reader.readAsDataURL(el.files[0]);
+    };
+
+    window.processBgFile = (el) => {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        document.getElementById('ch_backdrop').value = e.target.result;
+        document.getElementById('bgPrev').src = e.target.result;
+      };
+      reader.readAsDataURL(el.files[0]);
+    };
 
     function processNotifLogoFile(input) {
       const file = input.files[0];

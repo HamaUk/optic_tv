@@ -731,7 +731,14 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
   ) {
     const tv = false;
     const crossCount = 4;
-    final slideChannels = filteredFlat.take(5).toList();
+    
+    // Prioritize channels marked as 'featured' in the admin panel.
+    var slideChannels = allChannels.where((c) => c.featured).toList();
+    
+    // Fallback: If no channels are featured, show the first 5 from the flat list.
+    if (slideChannels.isEmpty) {
+      slideChannels = filteredFlat.take(5).toList();
+    }
 
     return CustomScrollView(
       physics: const BouncingScrollPhysics(),
@@ -1355,18 +1362,15 @@ class _FeaturedCarouselState extends State<_FeaturedCarousel> {
   @override
   Widget build(BuildContext context) {
     final s = widget.s;
-    const logoBlock = 78.0;
-    final textDir = s.locale.languageCode == 'ckb' ? TextDirection.rtl : TextDirection.ltr;
 
     return Container(
-      height: 196,
+      height: 240,
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(20),
-        gradient: AppTheme.featuredHeroGradient(widget.gradientPreset),
-        border: Border.all(color: Colors.white.withOpacity(0.1)),
+        borderRadius: BorderRadius.circular(24),
+        color: const Color(0xFF0D1118),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.35),
+            color: Colors.black.withOpacity(0.4),
             blurRadius: 20,
             offset: const Offset(0, 10),
           ),
@@ -1375,52 +1379,94 @@ class _FeaturedCarouselState extends State<_FeaturedCarousel> {
       clipBehavior: Clip.antiAlias,
       child: Stack(
         children: [
-          Positioned(
-            right: -20,
-            bottom: 20,
-            child: Icon(Icons.live_tv_rounded, size: 108, color: Colors.black.withOpacity(0.07)),
-          ),
-          Column(
-            children: [
-              Expanded(
-                child: PageView.builder(
-                  controller: _pageController,
-                  onPageChanged: _onPageChanged,
-                  itemCount: widget.slides.length,
-                  itemBuilder: (context, i) {
-                    final ch = widget.slides[i];
-                    return Padding(
-                      padding: EdgeInsets.fromLTRB(12, 10, 14, 4),
-                      child: Row(
-                        textDirection: TextDirection.ltr,
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
-                        children: [
-                          Center(
-                            child: _PulsingLogoBox(
-                              channel: ch,
-                              baseSize: logoBlock,
-                              reduceMotion: widget.reduceMotion,
-                            ),
+          PageView.builder(
+            controller: _pageController,
+            onPageChanged: _onPageChanged,
+            itemCount: widget.slides.length,
+            itemBuilder: (context, i) {
+              final ch = widget.slides[i];
+              final hasBackdrop = ch.backdrop != null && ch.backdrop!.isNotEmpty;
+
+              return Stack(
+                fit: StackFit.expand,
+                children: [
+                  // Layer 1: Backdrop Image (or fallback)
+                  if (hasBackdrop)
+                    ChannelLogoImage(
+                      logo: ch.backdrop,
+                      width: double.infinity,
+                      height: double.infinity,
+                      fit: BoxFit.cover,
+                      fallback: _heroFallback(ch),
+                    )
+                  else
+                    _heroFallback(ch),
+
+                  // Layer 2: Cinematic Gradient Overlays
+                  Positioned.fill(
+                    child: DecoratedBox(
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          begin: Alignment.bottomCenter,
+                          end: Alignment.topCenter,
+                          colors: [
+                            Colors.black.withOpacity(0.95),
+                            Colors.black.withOpacity(0.4),
+                            Colors.transparent,
+                            Colors.black.withOpacity(0.3),
+                          ],
+                          stops: const [0.0, 0.45, 0.75, 1.0],
+                        ),
+                      ),
+                    ),
+                  ),
+
+                  // Layer 3: Content
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(20, 20, 20, 16),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        // Featured Badge
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                          decoration: BoxDecoration(
+                            color: AppTheme.primaryGold.withOpacity(0.9),
+                            borderRadius: BorderRadius.circular(8),
+                            boxShadow: [
+                              BoxShadow(color: Colors.black.withOpacity(0.3), blurRadius: 4)
+                            ],
                           ),
-                          const SizedBox(width: 10),
-                          Expanded(
-                            child: Directionality(
-                              textDirection: textDir,
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              const Icon(Icons.star_rounded, color: Colors.black, size: 14),
+                              const SizedBox(width: 4),
+                              Text(
+                                'FEATURED',
+                                style: AppTheme.withRabarIfKurdish(
+                                  s.locale,
+                                  const TextStyle(
+                                    color: Colors.black,
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.w900,
+                                    letterSpacing: 1.1,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const Spacer(),
+                        Row(
+                          crossAxisAlignment: CrossAxisAlignment.end,
+                          children: [
+                            Expanded(
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
+                                mainAxisSize: MainAxisSize.min,
                                 children: [
                                   Text(
-                                    s.nowPlaying,
-                                    style: AppTheme.withRabarIfKurdish(
-                                      s.locale,
-                                      TextStyle(
-                                        color: Colors.white.withOpacity(0.58),
-                                        fontWeight: FontWeight.w800,
-                                        fontSize: 10.5,
-                                        letterSpacing: 0.3,
-                                      ),
-                                    ),
-                                  ),
                                   const SizedBox(height: 5),
                                   Text(
                                     s.featuredNewHint,
