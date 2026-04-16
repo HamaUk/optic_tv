@@ -1286,10 +1286,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
 
         return Column(
           children: [
-            Padding(
-              padding: const EdgeInsets.fromLTRB(20, 48, 20, 24),
-              child: _buildSearchField(s, 0),
-            ),
+            const SizedBox(height: 48),
             Expanded(
               child: ListView(
                 padding: const EdgeInsets.symmetric(horizontal: 14),
@@ -1378,19 +1375,31 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
 
         if (displayChannels.isEmpty) return _buildEmptyState(s);
 
-        return GridView.builder(
-          padding: const EdgeInsets.fromLTRB(32, 48, 32, 32),
-          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-            crossAxisCount: 5,
-            mainAxisSpacing: 32,
-            crossAxisSpacing: 32,
-            childAspectRatio: 1.0,
+        return Container(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+              colors: [
+                const Color(0xFF0D1118),
+                Colors.black,
+              ],
+            ),
           ),
-          itemCount: displayChannels.length,
-          itemBuilder: (context, idx) {
-            final ch = displayChannels[idx];
-            return _buildTvCinemaTile(s, all, ch);
-          },
+          child: GridView.builder(
+            padding: const EdgeInsets.fromLTRB(32, 48, 32, 32),
+            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: 5,
+              mainAxisSpacing: 32,
+              crossAxisSpacing: 32,
+              childAspectRatio: 0.82,
+            ),
+            itemCount: displayChannels.length,
+            itemBuilder: (context, idx) {
+              final ch = displayChannels[idx];
+              return _buildTvCinemaTile(s, all, ch);
+            },
+          ),
         );
       },
       loading: () => const SizedBox.shrink(),
@@ -1402,49 +1411,44 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     return TvFocusWrapper(
       onTap: () => _openPlayer(all, ch),
       borderRadius: 18,
-      scale: 1.12,
+      scale: 1.08,
       child: Focus(
         onFocusChange: (f) {
            if (f && mounted) setState(() => _focusedChannel = ch);
         },
-        child: Stack(
-          fit: StackFit.expand,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-            Container(
-              decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.05),
-                borderRadius: BorderRadius.circular(18),
-              ),
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(18),
-                child: ChannelLogoImage(
-                  logo: ch.logo,
-                  fit: BoxFit.contain,
+            Expanded(
+              child: Container(
+                decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(0.05),
+                  borderRadius: BorderRadius.circular(18),
+                  border: Border.all(color: Colors.white.withOpacity(0.05)),
+                ),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(18),
+                  child: Center(
+                    child: ChannelLogoImage(
+                      logo: ch.logo,
+                      fit: BoxFit.contain,
+                    ),
+                  ),
                 ),
               ),
             ),
-            Positioned(
-              bottom: 0,
-              left: 0,
-              right: 0,
-              child: Container(
-                padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 12),
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.topCenter,
-                    end: Alignment.bottomCenter,
-                    colors: [Colors.transparent, Colors.black.withOpacity(0.85)],
-                  ),
-                  borderRadius: const BorderRadius.vertical(bottom: Radius.circular(18)),
-                ),
-                child: Text(
-                  ch.name,
-                  style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  textAlign: TextAlign.center,
-                ),
+            const SizedBox(height: 12),
+            Text(
+              ch.name,
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+                letterSpacing: 0.2,
               ),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              textAlign: TextAlign.center,
             ),
           ],
         ),
