@@ -37,7 +37,7 @@ class PlayerScreen extends ConsumerStatefulWidget {
 }
 
 class _PlayerScreenState extends ConsumerState<PlayerScreen> {
-  static const _accent = AppTheme.accentTeal;
+  Color get _accent => AppTheme.accentColor(_settings.gradientPreset);
 
   final GlobalKey<VideoState> _videoKey = GlobalKey<VideoState>();
   
@@ -326,7 +326,7 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
                     return ListTile(
                       leading: Icon(
                         isAudio ? Icons.audiotrack_rounded : Icons.closed_caption_rounded,
-                        color: selected ? AppTheme.accentTeal : Colors.white30,
+                        color: selected ? _accent : Colors.white30,
                       ),
                       title: Text(
                         '${t.title ?? t.language ?? (isAudio ? 'Audio' : 'Sub')} ${t.id}',
@@ -335,7 +335,7 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
                           fontWeight: selected ? FontWeight.bold : FontWeight.normal,
                         ),
                       ),
-                      trailing: selected ? const Icon(Icons.check_circle_rounded, color: AppTheme.accentTeal) : null,
+                      trailing: selected ? const Icon(Icons.check_circle_rounded, color: _accent) : null,
                       onTap: () {
                         if (isAudio) {
                            _player!.setAudioTrack(t as AudioTrack);
@@ -405,7 +405,7 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
                 PlayerControlButton(
                   icon: isFav ? Icons.star_rounded : Icons.star_border_rounded,
                   tooltip: isFav ? s.unfavoriteChannel : s.favoriteChannel,
-                  color: AppTheme.primaryGold,
+                  color: _accent,
                   onTap: () => ref.read(favoritesProvider.notifier).toggle(_current),
                 ),
                 if (_isMovie) ...[
@@ -516,7 +516,7 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
   }
 
   Widget _buildMobileChannelLists(Locale uiLocale, AppStrings s, double bottomPad) {
-    final accent = AppTheme.accentTeal;
+    final accent = _accent;
     return Row(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -691,7 +691,7 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
         mainAxisSize: MainAxisSize.min,
         children: [
           const CircularProgressIndicator(
-            color: AppTheme.primaryGold,
+            color: _accent,
             strokeWidth: 3,
           ),
           const SizedBox(height: 16),
@@ -727,7 +727,7 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
               decoration: BoxDecoration(
-                color: AppTheme.primaryGold,
+                color: _accent,
                 borderRadius: BorderRadius.circular(4),
               ),
               child: const Text(
@@ -781,9 +781,9 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
                             trackHeight: 4,
                             thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 6),
                             overlayShape: const RoundSliderOverlayShape(overlayRadius: 14),
-                            activeTrackColor: AppTheme.primaryGold,
+                            activeTrackColor: _accent,
                             inactiveTrackColor: Colors.white24,
-                            thumbColor: AppTheme.primaryGold,
+                            thumbColor: _accent,
                           ),
                           child: Slider(
                             value: _position.inMilliseconds.toDouble(),
@@ -913,7 +913,7 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
           ),
           child: Row(
             children: [
-              const Icon(Icons.info_outline_rounded, color: AppTheme.primaryGold, size: 20),
+              const Icon(Icons.info_outline_rounded, color: _accent, size: 20),
               const SizedBox(width: 10),
               Expanded(
                 child: Column(
@@ -973,7 +973,7 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
           padding: const EdgeInsets.fromLTRB(20, 16, 20, 12),
           child: Row(
             children: [
-              const Icon(Icons.movie_rounded, color: AppTheme.primaryGold, size: 20),
+              const Icon(Icons.movie_rounded, color: _accent, size: 20),
               const SizedBox(width: 10),
               Text(
                 'Related in ${_current.group}',

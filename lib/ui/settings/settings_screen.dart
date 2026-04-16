@@ -171,7 +171,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         ),
       ),
       body: _loading
-          ? const Center(child: CircularProgressIndicator(color: AppTheme.primaryGold))
+          ? const Center(child: CircularProgressIndicator(color: AppTheme.accentColor(_data.gradientPreset)))
           : Container(
               width: double.infinity,
               decoration: BoxDecoration(
@@ -183,7 +183,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 Text(
                   s.sectionInterface,
                   style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                        color: AppTheme.primaryGold,
+                        color: AppTheme.accentColor(_data.gradientPreset),
                         fontWeight: FontWeight.bold,
                       ),
                 ),
@@ -191,7 +191,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 Text(
                   s.sectionGradientTheme,
                   style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                        color: AppTheme.primaryGold,
+                        color: AppTheme.accentColor(_data.gradientPreset),
                         fontWeight: FontWeight.bold,
                       ),
                 ),
@@ -210,7 +210,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                         RadioListTile<AppGradientPreset>(
                           value: preset,
                           groupValue: _data.gradientPreset,
-                          activeColor: AppTheme.primaryGold,
+                          activeColor: AppTheme.accentColor(_data.gradientPreset),
                           title: Text(_gradientPresetTitle(s, preset)),
                           secondary: _GradientPresetSwatch(preset: preset),
                           onChanged: (v) {
@@ -224,7 +224,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 Text(
                   s.sectionLanguage,
                   style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                        color: AppTheme.primaryGold,
+                        color: AppTheme.accentColor(_data.gradientPreset),
                         fontWeight: FontWeight.bold,
                       ),
                 ),
@@ -237,14 +237,14 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                       RadioListTile<String>(
                         value: 'ckb',
                         groupValue: uiLocale.languageCode,
-                        activeColor: AppTheme.primaryGold,
+                        activeColor: AppTheme.accentColor(_data.gradientPreset),
                         title: Text(s.langKurdishSorani),
                         onChanged: (_) => ref.read(appLocaleProvider.notifier).setLocale(const Locale('ckb')),
                       ),
                       RadioListTile<String>(
                         value: 'en',
                         groupValue: uiLocale.languageCode,
-                        activeColor: AppTheme.primaryGold,
+                        activeColor: AppTheme.accentColor(_data.gradientPreset),
                         title: Text(s.langEnglish),
                         onChanged: (_) => ref.read(appLocaleProvider.notifier).setLocale(const Locale('en')),
                       ),
@@ -259,8 +259,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                     title: Text(s.reduceMotionTitle),
                     subtitle: Text(s.reduceMotionSub),
                     value: _data.reduceMotion,
-                    activeTrackColor: AppTheme.primaryGold.withOpacity(0.45),
-                    activeColor: AppTheme.primaryGold,
+                    activeTrackColor: AppTheme.accentColor(_data.gradientPreset).withOpacity(0.45),
+                    activeColor: AppTheme.accentColor(_data.gradientPreset),
                     onChanged: (v) => _apply(_data.copyWith(reduceMotion: v)),
                   ),
                 ),
@@ -268,7 +268,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 Text(
                   s.sectionPlayback,
                   style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                        color: AppTheme.primaryGold,
+                        color: AppTheme.accentColor(_data.gradientPreset),
                         fontWeight: FontWeight.bold,
                       ),
                 ),
@@ -280,8 +280,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                     title: Text(s.keepScreenOnTitle),
                     subtitle: Text(s.keepScreenOnSub),
                     value: _data.keepScreenOnWhilePlaying,
-                    activeTrackColor: AppTheme.primaryGold.withOpacity(0.45),
-                    activeColor: AppTheme.primaryGold,
+                    activeTrackColor: AppTheme.accentColor(_data.gradientPreset).withOpacity(0.45),
+                    activeColor: AppTheme.accentColor(_data.gradientPreset),
                     onChanged: (v) => _apply(_data.copyWith(keepScreenOnWhilePlaying: v)),
                   ),
                 ),
@@ -293,8 +293,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                     title: Text(s.autoHideTitle),
                     subtitle: Text(s.autoHideSub),
                     value: _data.autoHidePlayerControls,
-                    activeTrackColor: AppTheme.primaryGold.withOpacity(0.45),
-                    activeColor: AppTheme.primaryGold,
+                    activeTrackColor: AppTheme.accentColor(_data.gradientPreset).withOpacity(0.45),
+                    activeColor: AppTheme.accentColor(_data.gradientPreset),
                     onChanged: (v) => _apply(_data.copyWith(autoHidePlayerControls: v)),
                   ),
                 ),
@@ -306,8 +306,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                     title: Text(s.clockTitle),
                     subtitle: Text(s.clockSub),
                     value: _data.showOnScreenClock,
-                    activeTrackColor: AppTheme.primaryGold.withOpacity(0.45),
-                    activeColor: AppTheme.primaryGold,
+                    activeTrackColor: AppTheme.accentColor(_data.gradientPreset).withOpacity(0.45),
+                    activeColor: AppTheme.accentColor(_data.gradientPreset),
                     onChanged: (v) => _apply(_data.copyWith(showOnScreenClock: v)),
                   ),
                 ),
@@ -315,7 +315,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 Text(
                   s.sectionVideo,
                   style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                        color: AppTheme.primaryGold,
+                        color: AppTheme.accentColor(_data.gradientPreset),
                         fontWeight: FontWeight.bold,
                       ),
                 ),
@@ -331,7 +331,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                         RadioListTile<BoxFit>(
                           value: fit,
                           groupValue: _data.videoFit,
-                          activeColor: AppTheme.primaryGold,
+                          activeColor: AppTheme.accentColor(_data.gradientPreset),
                           title: Text(s.fitLabel(fit)),
                           onChanged: (v) {
                             if (v != null) _apply(_data.copyWith(videoFit: v));
@@ -344,7 +344,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 Text(
                   s.sectionLibrary,
                   style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                        color: AppTheme.primaryGold,
+                        color: AppTheme.accentColor(_data.gradientPreset),
                         fontWeight: FontWeight.bold,
                       ),
                 ),
@@ -353,7 +353,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                   color: AppTheme.surfaceGray,
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                   child: ListTile(
-                    leading: const Icon(Icons.star_outline_rounded, color: AppTheme.primaryGold),
+                    leading: const Icon(Icons.star_outline_rounded, color: AppTheme.accentColor(_data.gradientPreset)),
                     title: Text(s.clearFavoritesTitle),
                     subtitle: Text(s.clearFavoritesSub),
                     onTap: () => _confirmClearLibrary(
@@ -384,7 +384,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 Text(
                   s.sectionAccount,
                   style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                        color: AppTheme.primaryGold,
+                        color: AppTheme.accentColor(_data.gradientPreset),
                         fontWeight: FontWeight.bold,
                       ),
                 ),
@@ -403,7 +403,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 Text(
                   'Network Diagnostics',
                   style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                        color: AppTheme.primaryGold,
+                        color: AppTheme.accentColor(_data.gradientPreset),
                         fontWeight: FontWeight.bold,
                       ),
                 ),
@@ -428,12 +428,12 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                                 child: CircularProgressIndicator(
                                   value: _testProgress,
                                   strokeWidth: 3,
-                                  color: AppTheme.primaryGold,
+                                  color: AppTheme.accentColor(_data.gradientPreset),
                                 ),
                               )
                             : TextButton(
                                 onPressed: _runSpeedTest,
-                                child: const Text('RUN TEST', style: TextStyle(color: AppTheme.primaryGold, fontWeight: FontWeight.bold)),
+                                child: const Text('RUN TEST', style: TextStyle(color: AppTheme.accentColor(_data.gradientPreset), fontWeight: FontWeight.bold)),
                               ),
                       ),
                       if (_testingSpeed)
@@ -442,7 +442,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                           child: LinearProgressIndicator(
                             value: _testProgress,
                             backgroundColor: Colors.white10,
-                            color: AppTheme.primaryGold,
+                            color: AppTheme.accentColor(_data.gradientPreset),
                             minHeight: 2,
                           ),
                         ),
@@ -453,7 +453,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 Text(
                   s.sectionAbout,
                   style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                        color: AppTheme.primaryGold,
+                        color: AppTheme.accentColor(_data.gradientPreset),
                         fontWeight: FontWeight.bold,
                       ),
                 ),

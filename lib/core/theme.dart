@@ -24,22 +24,38 @@ class AppTheme {
   static const Color surfaceGray = Color(0xFF101419);
   static const Color surfaceElevated = Color(0xFF161B22);
 
-  static ThemeData darkThemeForUi(Locale uiLocale) {
+  static Color accentColor(AppGradientPreset p) {
+    return switch (p) {
+      AppGradientPreset.classic => const Color(0xFFFFB100),
+      AppGradientPreset.oceanAbyss => const Color(0xFF0EA5E9),
+      AppGradientPreset.goldSunset => const Color(0xFFF97316),
+      AppGradientPreset.violetHaze => const Color(0xFFA855F7),
+      AppGradientPreset.emberGlow => const Color(0xFFF43F5E),
+    };
+  }
+
+  static Color accentColorDim(AppGradientPreset p) {
+    return accentColor(p).withOpacity(0.7);
+  }
+
+  static ThemeData darkThemeForUi(Locale uiLocale, AppGradientPreset preset) {
+    final accent = accentColor(preset);
     const base = TextStyle(color: Colors.white);
     final useRabar = uiLocale.languageCode == 'ckb';
     final rabar = useRabar ? const TextStyle(fontFamily: rabarFontFamily) : const TextStyle();
+    
     return ThemeData(
       // Explicit icon colors so AppBar/leading icons stay visible with custom text font.
-      iconTheme: const IconThemeData(color: primaryGold),
+      iconTheme: IconThemeData(color: accent),
       brightness: Brightness.dark,
-      primaryColor: primaryGold,
+      primaryColor: accent,
       scaffoldBackgroundColor: backgroundBlack,
-      colorScheme: const ColorScheme.dark(
-        primary: primaryGold,
-        secondary: primaryGold,
-        tertiary: primaryGold,
+      colorScheme: ColorScheme.dark(
+        primary: accent,
+        secondary: accent,
+        tertiary: accent,
         surface: surfaceGray,
-        onPrimary: Color(0xFF000000),
+        onPrimary: const Color(0xFF000000),
         onSurface: Colors.white,
       ),
       textTheme: TextTheme(
@@ -57,7 +73,7 @@ class AppTheme {
       ),
       elevatedButtonTheme: ElevatedButtonThemeData(
         style: ElevatedButton.styleFrom(
-          backgroundColor: primaryGold,
+          backgroundColor: accent,
           foregroundColor: Colors.black,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
           padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
@@ -65,7 +81,7 @@ class AppTheme {
       ),
       filledButtonTheme: FilledButtonThemeData(
         style: FilledButton.styleFrom(
-          backgroundColor: primaryGold,
+          backgroundColor: accent,
           foregroundColor: Colors.black,
         ),
       ),

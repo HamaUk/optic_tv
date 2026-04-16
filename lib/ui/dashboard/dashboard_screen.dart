@@ -37,7 +37,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
   int _adminLogoTaps = 0;
   Timer? _adminTapResetTimer;
 
-  /// 0 Home, 1 Movies, 2 Sport, 3 Favorites, 4 Recent
+  /// 0 Home, 1 Movies, 2 Sport, 3 Favorites, 4 About
   int _navIndex = 0;
   bool _searchOpen = false;
   bool _tvHomeActive = true; 
@@ -116,7 +116,8 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
       case 3:
         return List<Channel>.from(favorites);
       case 4:
-        return List<Channel>.from(recent);
+        // About tab: return empty, content is built in _AboutTab widget.
+        return [];
       default:
         // Home: exclude movies so they only appear in the Movies tab.
         return all.where((c) => !_isMovieChannel(c)).toList();
@@ -299,8 +300,12 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
         final filtered = _applySearch(filteredForNav);
         final groups = _groupMap(filtered);
 
-        // Sport tab: show live scores widget instead of channel grid.
-        if (_navIndex == 2) {
+        // Sport or About tab: show dedicated screen instead of channel grid.
+        if (_navIndex == 2 || _navIndex == 4) {
+          final screen = _navIndex == 2 
+              ? const SportScoresScreen() 
+              : _AboutTab(settings: settings);
+
           return Scaffold(
             backgroundColor: AppTheme.backgroundBlack,
             body: Container(
@@ -310,7 +315,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
               child: SafeArea(
                 bottom: false,
                 child: _buildDashboardShell(
-                  context, s, 16.0, false, const SportScoresScreen(),
+                  context, s, 16.0, false, screen,
                 ),
               ),
             ),
@@ -504,7 +509,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
           _navItem(s, icon: Icons.movie_rounded, label: s.navMovies, index: 1, sideRail: true),
           _navItem(s, icon: Icons.sports_soccer_rounded, label: s.navSport, index: 2, sideRail: true),
           _navItem(s, icon: Icons.star_rounded, label: s.navFavorites, index: 3, sideRail: true),
-          _navItem(s, icon: Icons.history_rounded, label: s.navRecent, index: 4, sideRail: true),
+          _navItem(s, icon: Icons.info_outline_rounded, label: 'About', index: 4, sideRail: true),
         ],
       ),
     );
@@ -1420,7 +1425,9 @@ class _FeaturedCarouselState extends State<_FeaturedCarousel> {
                     height: 4,
                     margin: const EdgeInsets.symmetric(horizontal: 3),
                     decoration: BoxDecoration(
-                      color: _index == i ? AppTheme.primaryGold : Colors.white24,
+                      color: _index == i 
+                          ? AppTheme.accentColor(widget.gradientPreset) 
+                          : Colors.white24,
                       borderRadius: BorderRadius.circular(4),
                     ),
                   ),
@@ -1474,7 +1481,7 @@ class _FeaturedCarouselState extends State<_FeaturedCarousel> {
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(icon, color: AppTheme.primaryGold, size: 20),
+              Icon(icon, color: Colors.white, size: 20),
               const SizedBox(width: 8),
               Text(
                 label,
@@ -1515,12 +1522,12 @@ class _GlobalAnnouncementTicker extends StatelessWidget {
           height: 34,
           width: double.infinity,
           decoration: BoxDecoration(
-            color: AppTheme.primaryGold.withOpacity(0.1),
+            color: accent.withOpacity(0.1),
             border: Border(
-              bottom: BorderSide(color: AppTheme.primaryGold.withOpacity(0.15), width: 0.5),
+              bottom: BorderSide(color: accent.withOpacity(0.15), width: 0.5),
             ),
           ),
-          child: _MarqueeText(text: text),
+          child: _MarqueeText(text: text, accent: accent),
         );
       },
     );
@@ -1529,7 +1536,8 @@ class _GlobalAnnouncementTicker extends StatelessWidget {
 
 class _MarqueeText extends StatefulWidget {
   final String text;
-  const _MarqueeText({required this.text});
+  final Color accent;
+  const _MarqueeText({required this.text, required this.accent});
 
   @override
   State<_MarqueeText> createState() => _MarqueeTextState();
@@ -1596,10 +1604,10 @@ class _MarqueeTextState extends State<_MarqueeText> with SingleTickerProviderSta
         Center(
           child: Text(
             widget.text,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 13,
               fontWeight: FontWeight.w600,
-              color: AppTheme.primaryGold,
+              color: widget.accent,
               letterSpacing: 0.2,
             ),
           ),
@@ -1609,15 +1617,129 @@ class _MarqueeTextState extends State<_MarqueeText> with SingleTickerProviderSta
         Center(
           child: Text(
             widget.text,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 13,
               fontWeight: FontWeight.w600,
-              color: AppTheme.primaryGold,
+              color: widget.accent,
               letterSpacing: 0.2,
             ),
           ),
         ),
       ],
+    );
+  }
+}
+
+class _AboutTab extends StatelessWidget {
+  final AppSettingsData settings;
+  const _AboutTab({required this.settings});
+
+  Future<void> _launchUrl(String url) async {
+    try {
+      final uri = Uri.parse(url);
+      if (await canLaunchUrl(uri)) {
+        await launchUrl(uri, mode: LaunchMode.externalApplication);
+      }
+    } catch (_) {}
+  }
+
+  Future<void> _checkUpdate(BuildContext context) async {
+    final ref = FirebaseDatabase.instance.ref('sync/global/settings/updateUrl');
+    final snapshot = await ref.get();
+    final url = snapshot.value as String?;
+
+    if (url != null && url.isNotEmpty) {
+      await _launchUrl(url);
+    } else {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('You are on the latest version'),
+            backgroundColor: AppTheme.surfaceGray,
+          ),
+        );
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final accent = AppTheme.accentColor(settings.gradientPreset);
+    return SingleChildScrollView(
+      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
+      child: Column(
+        children: [
+          const OpticWordmark(height: 60),
+          const SizedBox(height: 48),
+          Container(
+            padding: const EdgeInsets.all(24),
+            decoration: BoxDecoration(
+              color: Colors.white.withOpacity(0.06),
+              borderRadius: BorderRadius.circular(24),
+              border: Border.all(color: Colors.white.withOpacity(0.1)),
+            ),
+            child: Column(
+              children: [
+                Text(
+                  'If you have any problem text me here is my telegram',
+                  style: TextStyle(
+                    fontSize: 16,
+                    height: 1.5,
+                    color: Colors.white.withOpacity(0.85),
+                    fontWeight: FontWeight.w500,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 24),
+                SizedBox(
+                  width: double.infinity,
+                  child: FilledButton.icon(
+                    style: FilledButton.styleFrom(
+                      backgroundColor: accent,
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                    ),
+                    onPressed: () => _launchUrl('https://t.me/Opt1c_gh0st'),
+                    icon: const Icon(Icons.send_rounded, color: Colors.black),
+                    label: const Text(
+                      'OPT1C TELEGRAM',
+                      style: TextStyle(color: Colors.black, fontWeight: FontWeight.w900, letterSpacing: 1.2),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 24),
+          SizedBox(
+            width: double.infinity,
+            child: OutlinedButton.icon(
+              style: OutlinedButton.styleFrom(
+                side: BorderSide(color: accent.withOpacity(0.5), width: 1.5),
+                padding: const EdgeInsets.symmetric(vertical: 16),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                foregroundColor: accent,
+              ),
+              onPressed: () => _checkUpdate(context),
+              icon: const Icon(Icons.system_update_rounded),
+              label: const Text(
+                'CHECK LATEST UPDATE',
+                style: TextStyle(fontWeight: FontWeight.w800, letterSpacing: 1),
+              ),
+            ),
+          ),
+          const SizedBox(height: 64),
+          Text(
+            'Version 1.0.0+1',
+            style: TextStyle(color: Colors.white24, fontSize: 12),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            '© 2026 Optic TV. All rights reserved.',
+            style: TextStyle(color: Colors.white10, fontSize: 10),
+          ),
+        ],
+      ),
     );
   }
 }

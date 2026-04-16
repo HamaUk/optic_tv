@@ -413,6 +413,18 @@
         </div>
 
         <div class="dashboard-grid" style="margin-top:20px;">
+          <div class="content-panel">
+            <h4>Cloud Update Manager</h4>
+            <p style="color:var(--text-dim); margin:10px 0">Push a direct APK link to all users. Tapping "Update" in the app will download this file.</p>
+            <div class="form-group">
+              <label>Latest APK URL</label>
+              <input type="url" id="updateUrlInput" class="form-input" placeholder="https://example.com/optic_v2.apk">
+            </div>
+            <div style="display:flex; gap:10px">
+              <button class="btn-sm btn-primary" onclick="saveUpdateUrl()"><i class="fas fa-upload"></i> Push Update</button>
+              <button class="btn-sm btn-outline" style="color:var(--accent-danger)" onclick="clearUpdateUrl()"><i class="fas fa-trash"></i> Clear</button>
+            </div>
+          </div>
           <div class="content-panel"><h4>Database Backup</h4><p style="color:var(--text-dim); margin:10px 0">Download 1:1 replica of the RTDB.</p><button class="btn-sm btn-outline" onclick="exportJSON()"><i class="fas fa-file-code"></i> Export JSON</button></div>
           <div class="content-panel"><h4>Security</h4><p style="color:var(--text-dim); margin:10px 0">Archive logs and terminate administrative session.</p><button class="btn-sm btn-danger" onclick="logout()">Terminate Session</button></div>
         </div>
@@ -573,20 +585,25 @@
     const P_NOTIF_HIST = 'sync/global/notifications/history';
     const P_NOTIF_CLEAR = 'sync/global/notifications/broadcast';
     const P_BRAND = 'sync/global/settings/branding';
-    const P_SESS = 'sync/global/activeSessions';
-
-    window.plData = {};
-    window.grpData = {};
-    window.codeData = {};
-
-    window.initFB = () => {
-      onValue(ref(db, P_PLAY), s => { window.plData = s.val() || {}; renderPlaylist(); updateStats(); });
-      onValue(ref(db, P_GRP), s => { window.grpData = s.val() || {}; renderGroups(); updateStats(); });
-      onValue(ref(db, P_CODE), s => { window.codeData = s.val() || {}; renderCodes(); updateStats(); });
-      onValue(ref(db, P_NOTIF_HIST), s => { renderNotificationHistory(s.val() || {}); });
-      onValue(ref(db, P_BRAND), s => { applyBranding(s.val() || {}); });
-      onValue(ref(db, P_SESS), s => { renderMonitor(s.val() || {}); });
-    };
+      const P_SESS = 'sync/global/activeSessions';
+      const P_UPDATE = 'sync/global/settings/updateUrl';
+  
+      window.plData = {};
+      window.grpData = {};
+      window.codeData = {};
+  
+      window.initFB = () => {
+        onValue(ref(db, P_PLAY), s => { window.plData = s.val() || {}; renderPlaylist(); updateStats(); });
+        onValue(ref(db, P_GRP), s => { window.grpData = s.val() || {}; renderGroups(); updateStats(); });
+        onValue(ref(db, P_CODE), s => { window.codeData = s.val() || {}; renderCodes(); updateStats(); });
+        onValue(ref(db, P_NOTIF_HIST), s => { renderNotificationHistory(s.val() || {}); });
+        onValue(ref(db, P_BRAND), s => { applyBranding(s.val() || {}); });
+        onValue(ref(db, P_SESS), s => { renderMonitor(s.val() || {}); });
+        onValue(ref(db, P_UPDATE), s => { 
+          const url = s.val() || '';
+          document.getElementById('updateUrlInput').value = url;
+        });
+      };
 
     function updateStats() {
       document.getElementById('stat-channels').textContent = Object.keys(window.plData).length;
@@ -767,6 +784,17 @@
         tbody.appendChild(tr);
       });
     };
+    window.saveUpdateUrl = async () => {
+      const url = document.getElementById('updateUrlInput').value.trim();
+      await set(ref(db, P_UPDATE), url);
+      showToast(url ? "Update URL Broadcasted" : "Update URL Cleared");
+    };
+
+    window.clearUpdateUrl = async () => {
+      document.getElementById('updateUrlInput').value = '';
+      await window.saveUpdateUrl();
+    };
+
     window.exportJSON = async () => {
       const s = await get(ref(db, 'sync/global'));
       const blob = new Blob([JSON.stringify(s.val(), null, 2)], {type: 'application/json'});

@@ -99,11 +99,12 @@ class _OpticTvAppState extends ConsumerState<OpticTvApp> {
   Widget build(BuildContext context) {
     final uiLocale = ref.watch(appLocaleProvider);
     final session = ref.watch(sessionProvider);
+    final settings = ref.watch(appUiSettingsProvider).asData?.value ?? const AppSettingsData();
 
     return MaterialApp(
       title: 'Optic TV',
       debugShowCheckedModeBanner: false,
-      theme: AppTheme.darkThemeForUi(uiLocale),
+      theme: AppTheme.darkThemeForUi(uiLocale, settings.gradientPreset),
       locale: const Locale('en'),
       builder: (context, child) {
         return Directionality(
