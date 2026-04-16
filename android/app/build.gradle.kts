@@ -27,6 +27,11 @@ android {
         targetSdk = flutter.targetSdkVersion // Fixed reference
         versionCode = flutter.versionCode
         versionName = flutter.versionName
+
+        // Focus on modern architectures to reduce size and reverse-engineering target
+        ndk {
+            abiFilters.addAll(listOf("armeabi-v7a", "arm64-v8a", "x86_64"))
+        }
     }
 
     buildTypes {
