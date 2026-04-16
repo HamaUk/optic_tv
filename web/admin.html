@@ -190,6 +190,7 @@
         <li class="nav-item" onclick="switchTab('groups')"><i class="fas fa-folder-tree"></i> Categories</li>
         <li class="nav-item" onclick="switchTab('codes')"><i class="fas fa-key"></i> Login Codes</li>
         <li class="nav-item" onclick="switchTab('announcement')"><i class="fas fa-bell"></i> Notifications</li>
+        <li class="nav-item" onclick="switchTab('health')"><i class="fas fa-heart-pulse"></i> Health Check</li>
         <li class="nav-item" onclick="switchTab('tools')"><i class="fas fa-gear"></i> Systems</li>
       </nav>
       <div class="sidebar-footer"><div class="logout-btn" id="logoutBtn" style="cursor:pointer; color:var(--accent-danger); padding:10px; font-weight:700;"><i class="fas fa-sign-out-alt"></i> Exit Control</div></div>
@@ -324,6 +325,32 @@
               <tbody id="notifHistoryBody"></tbody>
             </table>
           </div>
+        </div>
+      </section>
+
+      <!-- Health -->
+      <section id="tab-health" class="tab-content">
+        <div class="header-row">
+          <div class="page-title"><h2>Health Center</h2><p>Infrastructure diagnostic & stream validation</p></div>
+          <button class="btn-sm btn-primary" id="startHealthBtn" onclick="runFullHealthCheck()"><i class="fas fa-vial"></i> Run Full Scan</button>
+        </div>
+        <div class="dashboard-grid">
+          <div class="stat-card"><div class="stat-label">Healthy</div><div class="stat-value" id="health-ok" style="color:var(--accent-success)">0</div></div>
+          <div class="stat-card"><div class="stat-label">Broken/Offline</div><div class="stat-value" id="health-err" style="color:var(--accent-danger)">0</div></div>
+          <div class="stat-card"><div class="stat-label">Diagnostic Progress</div><div class="stat-value" id="health-progress">0%</div></div>
+        </div>
+        <div class="content-panel">
+          <div class="toolbar">
+             <div class="search-box"><i class="fas fa-filter"></i><input type="text" placeholder="Search results..." oninput="renderHealthResults()"></div>
+             <div class="action-group">
+               <button class="btn-sm btn-outline" onclick="filterHealth('all')">All</button>
+               <button class="btn-sm btn-outline" style="color:var(--accent-danger)" onclick="filterHealth('err')">Broken Only</button>
+             </div>
+          </div>
+          <table id="healthTable">
+            <thead><tr><th>Channel</th><th>Status</th><th>Latency</th><th>Action</th></tr></thead>
+            <tbody id="healthBody"></tbody>
+          </table>
         </div>
       </section>
 
@@ -654,6 +681,71 @@
       const blob = new Blob([JSON.stringify(s.val(), null, 2)], {type: 'application/json'});
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a'); a.href = url; a.download = `optic_v2_backup.json`; a.click();
+    };
+
+    window.healthResults = [];
+    window.healthFilter = 'all';
+
+    window.runFullHealthCheck = async () => {
+      const btn = document.getElementById('startHealthBtn');
+      btn.disabled = true; btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> SCANNING...';
+      
+      const channels = Object.entries(window.plData);
+      window.healthResults = [];
+      let okCount = 0; let errCount = 0;
+
+      for (let i = 0; i < channels.length; i++) {
+        const [k, v] = channels[i];
+        const result = { key: k, name: v.name, url: v.url, status: 'Checking...', time: '-', color: 'var(--text-dim)' };
+        window.healthResults.push(result);
+        renderHealthResults();
+
+        try {
+          const controller = new AbortController();
+          const timeout = setTimeout(() => controller.abort(), 6000); // 6s timeout
+          const start = Date.now();
+          
+          // mode: 'no-cors' allows pinging even if the server blocks CORS, but we can't see the body
+          await fetch(v.url, { mode: 'no-cors', controller: controller.signal });
+          
+          clearTimeout(timeout);
+          result.status = 'ONLINE';
+          result.time = (Date.now() - start) + 'ms';
+          result.color = 'var(--accent-success)';
+          okCount++;
+        } catch (e) {
+          result.status = 'OFFLINE/TIMEOUT';
+          result.color = 'var(--accent-danger)';
+          errCount++;
+        }
+        
+        document.getElementById('health-ok').textContent = okCount;
+        document.getElementById('health-err').textContent = errCount;
+        document.getElementById('health-progress').textContent = Math.round(((i+1)/channels.length)*100) + '%';
+        renderHealthResults();
+      }
+
+      btn.disabled = false; btn.innerHTML = '<i class="fas fa-vial"></i> Run Full Scan';
+      showToast("Diagnostic Scan Complete");
+    };
+
+    window.filterHealth = (f) => { window.healthFilter = f; renderHealthResults(); };
+
+    window.renderHealthResults = () => {
+      const tbody = document.getElementById('healthBody');
+      tbody.innerHTML = '';
+      window.healthResults
+        .filter(r => window.healthFilter === 'all' || r.status.includes('OFFLINE'))
+        .forEach(r => {
+          const tr = document.createElement('tr');
+          tr.innerHTML = `
+            <td style="font-weight:700">${r.name}</td>
+            <td style="color:${r.color}; font-weight:800; font-size:0.75rem">${r.status}</td>
+            <td style="color:var(--text-dim); font-size:0.7rem">${r.time}</td>
+            <td><button class="btn-sm btn-outline" onclick="openChannelModal('${r.key}')"><i class="fas fa-edit"></i> Edit</button></td>
+          `;
+          tbody.appendChild(tr);
+        });
     };
 
     document.getElementById('current-date').textContent = new Date().toDateString();
