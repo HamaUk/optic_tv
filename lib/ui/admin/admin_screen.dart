@@ -3351,6 +3351,7 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
                     url: url,
                     group: 'Movies',
                     logo: logo,
+                    type: 'movie',
                   );
                   await _playlistRef.push().set(payload);
                   if (mounted) Navigator.pop(ctx);

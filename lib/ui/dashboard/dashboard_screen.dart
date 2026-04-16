@@ -79,7 +79,9 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
   bool _isMovieChannel(Channel c) {
     // Priority 1: Use explicit 'type' field set by the admin
     if (c.type == 'movie') return true;
-    if (c.type == 'live') return false;
+
+    // We removed the 'if (c.type == "live") return false' check here 
+    // to allow keyword fallback for legacy channels that don't have the field yet.
 
     final g = c.group.toLowerCase();
     final n = c.name.toLowerCase();
@@ -1371,86 +1373,25 @@ class _FeaturedCarouselState extends State<_FeaturedCarousel> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        // Featured Badge
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                          decoration: BoxDecoration(
-                            color: AppTheme.primaryGold.withOpacity(0.9),
-                            borderRadius: BorderRadius.circular(8),
-                            boxShadow: [
-                              BoxShadow(color: Colors.black.withOpacity(0.3), blurRadius: 4)
-                            ],
-                          ),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              const Icon(Icons.star_rounded, color: Colors.black, size: 14),
-                              const SizedBox(width: 4),
-                              Text(
-                                'FEATURED',
-                                style: AppTheme.withRabarIfKurdish(
-                                  s.locale,
-                                  const TextStyle(
-                                    color: Colors.black,
-                                    fontSize: 10,
-                                    fontWeight: FontWeight.w900,
-                                    letterSpacing: 1.1,
-                                  ),
-                                ),
-                              ),
-                            ],
+                        const Spacer(),
+                        Text(
+                          ch.name,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          style: AppTheme.withRabarIfKurdish(
+                            s.locale,
+                            TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.w900,
+                              color: Colors.white,
+                              height: 1.15,
+                              shadows: [
+                                Shadow(color: Colors.black.withOpacity(0.5), blurRadius: 10)
+                              ],
+                            ),
                           ),
                         ),
-                        const Spacer(),
-                        Row(
-                          crossAxisAlignment: CrossAxisAlignment.end,
-                          children: [
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Text(
-                                    s.featuredNewHint,
-                                    maxLines: 3,
-                                    overflow: TextOverflow.ellipsis,
-                                    style: AppTheme.withRabarIfKurdish(
-                                      s.locale,
-                                      TextStyle(
-                                        color: Colors.white.withOpacity(0.72),
-                                        fontSize: 11.5,
-                                        height: 1.35,
-                                        fontWeight: FontWeight.w500,
-                                      ),
-                                    ),
-                                  ),
-                                  const SizedBox(height: 6),
-                                  Text(
-                                    ch.name,
-                                    maxLines: 2,
-                                    overflow: TextOverflow.ellipsis,
-                                    style: AppTheme.withRabarIfKurdish(
-                                      s.locale,
-                                      TextStyle(
-                                        fontSize: 16,
-                                        fontWeight: FontWeight.w800,
-                                        color: Colors.white,
-                                        height: 1.15,
-                                      ),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                            const SizedBox(width: 16),
-                            _PulsingLogoBox(
-                              channel: ch,
-                              baseSize: 64,
-                              reduceMotion: widget.reduceMotion,
-                            ),
-                          ],
-                        ),
-                        const Spacer(),
+                        const SizedBox(height: 16),
                         Align(
                           alignment: s.locale.languageCode == 'ckb' ? Alignment.centerLeft : Alignment.centerRight,
                           child: _glassButton(
