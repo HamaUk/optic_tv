@@ -212,6 +212,21 @@
       <!-- Dashboard -->
       <section id="tab-dashboard" class="tab-content active">
         <div class="header-row"><div class="page-title"><h2>Ultra Dashboard</h2><p>Real-time infrastructure performance</p></div></div>
+        
+        <!-- Playlist Quick Access (Moved Up) -->
+        <div class="content-panel" style="border-left: 4px solid var(--accent-gold); margin-bottom: 24px; background: linear-gradient(90deg, var(--bg-surface-elevated), var(--bg-surface));">
+          <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:15px;">
+            <div>
+              <h3 style="font-size: 1.1rem; margin-bottom: 4px;"><i class="fas fa-file-export" style="color:var(--accent-gold); margin-right:8px"></i> Playlist Engine</h3>
+              <p style="color:var(--text-dim); font-size: 0.85rem;">Generate and export your M3U playlist for external players.</p>
+            </div>
+            <div style="display:flex; gap:10px;">
+              <button class="btn-sm btn-primary" onclick="exportM3U()"><i class="fas fa-download"></i> Download .M3U</button>
+              <button class="btn-sm btn-outline" onclick="copyM3U()"><i class="fas fa-copy"></i> Copy Text</button>
+            </div>
+          </div>
+        </div>
+
         <div class="dashboard-grid">
           <div class="stat-card"><div class="stat-label">Channels</div><div class="stat-value" id="stat-channels">0</div></div>
           <div class="stat-card"><div class="stat-label">Categories</div><div class="stat-value" id="stat-groups">0</div></div>
@@ -381,7 +396,6 @@
         <div class="header-row"><div class="page-title"><h2>System Core</h2><p>Branding, exports and recovery</p></div></div>
         
         <div class="dashboard-grid">
-          <!-- Branding -->
           <div class="content-panel">
             <h4 style="margin-bottom:15px">Theme & Branding</h4>
             <div class="form-group"><label>App Name</label><input type="text" id="brandNameInput" class="form-input" placeholder="e.g. Optic Pro"></div>
@@ -395,16 +409,6 @@
               </div>
             </div>
             <button class="btn-sm btn-primary" onclick="saveBranding()">Apply Theme</button>
-          </div>
-
-          <!-- M3U Export -->
-          <div class="content-panel">
-            <h4>Playlist Engine</h4>
-            <p style="color:var(--text-dim); margin:10px 0; font-size:0.8rem">Generate a standard M3U playlist for external players.</p>
-            <div style="display:flex; flex-direction:column; gap:8px">
-              <button class="btn-sm btn-outline" onclick="exportM3U()"><i class="fas fa-file-export"></i> Download .M3U File</button>
-              <button class="btn-sm btn-outline" onclick="copyM3U()"><i class="fas fa-copy"></i> Copy Playlist Text</button>
-            </div>
           </div>
         </div>
 
