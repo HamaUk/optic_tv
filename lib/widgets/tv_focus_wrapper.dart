@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import '../core/theme.dart';
 
 /// A premium focus wrapper for Android TV that provides a scale-up (8%)
@@ -64,6 +65,19 @@ class _TvFocusWrapperState extends State<TvFocusWrapper> with SingleTickerProvid
       autofocus: widget.autofocus,
       onFocusChange: (focused) {
         if (mounted) setState(() => _isFocused = focused);
+      },
+      onKeyEvent: (node, event) {
+        if (event is KeyDownEvent) {
+          final isSelect = event.logicalKey == LogicalKeyboardKey.select ||
+              event.logicalKey == LogicalKeyboardKey.enter ||
+              event.logicalKey == LogicalKeyboardKey.numpadEnter;
+          
+          if (isSelect && widget.onTap != null) {
+            widget.onTap!();
+            return KeyEventResult.handled;
+          }
+        }
+        return KeyEventResult.ignored;
       },
       child: GestureDetector(
         onTap: widget.onTap,
