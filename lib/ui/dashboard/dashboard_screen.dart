@@ -79,9 +79,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
   bool _isMovieChannel(Channel c) {
     // Priority 1: Use explicit 'type' field set by the admin
     if (c.type == 'movie') return true;
-
-    // We removed the 'if (c.type == "live") return false' check here 
-    // to allow keyword fallback for legacy channels that don't have the field yet.
+    if (c.type == 'live') return false;
 
     final g = c.group.toLowerCase();
     final n = c.name.toLowerCase();
