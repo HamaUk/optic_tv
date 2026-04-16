@@ -29,6 +29,8 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
   static const _groupsPath = 'sync/global/channelGroups';
   static const _loginCodesPath = 'sync/global/loginCodes';
   static const _announcementPath = 'sync/global/announcement';
+  static const _notifBroadcastPath = 'sync/global/notifications/broadcast';
+  static const _notifHistoryPath = 'sync/global/notifications/history';
   static const _backupFileVersion = 1;
 
   final _channelNameController = TextEditingController();
@@ -39,6 +41,9 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
   final _newLoginCodeController = TextEditingController();
   final _channelSearchController = TextEditingController();
   final _announcementController = TextEditingController();
+  final _notifTitleController = TextEditingController();
+  final _notifBodyController = TextEditingController();
+  final _notifImageController = TextEditingController();
 
   // Import tab controllers
   final _importUrlController = TextEditingController();
@@ -69,6 +74,8 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
   DatabaseReference get _groupsRef => FirebaseDatabase.instance.ref(_groupsPath);
   DatabaseReference get _loginCodesRef => FirebaseDatabase.instance.ref(_loginCodesPath);
   DatabaseReference get _announcementRef => FirebaseDatabase.instance.ref(_announcementPath);
+  DatabaseReference get _notifBroadcastRef => FirebaseDatabase.instance.ref(_notifBroadcastPath);
+  DatabaseReference get _notifHistoryRef => FirebaseDatabase.instance.ref(_notifHistoryPath);
 
   void initState() {
     super.initState();
@@ -94,6 +101,9 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
     _xtreamUserController.dispose();
     _xtreamPassController.dispose();
     _announcementController.dispose();
+    _notifTitleController.dispose();
+    _notifBodyController.dispose();
+    _notifImageController.dispose();
     super.dispose();
   }
 
@@ -2658,6 +2668,61 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
   //  Tab: Announcements (Broadcast)
   // ═══════════════════════════════════════════════════════════════
 
+  Future<void> _publishGlobalNotification() async {
+    final title = _notifTitleController.text.trim();
+    final body = _notifBodyController.text.trim();
+    final img = _notifImageController.text.trim();
+
+    if (title.isEmpty || body.isEmpty) {
+      _snack('Title and Content are required', error: true);
+      return;
+    }
+
+    try {
+      final notifObj = {
+        'id': DateTime.now().millisecondsSinceEpoch.toString(),
+        'title': title,
+        'body': body,
+        'image': img.isEmpty ? null : img,
+        'timestamp': DateTime.now().toUtc().toIso8601String(),
+      };
+
+      // 1. Broadcast to all active units
+      await _notifBroadcastRef.set(notifObj);
+      
+      // 2. Save to history
+      await _notifHistoryRef.push().set(notifObj);
+
+      _notifTitleController.clear();
+      _notifBodyController.clear();
+      _notifImageController.clear();
+      
+      _snack('Notification broadcasted to all units!');
+    } catch (e) {
+      _snack('Broadcast failed: $e', error: true);
+    }
+  }
+
+  Future<void> _clearActiveNotification() async {
+    final ok = await _confirmDelete('Clear active alert?', 'All units will stop showing the current broadcast immediately.');
+    if (!ok) return;
+    try {
+      await _notifBroadcastRef.remove();
+      _snack('Active broadcast retracted');
+    } catch (e) {
+      _snack('Action failed: $e', error: true);
+    }
+  }
+
+  Future<void> _deleteNotificationFromHistory(String key) async {
+    try {
+      await _notifHistoryRef.child(key).remove();
+      _snack('Notification removed from history');
+    } catch (e) {
+      _snack('Delete failed: $e', error: true);
+    }
+  }
+
   Widget _buildAnnouncementTab() {
     return Container(
       decoration: BoxDecoration(
@@ -2665,32 +2730,27 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
           colors: [AppTheme.backgroundBlack, AppTheme.surfaceGray.withOpacity(0.35)],
         ),
       ),
-      child: StreamBuilder<DatabaseEvent>(
-        stream: _announcementRef.onValue,
-        builder: (context, snapshot) {
-          final data = snapshot.data?.snapshot.value as Map? ?? {};
-          final currentText = '${data['text'] ?? ''}';
-          final active = data['active'] == true;
+      child: ListView(
+        padding: const EdgeInsets.all(20),
+        children: [
+          // Part 1: Scrolling Announcement
+          Text(
+            'Scrolling Home Header',
+            style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800),
+          ),
+          const SizedBox(height: 16),
+          StreamBuilder<DatabaseEvent>(
+            stream: _announcementRef.onValue,
+            builder: (context, snapshot) {
+              final data = snapshot.data?.snapshot.value as Map? ?? {};
+              final currentText = '${data['text'] ?? ''}';
+              final active = data['active'] == true;
 
-          // Sync controller text only if it has changed externally or on first load.
-          if (_announcementController.text != currentText && !_announcementController.selection.isValid) {
-            _announcementController.text = currentText;
-          }
+              if (_announcementController.text != currentText && !_announcementController.selection.isValid) {
+                _announcementController.text = currentText;
+              }
 
-          return ListView(
-            padding: const EdgeInsets.all(20),
-            children: [
-              Text(
-                'Broadcast Announcement',
-                style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800),
-              ),
-              const SizedBox(height: 6),
-              Text(
-                'This message scrolls at the top of the app home screen when active.',
-                style: TextStyle(color: Colors.white.withOpacity(0.45), fontSize: 13),
-              ),
-              const SizedBox(height: 24),
-              _card(
+              return _card(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
@@ -2698,24 +2758,18 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
                       _announcementController,
                       'Announcement text',
                       Icons.chat_bubble_outline_rounded,
-                      maxLines: 3,
+                      maxLines: 2,
                     ),
-                    const SizedBox(height: 20),
+                    const SizedBox(height: 12),
                     Row(
                       children: [
                         Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              const Text('Status', style: TextStyle(fontWeight: FontWeight.bold)),
-                              Text(
-                                active ? 'Live and scrolling' : 'Currently hidden',
-                                style: TextStyle(
-                                  fontSize: 12,
-                                  color: active ? AppTheme.accentTeal : Colors.white.withOpacity(0.45),
-                                ),
-                              ),
-                            ],
+                          child: Text(
+                            active ? 'Live and scrolling' : 'Currently hidden',
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: active ? AppTheme.accentTeal : Colors.white.withOpacity(0.45),
+                            ),
                           ),
                         ),
                         Switch.adaptive(
@@ -2725,24 +2779,159 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
                             _announcementRef.update({'active': val});
                           },
                         ),
+                        const SizedBox(width: 12),
+                        FilledButton.icon(
+                          onPressed: () async {
+                            final txt = _announcementController.text.trim();
+                            await _announcementRef.update({'text': txt});
+                            _snack('Announcement updated');
+                          },
+                          icon: const Icon(Icons.check_circle_outline, size: 18),
+                          label: const Text('Update'),
+                          style: FilledButton.styleFrom(
+                            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                            backgroundColor: AppTheme.primaryGold,
+                            foregroundColor: Colors.black,
+                          ),
+                        ),
                       ],
-                    ),
-                    const SizedBox(height: 24),
-                    FilledButton.icon(
-                      onPressed: () async {
-                        final txt = _announcementController.text.trim();
-                        await _announcementRef.update({'text': txt});
-                        _snack('Announcement updated');
-                      },
-                      icon: const Icon(Icons.save_rounded),
-                      label: const Text('Save & Publish'),
                     ),
                   ],
                 ),
-              ),
-            ],
-          );
-        },
+              );
+            },
+          ),
+
+          const SizedBox(height: 40),
+
+          // Part 2: Notification Studio
+          Text(
+            'Notification Studio',
+            style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            'Push alerts directly to users\' screens. Users only see each one once.',
+            style: TextStyle(color: Colors.white.withOpacity(0.45), fontSize: 13),
+          ),
+          const SizedBox(height: 16),
+          _card(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                _sheetField(_notifTitleController, 'Message Title', Icons.title_rounded),
+                const SizedBox(height: 12),
+                _sheetField(_notifBodyController, 'Body Content', Icons.message_rounded, maxLines: 3),
+                const SizedBox(height: 12),
+                Row(
+                  children: [
+                    Expanded(child: _sheetField(_notifImageController, 'Image URL (optional)', Icons.image_rounded)),
+                    const SizedBox(width: 10),
+                    IconButton.filledTonal(
+                      onPressed: () => _pickLogoInto(_notifImageController),
+                      icon: const Icon(Icons.add_photo_alternate_rounded),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 20),
+                Row(
+                  children: [
+                    Expanded(
+                      flex: 2,
+                      child: FilledButton.icon(
+                        onPressed: _publishGlobalNotification,
+                        icon: const Icon(Icons.send_rounded),
+                        label: const Text('Publish Broadcast'),
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: OutlinedButton.icon(
+                        onPressed: _clearActiveNotification,
+                        icon: const Icon(Icons.backspace_rounded),
+                        label: const Text('Clear'),
+                        style: OutlinedButton.styleFrom(foregroundColor: Colors.redAccent),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+
+          const SizedBox(height: 32),
+
+          // Part 3: History
+          Text(
+            'Broadcast History',
+            style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600),
+          ),
+          const SizedBox(height: 12),
+          StreamBuilder<DatabaseEvent>(
+            stream: _notifHistoryRef.onValue,
+            builder: (context, snapshot) {
+              final val = snapshot.data?.snapshot.value;
+              if (val == null || val is! Map) {
+                return const Padding(
+                  padding: EdgeInsets.symmetric(vertical: 20),
+                  child: Center(child: Opacity(opacity: 0.4, child: Text('No previous broadcasts'))),
+                );
+              }
+              final items = val.entries.toList()
+                ..sort((a, b) => (b.value['timestamp'] ?? '').compareTo(a.value['timestamp'] ?? ''));
+
+              return ListView.builder(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                itemCount: items.length,
+                itemBuilder: (context, i) {
+                  final k = items[i].key;
+                  final v = items[i].value;
+                  final ts = DateTime.tryParse(v['timestamp'] ?? '')?.toLocal();
+                  final dateStr = ts != null ? '${ts.day}/${ts.month} ${ts.hour}:${ts.minute}' : '';
+
+                  return Container(
+                    margin: const EdgeInsets.only(bottom: 8),
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withOpacity(0.04),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Row(
+                      children: [
+                        if (v['image'] != null)
+                          Container(
+                            width: 36,
+                            height: 36,
+                            margin: const EdgeInsets.only(right: 12),
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(8),
+                              image: DecorationImage(image: NetworkImage(v['image']), fit: BoxFit.cover),
+                            ),
+                          ),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(v['title'] ?? 'No Title', style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13)),
+                              Text(v['body'] ?? '', style: TextStyle(fontSize: 11, color: Colors.white.withOpacity(0.6)), maxLines: 1, overflow: TextOverflow.ellipsis),
+                              Text(dateStr, style: TextStyle(fontSize: 9, color: Colors.white.withOpacity(0.3))),
+                            ],
+                          ),
+                        ),
+                        IconButton(
+                          icon: const Icon(Icons.delete_outline_rounded, color: Colors.redAccent, size: 20),
+                          onPressed: () => _deleteNotificationFromHistory(k),
+                        ),
+                      ],
+                    ),
+                  );
+                },
+              );
+            },
+          ),
+          const SizedBox(height: 60),
+        ],
       ),
     );
   }

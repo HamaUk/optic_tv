@@ -166,8 +166,18 @@
       <i class="fas fa-microchip" style="font-size: 3rem; color: var(--accent-gold); margin-bottom: 15px;"></i>
       <h1 style="margin-bottom: 10px;">Optic TV</h1>
       <p style="color: var(--text-muted); font-size: 0.85rem; margin-bottom: 30px;">ULTRA CONTROL CENTER — V2.0</p>
-      <input type="password" id="loginPassword" class="input-field" placeholder="PASSKEY">
-      <button class="primary-btn" onclick="tryLogin()">AUTHENTICATE</button>
+      <input type="email" id="loginEmail" class="input-field" placeholder="ADMIN EMAIL" style="margin-bottom: 10px;">
+      <input type="password" id="loginPassword" class="input-field" placeholder="PASSWORD">
+      <button class="primary-btn" id="loginBtn" style="margin-bottom:12px">AUTHENTICATE</button>
+      
+      <div style="display:flex; align-items:center; gap:10px; margin-bottom:12px; color:var(--text-dim); font-size:0.75rem;">
+        <div style="flex:1; height:1px; background:var(--glass-border)"></div> OR <div style="flex:1; height:1px; background:var(--glass-border)"></div>
+      </div>
+
+      <button class="primary-btn" id="googleBtn" style="background:#fff; color:#000;">
+        <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" style="width:18px; margin-right:10px;">
+        SIGN IN WITH GOOGLE
+      </button>
     </div>
   </div>
 
@@ -182,7 +192,7 @@
         <li class="nav-item" onclick="switchTab('announcement')"><i class="fas fa-bell"></i> Notifications</li>
         <li class="nav-item" onclick="switchTab('tools')"><i class="fas fa-gear"></i> Systems</li>
       </nav>
-      <div class="sidebar-footer"><div class="logout-btn" onclick="logout()"><i class="fas fa-sign-out-alt"></i> Exit Control</div></div>
+      <div class="sidebar-footer"><div class="logout-btn" id="logoutBtn" style="cursor:pointer; color:var(--accent-danger); padding:10px; font-weight:700;"><i class="fas fa-sign-out-alt"></i> Exit Control</div></div>
     </aside>
 
     <main class="main-content">
@@ -289,9 +299,14 @@
                 </div>
               </div>
             </div>
-            <button class="primary-btn" onclick="publishNotification()">
-              <i class="fas fa-paper-plane"></i> PUBLISH TO ALL UNITS
-            </button>
+            <div style="display:flex; gap:10px;">
+              <button class="primary-btn" onclick="publishNotification()" style="flex:2">
+                <i class="fas fa-paper-plane"></i> PUBLISH
+              </button>
+              <button class="btn-sm btn-danger" onclick="clearActiveNotification()" style="flex:1">
+                <i class="fas fa-eraser"></i> CLEAR ACTIVE
+              </button>
+            </div>
           </div>
 
           <!-- History -->
@@ -382,6 +397,7 @@
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.11.0/firebase-app.js";
     import { getDatabase, ref, onValue, set, push, remove, update, get } from "https://www.gstatic.com/firebasejs/10.11.0/firebase-database.js";
+    import { getAuth, signInWithEmailAndPassword, signInWithPopup, GoogleAuthProvider, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.11.0/firebase-auth.js";
 
     const config = {
       apiKey: "AIzaSyCvNllsitniHSvzTIKiH74EqgCrHqB5xJI",
@@ -393,28 +409,77 @@
 
     const fb = initializeApp(config);
     const db = getDatabase(fb);
+    const auth = getAuth(fb);
+
+    // Persistence and Auth State
+    onAuthStateChanged(auth, (user) => {
+      if (user) {
+        document.getElementById('loginOverlay').style.display = 'none';
+        document.getElementById('appRoot').style.display = 'grid';
+        window.initFB();
+      } else {
+        document.getElementById('loginOverlay').style.display = 'flex';
+        document.getElementById('appRoot').style.display = 'none';
+      }
+    });
+
+    window.tryLogin = async () => {
+      const email = document.getElementById('loginEmail').value;
+      const pass = document.getElementById('loginPassword').value;
+      const btn = document.getElementById('loginBtn');
+      
+      if(!email || !pass) return alert("Enter credentials");
+      
+      btn.disabled = true;
+      btn.textContent = "VERIFYING...";
+      
+      try {
+        await signInWithEmailAndPassword(auth, email, pass);
+      } catch (e) {
+        alert("Access Denied: " + e.message);
+        btn.disabled = false;
+        btn.textContent = "AUTHENTICATE";
+      }
+    };
+
+    window.loginWithGoogle = async () => {
+      const provider = new GoogleAuthProvider();
+      try {
+        await signInWithPopup(auth, provider);
+      } catch (e) {
+        alert("Google Auth Failed: " + e.message);
+      }
+    };
+
+    window.logout = () => signOut(auth);
+
+    // Event Listeners
+    document.getElementById('loginBtn').onclick = window.tryLogin;
+    document.getElementById('googleBtn').onclick = window.loginWithGoogle;
+    document.getElementById('logoutBtn').onclick = window.logout;
 
     const P_PLAY = 'sync/global/managedPlaylist';
     const P_GRP = 'sync/global/channelGroups';
     const P_CODE = 'sync/global/loginCodes';
     const P_NOTIF = 'sync/global/notifications/broadcast';
     const P_NOTIF_HIST = 'sync/global/notifications/history';
+    const P_NOTIF_CLEAR = 'sync/global/notifications/broadcast';
 
-    let plData = {};
-    let grpData = {};
-    let codeData = {};
+    window.plData = {};
+    window.grpData = {};
+    window.codeData = {};
 
     window.initFB = () => {
-      onValue(ref(db, P_PLAY), s => { plData = s.val() || {}; renderPlaylist(); updateStats(); });
-      onValue(ref(db, P_GRP), s => { grpData = s.val() || {}; renderGroups(); updateStats(); });
-      onValue(ref(db, P_CODE), s => { codeData = s.val() || {}; renderCodes(); updateStats(); });
+      onValue(ref(db, P_PLAY), s => { window.plData = s.val() || {}; renderPlaylist(); updateStats(); });
+      onValue(ref(db, P_GRP), s => { window.grpData = s.val() || {}; renderGroups(); updateStats(); });
+      onValue(ref(db, P_CODE), s => { window.codeData = s.val() || {}; renderCodes(); updateStats(); });
       onValue(ref(db, P_NOTIF_HIST), s => { renderNotificationHistory(s.val() || {}); });
     };
 
     function updateStats() {
-      document.getElementById('stat-channels').textContent = Object.keys(plData).length;
-      document.getElementById('stat-groups').textContent = Object.keys(grpData).length;
-      document.getElementById('stat-codes').textContent = Object.keys(codeData).length;
+      document.getElementById('stat-channels').textContent = Object.keys(window.plData).length;
+      document.getElementById('stat-groups').textContent = Object.keys(window.grpData).length;
+      document.getElementById('stat-codes').textContent = Object.keys(window.codeData).length;
     }
 
     // --- Playlist ---
@@ -422,7 +487,7 @@
       const tbody = document.getElementById('playlistBody');
       const q = document.getElementById('playSearch').value.toLowerCase();
       tbody.innerHTML = '';
-      Object.entries(plData).filter(([k,v]) => v.name.toLowerCase().includes(q) || v.group.toLowerCase().includes(q))
+      Object.entries(window.plData).filter(([k,v]) => v.name.toLowerCase().includes(q) || v.group.toLowerCase().includes(q))
         .forEach(([k,v]) => {
           const tr = document.createElement('tr');
           tr.innerHTML = `
@@ -471,7 +536,7 @@
       const tbody = document.getElementById('groupBody');
       const dlist = document.getElementById('groupList');
       tbody.innerHTML = ''; dlist.innerHTML = '';
-      Object.entries(grpData).forEach(([k,v]) => {
+      Object.entries(window.grpData).forEach(([k,v]) => {
         const tr = document.createElement('tr');
         tr.innerHTML = `<td>${v.name}</td><td><i class="fas fa-trash" style="cursor:pointer; color:var(--accent-danger)" onclick="delCat('${k}')"></i></td>`;
         tbody.appendChild(tr);
@@ -493,7 +558,7 @@
     window.renderCodes = () => {
       const tbody = document.getElementById('codeBody');
       tbody.innerHTML = '';
-      Object.entries(codeData)
+      Object.entries(window.codeData)
         .sort((a,b) => String(b[1].createdAt||"").localeCompare(String(a[1].createdAt||"")))
         .forEach(([k,v]) => {
         const exp = isExpired(v.expiresAt);
@@ -526,6 +591,13 @@
     window.delCode = async (k) => { if(confirm("Revoke this access key?")) await remove(ref(db, `${P_CODE}/${k}`)); };
 
     // --- Notifications ---
+    window.clearActiveNotification = async () => {
+      if(confirm("Retract the currently active notification from all units?")) {
+        await remove(ref(db, P_NOTIF_CLEAR));
+        showToast("Broadcast Retracted");
+      }
+    };
+
     window.publishNotification = async () => {
       const title = document.getElementById('notifTitle').value;
       const body = document.getElementById('notifBody').value;
@@ -588,13 +660,7 @@
   </script>
 
   <script>
-    function tryLogin() {
-      if(document.getElementById('loginPassword').value === "hamakoye99") {
-        document.getElementById('loginOverlay').style.display = 'none';
-        document.getElementById('appRoot').style.display = 'grid';
-        window.initFB();
-      } else { alert("Invalid Passkey"); }
-    }
+    // Auth logic moved to module script for SDK access
 
     function switchTab(id) {
       document.querySelectorAll('.nav-item').forEach(el=>el.classList.remove('active'));
@@ -646,7 +712,7 @@
     function showToast(m) { const t = document.getElementById('toast'); t.textContent = m; t.style.display='block'; setTimeout(()=>t.style.display='none', 3000); }
     function checkBulkState() { document.getElementById('bulkDelBtn').style.display = document.querySelectorAll('.ch-select:checked').length > 0 ? 'inline-flex' : 'none'; }
     function toggleSelectAll(el) { document.querySelectorAll('.ch-select').forEach(cb => cb.checked = el.checked); checkBulkState(); }
-    function logout() { location.reload(); }
+    function logout() { window.logout(); }
     document.getElementById('loginPassword').onkeydown = e => { if(e.key === 'Enter') tryLogin(); };
   </script>
 
