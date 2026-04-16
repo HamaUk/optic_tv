@@ -21,6 +21,7 @@ import '../../providers/channel_library_provider.dart';
 import '../../services/monitor_service.dart';
 import '../../services/playlist_service.dart';
 import '../../services/settings_service.dart';
+import '../../widgets/tv_focus_wrapper.dart';
 
 class PlayerScreen extends ConsumerStatefulWidget {
   final List<Channel> channels;
@@ -387,56 +388,13 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
     final favorites = ref.watch(favoritesProvider);
     final isFav = favorites.any((e) => e.url == _current.url);
     final s = AppStrings(uiLocale);
-    // `intl` has no Sorani clock patterns; keep Latin digits for time.
     final timeLabel = DateFormat.jm('en').format(DateTime.now());
     final topPad = MediaQuery.paddingOf(context).top;
     final bottomPad = MediaQuery.paddingOf(context).bottom;
 
-    return Scaffold(
-      backgroundColor: AppTheme.backgroundBlack,
-      body: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          // Header
-          Padding(
-            padding: EdgeInsets.fromLTRB(16, topPad + 8, 16, 6),
-            child: Row(
-              children: [
-                Expanded(
-                  child: Text(
-                    _current.name,
-                    style: AppTheme.withRabarIfKurdish(
-                      uiLocale,
-                      const TextStyle(
-                        color: Colors.white,
-                        fontSize: 22,
-                        fontWeight: FontWeight.w700,
-                        letterSpacing: -0.3,
-                      ),
-                    ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ),
-                PlayerControlButton(
-                  icon: isFav ? Icons.star_rounded : Icons.star_border_rounded,
-                  tooltip: isFav ? s.unfavoriteChannel : s.favoriteChannel,
-                  color: _accent,
-                  onTap: () => ref.read(favoritesProvider.notifier).toggle(_current),
-                ),
-                if (_isMovie) ...[
-                  const SizedBox(width: 8),
-                  PlayerControlButton(
-                    icon: Icons.picture_in_picture_alt_rounded,
-                    tooltip: 'Picture-in-Picture',
-                    onTap: _enterPiP,
-                  ),
-                ],
-              ],
-            ),
-          ),
     final isTv = MediaQuery.sizeOf(context).width > 900;
     
+    // Core Media Area Widget
     final playerArea = Stack(
       fit: StackFit.expand,
       children: [
@@ -537,6 +495,7 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
       ],
     );
 
+    // [TV LAYOUT]
     if (isTv) {
       return Scaffold(
         backgroundColor: Colors.black,
@@ -554,20 +513,60 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
       );
     }
 
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        Expanded(
-          flex: 12,
-          child: playerArea,
-        ),
-        Expanded(
-          flex: 8,
-          child: _isMovie
-              ? _buildRelatedMovies(uiLocale, s, bottomPad)
-              : _buildMobileChannelLists(uiLocale, s, bottomPad),
-        ),
-      ],
+    // [MOBILE LAYOUT]
+    return Scaffold(
+      backgroundColor: AppTheme.backgroundBlack,
+      body: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          // Header
+          Padding(
+            padding: EdgeInsets.fromLTRB(16, topPad + 8, 16, 6),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    _current.name,
+                    style: AppTheme.withRabarIfKurdish(
+                      uiLocale,
+                      const TextStyle(
+                        color: Colors.white,
+                        fontSize: 22,
+                        fontWeight: FontWeight.w700,
+                        letterSpacing: -0.3,
+                      ),
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+                PlayerControlButton(
+                  icon: isFav ? Icons.star_rounded : Icons.star_border_rounded,
+                  tooltip: isFav ? s.unfavoriteChannel : s.favoriteChannel,
+                  color: _accent,
+                  onTap: () => ref.read(favoritesProvider.notifier).toggle(_current),
+                ),
+                if (_isMovie) ...[
+                  const SizedBox(width: 8),
+                  PlayerControlButton(
+                    icon: Icons.picture_in_picture_alt_rounded,
+                    tooltip: 'Picture-in-Picture',
+                    onTap: _enterPiP,
+                  ),
+                ],
+              ],
+            ),
+          ),
+          Expanded(
+            child: playerArea,
+          ),
+          Expanded(
+            child: _isMovie
+                ? _buildRelatedMovies(uiLocale, s, bottomPad)
+                : _buildMobileChannelLists(uiLocale, s, bottomPad),
+          ),
+        ],
+      ),
     );
   }
 

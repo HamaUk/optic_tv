@@ -21,6 +21,7 @@ import '../settings/settings_screen.dart';
 import '../sport/sport_scores_screen.dart';
 import '../../services/tmdb_service.dart';
 import '../../widgets/dynamic_background.dart';
+import '../../widgets/tv_focus_wrapper.dart';
 import './movie_details_screen.dart';
 import 'package:lottie/lottie.dart';
 
@@ -884,7 +885,12 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                 title.toUpperCase(),
                 style: AppTheme.withRabarIfKurdish(
                   s.locale,
-                  TextStyle(fontSize: titleSize, fontWeight: FontWeight.w900, color: Colors.white, letterSpacing: 1.5, opacity: 0.9),
+                  TextStyle(
+                    fontSize: titleSize,
+                    fontWeight: FontWeight.w900,
+                    color: Colors.white.withOpacity(0.9),
+                    letterSpacing: 1.5,
+                  ),
                 ),
               ),
             ),
@@ -1241,71 +1247,6 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
           ],
         ),
       ),
-    );
-  }
-
-    // Landscape rail: KRD-style — teal border + soft fill around **icon + label**, smaller glyphs.
-    const railIcon = 20.0;
-    const railRadius = 14.0;
-    final column = Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Icon(icon, color: color, size: railIcon),
-        const SizedBox(height: 5),
-        Text(
-          label,
-          maxLines: 2,
-          textAlign: TextAlign.center,
-          overflow: TextOverflow.ellipsis,
-          style: AppTheme.withRabarIfKurdish(
-            s.locale,
-            TextStyle(
-              color: color,
-              fontSize: 8.5,
-              height: 1.1,
-              fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
-            ),
-          ),
-        ),
-      ],
-    );
-
-    final padded = Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 8),
-      child: column,
-    );
-
-    final chip = selected
-        ? DecoratedBox(
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(railRadius),
-              border: Border.all(color: _accent.withOpacity(0.88), width: 1.5),
-              color: _accent.withOpacity(0.13),
-              boxShadow: [
-                BoxShadow(
-                  color: _accent.withOpacity(0.18),
-                  blurRadius: 10,
-                  spreadRadius: 0,
-                ),
-              ],
-            ),
-            child: padded,
-          )
-        : Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 6),
-            child: column,
-          );
-
-    return InkWell(
-      onTap: () => setState(() => _navIndex = index),
-      borderRadius: BorderRadius.circular(railRadius),
-      child: Center(
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 78),
-          child: chip,
-        ),
-      ),
-    );
   }
 }
 
