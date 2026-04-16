@@ -414,7 +414,7 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
                   fill: const Color(0xFF000000),
                   filterQuality: FilterQuality.high,
                 )
-              : const Color(0xFF000000),
+              : Container(color: Colors.black),
         ),
         // Cinematic Edge Vignette
         IgnorePointer(

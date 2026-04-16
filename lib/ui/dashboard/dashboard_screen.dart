@@ -324,7 +324,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                 ),
               ),
             ),
-            bottomNavigationBar: portrait ? _buildBottomNav(s, MediaQuery.paddingOf(context).bottom) : null,
+            bottomNavigationBar: portrait ? _buildBottomNav(s, MediaQuery.paddingOf(context).bottom, settings) : null,
           );
         }
 
@@ -471,7 +471,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
       textDirection: TextDirection.ltr,
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        _buildSideRail(s, isTv),
+        _buildSideRail(s, isTv, settings),
         if (!isTv)
           VerticalDivider(
             width: 1,
@@ -488,7 +488,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     );
   }
 
-  Widget _buildSideRail(AppStrings s, bool isTv) {
+  Widget _buildSideRail(AppStrings s, bool isTv, AppSettingsData settings) {
     final bottom = MediaQuery.paddingOf(context).bottom;
     final railWidth = isTv ? 120.0 : 96.0;
     
@@ -519,20 +519,20 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
             child: Column(
               mainAxisAlignment: isTv ? MainAxisAlignment.start : MainAxisAlignment.spaceEvenly,
               children: [
-                _navItem(s, icon: Icons.home_rounded, label: s.navHome, index: 0, sideRail: true, isTv: isTv),
+                _navItem(s, settings, icon: Icons.home_rounded, label: s.navHome, index: 0, sideRail: true, isTv: isTv),
                 if (isTv) const SizedBox(height: 24),
-                _navItem(s, icon: Icons.movie_rounded, label: s.navMovies, index: 1, sideRail: true, isTv: isTv),
+                _navItem(s, settings, icon: Icons.movie_rounded, label: s.navMovies, index: 1, sideRail: true, isTv: isTv),
                 if (isTv) const SizedBox(height: 24),
-                _navItem(s, icon: Icons.sports_soccer_rounded, label: s.navSport, index: 2, sideRail: true, isTv: isTv),
+                _navItem(s, settings, icon: Icons.sports_soccer_rounded, label: s.navSport, index: 2, sideRail: true, isTv: isTv),
                 if (isTv) const SizedBox(height: 24),
-                _navItem(s, icon: Icons.star_rounded, label: s.navFavorites, index: 3, sideRail: true, isTv: isTv),
+                _navItem(s, settings, icon: Icons.star_rounded, label: s.navFavorites, index: 3, sideRail: true, isTv: isTv),
                 if (isTv) const SizedBox(height: 24),
-                _navItem(s, icon: Icons.info_outline_rounded, label: 'About', index: 4, sideRail: true, isTv: isTv),
+                _navItem(s, settings, icon: Icons.info_outline_rounded, label: 'About', index: 4, sideRail: true, isTv: isTv),
               ],
             ),
           ),
           if (isTv) ...[
-            _navItem(s, icon: Icons.settings_rounded, label: 'Settings', index: -1, sideRail: true, isTv: isTv),
+            _navItem(s, settings, icon: Icons.settings_rounded, label: 'Settings', index: -1, sideRail: true, isTv: isTv),
             const SizedBox(height: 20),
           ],
         ],
@@ -717,7 +717,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
       physics: const BouncingScrollPhysics(),
       slivers: [
         if (isTv && heroChannel != null)
-           SliverToBoxAdapter(child: _buildTvHeroSection(context, s, heroChannel)),
+           SliverToBoxAdapter(child: _buildTvHeroSection(context, s, allFlat, heroChannel)),
 
         if (!isTv && (_navIndex == 0 || _navIndex == 4) &&
             _searchController.text.trim().isEmpty &&
@@ -755,7 +755,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     );
   }
 
-  Widget _buildTvHeroSection(BuildContext context, AppStrings s, Channel ch) {
+  Widget _buildTvHeroSection(BuildContext context, AppStrings s, List<Channel> allChannels, Channel ch) {
     return Container(
       height: 380,
       margin: const EdgeInsets.fromLTRB(24, 24, 24, 40),
@@ -815,7 +815,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                       ),
                       const SizedBox(height: 32),
                       TvFocusWrapper(
-                        onTap: () => _openPlayer(null, ch),
+                        onTap: () => _openPlayer(allChannels, ch),
                         borderRadius: 14,
                         child: Container(
                           padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
@@ -1148,7 +1148,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     );
   }
 
-  Widget _buildBottomNav(AppStrings s, double bottomInset) {
+  Widget _buildBottomNav(AppStrings s, double bottomInset, AppSettingsData settings) {
     return Container(
       decoration: BoxDecoration(
         color: const Color(0xFF0D1118),
@@ -1159,18 +1159,19 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceEvenly,
         children: [
-          _navItem(s, icon: Icons.home_rounded, label: s.navHome, index: 0),
-          _navItem(s, icon: Icons.movie_rounded, label: s.navMovies, index: 1),
-          _navItem(s, icon: Icons.sports_soccer_rounded, label: s.navSport, index: 2),
-          _navItem(s, icon: Icons.star_rounded, label: s.navFavorites, index: 3),
-          _navItem(s, icon: Icons.info_outline_rounded, label: 'About', index: 4),
+          _navItem(s, settings, icon: Icons.home_rounded, label: s.navHome, index: 0),
+          _navItem(s, settings, icon: Icons.movie_rounded, label: s.navMovies, index: 1),
+          _navItem(s, settings, icon: Icons.sports_soccer_rounded, label: s.navSport, index: 2),
+          _navItem(s, settings, icon: Icons.star_rounded, label: s.navFavorites, index: 3),
+          _navItem(s, settings, icon: Icons.info_outline_rounded, label: 'About', index: 4),
         ],
       ),
     );
   }
 
   Widget _navItem(
-    AppStrings s, {
+    AppStrings s,
+    AppSettingsData settings, {
     required IconData icon,
     required String label,
     required int index,
@@ -1178,7 +1179,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     bool isTv = false,
   }) {
     final selected = _navIndex == index;
-    final accent = AppTheme.accentColor(_settings.gradientPreset);
+    final accent = AppTheme.accentColor(settings.gradientPreset);
     final color = selected ? accent : (sideRail ? Colors.white.withOpacity(0.52) : Colors.white38);
 
     if (isTv) {
@@ -1247,6 +1248,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
           ],
         ),
       ),
+    );
   }
 }
 
