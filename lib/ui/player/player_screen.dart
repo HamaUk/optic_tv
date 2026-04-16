@@ -58,7 +58,9 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
   Duration _duration = Duration.zero;
   bool _controlsVisible = true;
   Timer? _hideTimer;
-  bool _isPlaying = true; // Most streams auto-play upon open
+  bool _isPlaying = true; 
+  BoxFit _viewFit = BoxFit.contain; // Local override for TV selector
+  final FocusNode _playerFocus = FocusNode();
 
   final List<StreamSubscription<dynamic>> _subscriptions = [];
 
@@ -210,6 +212,7 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
     }));
 
     MonitorService.updateActivity(_current.name);
+    _viewFit = _settings.videoFit; // Initial sync
     await p.open(Media(_current.url));
   }
 
@@ -355,6 +358,19 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
     );
   }
 
+  void _cycleFit() {
+    setState(() {
+      if (_viewFit == BoxFit.contain) {
+        _viewFit = BoxFit.fill; // Stretch
+      } else if (_viewFit == BoxFit.fill) {
+        _viewFit = BoxFit.cover; // Zoom
+      } else {
+        _viewFit = BoxFit.contain; // Fit
+      }
+    });
+    _showControls();
+  }
+
   bool get _isMovie =>
       _current.group.toLowerCase().contains('movie') ||
       _current.group.toLowerCase().contains('film') ||
@@ -419,99 +435,139 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
               ],
             ),
           ),
-          Expanded(
-            child: Stack(
-              fit: StackFit.expand,
-              children: [
-                GestureDetector(
-                  onTap: () {
-                    _playPause();
-                    _showControls();
-                  },
-                  onDoubleTap: _toggleFullscreen,
-                  child: _controller != null
-                      ? Video(
-                          key: _videoKey,
-                          controller: _controller!,
-                          controls: NoVideoControls,
-                          wakelock: _settings.keepScreenOnWhilePlaying,
-                          fit: _settings.videoFit,
-                          fill: const Color(0xFF000000),
-                          filterQuality: FilterQuality.high,
-                        )
-                      : const SizedBox.shrink(),
-                ),
-                IgnorePointer(
-                  child: DecoratedBox(
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        begin: Alignment.topCenter,
-                        end: Alignment.bottomCenter,
-                        colors: [
-                          Colors.black.withOpacity(0.45),
-                          Colors.transparent,
-                          Colors.transparent,
-                          Colors.black.withOpacity(0.55),
-                        ],
-                        stops: const [0, 0.25, 0.65, 1],
-                      ),
-                    ),
-                  ),
-                ),
-                
-                // Shared Overlays
-                if (_showEngineSplash) _buildEngineSplash(),
-                if (_showBufferingOverlay) _buildBufferingIndicator(),
-                
-                // Dynamic Overlays
-                if (_isMovie) 
-                  _buildMovieControlsOverlay()
-                else 
-                  _buildLiveTvControlsOverlay(),
+    final isTv = MediaQuery.sizeOf(context).width > 900;
+    
+    final playerArea = Stack(
+      fit: StackFit.expand,
+      children: [
+        GestureDetector(
+          onTap: () {
+            _playPause();
+            _showControls();
+          },
+          onDoubleTap: _toggleFullscreen,
+          child: _controller != null
+              ? Video(
+                  key: _videoKey,
+                  controller: _controller!,
+                  controls: NoVideoControls,
+                  wakelock: _settings.keepScreenOnWhilePlaying,
+                  fit: _viewFit,
+                  fill: const Color(0xFF000000),
+                  filterQuality: FilterQuality.high,
+                )
+              : const Color(0xFF000000),
+        ),
+        // Cinematic Edge Vignette
+        IgnorePointer(
+          child: DecoratedBox(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                colors: [
+                  Colors.black.withOpacity(isTv ? 0.35 : 0.45),
+                  Colors.transparent,
+                  Colors.transparent,
+                  Colors.black.withOpacity(isTv ? 0.45 : 0.55),
+                ],
+                stops: const [0, 0.25, 0.65, 1],
+              ),
+            ),
+          ),
+        ),
+        
+        if (_showEngineSplash) _buildEngineSplash(),
+        if (_showBufferingOverlay) _buildBufferingIndicator(),
 
-                // Back Button
-                if (_controlsVisible)
-                  Positioned(
-                    top: 20,
-                    left: 20,
-                    child: PlayerControlButton(
-                      icon: Icons.arrow_back_rounded,
-                      onTap: () => Navigator.pop(context),
-                    ),
+        if (_controlsVisible) ...[
+          if (_isMovie) 
+            _buildMovieControlsOverlay()
+          else 
+            _buildLiveTvControlsOverlay(),
+
+          // Back Button
+          Positioned(
+            top: isTv ? 40 : 20,
+            left: isTv ? 40 : 20,
+            child: TvFocusWrapper(
+              onTap: () => Navigator.pop(context),
+              borderRadius: 30,
+              child: PlayerControlButton(
+                icon: Icons.arrow_back_rounded,
+                onTap: () => Navigator.pop(context),
+              ),
+            ),
+          ),
+          
+          // Secondary Controls (Top Right)
+          Positioned(
+            top: isTv ? 40 : 20,
+            right: isTv ? 40 : 20,
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TvFocusWrapper(
+                  onTap: _cycleFit,
+                  borderRadius: 30,
+                  accentColor: _accent,
+                  child: PlayerControlButton(
+                    icon: _viewFit == BoxFit.contain 
+                        ? Icons.aspect_ratio_rounded 
+                        : (_viewFit == BoxFit.fill ? Icons.fit_screen_rounded : Icons.zoom_out_map_rounded),
+                    tooltip: 'Cycle Aspect Ratio',
+                    onTap: _cycleFit,
                   ),
-                
-                // Secondary Controls (Top Right)
-                if (_controlsVisible)
-                  Positioned(
-                    top: 20,
-                    right: 20,
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        PlayerControlButton(
-                          icon: _muted ? Icons.volume_off_rounded : Icons.volume_up_rounded,
-                          isToggle: true,
-                          toggled: _muted,
-                          onTap: () => setState(() => _muted = !_muted),
-                        ),
-                        const SizedBox(width: 12),
-                        PlayerControlButton(
-                          icon: Icons.fullscreen_rounded,
-                          onTap: _toggleFullscreen,
-                        ),
-                      ],
-                    ),
+                ),
+                const SizedBox(width: 12),
+                TvFocusWrapper(
+                   onTap: _toggleMute,
+                   borderRadius: 30,
+                   child: PlayerControlButton(
+                    icon: _muted ? Icons.volume_off_rounded : Icons.volume_up_rounded,
+                    isToggle: true,
+                    toggled: _muted,
+                    onTap: _toggleMute,
                   ),
+                ),
               ],
             ),
           ),
-          Expanded(
-            child: _isMovie
-                ? _buildRelatedMovies(uiLocale, s, bottomPad)
-                : _buildMobileChannelLists(uiLocale, s, bottomPad),
-          ),
         ],
-      ),
+      ],
+    );
+
+    if (isTv) {
+      return Scaffold(
+        backgroundColor: Colors.black,
+        body: Focus(
+          focusNode: _playerFocus,
+          autofocus: true,
+          onKey: (node, event) {
+            if (event is RawKeyDownEvent) {
+              _showControls();
+            }
+            return KeyEventResult.ignored;
+          },
+          child: playerArea,
+        ),
+      );
+    }
+
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Expanded(
+          flex: 12,
+          child: playerArea,
+        ),
+        Expanded(
+          flex: 8,
+          child: _isMovie
+              ? _buildRelatedMovies(uiLocale, s, bottomPad)
+              : _buildMobileChannelLists(uiLocale, s, bottomPad),
+        ),
+      ],
     );
   }
 

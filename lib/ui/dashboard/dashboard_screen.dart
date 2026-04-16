@@ -43,6 +43,9 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
   bool _searchOpen = false;
   bool _tvHomeActive = true; 
   final TextEditingController _searchController = TextEditingController();
+  
+  Channel? _focusedChannel; 
+  bool _sidebarFocused = false;
 
   static const _accent = AppTheme.accentTeal;
 
@@ -324,7 +327,8 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
           );
         }
 
-        final heroImage = filtered.isNotEmpty ? filtered.first.logo : null;
+        final isTv = MediaQuery.sizeOf(context).width > 900;
+        final heroImage = _focusedChannel?.logo ?? (filtered.isNotEmpty ? filtered.first.logo : null);
 
         return Scaffold(
           backgroundColor: AppTheme.backgroundBlack,
@@ -450,11 +454,12 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
       );
     }
 
+    final isTv = landscape && MediaQuery.sizeOf(context).width > 900;
     final contentDir = s.locale.languageCode == 'ckb' ? TextDirection.rtl : TextDirection.ltr;
     final bodyColumn = Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        _buildTopBar(context, s, pad, tv),
+        if (!isTv) _buildTopBar(context, s, pad, tv),
         const _GlobalAnnouncementTicker(),
         if (_searchOpen) _buildSearchField(s, pad),
         Expanded(child: expandedChild),
@@ -465,12 +470,13 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
       textDirection: TextDirection.ltr,
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        _buildSideRail(s),
-        VerticalDivider(
-          width: 1,
-          thickness: 1,
-          color: Colors.white.withOpacity(0.08),
-        ),
+        _buildSideRail(s, isTv),
+        if (!isTv)
+          VerticalDivider(
+            width: 1,
+            thickness: 1,
+            color: Colors.white.withOpacity(0.08),
+          ),
         Expanded(
           child: Directionality(
             textDirection: contentDir,
@@ -481,32 +487,53 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     );
   }
 
-  Widget _buildSideRail(AppStrings s) {
+  Widget _buildSideRail(AppStrings s, bool isTv) {
     final bottom = MediaQuery.paddingOf(context).bottom;
+    final railWidth = isTv ? 120.0 : 96.0;
+    
     return Container(
-      width: 96,
+      width: railWidth,
       decoration: BoxDecoration(
-        color: const Color(0xFF0A0E14),
+        color: isTv ? Colors.black.withOpacity(0.85) : const Color(0xFF0A0E14),
         border: Border(
-          right: BorderSide(color: Colors.white.withOpacity(0.06)),
+          right: BorderSide(color: Colors.white.withOpacity(isTv ? 0.12 : 0.06)),
         ),
         boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.35),
-            blurRadius: 14,
-            offset: const Offset(2, 0),
-          ),
+          if (isTv)
+            BoxShadow(
+              color: Colors.black.withOpacity(0.45),
+              blurRadius: 20,
+              offset: const Offset(4, 0),
+            ),
         ],
       ),
-      padding: EdgeInsets.fromLTRB(6, 10, 6, math.max(bottom, 10)),
+      padding: EdgeInsets.fromLTRB(6, isTv ? 40 : 10, 6, math.max(bottom, 10)),
       child: Column(
-        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
         children: [
-          _navItem(s, icon: Icons.home_rounded, label: s.navHome, index: 0, sideRail: true),
-          _navItem(s, icon: Icons.movie_rounded, label: s.navMovies, index: 1, sideRail: true),
-          _navItem(s, icon: Icons.sports_soccer_rounded, label: s.navSport, index: 2, sideRail: true),
-          _navItem(s, icon: Icons.star_rounded, label: s.navFavorites, index: 3, sideRail: true),
-          _navItem(s, icon: Icons.info_outline_rounded, label: 'About', index: 4, sideRail: true),
+          if (isTv) ...[
+            const OpticWordmark(height: 38),
+            const SizedBox(height: 60),
+          ],
+          Expanded(
+            child: Column(
+              mainAxisAlignment: isTv ? MainAxisAlignment.start : MainAxisAlignment.spaceEvenly,
+              children: [
+                _navItem(s, icon: Icons.home_rounded, label: s.navHome, index: 0, sideRail: true, isTv: isTv),
+                if (isTv) const SizedBox(height: 24),
+                _navItem(s, icon: Icons.movie_rounded, label: s.navMovies, index: 1, sideRail: true, isTv: isTv),
+                if (isTv) const SizedBox(height: 24),
+                _navItem(s, icon: Icons.sports_soccer_rounded, label: s.navSport, index: 2, sideRail: true, isTv: isTv),
+                if (isTv) const SizedBox(height: 24),
+                _navItem(s, icon: Icons.star_rounded, label: s.navFavorites, index: 3, sideRail: true, isTv: isTv),
+                if (isTv) const SizedBox(height: 24),
+                _navItem(s, icon: Icons.info_outline_rounded, label: 'About', index: 4, sideRail: true, isTv: isTv),
+              ],
+            ),
+          ),
+          if (isTv) ...[
+            _navItem(s, icon: Icons.settings_rounded, label: 'Settings', index: -1, sideRail: true, isTv: isTv),
+            const SizedBox(height: 20),
+          ],
         ],
       ),
     );
@@ -675,21 +702,23 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     int animMs,
     double pad,
   ) {
-    const tv = false;
-    const crossCount = 4;
+    final isTv = MediaQuery.sizeOf(context).width > 900;
+    final crossCount = isTv ? 6 : 4;
     
-    // Prioritize channels marked as 'featured' in the admin panel.
     var slideChannels = allChannels.where((c) => c.featured).toList();
-    
-    // Fallback: If no channels are featured, show the first 5 from the flat list.
     if (slideChannels.isEmpty) {
       slideChannels = filteredFlat.take(5).toList();
     }
 
+    final heroChannel = _focusedChannel ?? (filteredFlat.isNotEmpty ? filteredFlat.first : null);
+
     return CustomScrollView(
       physics: const BouncingScrollPhysics(),
       slivers: [
-        if ((_navIndex == 0 || _navIndex == 4) &&
+        if (isTv && heroChannel != null)
+           SliverToBoxAdapter(child: _buildTvHeroSection(context, s, heroChannel)),
+
+        if (!isTv && (_navIndex == 0 || _navIndex == 4) &&
             _searchController.text.trim().isEmpty &&
             slideChannels.isNotEmpty)
           SliverToBoxAdapter(
@@ -716,11 +745,116 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
               crossCount,
               animMs,
               pad,
+              isTv,
             ),
           );
         }),
-        const SliverToBoxAdapter(child: SizedBox(height: 88)),
+        const SliverToBoxAdapter(child: SizedBox(height: 120)),
       ],
+    );
+  }
+
+  Widget _buildTvHeroSection(BuildContext context, AppStrings s, Channel ch) {
+    return Container(
+      height: 380,
+      margin: const EdgeInsets.fromLTRB(24, 24, 24, 40),
+      decoration: BoxDecoration(
+        color: Colors.white.withOpacity(0.05),
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: Colors.white10),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.4),
+            blurRadius: 32,
+            offset: const Offset(0, 16),
+          )
+        ],
+      ),
+      child: Stack(
+        children: [
+          // Background Mood Glow
+          Positioned.fill(
+             child: Opacity(
+               opacity: 0.15,
+               child: ChannelLogoImage(
+                  logo: ch.logo,
+                  fit: BoxFit.cover,
+               ),
+             ),
+          ),
+          Padding(
+            padding: const EdgeInsets.all(48.0),
+            child: Row(
+              children: [
+                Expanded(
+                  flex: 2,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                        decoration: BoxDecoration(
+                          color: _accent.withOpacity(0.15),
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(color: _accent.withOpacity(0.3)),
+                        ),
+                        child: Text(
+                          ch.group.toUpperCase(),
+                          style: TextStyle(color: _accent, fontSize: 13, fontWeight: FontWeight.w900, letterSpacing: 1.2),
+                        ),
+                      ),
+                      const SizedBox(height: 20),
+                      Text(
+                        ch.name,
+                        style: AppTheme.withRabarIfKurdish(
+                          s.locale,
+                          const TextStyle(fontSize: 48, fontWeight: FontWeight.w900, color: Colors.white, height: 1.1),
+                        ),
+                      ),
+                      const SizedBox(height: 32),
+                      TvFocusWrapper(
+                        onTap: () => _openPlayer(null, ch),
+                        borderRadius: 14,
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
+                          decoration: BoxDecoration(
+                            color: AppTheme.primaryGold,
+                            borderRadius: BorderRadius.circular(14),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              const Icon(Icons.play_arrow_rounded, color: Colors.black, size: 28),
+                              const SizedBox(width: 12),
+                              Text(
+                                s.watchNow,
+                                style: const TextStyle(color: Colors.black, fontWeight: FontWeight.w900, fontSize: 18),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 48),
+                Expanded(
+                  child: Center(
+                    child: ConstrainedBox(
+                      constraints: const BoxConstraints(maxHeight: 240, maxWidth: 240),
+                      child: ChannelLogoImage(
+                        logo: ch.logo,
+                        fit: BoxFit.contain,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
     );
   }
 
@@ -733,9 +867,50 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     int crossCount,
     int animMs,
     double pad,
+    bool isTv,
   ) {
     final isMovie = _navIndex == 1;
-    const titleSize = 16.0;
+    final titleSize = isTv ? 22.0 : 16.0;
+    
+    if (isTv) {
+      return Padding(
+        padding: const EdgeInsets.only(bottom: 32),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Padding(
+              padding: EdgeInsets.only(left: pad + 8, bottom: 20),
+              child: Text(
+                title.toUpperCase(),
+                style: AppTheme.withRabarIfKurdish(
+                  s.locale,
+                  TextStyle(fontSize: titleSize, fontWeight: FontWeight.w900, color: Colors.white, letterSpacing: 1.5, opacity: 0.9),
+                ),
+              ),
+            ),
+            SizedBox(
+              height: isMovie ? 320 : 180,
+              child: ListView.builder(
+                scrollDirection: Axis.horizontal,
+                padding: EdgeInsets.only(left: pad),
+                itemCount: sectionChannels.length,
+                itemBuilder: (context, index) {
+                  final ch = sectionChannels[index];
+                  return Container(
+                    width: isMovie ? 220 : 150,
+                    margin: const EdgeInsets.only(right: 20),
+                    child: isMovie
+                        ? _buildMovieTile(context, s, allChannels, ch, animMs)
+                        : _buildGridChannelTile(context, s, allChannels, ch, animMs),
+                  );
+                },
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
     return Padding(
       padding: EdgeInsets.only(left: pad, right: pad, top: 16, bottom: 8),
       child: Column(
@@ -790,61 +965,55 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
   ) {
     const logoSize = 22.0;
     const kTileRadius = 16.0;
-    return Focus(
-      child: Builder(
-        builder: (ctx) {
-          final focused = Focus.of(ctx).hasFocus;
-          return AnimatedContainer(
-            duration: Duration(milliseconds: animMs),
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(kTileRadius),
-              border: Border.all(
-                color: focused ? _accent.withOpacity(0.9) : Colors.white.withOpacity(0.12),
-                width: focused ? 1.5 : 1,
-              ),
-              color: focused
-                  ? _accent.withOpacity(0.07)
-                  : const Color(0xFF141A22).withOpacity(0.94),
-            ),
-            child: Material(
-              color: Colors.transparent,
-              child: InkWell(
-                borderRadius: BorderRadius.circular(kTileRadius),
-                onTap: () => _openPlayer(allChannels, channel),
-                onLongPress: () => _showChannelSheet(s, allChannels, channel),
-                child: Padding(
-                  padding: const EdgeInsets.fromLTRB(10, 10, 10, 8),
-                  child: Column(
-                    children: [
-                      Expanded(
-                        child: Center(
-                          child: ChannelLogoImage(
-                            logo: channel.logo,
-                            width: logoSize * 2.65,
-                            height: logoSize * 2.65,
-                            fit: BoxFit.contain,
-                            fallback: Icon(Icons.tv_rounded, color: Colors.white24, size: logoSize + 2),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 6),
-                      Text(
-                        channel.name,
-                        style: AppTheme.withRabarIfKurdish(
-                          s.locale,
-                          TextStyle(fontSize: 10, color: Colors.white.withOpacity(0.78)),
-                        ),
-                        overflow: TextOverflow.ellipsis,
-                        maxLines: 2,
-                        textAlign: TextAlign.center,
-                      ),
-                    ],
+    final focused = _focusedChannel == channel;
+    final isTv = MediaQuery.sizeOf(context).width > 900;
+    
+    return TvFocusWrapper(
+      onTap: () => _openPlayer(allChannels, channel),
+      onLongPress: () => _showChannelSheet(s, allChannels, channel),
+      scale: 1.12,
+      borderRadius: kTileRadius,
+      child: Focus(
+        onFocusChange: (f) {
+           if (f && mounted) setState(() => _focusedChannel = channel);
+        },
+        child: AnimatedContainer(
+          duration: Duration(milliseconds: animMs),
+          decoration: BoxDecoration(
+            color: focused 
+                ? _accent.withOpacity(0.12) 
+                : const Color(0xFF141A22).withOpacity(0.94),
+          ),
+          child: Padding(
+            padding: EdgeInsets.all(isTv ? 14 : 10),
+            child: Column(
+              children: [
+                Expanded(
+                  child: Center(
+                    child: ChannelLogoImage(
+                      logo: channel.logo,
+                      width: isTv ? 80 : logoSize * 2.65,
+                      height: isTv ? 80 : logoSize * 2.65,
+                      fit: BoxFit.contain,
+                      fallback: Icon(Icons.tv_rounded, color: Colors.white24, size: isTv ? 40 : logoSize + 2),
+                    ),
                   ),
                 ),
-              ),
+                const SizedBox(height: 8),
+                Text(
+                  channel.name,
+                  style: AppTheme.withRabarIfKurdish(
+                    s.locale,
+                    TextStyle(fontSize: isTv ? 14 : 10, color: Colors.white, fontWeight: focused ? FontWeight.w900 : FontWeight.w500),
+                  ),
+                  overflow: TextOverflow.ellipsis,
+                  maxLines: 1,
+                  textAlign: TextAlign.center,
+                ),
+              ],
             ),
-          );
-        },
+          ),
+        ),
       ),
     );
   }
@@ -860,123 +1029,102 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
   ) {
     const kTileRadius = 18.0;
 
-    return Focus(
-      child: Builder(
-        builder: (ctx) {
-          final focused = Focus.of(ctx).hasFocus;
-          return AnimatedContainer(
-            duration: Duration(milliseconds: animMs),
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(kTileRadius),
-              border: Border.all(
-                color: focused ? _accent.withOpacity(0.9) : Colors.white.withOpacity(0.1),
-                width: focused ? 2 : 1,
-              ),
-              color: const Color(0xFF141A22),
-              boxShadow: [
-                BoxShadow(
-                  color: focused ? _accent.withOpacity(0.18) : Colors.black.withOpacity(0.25),
-                  blurRadius: focused ? 16 : 10,
-                  offset: const Offset(0, 6),
-                ),
-              ],
+    final isTv = MediaQuery.sizeOf(context).width > 900;
+    final focused = _focusedChannel == channel;
+
+    return TvFocusWrapper(
+      onTap: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => MovieDetailsScreen(
+              allChannels: allChannels,
+              channel: channel,
             ),
-            child: Material(
-              color: Colors.transparent,
-              child: InkWell(
-                borderRadius: BorderRadius.circular(kTileRadius),
-                onTap: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (_) => MovieDetailsScreen(
-                        allChannels: allChannels,
-                        channel: channel,
-                      ),
-                    ),
-                  );
-                },
-                onLongPress: () => _showChannelSheet(s, allChannels, channel),
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(kTileRadius - 1),
-                  child: Stack(
-                    fit: StackFit.expand,
-                    children: [
-                      // Poster: Use channel logo directly (no TMDB override)
-                      if (channel.logo != null && channel.logo!.isNotEmpty)
-                        ChannelLogoImage(
-                          logo: channel.logo,
-                          width: double.infinity,
-                          height: double.infinity,
-                          fit: BoxFit.cover,
-                          fallback: _movieFallback(),
-                        )
-                      else
-                        _movieFallback(),
-                      // Gradient overlay bottom
-                      Positioned.fill(
-                        child: DecoratedBox(
-                          decoration: BoxDecoration(
-                            gradient: LinearGradient(
-                              begin: Alignment.topCenter,
-                              end: Alignment.bottomCenter,
-                              colors: [
-                                Colors.transparent,
-                                Colors.transparent,
-                                Colors.black.withOpacity(0.65),
-                                Colors.black.withOpacity(0.92),
-                              ],
-                              stops: const [0, 0.45, 0.78, 1],
-                            ),
-                          ),
-                        ),
-                      ),
-                      // Play icon center
-                      Center(
-                        child: Container(
-                          width: 40,
-                          height: 40,
-                          decoration: BoxDecoration(
-                            color: Colors.black.withOpacity(0.45),
-                            shape: BoxShape.circle,
-                            border: Border.all(color: Colors.white.withOpacity(0.25)),
-                          ),
-                          child: Icon(
-                            Icons.play_arrow_rounded,
-                            color: Colors.white.withOpacity(0.85),
-                            size: 22,
-                          ),
-                        ),
-                      ),
-                      // Title
-                      Positioned(
-                        left: 10,
-                        right: 10,
-                        bottom: 10,
-                        child: Text(
-                          channel.name,
-                          style: AppTheme.withRabarIfKurdish(
-                            s.locale,
-                            TextStyle(
-                              fontSize: 12,
-                              fontWeight: FontWeight.w700,
-                              color: Colors.white,
-                              shadows: [
-                                Shadow(color: Colors.black.withOpacity(0.7), blurRadius: 6),
-                              ],
-                            ),
-                          ),
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ),
+          ),
+        );
+      },
+      onLongPress: () => _showChannelSheet(s, allChannels, channel),
+      scale: 1.10,
+      borderRadius: kTileRadius,
+      child: Focus(
+        onFocusChange: (f) {
+          if (f && mounted) setState(() => _focusedChannel = channel);
+        },
+        child: Stack(
+          fit: StackFit.expand,
+          children: [
+            // Poster: Use channel logo directly (no TMDB override)
+            if (channel.logo != null && channel.logo!.isNotEmpty)
+              ChannelLogoImage(
+                logo: channel.logo,
+                width: double.infinity,
+                height: double.infinity,
+                fit: BoxFit.cover,
+                fallback: _movieFallback(),
+              )
+            else
+              _movieFallback(),
+            // Gradient overlay bottom
+            Positioned.fill(
+              child: DecoratedBox(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: [
+                      Colors.transparent,
+                      Colors.transparent,
+                      Colors.black.withOpacity(isTv ? 0.4 : 0.65),
+                      Colors.black.withOpacity(isTv ? 0.8 : 0.92),
                     ],
+                    stops: const [0, 0.45, 0.78, 1],
                   ),
                 ),
               ),
             ),
-          );
-        },
+            // Play icon center: hide on TV focus for cleaner look
+            if (!isTv)
+              Center(
+                child: Container(
+                  width: 40,
+                  height: 40,
+                  decoration: BoxDecoration(
+                    color: Colors.black.withOpacity(0.45),
+                    shape: BoxShape.circle,
+                    border: Border.all(color: Colors.white.withOpacity(0.25)),
+                  ),
+                  child: Icon(
+                    Icons.play_arrow_rounded,
+                    color: Colors.white.withOpacity(0.85),
+                    size: 22,
+                  ),
+                ),
+              ),
+            // Title
+            Positioned(
+              left: 12,
+              right: 12,
+              bottom: 12,
+              child: Text(
+                channel.name,
+                style: AppTheme.withRabarIfKurdish(
+                  s.locale,
+                  TextStyle(
+                    fontSize: isTv ? 14 : 12,
+                    fontWeight: FontWeight.w900,
+                    color: Colors.white,
+                    shadows: [
+                      Shadow(color: Colors.black.withOpacity(0.7), blurRadius: 6),
+                    ],
+                  ),
+                ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -1021,31 +1169,43 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     required String label,
     required int index,
     bool sideRail = false,
+    bool isTv = false,
   }) {
     final selected = _navIndex == index;
-    final color = selected ? _accent : (sideRail ? Colors.white.withOpacity(0.52) : Colors.white38);
+    final accent = AppTheme.accentColor(_settings.gradientPreset);
+    final color = selected ? accent : (sideRail ? Colors.white.withOpacity(0.52) : Colors.white38);
 
-    if (!sideRail) {
-      return InkWell(
-        onTap: () => setState(() => _navIndex = index),
-        borderRadius: BorderRadius.circular(12),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
+    if (isTv) {
+      return TvFocusWrapper(
+        onTap: () {
+          if (index == -1) {
+            _openSettings();
+          } else {
+            setState(() => _navIndex = index);
+          }
+        },
+        borderRadius: 14,
+        scale: 1.15,
+        child: Container(
+          width: 80,
+          padding: const EdgeInsets.symmetric(vertical: 12),
+          decoration: BoxDecoration(
+            color: selected ? accent.withOpacity(0.15) : Colors.transparent,
+            borderRadius: BorderRadius.circular(14),
+          ),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(icon, color: color, size: 24),
-              const SizedBox(height: 2),
+              Icon(icon, color: color, size: 28),
+              const SizedBox(height: 6),
               Text(
                 label,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
                 style: AppTheme.withRabarIfKurdish(
                   s.locale,
                   TextStyle(
                     color: color,
-                    fontSize: 10,
-                    fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
+                    fontSize: 11,
+                    fontWeight: selected ? FontWeight.w900 : FontWeight.w500,
                   ),
                 ),
               ),
@@ -1054,6 +1214,35 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
         ),
       );
     }
+
+    return InkWell(
+      onTap: () => setState(() => _navIndex = index),
+      borderRadius: BorderRadius.circular(12),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, color: color, size: sideRail ? 28 : 24),
+            const SizedBox(height: 2),
+            Text(
+              label,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: AppTheme.withRabarIfKurdish(
+                s.locale,
+                TextStyle(
+                  color: color,
+                  fontSize: sideRail ? 11 : 10,
+                  fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 
     // Landscape rail: KRD-style — teal border + soft fill around **icon + label**, smaller glyphs.
     const railIcon = 20.0;
