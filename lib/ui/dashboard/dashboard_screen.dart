@@ -740,8 +740,6 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     return CustomScrollView(
       physics: const BouncingScrollPhysics(),
       slivers: [
-        if (isTv && heroChannel != null)
-           SliverToBoxAdapter(child: _buildTvHeroSection(context, s, allChannels, heroChannel)),
 
         if (!isTv && (_navIndex == 0 || _navIndex == 4) &&
             _searchController.text.trim().isEmpty &&
@@ -1274,108 +1272,6 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
       ),
     );
   }
-}
-
-/// Pulsing channel logo for the featured hero (respects [reduceMotion]).
-class _PulsingLogoBox extends StatefulWidget {
-  const _PulsingLogoBox({
-    required this.channel,
-    required this.baseSize,
-    required this.reduceMotion,
-  });
-
-  final Channel channel;
-  final double baseSize;
-  final bool reduceMotion;
-
-  @override
-  State<_PulsingLogoBox> createState() => _PulsingLogoBoxState();
-}
-
-class _PulsingLogoBoxState extends State<_PulsingLogoBox> with SingleTickerProviderStateMixin {
-  AnimationController? _pulse;
-
-  @override
-  void initState() {
-    super.initState();
-    if (!widget.reduceMotion) {
-      _pulse = AnimationController(
-        vsync: this,
-        duration: const Duration(milliseconds: 2800),
-      )..repeat(reverse: true);
-      _pulse!.addListener(() => setState(() {}));
-    }
-  }
-
-  @override
-  void dispose() {
-    _pulse?.dispose();
-    super.dispose();
-  }
-
-  double get _scale {
-    if (_pulse == null) return 1.0;
-    return 1.0 + 0.045 * Curves.easeInOut.transform(_pulse!.value);
-  }
-
-  double get _glow {
-    if (_pulse == null) return 0.32;
-    return 0.2 + 0.28 * Curves.easeInOut.transform(_pulse!.value);
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final pad = 10.0;
-    final inner = widget.baseSize;
-    return Transform.scale(
-      scale: _scale,
-      child: Container(
-        width: inner + pad * 2,
-        height: inner + pad * 2,
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(22),
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [
-              AppTheme.accentTeal.withOpacity(0.45),
-              Colors.white.withOpacity(0.1),
-              AppTheme.primaryGold.withOpacity(0.35),
-            ],
-          ),
-          border: Border.all(color: Colors.white.withOpacity(0.28)),
-          boxShadow: [
-            BoxShadow(
-              color: AppTheme.accentTeal.withOpacity(_glow),
-              blurRadius: 22,
-              spreadRadius: 0,
-            ),
-            BoxShadow(
-              color: AppTheme.primaryGold.withOpacity(_glow * 0.35),
-              blurRadius: 14,
-              spreadRadius: 0,
-            ),
-          ],
-        ),
-        padding: EdgeInsets.all(pad),
-        child: DecoratedBox(
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(14),
-            color: Colors.black.withOpacity(0.25),
-          ),
-          child: Center(
-            child: ChannelLogoImage(
-              logo: widget.channel.logo,
-              width: inner,
-              height: inner,
-              fit: BoxFit.contain,
-              fallback: Icon(Icons.live_tv_rounded, color: Colors.white38, size: inner * 0.5),
-            ),
-          ),
-        ),
-      ),
-    );
-  }
 
   /// Category Sidebar (Pane 2) specifically for TV.
   Widget _buildTvCategoryRail(AppStrings s) {
@@ -1551,6 +1447,108 @@ class _PulsingLogoBoxState extends State<_PulsingLogoBox> with SingleTickerProvi
               ),
             ),
           ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Pulsing channel logo
+class _PulsingLogoBox extends StatefulWidget {
+  const _PulsingLogoBox({
+    required this.channel,
+    required this.baseSize,
+    required this.reduceMotion,
+  });
+
+  final Channel channel;
+  final double baseSize;
+  final bool reduceMotion;
+
+  @override
+  State<_PulsingLogoBox> createState() => _PulsingLogoBoxState();
+}
+
+class _PulsingLogoBoxState extends State<_PulsingLogoBox> with SingleTickerProviderStateMixin {
+  AnimationController? _pulse;
+
+  @override
+  void initState() {
+    super.initState();
+    if (!widget.reduceMotion) {
+      _pulse = AnimationController(
+        vsync: this,
+        duration: const Duration(milliseconds: 2800),
+      )..repeat(reverse: true);
+      _pulse!.addListener(() => setState(() {}));
+    }
+  }
+
+  @override
+  void dispose() {
+    _pulse?.dispose();
+    super.dispose();
+  }
+
+  double get _scale {
+    if (_pulse == null) return 1.0;
+    return 1.0 + 0.045 * Curves.easeInOut.transform(_pulse!.value);
+  }
+
+  double get _glow {
+    if (_pulse == null) return 0.32;
+    return 0.2 + 0.28 * Curves.easeInOut.transform(_pulse!.value);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final pad = 10.0;
+    final inner = widget.baseSize;
+    return Transform.scale(
+      scale: _scale,
+      child: Container(
+        width: inner + pad * 2,
+        height: inner + pad * 2,
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(22),
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [
+              AppTheme.accentTeal.withOpacity(0.45),
+              Colors.white.withOpacity(0.1),
+              AppTheme.primaryGold.withOpacity(0.35),
+            ],
+          ),
+          border: Border.all(color: Colors.white.withOpacity(0.28)),
+          boxShadow: [
+            BoxShadow(
+              color: AppTheme.accentTeal.withOpacity(_glow),
+              blurRadius: 22,
+              spreadRadius: 0,
+            ),
+            BoxShadow(
+              color: AppTheme.primaryGold.withOpacity(_glow * 0.35),
+              blurRadius: 14,
+              spreadRadius: 0,
+            ),
+          ],
+        ),
+        padding: EdgeInsets.all(pad),
+        child: DecoratedBox(
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(14),
+            color: Colors.black.withOpacity(0.25),
+          ),
+          child: Center(
+            child: ChannelLogoImage(
+              logo: widget.channel.logo,
+              width: inner,
+              height: inner,
+              fit: BoxFit.contain,
+              fallback: Icon(Icons.live_tv_rounded, color: Colors.white38, size: inner * 0.5),
+            ),
+          ),
         ),
       ),
     );
