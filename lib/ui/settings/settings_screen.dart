@@ -171,7 +171,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         ),
       ),
       body: _loading
-          ? const Center(child: CircularProgressIndicator(color: AppTheme.accentColor(_data.gradientPreset)))
+          ? Center(child: CircularProgressIndicator(color: AppTheme.accentColor(_data.gradientPreset)))
           : Container(
               width: double.infinity,
               decoration: BoxDecoration(
@@ -353,7 +353,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                   color: AppTheme.surfaceGray,
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                   child: ListTile(
-                    leading: const Icon(Icons.star_outline_rounded, color: AppTheme.accentColor(_data.gradientPreset)),
+                    leading: Icon(Icons.star_outline_rounded, color: AppTheme.accentColor(_data.gradientPreset)),
                     title: Text(s.clearFavoritesTitle),
                     subtitle: Text(s.clearFavoritesSub),
                     onTap: () => _confirmClearLibrary(
@@ -433,7 +433,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                               )
                             : TextButton(
                                 onPressed: _runSpeedTest,
-                                child: const Text('RUN TEST', style: TextStyle(color: AppTheme.accentColor(_data.gradientPreset), fontWeight: FontWeight.bold)),
+                                child: Text('RUN TEST', style: TextStyle(color: AppTheme.accentColor(_data.gradientPreset), fontWeight: FontWeight.bold)),
                               ),
                       ),
                       if (_testingSpeed)

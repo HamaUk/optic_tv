@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:math' as math;
 import 'package:firebase_database/firebase_database.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
@@ -1499,11 +1500,13 @@ class _FeaturedCarouselState extends State<_FeaturedCarousel> {
   }
 }
 
-class _GlobalAnnouncementTicker extends StatelessWidget {
-  const _GlobalAnnouncementTicker();
+class _GlobalAnnouncementTicker extends ConsumerWidget {
+  const _GlobalAnnouncementTicker({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final settings = ref.watch(appUiSettingsProvider).asData?.value ?? const AppSettingsData();
+    final accent = AppTheme.accentColor(settings.gradientPreset);
     return StreamBuilder<DatabaseEvent>(
       stream: FirebaseDatabase.instance.ref('sync/global/announcement').onValue,
       builder: (context, snapshot) {

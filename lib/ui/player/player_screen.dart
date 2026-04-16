@@ -335,7 +335,7 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
                           fontWeight: selected ? FontWeight.bold : FontWeight.normal,
                         ),
                       ),
-                      trailing: selected ? const Icon(Icons.check_circle_rounded, color: _accent) : null,
+                      trailing: selected ? Icon(Icons.check_circle_rounded, color: _accent) : null,
                       onTap: () {
                         if (isAudio) {
                            _player!.setAudioTrack(t as AudioTrack);
@@ -690,7 +690,7 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          const CircularProgressIndicator(
+          CircularProgressIndicator(
             color: _accent,
             strokeWidth: 3,
           ),
@@ -913,7 +913,7 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
           ),
           child: Row(
             children: [
-              const Icon(Icons.info_outline_rounded, color: _accent, size: 20),
+              Icon(Icons.info_outline_rounded, color: _accent, size: 20),
               const SizedBox(width: 10),
               Expanded(
                 child: Column(
@@ -973,7 +973,7 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
           padding: const EdgeInsets.fromLTRB(20, 16, 20, 12),
           child: Row(
             children: [
-              const Icon(Icons.movie_rounded, color: _accent, size: 20),
+              Icon(Icons.movie_rounded, color: _accent, size: 20),
               const SizedBox(width: 10),
               Text(
                 'Related in ${_current.group}',

@@ -115,7 +115,7 @@ class AppTheme {
   }
 
   /// English UI — typography uses the default platform / Material font.
-  static ThemeData get darkTheme => darkThemeForUi(const Locale('en'));
+  static ThemeData get darkTheme => darkThemeForUi(const Locale('en'), AppGradientPreset.classic);
 
   /// Main dashboard / app shell behind content.
   static LinearGradient shellGradient(AppGradientPreset p) {

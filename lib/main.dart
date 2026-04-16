@@ -7,7 +7,9 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'core/theme.dart';
 import 'providers/app_locale_provider.dart';
 import 'providers/session_provider.dart';
+import 'providers/ui_settings_provider.dart';
 import 'services/notification_service.dart';
+import 'services/settings_service.dart';
 import 'ui/auth/login_screen.dart';
 import 'ui/dashboard/dashboard_screen.dart';
 
