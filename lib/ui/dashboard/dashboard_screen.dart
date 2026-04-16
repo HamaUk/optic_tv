@@ -1376,6 +1376,185 @@ class _PulsingLogoBoxState extends State<_PulsingLogoBox> with SingleTickerProvi
       ),
     );
   }
+
+  /// Category Sidebar (Pane 2) specifically for TV.
+  Widget _buildTvCategoryRail(AppStrings s) {
+    final channelsAsync = ref.watch(channelsProvider);
+    return channelsAsync.when(
+      data: (all) {
+        final favorites = ref.watch(favoritesProvider);
+        final toGroup = _channelsForNav(all, favorites, []);
+        final groups = _groupMap(toGroup);
+        final sortedKeys = groups.keys.toList()..sort();
+        final selected = _selectedTvGroup;
+
+        return Column(
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 48, 20, 24),
+              child: _buildSearchField(s, 0),
+            ),
+            Expanded(
+              child: ListView(
+                padding: const EdgeInsets.symmetric(horizontal: 14),
+                children: [
+                  _tvCategoryItem('All', toGroup.length, selected == null, () {
+                    setState(() => _selectedTvGroup = null);
+                  }),
+                  const SizedBox(height: 8),
+                  for (final g in sortedKeys) ...[
+                    _tvCategoryItem(g, groups[g]?.length ?? 0, selected == g, () {
+                      setState(() => _selectedTvGroup = g);
+                    }),
+                    const SizedBox(height: 8),
+                  ],
+                ],
+              ),
+            ),
+          ],
+        );
+      },
+      loading: () => const Center(child: CircularProgressIndicator(strokeWidth: 2)),
+      error: (_, __) => const SizedBox.shrink(),
+    );
+  }
+
+  Widget _tvCategoryItem(String name, int count, bool active, VoidCallback onTap) {
+    return TvFocusWrapper(
+      onTap: onTap,
+      borderRadius: 14,
+      scale: 1.04,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
+        decoration: BoxDecoration(
+          color: active ? _accent.withOpacity(0.15) : Colors.transparent,
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: active ? _accent.withOpacity(0.3) : Colors.transparent),
+        ),
+        child: Row(
+          children: [
+            Expanded(
+              child: Text(
+                name,
+                style: TextStyle(
+                  color: active ? Colors.white : Colors.white60,
+                  fontSize: 16,
+                  fontWeight: active ? FontWeight.w900 : FontWeight.w500,
+                ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+            const SizedBox(width: 8),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+              decoration: BoxDecoration(
+                color: active ? _accent.withOpacity(0.2) : Colors.white.withOpacity(0.05),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Text(
+                count.toString(),
+                style: TextStyle(
+                  color: active ? _accent : Colors.white38,
+                  fontSize: 12,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// High-density Channel Grid (Pane 3) for TV. No Hero section as requested.
+  Widget _buildTvChannelGrid(BuildContext context, AppStrings s, AppSettingsData settings) {
+    final channelsAsync = ref.watch(channelsProvider);
+    return channelsAsync.when(
+      data: (all) {
+        final favorites = ref.watch(favoritesProvider);
+        final base = _channelsForNav(all, favorites, []);
+        final filtered = _applySearch(base);
+        
+        final displayChannels = _selectedTvGroup == null 
+            ? filtered 
+            : filtered.where((c) => c.group == _selectedTvGroup).toList();
+
+        if (displayChannels.isEmpty) return _buildEmptyState(s);
+
+        return GridView.builder(
+          padding: const EdgeInsets.fromLTRB(32, 48, 32, 32),
+          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+            crossAxisCount: 5,
+            mainAxisSpacing: 32,
+            crossAxisSpacing: 32,
+            childAspectRatio: 1.0,
+          ),
+          itemCount: displayChannels.length,
+          itemBuilder: (context, idx) {
+            final ch = displayChannels[idx];
+            return _buildTvCinemaTile(s, all, ch);
+          },
+        );
+      },
+      loading: () => const SizedBox.shrink(),
+      error: (_, __) => const SizedBox.shrink(),
+    );
+  }
+
+  Widget _buildTvCinemaTile(AppStrings s, List<Channel> all, Channel ch) {
+    return TvFocusWrapper(
+      onTap: () => _openPlayer(all, ch),
+      borderRadius: 18,
+      scale: 1.12,
+      child: Focus(
+        onFocusChange: (f) {
+           if (f && mounted) setState(() => _focusedChannel = ch);
+        },
+        child: Stack(
+          fit: StackFit.expand,
+          children: [
+            Container(
+              decoration: BoxDecoration(
+                color: Colors.white.withOpacity(0.05),
+                borderRadius: BorderRadius.circular(18),
+              ),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(18),
+                child: ChannelLogoImage(
+                  logo: ch.logo,
+                  fit: BoxFit.contain,
+                ),
+              ),
+            ),
+            Positioned(
+              bottom: 0,
+              left: 0,
+              right: 0,
+              child: Container(
+                padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 12),
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: [Colors.transparent, Colors.black.withOpacity(0.85)],
+                  ),
+                  borderRadius: const BorderRadius.vertical(bottom: Radius.circular(18)),
+                ),
+                child: Text(
+                  ch.name,
+                  style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  textAlign: TextAlign.center,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 }
 
 class _FeaturedCarousel extends StatefulWidget {
@@ -1646,185 +1825,6 @@ class _FeaturedCarouselState extends State<_FeaturedCarousel> {
               ),
             ],
           ),
-        ),
-      ),
-    );
-  }
-
-  /// Category Sidebar (Pane 2) specifically for TV.
-  Widget _buildTvCategoryRail(AppStrings s) {
-    final channelsAsync = ref.watch(channelsProvider);
-    return channelsAsync.when(
-      data: (all) {
-        final favorites = ref.watch(favoritesProvider);
-        final toGroup = _channelsForNav(all, favorites, []);
-        final groups = _groupMap(toGroup);
-        final sortedKeys = groups.keys.toList()..sort();
-        final selected = _selectedTvGroup;
-
-        return Column(
-          children: [
-            Padding(
-              padding: const EdgeInsets.fromLTRB(20, 48, 20, 24),
-              child: _buildSearchField(s, 0),
-            ),
-            Expanded(
-              child: ListView(
-                padding: const EdgeInsets.symmetric(horizontal: 14),
-                children: [
-                  _tvCategoryItem('All', toGroup.length, selected == null, () {
-                    setState(() => _selectedTvGroup = null);
-                  }),
-                  const SizedBox(height: 8),
-                  for (final g in sortedKeys) ...[
-                    _tvCategoryItem(g, groups[g]?.length ?? 0, selected == g, () {
-                      setState(() => _selectedTvGroup = g);
-                    }),
-                    const SizedBox(height: 8),
-                  ],
-                ],
-              ),
-            ),
-          ],
-        );
-      },
-      loading: () => const Center(child: CircularProgressIndicator(strokeWidth: 2)),
-      error: (_, __) => const SizedBox.shrink(),
-    );
-  }
-
-  Widget _tvCategoryItem(String name, int count, bool active, VoidCallback onTap) {
-    return TvFocusWrapper(
-      onTap: onTap,
-      borderRadius: 14,
-      scale: 1.04,
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
-        decoration: BoxDecoration(
-          color: active ? _accent.withOpacity(0.15) : Colors.transparent,
-          borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: active ? _accent.withOpacity(0.3) : Colors.transparent),
-        ),
-        child: Row(
-          children: [
-            Expanded(
-              child: Text(
-                name,
-                style: TextStyle(
-                  color: active ? Colors.white : Colors.white60,
-                  fontSize: 16,
-                  fontWeight: active ? FontWeight.w900 : FontWeight.w500,
-                ),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-              ),
-            ),
-            const SizedBox(width: 8),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-              decoration: BoxDecoration(
-                color: active ? _accent.withOpacity(0.2) : Colors.white.withOpacity(0.05),
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Text(
-                count.toString(),
-                style: TextStyle(
-                  color: active ? _accent : Colors.white38,
-                  fontSize: 12,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  /// High-density Channel Grid (Pane 3) for TV. No Hero section as requested.
-  Widget _buildTvChannelGrid(BuildContext context, AppStrings s, AppSettingsData settings) {
-    final channelsAsync = ref.watch(channelsProvider);
-    return channelsAsync.when(
-      data: (all) {
-        final favorites = ref.watch(favoritesProvider);
-        final base = _channelsForNav(all, favorites, []);
-        final filtered = _applySearch(base);
-        
-        final displayChannels = _selectedTvGroup == null 
-            ? filtered 
-            : filtered.where((c) => c.group == _selectedTvGroup).toList();
-
-        if (displayChannels.isEmpty) return _buildEmptyState(s);
-
-        return GridView.builder(
-          padding: const EdgeInsets.fromLTRB(32, 48, 32, 32),
-          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-            crossAxisCount: 5,
-            mainAxisSpacing: 32,
-            crossAxisSpacing: 32,
-            childAspectRatio: 1.0,
-          ),
-          itemCount: displayChannels.length,
-          itemBuilder: (context, idx) {
-            final ch = displayChannels[idx];
-            return _buildTvCinemaTile(s, all, ch);
-          },
-        );
-      },
-      loading: () => const SizedBox.shrink(),
-      error: (_, __) => const SizedBox.shrink(),
-    );
-  }
-
-  Widget _buildTvCinemaTile(AppStrings s, List<Channel> all, Channel ch) {
-    return TvFocusWrapper(
-      onTap: () => _openPlayer(all, ch),
-      borderRadius: 18,
-      scale: 1.12,
-      child: Focus(
-        onFocusChange: (f) {
-           if (f && mounted) setState(() => _focusedChannel = ch);
-        },
-        child: Stack(
-          fit: StackFit.expand,
-          children: [
-            Container(
-              decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.05),
-                borderRadius: BorderRadius.circular(18),
-              ),
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(18),
-                child: ChannelLogoImage(
-                  logo: ch.logo,
-                  fit: BoxFit.contain,
-                ),
-              ),
-            ),
-            Positioned(
-              bottom: 0,
-              left: 0,
-              right: 0,
-              child: Container(
-                padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 12),
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.topCenter,
-                    end: Alignment.bottomCenter,
-                    colors: [Colors.transparent, Colors.black.withOpacity(0.85)],
-                  ),
-                  borderRadius: const BorderRadius.vertical(bottom: Radius.circular(18)),
-                ),
-                child: Text(
-                  ch.name,
-                  style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  textAlign: TextAlign.center,
-                ),
-              ),
-            ),
-          ],
         ),
       ),
     );
