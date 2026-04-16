@@ -404,6 +404,9 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
     return r;
   }
 
+  Map<String, dynamic> _channelPayload({
+    required String name,
+    required String url,
     required String group,
     required String logo,
     String? backdrop,
@@ -1097,6 +1100,7 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
   void _showEditChannelDialog(String key, Map<dynamic, dynamic> raw) {
     final nameCtrl = TextEditingController(text: '${raw['name'] ?? ''}');
     final urlCtrl = TextEditingController(text: '${raw['url'] ?? ''}');
+    final groupCtrl = TextEditingController(text: '${raw['group'] ?? raw['category'] ?? 'General'}');
     final logoCtrl = TextEditingController(text: '${raw['logo'] ?? raw['icon_url'] ?? ''}');
     final backdropCtrl = TextEditingController(text: '${raw['backdrop'] ?? ''}');
     String contentType = raw['type'] ?? 'live';
@@ -2203,6 +2207,9 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
                   ],
                 ),
                 const SizedBox(height: 14),
+                SwitchListTile(
+                  title: const Text('Featured', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                  value: _isFeaturedAdmin,
                   onChanged: (v) => setState(() => _isFeaturedAdmin = v),
                 ),
                 const SizedBox(height: 14),
