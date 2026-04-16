@@ -36,26 +36,31 @@ void main() async {
 
   final prefs = await SharedPreferences.getInstance();
   final initialSession = prefs.getBool('auth_logged_in') ?? false;
+  final initialCode = prefs.getString('auth_active_code');
   var initialLocaleCode = AppLocaleNotifier.normalizeStoredCode(prefs.getString('app_locale'));
   await prefs.setString('app_locale', initialLocaleCode);
 
   runApp(
     ProviderScope(
       overrides: [
-        sessionProvider.overrideWith(() => _SeededSessionNotifier(initialSession)),
+        sessionProvider.overrideWith(() => _SeededSessionNotifier(initialSession, initialCode)),
         appLocaleProvider.overrideWith(() => _SeededLocaleNotifier(initialLocaleCode)),
       ],
-      child: const OpticTvApp(),
+      child: OpticTvApp(
+        initialLoggedIn: initialSession,
+        initialCode: initialCode,
+      ),
     ),
   );
 }
 
 class _SeededSessionNotifier extends SessionNotifier {
-  _SeededSessionNotifier(this._initial);
+  _SeededSessionNotifier(this._initial, this._code);
   final bool _initial;
+  final String? _code;
 
   @override
-  SessionState build() => SessionState(loggedIn: _initial);
+  SessionState build() => SessionState(loggedIn: _initial, activeCode: _code);
 }
 
 class _SeededLocaleNotifier extends AppLocaleNotifier {
@@ -68,13 +73,28 @@ class _SeededLocaleNotifier extends AppLocaleNotifier {
 }
 
 class OpticTvApp extends ConsumerStatefulWidget {
-  const OpticTvApp({super.key});
+  final bool initialLoggedIn;
+  final String? initialCode;
+
+  const OpticTvApp({
+    super.key,
+    required this.initialLoggedIn,
+    this.initialCode,
+  });
 
   @override
   ConsumerState<OpticTvApp> createState() => _OpticTvAppState();
 }
 
 class _OpticTvAppState extends ConsumerState<OpticTvApp> {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      ref.read(sessionProvider.notifier).initialize(widget.initialLoggedIn, widget.initialCode);
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     final uiLocale = ref.watch(appLocaleProvider);

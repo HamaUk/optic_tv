@@ -18,6 +18,7 @@ import '../../widgets/optic_wordmark.dart';
 import '../../l10n/app_strings.dart';
 import '../../providers/app_locale_provider.dart';
 import '../../providers/channel_library_provider.dart';
+import '../../services/monitor_service.dart';
 import '../../services/playlist_service.dart';
 import '../../services/settings_service.dart';
 
@@ -208,6 +209,7 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
       if (mounted) setState(() => _isPlaying = pl);
     }));
 
+    MonitorService.updateActivity(_current.name);
     await p.open(Media(_current.url));
   }
 
@@ -227,6 +229,7 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
     for (final s in _subscriptions) {
       s.cancel();
     }
+    MonitorService.updateActivity(null);
     _player?.dispose();
     super.dispose();
   }
@@ -411,18 +414,6 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
                     icon: Icons.picture_in_picture_alt_rounded,
                     tooltip: 'Picture-in-Picture',
                     onTap: _enterPiP,
-                  ),
-                  const SizedBox(width: 8),
-                  PlayerControlButton(
-                    icon: Icons.audiotrack_rounded,
-                    tooltip: 'Audio Tracks',
-                    onTap: () => _showTrackSelection(true),
-                  ),
-                  const SizedBox(width: 8),
-                  PlayerControlButton(
-                    icon: Icons.closed_caption_rounded,
-                    tooltip: 'Subtitles',
-                    onTap: () => _showTrackSelection(false),
                   ),
                 ],
               ],
@@ -841,26 +832,7 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
               ),
             ),
           ),
-          // Title at top
-          Align(
-            alignment: Alignment.topCenter,
-            child: Container(
-              width: double.infinity,
-              padding: const EdgeInsets.fromLTRB(24, 24, 24, 48),
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
-                  colors: [Colors.black.withOpacity(0.8), Colors.transparent],
-                ),
-              ),
-              child: Text(
-                _current.name,
-                textAlign: TextAlign.center,
-                style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
-              ),
-            ),
-          ),
+          // Minimal Player: Top name hidden for cinematic feel
         ],
       ),
     );
@@ -872,43 +844,7 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
       duration: const Duration(milliseconds: 300),
       child: Stack(
         children: [
-          // Header: Channel Info
-          Align(
-            alignment: Alignment.topCenter,
-            child: Container(
-              width: double.infinity,
-              padding: const EdgeInsets.fromLTRB(24, 24, 24, 48),
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
-                  colors: [Colors.black.withOpacity(0.8), Colors.transparent],
-                ),
-              ),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(
-                    _current.name,
-                    textAlign: TextAlign.center,
-                    style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w900, color: Colors.white),
-                  ),
-                  const SizedBox(height: 8),
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                    decoration: BoxDecoration(
-                      color: Colors.redAccent,
-                      borderRadius: BorderRadius.circular(4),
-                    ),
-                    child: const Text(
-                      'LIVE',
-                      style: TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold, letterSpacing: 1.5),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
+          // Header Info removed for minimal look
 
           // Bottom bar: pill-style info + PiP / audio / subtitles (matches reference layout)
           Align(
@@ -925,8 +861,6 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
-                  Expanded(child: _buildLiveTvNowPlayingPill()),
-                  const SizedBox(width: 12),
                   _buildLiveTvBottomActionPill(),
                 ],
               ),
@@ -957,16 +891,6 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
                 icon: Icons.picture_in_picture_alt_rounded,
                 tooltip: 'Picture-in-Picture',
                 onTap: _enterPiP,
-              ),
-              _liveTvPillIconButton(
-                icon: Icons.audiotrack_rounded,
-                tooltip: 'Audio tracks',
-                onTap: () => _showTrackSelection(true),
-              ),
-              _liveTvPillIconButton(
-                icon: Icons.closed_caption_rounded,
-                tooltip: 'Subtitles',
-                onTap: () => _showTrackSelection(false),
               ),
             ],
           ),

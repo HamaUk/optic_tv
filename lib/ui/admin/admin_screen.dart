@@ -4,6 +4,7 @@ import 'dart:io';
 
 import 'package:dio/dio.dart';
 import 'package:file_picker/file_picker.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -45,6 +46,13 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
   final _notifBodyController = TextEditingController();
   final _notifImageController = TextEditingController();
 
+  // Admin Auth Shield State
+  final _emailController = TextEditingController();
+  final _passwordController = TextEditingController();
+  bool _isAuthenticating = false;
+  bool _isAuthenticated = false;
+  String? _authError;
+
   // Import tab controllers
   final _importUrlController = TextEditingController();
   final _xtreamServerController = TextEditingController();
@@ -79,6 +87,7 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
 
   void initState() {
     super.initState();
+    _isAuthenticated = FirebaseAuth.instance.currentUser != null;
     _tabController = TabController(length: 8, vsync: this);
     _channelGroupController.text = 'Live TV';
     _channelSearchController.addListener(() {
@@ -113,9 +122,127 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
       textDirection: TextDirection.ltr,
       child: Theme(
         data: AppTheme.darkTheme,
-        child: child,
+        child: Stack(
+          children: [
+            child,
+            if (!_isAuthenticated) _buildLoginShield(),
+          ],
+        ),
       ),
     );
+  }
+
+  Widget _buildLoginShield() {
+    return Container(
+      color: Colors.black.withOpacity(0.95),
+      child: Center(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(32),
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 400),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                const Icon(Icons.shield_rounded, color: AppTheme.primaryGold, size: 64),
+                const SizedBox(height: 24),
+                const Text(
+                  'ADMIN SECURITY SHIELD',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 22,
+                    fontWeight: FontWeight.w900,
+                    letterSpacing: 1.5,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  'Please authorize to modify infrastructure',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(color: Colors.white.withOpacity(0.5), fontSize: 13),
+                ),
+                const SizedBox(height: 40),
+                TextField(
+                  controller: _emailController,
+                  decoration: InputDecoration(
+                    labelText: 'Admin Email',
+                    prefixIcon: const Icon(Icons.email_outlined),
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                TextField(
+                  controller: _passwordController,
+                  obscureText: true,
+                  decoration: InputDecoration(
+                    labelText: 'Password',
+                    prefixIcon: const Icon(Icons.lock_outline_rounded),
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                  ),
+                ),
+                if (_authError != null) ...[
+                  const SizedBox(height: 16),
+                  Text(
+                    _authError!,
+                    style: const TextStyle(color: Colors.redAccent, fontSize: 12),
+                    textAlign: TextAlign.center,
+                  ),
+                ],
+                const SizedBox(height: 32),
+                SizedBox(
+                  height: 52,
+                  child: FilledButton(
+                    onPressed: _isAuthenticating ? null : _performAuth,
+                    style: FilledButton.styleFrom(
+                      backgroundColor: AppTheme.primaryGold,
+                      foregroundColor: Colors.black,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    ),
+                    child: _isAuthenticating
+                        ? const SizedBox(width: 24, height: 24, child: CircularProgressIndicator(strokeWidth: 2.5, color: Colors.black))
+                        : const Text('Access Portal', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: const Text('Back to App', style: TextStyle(color: Colors.white54)),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Future<void> _performAuth() async {
+    final email = _emailController.text.trim();
+    final pass = _passwordController.text.trim();
+    if (email.isEmpty || pass.isEmpty) {
+      setState(() => _authError = 'Enter both email and password');
+      return;
+    }
+
+    setState(() {
+      _isAuthenticating = true;
+      _authError = null;
+    });
+
+    try {
+      await FirebaseAuth.instance.signInWithEmailAndPassword(email: email, password: pass);
+      setState(() {
+        _isAuthenticating = false;
+        _isAuthenticated = true;
+      });
+      _snack('Authenticated as Owner');
+    } catch (e) {
+      setState(() {
+        _isAuthenticating = false;
+        _authError = 'Shield Check Failed: $e';
+      });
+    }
   }
 
   void _snack(String msg, {bool error = false}) {
