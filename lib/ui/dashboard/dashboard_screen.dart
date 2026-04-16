@@ -47,6 +47,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
   
   Channel? _focusedChannel; 
   bool _sidebarFocused = false;
+  String? _selectedTvGroup; // High-level group selection for TV 3-pane layout
 
   static const _accent = AppTheme.accentTeal;
 
@@ -473,19 +474,40 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
       textDirection: TextDirection.ltr,
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
+        // Pane 1: Global Nav
         _buildSideRail(s, isTv, settings),
-        if (!isTv)
-          VerticalDivider(
-            width: 1,
-            thickness: 1,
-            color: Colors.white.withOpacity(0.08),
+        
+        if (isTv) ...[
+          // Pane 2: Categorical Sidebar
+          Container(
+            width: 280,
+            decoration: BoxDecoration(
+              color: Colors.white.withOpacity(0.04),
+              border: Border(right: BorderSide(color: Colors.white.withOpacity(0.06))),
+            ),
+            child: _buildTvCategoryRail(s),
           ),
-        Expanded(
-          child: Directionality(
-            textDirection: contentDir,
-            child: bodyColumn,
+          // Pane 3: Content Grid
+          Expanded(
+            child: Directionality(
+              textDirection: contentDir,
+              child: _buildTvChannelGrid(context, s, settings),
+            ),
           ),
-        ),
+        ] else ...[
+          if (!isTv)
+            VerticalDivider(
+              width: 1,
+              thickness: 1,
+              color: Colors.white.withOpacity(0.08),
+            ),
+          Expanded(
+            child: Directionality(
+              textDirection: contentDir,
+              child: bodyColumn,
+            ),
+          ),
+        ],
       ],
     );
   }

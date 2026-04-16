@@ -127,11 +127,13 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
       } catch (_) {/* option may be absent on some libmpv builds */}
     }
 
-    await safe('hwdec', 'mediacodec');
+    await safe('hwdec', 'mediacodec-copy');
+    await safe('vo', 'gpu');
+    await safe('gpu-context', 'android');
     await safe('opengl-pbo', 'yes');
-    await safe('vd-lavc-threads', '4');
-    await safe('ad-lavc-threads', '2');
-    await safe('video-sync', 'display-resample');
+    await safe('vd-lavc-threads', 'auto');
+    await safe('ad-lavc-threads', 'auto');
+    await safe('video-sync', 'audio'); // Better for network streams
 
     if (isVod) {
       await safe('profile', 'high-quality');
