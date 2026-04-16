@@ -320,7 +320,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
               child: SafeArea(
                 bottom: false,
                 child: _buildDashboardShell(
-                  context, s, 16.0, false, screen,
+                  context, s, 16.0, false, screen, settings,
                 ),
               ),
             ),
@@ -363,13 +363,11 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                         filtered,
                         groups,
                         settings,
-                        settings.reduceMotion ? 100 : 220,
-                        16.0,
                       ),
               ),
             ),
           ),
-          bottomNavigationBar: portrait ? _buildBottomNav(s, MediaQuery.paddingOf(context).bottom) : null,
+          bottomNavigationBar: portrait ? _buildBottomNav(s, MediaQuery.paddingOf(context).bottom, settings) : null,
         );
       },
       loading: () => Scaffold(
@@ -441,6 +439,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     double pad,
     bool tv,
     Widget expandedChild,
+    AppSettingsData settings,
   ) {
     final landscape = MediaQuery.orientationOf(context) == Orientation.landscape;
     if (!landscape) {
@@ -717,7 +716,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
       physics: const BouncingScrollPhysics(),
       slivers: [
         if (isTv && heroChannel != null)
-           SliverToBoxAdapter(child: _buildTvHeroSection(context, s, allFlat, heroChannel)),
+           SliverToBoxAdapter(child: _buildTvHeroSection(context, s, allChannels, heroChannel)),
 
         if (!isTv && (_navIndex == 0 || _navIndex == 4) &&
             _searchController.text.trim().isEmpty &&
