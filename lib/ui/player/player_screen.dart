@@ -10,6 +10,8 @@ import 'package:media_kit/media_kit.dart';
 import 'package:media_kit_video/media_kit_video.dart';
 import 'package:simple_pip_mode/simple_pip.dart';
 import 'dart:ui' show ImageFilter;
+import 'package:animations/animations.dart'; // Fixed: Added missing import
+import 'package:flutter/services.dart';     // Fixed: Added missing import
 
 import '../../core/theme.dart';
 import '../../widgets/channel_logo_image.dart';
@@ -179,13 +181,19 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
   }
 
   void _configureNativePlayer() {
-    _player?.setProp('hwdec', 'auto');
-    _player?.setProp('vo', 'gpu');
-    _player?.setProp('gpu-api', 'opengl');
-    _player?.setProp('vd-lavc-threads', '16');
-    _player?.setProp('cache', 'yes');
-    _player?.setProp('demuxer-max-bytes', '16777216');
-    _player?.setAsync(true);
+    // Professional Media 3 / MPV properties (Corrected API)
+    if (_player?.platform is NativePlayer) {
+      final native = _player!.platform as NativePlayer;
+      Future<void> set(String k, String v) async {
+        try { await native.setProperty(k, v); } catch (_) {}
+      }
+      set('hwdec', 'auto');
+      set('vo', 'gpu');
+      set('gpu-api', 'opengl');
+      set('vd-lavc-threads', '16');
+      set('cache', 'yes');
+      set('demuxer-max-bytes', '16777216');
+    }
   }
 
   void _onPlayerBuffering(bool buffering) {
@@ -455,9 +463,9 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
   }
 
   Widget _buildTvBufferingOverlay() {
-    return ListenableBuilder(
-      listenable: _player!.stream.buffering,
-      builder: (context, _) => _player!.state.buffering ? Center(
+    return StreamBuilder<bool>(
+      stream: _player!.stream.buffering,
+      builder: (context, snapshot) => (snapshot.data ?? false) ? Center(
         child: CircularProgressIndicator(color: _accent, strokeWidth: 4)
       ) : const SizedBox(),
     );
@@ -566,6 +574,9 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
               ],
             ),
             const SizedBox(height: 32),
+            // Progress Section (Fixed: Restored missing Row and logic)
+            if (_isMovie) ...[
+              Row(
                 children: [
                   Text(posStr, style: const TextStyle(color: Colors.white54, fontSize: 14, fontFamily: 'monospace')),
                   Expanded(
@@ -601,6 +612,53 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
         ),
       ),
     );
+  }
+
+  Widget _buildMobileControls(Locale uiLocale, AppStrings s, double bottomPad) {
+    return Column(
+      children: [
+        // Header
+        Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: Row(
+            children: [
+              Expanded(child: Text(_current.name, style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold))),
+            ],
+          ),
+        ),
+        // Buffering Indicator
+        StreamBuilder<bool>(
+          stream: _player!.stream.buffering,
+          builder: (context, snapshot) => (snapshot.data ?? false) 
+            ? const Center(child: CircularProgressIndicator()) 
+            : const SizedBox(),
+        ),
+        Expanded(
+          child: _isMovie 
+            ? _buildRelatedMovies(uiLocale, s, bottomPad)
+            : _buildMobileChannelLists(uiLocale, s, bottomPad),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildMobileChannelLists(Locale uiLocale, AppStrings s, double bottomPad) {
+    return ListView.builder(
+      padding: EdgeInsets.only(bottom: bottomPad),
+      itemCount: widget.channels.length,
+      itemBuilder: (context, i) {
+        final ch = widget.channels[i];
+        final selected = ch == _current;
+        return ListTile(
+          title: Text(ch.name, style: TextStyle(color: selected ? _accent : Colors.white)),
+          onTap: () => _selectChannelByIndex(i),
+        );
+      },
+    );
+  }
+
+  Widget _buildRelatedMovies(Locale uiLocale, AppStrings s, double bottomPad) {
+    return Center(child: Text("Related Movies", style: TextStyle(color: Colors.white54)));
   }
 
   Widget _osdTechInfoItem(String label, {Color? color}) {
