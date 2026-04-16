@@ -430,6 +430,17 @@
         <div class="form-group"><label>Stream URL</label><input type="url" id="ch_url" class="form-input" required></div>
         <div class="form-group"><label>Category</label><input type="text" id="ch_group" class="form-input" required list="groupList"></div>
         <div class="form-group">
+          <label>Channel Logo (Icon)</label>
+          <div class="logo-studio">
+            <img id="logoPrev" class="logo-preview" style="width:50px; height:50px; border-radius:8px" src="https://via.placeholder.com/100?text=TV">
+            <div class="logo-actions">
+              <input type="text" id="ch_logo" class="form-input" placeholder="Logo URL or Base64" style="font-size:0.7rem">
+              <button type="button" class="btn-sm btn-outline" onclick="document.getElementById('logoFile').click()"><i class="fas fa-image"></i> Upload Icon</button>
+              <input type="file" id="logoFile" hidden accept="image/*" onchange="processLogoFile(this)">
+            </div>
+          </div>
+        </div>
+        <div class="form-group">
           <label>Hero Artwork (Backdrop)</label>
           <div class="logo-studio">
             <img id="bgPrev" class="logo-preview" style="aspect-ratio:16/9; width:100px; object-fit:cover" src="https://via.placeholder.com/160x90?text=Hero">
@@ -443,6 +454,17 @@
         <div class="form-group" style="display:flex; align-items:center; gap:10px; margin-top:10px; background:rgba(212,175,55,0.1); padding:10px; border-radius:8px; border:1px solid rgba(212,175,55,0.2)">
           <input type="checkbox" id="ch_featured" style="width:20px; height:20px; cursor:pointer">
           <label for="ch_featured" style="margin:0; cursor:pointer; font-weight:700; color:var(--accent-primary)">Featured in Hero Carousel</label>
+        </div>
+        <div class="form-group" style="margin-top:10px; padding:10px; background:rgba(255,255,255,0.05); border-radius:8px; border:1px solid rgba(255,255,255,0.1)">
+          <label style="display:block; margin-bottom:10px; font-weight:700">Content Type</label>
+          <div style="display:flex; gap:20px">
+            <label style="display:flex; align-items:center; gap:8px; cursor:pointer">
+              <input type="radio" name="ch_type" value="live" checked style="width:18px; height:18px"> Live TV
+            </label>
+            <label style="display:flex; align-items:center; gap:8px; cursor:pointer">
+              <input type="radio" name="ch_type" value="movie" style="width:18px; height:18px"> Movie (VOD)
+            </label>
+          </div>
         </div>
         <div style="display:flex; gap:10px; margin-top:20px"><button type="submit" class="btn-sm btn-primary" style="flex:1">Apply Changes</button><button type="button" class="btn-sm btn-outline" style="flex:1" onclick="closeModals()">Cancel</button></div>
       </form>
@@ -607,9 +629,8 @@
         group: document.getElementById('ch_group').value,
         logo: document.getElementById('ch_logo').value,
         backdrop: document.getElementById('ch_backdrop').value,
+        type: document.querySelector('input[name="ch_type"]:checked').value,
         featured: document.getElementById('ch_featured').checked
-      };
-        logo: document.getElementById('ch_logo').value
       };
       if(k) await update(ref(db, `${P_PLAY}/${k}`), payload);
       else await push(ref(db, P_PLAY), payload);
@@ -917,6 +938,9 @@
         document.getElementById('ch_logo').value = d.logo || '';
         document.getElementById('ch_backdrop').value = d.backdrop || '';
         document.getElementById('ch_featured').checked = d.featured === true;
+        const type = d.type || 'live';
+        const radio = document.querySelector(`input[name="ch_type"][value="${type}"]`);
+        if(radio) radio.checked = true;
         if(d.logo) document.getElementById('logoPrev').src = d.logo;
         if(d.backdrop) document.getElementById('bgPrev').src = d.backdrop;
       }

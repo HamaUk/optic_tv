@@ -23,8 +23,7 @@ import '../../widgets/dynamic_background.dart';
 import './movie_details_screen.dart';
 import 'package:lottie/lottie.dart';
 
-/// Hidden admin portal password.
-const String _kAdminPortalPassword = 'hamakoye99';
+ // Admin portal is handled via AdminScreen with Firebase Auth.
 
 class DashboardScreen extends ConsumerStatefulWidget {
   const DashboardScreen({super.key});
@@ -62,72 +61,9 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     if (_adminLogoTaps >= 7) {
       _adminTapResetTimer?.cancel();
       setState(() => _adminLogoTaps = 0);
-      _showAdminPasswordDialog();
-    }
-  }
-
-  void _showAdminPasswordDialog() {
-    final s = AppStrings(ref.read(appLocaleProvider));
-    final passwordController = TextEditingController();
-    showDialog<void>(
-      context: context,
-      barrierDismissible: false,
-      builder: (dialogContext) {
-        return AlertDialog(
-          backgroundColor: AppTheme.surfaceElevated,
-          title: Text(s.settingsTitle),
-          content: TextField(
-            controller: passwordController,
-            obscureText: true,
-            autocorrect: false,
-            decoration: InputDecoration(
-              labelText: s.password,
-              border: const OutlineInputBorder(),
-            ),
-            onSubmitted: (_) => _tryAdminPassword(
-              dialogContext,
-              passwordController.text,
-              passwordController,
-            ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () {
-                Navigator.pop(dialogContext);
-                Future.microtask(passwordController.dispose);
-              },
-              child: Text(s.cancel),
-            ),
-            FilledButton(
-              onPressed: () => _tryAdminPassword(
-                dialogContext,
-                passwordController.text,
-                passwordController,
-              ),
-              child: Text(s.enter),
-            ),
-          ],
-        );
-      },
-    );
-  }
-
-  void _tryAdminPassword(
-    BuildContext dialogContext,
-    String password,
-    TextEditingController passwordController,
-  ) {
-    if (password == _kAdminPortalPassword) {
-      Navigator.pop(dialogContext);
-      Future.microtask(passwordController.dispose);
       Navigator.push(
         context,
         MaterialPageRoute(builder: (context) => const AdminScreen()),
-      );
-    } else {
-      final s = AppStrings(ref.read(appLocaleProvider));
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(s.loginErrorInvalid)),
       );
     }
   }
@@ -141,25 +77,33 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
   }
 
   bool _isMovieChannel(Channel c) {
+    // Priority 1: Use explicit 'type' field set by the admin
+    if (c.type == 'movie') return true;
+    if (c.type == 'live') return false;
+
     final g = c.group.toLowerCase();
     final n = c.name.toLowerCase();
     
     // Exclude anything that explicitly marks itself as a Live stream
-    if (g.contains('live') || n.contains(' live')) return false;
+    if (g.contains('live tv') || g == 'live' || n.contains(' (live)')) return false;
     
     // If it's a TV channel category, it's likely not VOD unless "movie" is in the name
     if (g.contains('tv') && !g.contains('movie') && !g.contains('cinema')) return false;
 
+    // Fixed Group detection
+    if (g == 'movies' || g == 'vod' || g == 'cinema' || g == 'films') return true;
+
+    // Use name heuristics ONLY if other indicators are absent
     final movieKeywords = [
-      'movie', 'film', 'cinema', 'vod', 'box office', 'uhd', '4k', 'action',
+      'vod', 'box office', 'uhd', '4k', 'action',
       'comedy', 'horror', 'drama', 'thriller', 'animation', 'documentary'
     ];
     
-    final isTagged = movieKeywords.any((kw) => g.contains(kw) || n.contains(kw));
-    // Also explicitly include if the group is just "Movies" or "VOD"
-    final isMovieGroup = g == 'movies' || g == 'vod' || g == 'cinema';
+    // We intentionally removed 'movie' and 'film' from name keywords 
+    // to avoid false positives for channels like 'AVA Movies'
+    final isTaggedName = movieKeywords.any((kw) => n.contains(kw));
     
-    return isTagged || isMovieGroup;
+    return isTaggedName || g.contains('movie') || g.contains('film');
   }
 
   List<Channel> _channelsForNav(List<Channel> all, List<Channel> favorites, List<Channel> recent) {
@@ -1467,8 +1411,6 @@ class _FeaturedCarouselState extends State<_FeaturedCarousel> {
                                 mainAxisSize: MainAxisSize.min,
                                 children: [
                                   Text(
-                                  const SizedBox(height: 5),
-                                  Text(
                                     s.featuredNewHint,
                                     maxLines: 3,
                                     overflow: TextOverflow.ellipsis,
@@ -1497,63 +1439,115 @@ class _FeaturedCarouselState extends State<_FeaturedCarousel> {
                                       ),
                                     ),
                                   ),
-                                  const Spacer(),
-                                  Align(
-                                    alignment: Alignment.centerRight,
-                                    child: FilledButton(
-                                      onPressed: () => widget.onWatch(ch),
-                                      style: FilledButton.styleFrom(
-                                        backgroundColor: AppTheme.accentTeal,
-                                        foregroundColor: Colors.black,
-                                        elevation: 2,
-                                        shadowColor: AppTheme.accentTeal.withOpacity(0.5),
-                                        padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 11),
-                                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                                      ),
-                                      child: Text(
-                                        s.watchNow,
-                                        style: AppTheme.withRabarIfKurdish(
-                                          s.locale,
-                                          const TextStyle(fontWeight: FontWeight.w800, fontSize: 13),
-                                        ),
-                                      ),
-                                    ),
-                                  ),
                                 ],
                               ),
                             ),
+                            const SizedBox(width: 16),
+                            _PulsingLogoBox(
+                              channel: ch,
+                              baseSize: 64,
+                              reduceMotion: widget.reduceMotion,
+                            ),
+                          ],
+                        ),
+                        const Spacer(),
+                        Align(
+                          alignment: s.locale.languageCode == 'ckb' ? Alignment.centerLeft : Alignment.centerRight,
+                          child: _glassButton(
+                            label: s.watchNow,
+                            icon: Icons.play_arrow_rounded,
+                            onTap: () => widget.onWatch(ch),
                           ),
-                        ],
-                      ),
-                    );
-                  },
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              );
+            },
+          ),
+          if (widget.slides.length > 1)
+            Positioned(
+              bottom: 12,
+              left: 0,
+              right: 0,
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: List.generate(
+                  widget.slides.length,
+                  (i) => AnimatedContainer(
+                    duration: const Duration(milliseconds: 300),
+                    width: _index == i ? 24 : 8,
+                    height: 4,
+                    margin: const EdgeInsets.symmetric(horizontal: 3),
+                    decoration: BoxDecoration(
+                      color: _index == i ? AppTheme.primaryGold : Colors.white24,
+                      borderRadius: BorderRadius.circular(4),
+                    ),
+                  ),
                 ),
               ),
-              Padding(
-                padding: const EdgeInsets.only(bottom: 10, top: 2),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: List.generate(widget.slides.length, (i) {
-                    final active = i == _index;
-                    return AnimatedContainer(
-                      duration: Duration(milliseconds: widget.animMs.clamp(120, 400)),
-                      curve: Curves.easeOut,
-                      margin: const EdgeInsets.symmetric(horizontal: 3),
-                      width: active ? 20 : 7,
-                      height: 7,
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(4),
-                        color: active
-                            ? AppTheme.accentTeal
-                            : Colors.white.withOpacity(0.22),
-                      ),
-                    );
-                  }),
+            ),
+        ],
+      ),
+    );
+  }
+
+  Widget _heroFallback(Channel ch) {
+    return Container(
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            AppTheme.backgroundBlack,
+            const Color(0xFF1A222E),
+            AppTheme.surfaceGray,
+          ],
+        ),
+      ),
+      child: Center(
+        child: Opacity(
+          opacity: 0.05,
+          child: Icon(Icons.live_tv_rounded, size: 200, color: Colors.white),
+        ),
+      ),
+    );
+  }
+
+  Widget _glassButton({
+    required String label,
+    required IconData icon,
+    required VoidCallback onTap,
+  }) {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(12),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+          decoration: BoxDecoration(
+            color: Colors.white.withOpacity(0.12),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: Colors.white.withOpacity(0.2)),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(icon, color: AppTheme.primaryGold, size: 20),
+              const SizedBox(width: 8),
+              Text(
+                label,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 14,
+                  fontWeight: FontWeight.w700,
                 ),
               ),
             ],
           ),
-        ],
+        ),
       ),
     );
   }

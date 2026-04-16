@@ -43,6 +43,7 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
   final _newLoginCodeController = TextEditingController();
   final _channelSearchController = TextEditingController();
   bool _isFeaturedAdmin = false;
+  String _channelType = 'live';
   final _announcementController = TextEditingController();
   final _notifTitleController = TextEditingController();
   final _notifBodyController = TextEditingController();
@@ -406,6 +407,7 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
     required String group,
     required String logo,
     String? backdrop,
+    String? type,
     bool? featured,
     int? order,
   }) {
@@ -416,6 +418,7 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
     };
     if (logo.isNotEmpty) map['logo'] = logo;
     if (backdrop != null && backdrop.isNotEmpty) map['backdrop'] = backdrop;
+    if (type != null) map['type'] = type;
     if (featured == true) map['featured'] = true;
     if (order != null) map['order'] = order;
     return map;
@@ -525,6 +528,7 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
             group: group,
             logo: logo,
             backdrop: backdrop,
+            type: _channelType,
             featured: _isFeaturedAdmin,
           ));
       _channelNameController.clear();
@@ -533,6 +537,7 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
       _channelBackdropController.clear();
       setState(() {
         _isFeaturedAdmin = false;
+        _channelType = 'live';
         _publishShelf = _PublishShelf.liveTv;
         _channelGroupController.text = 'Live TV';
       });
@@ -587,6 +592,9 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
     required String url,
     required String group,
     required String logo,
+    String? backdrop,
+    String? type,
+    required bool featured,
   }) async {
     try {
       final ref = _playlistRef.child(key);
@@ -595,6 +603,7 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
         'name': name,
         'url': url,
         'group': g,
+        'type': type ?? 'live',
         'featured': featured,
       };
 
@@ -1088,9 +1097,9 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
   void _showEditChannelDialog(String key, Map<dynamic, dynamic> raw) {
     final nameCtrl = TextEditingController(text: '${raw['name'] ?? ''}');
     final urlCtrl = TextEditingController(text: '${raw['url'] ?? ''}');
-    final groupCtrl = TextEditingController(text: '${raw['group'] ?? raw['category'] ?? 'General'}');
     final logoCtrl = TextEditingController(text: '${raw['logo'] ?? raw['icon_url'] ?? ''}');
     final backdropCtrl = TextEditingController(text: '${raw['backdrop'] ?? ''}');
+    String contentType = raw['type'] ?? 'live';
     bool isFeatured = raw['featured'] == true;
 
     showModalBottomSheet<void>(
@@ -1170,6 +1179,32 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
                         activeColor: AppTheme.primaryGold,
                         onChanged: (v) => setModalState(() => isFeatured = v),
                       ),
+                      const SizedBox(height: 12),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 16),
+                        child: Row(
+                          children: [
+                            const Text('Type:', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
+                            const SizedBox(width: 16),
+                            Expanded(
+                              child: SegmentedButton<String>(
+                                style: SegmentedButton.styleFrom(
+                                  visualDensity: VisualDensity.compact,
+                                  backgroundColor: Colors.black26,
+                                  selectedBackgroundColor: AppTheme.accentTeal.withOpacity(0.2),
+                                  selectedForegroundColor: AppTheme.accentTeal,
+                                ),
+                                segments: const [
+                                  ButtonSegment(value: 'live', label: Text('Live TV'), icon: Icon(Icons.live_tv_rounded, size: 16)),
+                                  ButtonSegment(value: 'movie', label: Text('Movie'), icon: Icon(Icons.movie_rounded, size: 16)),
+                                ],
+                                selected: {contentType},
+                                onSelectionChanged: (set) => setModalState(() => contentType = set.first),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
                       const SizedBox(height: 24),
                       Row(
                         children: [
@@ -1209,6 +1244,7 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
                                     group: groupCtrl.text.trim(),
                                     logo: logoCtrl.text.trim(),
                                     backdrop: backdropCtrl.text.trim(),
+                                    type: contentType,
                                     featured: isFeatured,
                                   );
                               },
@@ -2131,6 +2167,20 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
                   ),
                 ],
                 const SizedBox(height: 14),
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Expanded(
+                      child: _field(_channelLogoController, 'Logo URL (optional)', Icons.image_outlined, maxLines: 2),
+                    ),
+                    const SizedBox(width: 8),
+                    Padding(
+                      padding: const EdgeInsets.only(top: 6),
+                      child: IconButton.filledTonal(
+                        tooltip: 'Pick from gallery',
+                        onPressed: () => _pickLogoInto(_channelLogoController),
+                        icon: const Icon(Icons.add_photo_alternate_outlined),
+                      ),
                     ),
                   ],
                 ),
@@ -2153,11 +2203,31 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
                   ],
                 ),
                 const SizedBox(height: 14),
-                SwitchListTile(
-                  title: const Text('Spotlight (Featured)', style: TextStyle(color: AppTheme.primaryGold, fontWeight: FontWeight.bold)),
-                  value: _isFeaturedAdmin,
-                  activeColor: AppTheme.primaryGold,
                   onChanged: (v) => setState(() => _isFeaturedAdmin = v),
+                ),
+                const SizedBox(height: 14),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  child: Row(
+                    children: [
+                      const Text('Content Type:', style: TextStyle(color: Colors.white70, fontWeight: FontWeight.bold)),
+                      const SizedBox(width: 16),
+                      Expanded(
+                        child: SegmentedButton<String>(
+                          style: SegmentedButton.styleFrom(
+                            selectedBackgroundColor: AppTheme.accentTeal.withOpacity(0.2),
+                            selectedForegroundColor: AppTheme.accentTeal,
+                          ),
+                          segments: const [
+                            ButtonSegment(value: 'live', label: Text('Live TV'), icon: Icon(Icons.live_tv_rounded)),
+                            ButtonSegment(value: 'movie', label: Text('Movie'), icon: Icon(Icons.movie_rounded)),
+                          ],
+                          selected: {_channelType},
+                          onSelectionChanged: (set) => setState(() => _channelType = set.first),
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
                 const SizedBox(height: 22),
                 FilledButton.icon(
