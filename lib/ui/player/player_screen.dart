@@ -27,8 +27,6 @@ import '../../services/playlist_service.dart';
 import '../../services/settings_service.dart';
 import '../../widgets/tv_focus_wrapper.dart';
 import '../settings/settings_screen.dart';
-import '../../services/subtitle_service.dart';
-import '../../services/tmdb_service.dart';
 
 enum _TvPanelType { none, progressbar, playlist }
 
@@ -96,12 +94,7 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
 
   final List<StreamSubscription<dynamic>> _subscriptions = [];
   
-  // Subtitle System
-  final SubtitleService _subtitleService = SubtitleService();
-  final TmdbService _tmdbService = TmdbService();
-  List<SubtitleResult> _availableSubtitles = [];
-  bool _isSearchingSubtitles = false;
-  bool _showSubtitlePrompt = false;
+  // Movie / Subtitle System removed (Logic moved to MoviePlayerPage)
 
   Channel get _current => widget.channels[_index];
 
@@ -859,15 +852,6 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
             ),
           ),
           const SizedBox(width: 8),
-          if (_isMovie)
-            IconButton(
-              icon: Icon(
-                Icons.closed_caption_rounded,
-                color: _availableSubtitles.isNotEmpty ? _accent : Colors.white24,
-                size: 24,
-              ),
-              onPressed: () => _showSubtitleModal(uiLocale, s),
-            ),
           IconButton(
             icon: Icon(Icons.settings_outlined, color: Colors.white.withOpacity(0.7), size: 22),
             onPressed: () async {
@@ -886,66 +870,7 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
     );
   }
 
-  void _showSubtitleModal(Locale uiLocale, AppStrings s) {
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: Colors.transparent,
-      isScrollControlled: true,
-      builder: (context) => Container(
-        height: MediaQuery.of(context).size.height * 0.5,
-        decoration: BoxDecoration(
-          color: const Color(0xFF14171C),
-          borderRadius: const BorderRadius.vertical(top: Radius.circular(32)),
-          border: Border.all(color: Colors.white10),
-        ),
-        child: Column(
-          children: [
-            const SizedBox(height: 12),
-            Container(width: 40, height: 4, decoration: BoxDecoration(color: Colors.white12, borderRadius: BorderRadius.circular(2))),
-            const SizedBox(height: 24),
-            Text(
-              s.isEnglish ? 'Subtitles' : 'ژێرنووس',
-              style: AppTheme.withRabarIfKurdish(
-                uiLocale,
-                const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.w900),
-              ),
-            ),
-            const SizedBox(height: 16),
-            Expanded(
-              child: ListView.builder(
-                padding: const EdgeInsets.symmetric(horizontal: 20),
-                itemCount: _availableSubtitles.length + 1,
-                itemBuilder: (context, i) {
-                  if (i == 0) {
-                    return ListTile(
-                      leading: const Icon(Icons.close_rounded, color: Colors.white60),
-                      title: Text(s.isEnglish ? 'None' : 'بەبێ ژێرنووس', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-                      onTap: () {
-                        _player?.setSubtitleTrack(SubtitleTrack.no());
-                        Navigator.pop(context);
-                      },
-                    );
-                  }
-                  final sub = _availableSubtitles[i - 1];
-                  final isKur = sub.language == 'ku' || sub.language == 'ckb';
-                  return ListTile(
-                    leading: Icon(isKur ? Icons.translate_rounded : Icons.language_rounded, color: isKur ? _accent : Colors.blue),
-                    title: Text(sub.fileName, style: const TextStyle(color: Colors.white, fontSize: 13)),
-                    subtitle: Text(sub.language.toUpperCase(), style: TextStyle(color: Colors.white.withOpacity(0.5), fontSize: 11)),
-                    trailing: const Icon(Icons.download_rounded, color: Colors.white24, size: 18),
-                    onTap: () {
-                      _applySubtitle(sub);
-                      Navigator.pop(context);
-                    },
-                  );
-                },
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
+  // Subtitle modal removed (Logic moved to MoviePlayerPage)
 
   Widget _buildMobileVideoOverlay() {
     return Container(
