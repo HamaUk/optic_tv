@@ -25,22 +25,53 @@ class TmdbService {
   Future<TmdbMovie?> findMovie(String title) async {
     if (!isConfigured) return null;
     try {
+      // 1. Extract year if it exists in format (2024) or [2024]
+      String? year;
+      final yearMatch = RegExp(r'(\d{4})').firstMatch(title);
+      if (yearMatch != null) {
+        year = yearMatch.group(1);
+      }
+
+      // 2. Clean title of technical tags
       final cleanTitle = title
           .replaceAll(RegExp(r'\[.*?\]'), '')
           .replaceAll(RegExp(r'\(.*?\)'), '')
+          .replaceAll('_', ' ')
+          .replaceAll(RegExp(r'\s+'), ' ')
           .trim();
 
+      // 3. Search TMDB with precision parameters
       final res = await _dio.get('/search/movie', queryParameters: {
         'query': cleanTitle,
+        if (year != null) 'primary_release_year': year,
       });
 
-      final results = res.data['results'] as List?;
-      if (results == null || results.isEmpty) return null;
+      final resultsList = res.data['results'] as List?;
+      if (resultsList == null || resultsList.isEmpty) return null;
 
-      final first = results.first as Map<String, dynamic>;
-      final movie = TmdbMovie.fromJson(first, _imageBaseUrl);
+      // 4. Precision Scoring: Find the BEST match, not just the first.
+      // We prioritize exact title matches first, then popularity.
+      List<Map<String, dynamic>> candidates = resultsList.cast<Map<String, dynamic>>();
       
-      // Also fetch external IDs to get the IMDb ID (essential for subtitles)
+      candidates.sort((a, b) {
+        final aTitle = (a['title'] as String).toLowerCase();
+        final bTitle = (b['title'] as String).toLowerCase();
+        final target = cleanTitle.toLowerCase();
+
+        // Bonus if the title is an exact match
+        final aExact = aTitle == target ? 1 : 0;
+        final bExact = bTitle == target ? 1 : 0;
+        if (aExact != bExact) return bExact.compareTo(aExact);
+
+        // Otherwise fallback to popularity
+        final aPop = (a['popularity'] as num? ?? 0.0).toDouble();
+        final bPop = (b['popularity'] as num? ?? 0.0).toDouble();
+        return bPop.compareTo(aPop);
+      });
+
+      final best = candidates.first;
+      final movie = TmdbMovie.fromJson(best, _imageBaseUrl);
+      
       final imdbId = await fetchImdbId(movie.id);
       return movie.copyWith(imdbId: imdbId);
     } catch (_) {

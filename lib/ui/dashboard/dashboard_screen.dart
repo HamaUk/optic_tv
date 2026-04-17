@@ -144,8 +144,95 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
         return [];
       default:
         // Home: exclude movies so they only appear in the Movies tab.
-        return all.where((c) => !_isMovieChannel(c)).toList();
     }
+  }
+
+  Widget _buildMovieLibraryContent(BuildContext context, AppStrings s, List<Channel> all, AppSettingsData settings) {
+    final movies = all.where(_isMovieChannel).toList();
+    final groups = _groupMap(movies);
+    final sortedCategories = groups.keys.toList()..sort();
+
+    return ListView.builder(
+      padding: const EdgeInsets.only(top: 16, bottom: 40),
+      itemCount: sortedCategories.length,
+      itemBuilder: (context, i) {
+        final cat = sortedCategories[i];
+        final catMovies = groups[cat] ?? [];
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              child: Text(
+                cat.toUpperCase(),
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 14,
+                  fontWeight: FontWeight.w900,
+                  letterSpacing: 1.2,
+                ),
+              ),
+            ),
+            SizedBox(
+              height: 200,
+              child: ListView.builder(
+                scrollDirection: Axis.horizontal,
+                padding: const EdgeInsets.symmetric(horizontal: 12),
+                itemCount: catMovies.length,
+                itemBuilder: (context, idx) {
+                  final m = catMovies[idx];
+                  return _buildVerticalMovieCard(m);
+                },
+              ),
+            ),
+            const SizedBox(height: 12),
+          ],
+        );
+      },
+    );
+  }
+
+  Widget _buildVerticalMovieCard(Channel m) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 4),
+      child: GestureDetector(
+        onTap: () => _openPlayer(m),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Expanded(
+              child: Container(
+                width: 130, // 2:3 Aspect ratio approx (140:210)
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: Colors.white10),
+                  boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.5), blurRadius: 4, offset: const Offset(0, 2))],
+                ),
+                clipBehavior: Clip.antiAlias,
+                child: CachedNetworkImage(
+                  imageUrl: m.logo ?? '',
+                  fit: BoxFit.cover,
+                  errorWidget: (context, url, error) => Container(
+                    color: Colors.white05,
+                    child: const Center(child: Icon(Icons.movie_outlined, color: Colors.white24)),
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(height: 6),
+            SizedBox(
+              width: 130,
+              child: Text(
+                m.name,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(color: Colors.white70, fontSize: 11, fontWeight: FontWeight.bold),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 
   Future<void> _showChannelSheet(AppStrings s, List<Channel> allChannels, Channel channel) async {
@@ -414,25 +501,27 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
             imageUrl: heroImage,
             child: SafeArea(
               bottom: false,
-              child: _buildDashboardShell(
-                context,
-                s,
-                16.0,
-                false,
-                filtered.isEmpty
-                    ? _buildEmptyState(s)
-                    : _buildScrollableContent(
-                        context,
-                        s,
-                        channels,
-                        filtered,
-                        groups,
-                        settings,
-                        settings.reduceMotion ? 100 : 220,
-                        16.0,
-                      ),
-                settings,
-              ),
+                child: _buildDashboardShell(
+                  context,
+                  s,
+                  16.0,
+                  false,
+                  _navIndex == 1
+                      ? _buildMovieLibraryContent(context, s, channels, settings)
+                      : filtered.isEmpty
+                          ? _buildEmptyState(s)
+                          : _buildScrollableContent(
+                              context,
+                              s,
+                              channels,
+                              filtered,
+                              groups,
+                              settings,
+                              settings.reduceMotion ? 100 : 220,
+                              16.0,
+                            ),
+                  settings,
+                ),
             ),
           ),
           bottomNavigationBar: portrait ? _buildBottomNav(s, MediaQuery.paddingOf(context).bottom, settings) : null,
@@ -1366,8 +1455,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
   }
 
   Widget _buildTvMoviesTab(AppStrings s, List<Channel> all, List<Channel> favs, AppSettingsData settings) {
-    final movies = all.where(_isMovieChannel).toList();
-    return _buildTvDualPaneView(s, movies, settings);
+    return _buildMovieLibraryContent(context, s, all, settings);
   }
 
   Widget _buildTvFavoritesTab(AppStrings s, List<Channel> favs, AppSettingsData settings) {
