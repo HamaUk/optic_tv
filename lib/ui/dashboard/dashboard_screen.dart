@@ -23,6 +23,7 @@ import '../admin/admin_screen.dart';
 import '../player/player_screen.dart';
 import '../player/movie_player_page.dart';
 import '../settings/settings_screen.dart';
+import 'movie_details_screen.dart';
 import '../settings/settings_screen.dart';
 import '../sport/sport_scores_screen.dart';
 import '../../services/tmdb_service.dart';
@@ -300,23 +301,14 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     final s = AppStrings(uiLocale);
 
     if (_isMovieChannel(channel)) {
-      // PRO MOVIE PLAYER: Strict VOD focus as requested
+      // GO TO DESCRIPTION PAGE (Netflix style)
       Navigator.push(
         context,
         MaterialPageRoute<void>(
-          builder: (context) {
-            final p = Player(configuration: const PlayerConfiguration(title: 'Optic TV Movie'));
-            final vc = VideoController(p, configuration: const VideoControllerConfiguration(enableHardwareAcceleration: true));
-            p.open(Media(channel.url));
-            
-            return MoviePlayerPage(
-              player: p,
-              controller: vc,
-              channel: channel,
-              uiLocale: uiLocale,
-              strings: s,
-            );
-          },
+          builder: (context) => MovieDetailsScreen(
+            allChannels: allFlat,
+            channel: channel,
+          ),
         ),
       );
     } else {
