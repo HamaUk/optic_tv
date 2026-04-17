@@ -307,7 +307,26 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
   }
 
   Future<void> _toggleFullscreen() async {
-    await _videoKey.currentState?.toggleFullscreen();
+    if (_isFullscreen) {
+      // Exit Fullscreen
+      await SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
+      await SystemChrome.setPreferredOrientations([
+        DeviceOrientation.portraitUp,
+        DeviceOrientation.portraitDown,
+      ]);
+      setState(() {
+        _isFullscreen = false;
+        _fullscreenOverlayVisible = false;
+      });
+    } else {
+      // Enter Fullscreen
+      await SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
+      await SystemChrome.setPreferredOrientations([
+        DeviceOrientation.landscapeLeft,
+        DeviceOrientation.landscapeRight,
+      ]);
+      setState(() => _isFullscreen = true);
+    }
   }
 
   Future<void> _playPause() async {
@@ -826,7 +845,7 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
               shape: const CircleBorder(),
               clipBehavior: Clip.antiAlias,
               child: InkWell(
-                onTap: () => setState(() => _isFullscreen = true),
+                onTap: _toggleFullscreen,
                 child: const Padding(
                   padding: EdgeInsets.all(8),
                   child: Icon(Icons.fullscreen_rounded, color: Colors.white, size: 22),
@@ -1065,7 +1084,7 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
               color: Colors.black45,
               borderRadius: BorderRadius.circular(12),
               child: InkWell(
-                onTap: () => setState(() => _isFullscreen = false),
+                onTap: _toggleFullscreen,
                 borderRadius: BorderRadius.circular(12),
                 child: const Padding(
                   padding: EdgeInsets.all(12),
