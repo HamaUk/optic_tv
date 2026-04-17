@@ -314,10 +314,16 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
         DeviceOrientation.portraitUp,
         DeviceOrientation.portraitDown,
       ]);
-      setState(() {
-        _isFullscreen = false;
-        _fullscreenOverlayVisible = false;
-      });
+      
+      // Delay slightly to allow orientation to settle before UI update
+      await Future.delayed(const Duration(milliseconds: 300));
+      
+      if (mounted) {
+        setState(() {
+          _isFullscreen = false;
+          _fullscreenOverlayVisible = false;
+        });
+      }
     } else {
       // Enter Fullscreen
       await SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
@@ -325,7 +331,10 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
         DeviceOrientation.landscapeLeft,
         DeviceOrientation.landscapeRight,
       ]);
-      setState(() => _isFullscreen = true);
+
+      await Future.delayed(const Duration(milliseconds: 300));
+
+      if (mounted) setState(() => _isFullscreen = true);
     }
   }
 
@@ -354,51 +363,92 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
 
   @override
   Widget build(BuildContext context) {
+    if (_settings == null || _player == null) {
+      return const Scaffold(backgroundColor: Colors.black, body: Center(child: CircularProgressIndicator()));
+    }
+
+    // Correctly watch the locale and initialize strings
     final uiLocale = ref.watch(appLocaleProvider);
     final s = AppStrings(uiLocale);
-    final bottomPad = MediaQuery.paddingOf(context).bottom;
-    final isTv = MediaQuery.sizeOf(context).width > 900;
-    
-    return Theme(
-      data: ThemeData(
-        brightness: Brightness.dark,
-        fontFamily: 'RobotoCondensed',
-        scaffoldBackgroundColor: Colors.black,
-      ),
-      child: Scaffold(
-        key: _scaffoldKey,
-        backgroundColor: Colors.black,
-        body: Stack(
-          fit: StackFit.expand,
-          children: [
-            if (!isTv)
-              _isFullscreen
-                  ? _buildFullscreenMode(uiLocale, s)
-                  : _buildMobileScaffold(uiLocale, s, bottomPad)
-            else ...[
-              _buildVideoView(),
-              _buildTvArchitectureOverhaul(s),
-            ],
+    final bottomPad = MediaQuery.of(context).padding.bottom;
+    final isTv = MediaQuery.of(context).size.width > 900;
+
+    return Scaffold(
+      key: _scaffoldKey,
+      backgroundColor: Colors.black,
+      body: Stack(
+        fit: StackFit.expand,
+        children: [
+          // 1. Stable Video Layer (Keeps the texture alive during orientation changes)
+          if (!isTv)
+            Positioned.fill(
+              child: _isFullscreen
+                  ? _buildVideoView()
+                  : Column(
+                      children: [
+                        AspectRatio(
+                          aspectRatio: 16 / 9,
+                          child: _buildVideoView(),
+                        ),
+                        // Remainder is empty; content is in the overlay layer
+                      ],
+                    ),
+            )
+          else ...[
+            _buildVideoView(),
+            _buildTvArchitectureOverhaul(s),
           ],
-        ),
+
+          // 2. Interaction & Interface Layer
+          if (!isTv)
+            _isFullscreen
+                ? _buildFullscreenMode(uiLocale, s)
+                : _buildMobileScaffoldOverlay(uiLocale, s, bottomPad),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildMobileScaffoldOverlay(Locale uiLocale, AppStrings s, double bottomPad) {
+    return SafeArea(
+      child: Column(
+        children: [
+          // Transparent placeholder for the video area
+          const AspectRatio(aspectRatio: 16 / 9, child: SizedBox.expand()),
+          
+          _buildMobileHeader(s, uiLocale),
+          
+          Expanded(
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _buildMobileCategoryPane(s, uiLocale),
+                _buildMobileChannelPane(s, uiLocale, bottomPad),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }
 
   Widget _buildVideoView() {
-    return GestureDetector(
-      onTap: _playPause,
-      child: _controller != null
-          ? Video(
-              key: _videoKey,
-              controller: _controller!,
-              controls: NoVideoControls,
-              wakelock: _settings.keepScreenOnWhilePlaying,
-              fit: _viewFit,
-              fill: const Color(0xFF000000),
-              filterQuality: FilterQuality.high,
-            )
-          : Container(color: Colors.black),
+    return ColoredBox(
+      color: Colors.black,
+      child: GestureDetector(
+        onTap: _playPause,
+        child: _controller != null
+            ? Video(
+                key: _videoKey,
+                controller: _controller!,
+                controls: NoVideoControls,
+                wakelock: _settings!.keepScreenOnWhilePlaying,
+                fit: _viewFit,
+                fill: const Color(0xFF000000),
+                filterQuality: FilterQuality.high,
+              )
+            : const Center(child: CircularProgressIndicator(color: Colors.white24)),
+      ),
     );
   }
 
