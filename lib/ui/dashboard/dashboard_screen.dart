@@ -63,7 +63,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
   int _adminLogoTaps = 0;
   Timer? _adminTapResetTimer;
 
-  /// 0 Home, 1 Movies, 2 Sport, 3 Favorites, 4 About
+  /// 0 Home, 1 Movies, 2 Sport, 3 About
   int _navIndex = 0;
   bool _searchOpen = false;
   bool _tvHomeActive = true; 
@@ -156,8 +156,6 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
         // Sport tab now shows the dedicated score screen; return empty.
         return [];
       case 3:
-        return List<Channel>.from(favorites);
-      case 4:
         // About tab: return empty, content is built in _AboutTab widget.
         return [];
       default:
@@ -343,7 +341,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
         final groups = _groupMap(filtered);
 
         // Sport or About tab: show dedicated screen instead of channel grid.
-        if (_navIndex == 2 || _navIndex == 4) {
+        if (_navIndex == 2 || _navIndex == 3) {
           final screen = _navIndex == 2 
               ? const SportScoresScreen() 
               : _AboutTab(settings: settings);
@@ -753,7 +751,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
       physics: const BouncingScrollPhysics(),
       slivers: [
 
-        if (!isTv && (_navIndex == 0 || _navIndex == 4) &&
+        if (!isTv && (_navIndex == 0 || _navIndex == 3) &&
             _searchController.text.trim().isEmpty &&
             slideChannels.isNotEmpty)
           SliverToBoxAdapter(
@@ -1010,7 +1008,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     
     return TvFocusWrapper(
       onTap: () => _openPlayer(allChannels, channel),
-      onLongPress: () => _showChannelSheet(s, allChannels, channel),
+      onLongPress: () => _openPlayer(allChannels, channel),
       scale: 1.12,
       borderRadius: kTileRadius,
       child: Focus(
@@ -1073,18 +1071,8 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     final focused = _focusedChannel == channel;
 
     return TvFocusWrapper(
-      onTap: () {
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (_) => MovieDetailsScreen(
-              allChannels: allChannels,
-              channel: channel,
-            ),
-          ),
-        );
-      },
-      onLongPress: () => _showChannelSheet(s, allChannels, channel),
+      onTap: () => _openPlayer(allChannels, channel),
+      onLongPress: () => _openPlayer(allChannels, channel),
       scale: 1.10,
       borderRadius: kTileRadius,
       child: Focus(
@@ -1183,21 +1171,23 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
   }
 
   Widget _buildBottomNav(AppStrings s, double bottomInset, AppSettingsData settings) {
+    final accent = AppTheme.accentColor(settings.gradientPreset);
     return Container(
       decoration: BoxDecoration(
-        color: const Color(0xFF0D1118),
-        border: Border(top: BorderSide(color: Colors.white.withOpacity(0.06))),
-        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.4), blurRadius: 16, offset: const Offset(0, -4))],
+        color: const Color(0xFF0A0E14),
+        border: Border(top: BorderSide(color: accent.withOpacity(0.08))),
+        boxShadow: [
+          BoxShadow(color: Colors.black.withOpacity(0.51), blurRadius: 20, offset: const Offset(0, -6)),
+        ],
       ),
-      padding: EdgeInsets.only(bottom: bottomInset > 0 ? bottomInset : 8, top: 6),
+      padding: EdgeInsets.only(bottom: bottomInset > 0 ? bottomInset : 8, top: 4),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceEvenly,
         children: [
-          _navItem(s, settings, icon: Icons.home_rounded, label: s.navHome, index: 0),
-          _navItem(s, settings, icon: Icons.movie_rounded, label: s.navMovies, index: 1),
-          _navItem(s, settings, icon: Icons.sports_soccer_rounded, label: s.navSport, index: 2),
-          _navItem(s, settings, icon: Icons.star_rounded, label: s.navFavorites, index: 3),
-          _navItem(s, settings, icon: Icons.info_outline_rounded, label: 'About', index: 4),
+          _navItem(s, settings, iconActive: Icons.home_rounded, iconInactive: Icons.home_outlined, label: s.navHome, index: 0),
+          _navItem(s, settings, iconActive: Icons.movie_rounded, iconInactive: Icons.movie_outlined, label: s.navMovies, index: 1),
+          _navItem(s, settings, iconActive: Icons.sports_soccer_rounded, iconInactive: Icons.sports_soccer_outlined, label: s.navSport, index: 2),
+          _navItem(s, settings, iconActive: Icons.info_rounded, iconInactive: Icons.info_outline_rounded, label: 'About', index: 3),
         ],
       ),
     );
@@ -1206,7 +1196,8 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
   Widget _navItem(
     AppStrings s,
     AppSettingsData settings, {
-    required IconData icon,
+    required IconData iconActive,
+    required IconData iconInactive,
     required String label,
     required int index,
     bool sideRail = false,
@@ -1215,6 +1206,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     final selected = _navIndex == index;
     final accent = AppTheme.accentColor(settings.gradientPreset);
     final color = selected ? accent : (sideRail ? Colors.white.withOpacity(0.52) : Colors.white38);
+    final icon = selected ? iconActive : iconInactive;
 
     if (isTv) {
       return TvFocusWrapper(
@@ -1256,16 +1248,38 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
       );
     }
 
-    return InkWell(
+    return GestureDetector(
       onTap: () => setState(() => _navIndex = index),
-      borderRadius: BorderRadius.circular(12),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
+      behavior: HitTestBehavior.opaque,
+      child: SizedBox(
+        width: 72,
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(icon, color: color, size: sideRail ? 28 : 24),
-            const SizedBox(height: 2),
+            // Indicator
+            AnimatedContainer(
+              duration: const Duration(milliseconds: 300),
+              curve: Curves.easeOutCubic,
+              width: selected ? 18 : 0,
+              height: 3,
+              margin: const EdgeInsets.only(bottom: 6),
+              decoration: BoxDecoration(
+                color: accent,
+                borderRadius: BorderRadius.circular(2),
+                boxShadow: selected ? [BoxShadow(color: accent.withOpacity(0.5), blurRadius: 8)] : [],
+              ),
+            ),
+            // Scaled Icon
+            TweenAnimationBuilder<double>(
+              tween: Tween(begin: 1.0, end: selected ? 1.15 : 1.0),
+              duration: const Duration(milliseconds: 250),
+              curve: Curves.easeOutBack,
+              builder: (context, scale, child) => Transform.scale(
+                scale: scale,
+                child: Icon(icon, color: color, size: sideRail ? 28 : 24),
+              ),
+            ),
+            const SizedBox(height: 4),
             Text(
               label,
               maxLines: 1,
@@ -1274,8 +1288,8 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                 s.locale,
                 TextStyle(
                   color: color,
-                  fontSize: sideRail ? 11 : 10,
-                  fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
+                  fontSize: selected ? 11 : 10,
+                  fontWeight: selected ? FontWeight.w800 : FontWeight.w500,
                 ),
               ),
             ),

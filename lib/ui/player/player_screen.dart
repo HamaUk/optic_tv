@@ -12,7 +12,7 @@ import 'package:simple_pip_mode/simple_pip.dart';
 import 'dart:ui' show ImageFilter;
 import 'package:animations/animations.dart';
 import 'package:flutter/services.dart';
-import 'package:optic_tv/widgets/tv_fluid_focusable.dart'; // Added: Import for GhostenFocusable
+import 'package:optic_tv/widgets/tv_fluid_focusable.dart';
 
 import '../../core/theme.dart';
 import '../../widgets/channel_logo_image.dart';
@@ -21,10 +21,12 @@ import '../../widgets/optic_wordmark.dart';
 import '../../l10n/app_strings.dart';
 import '../../providers/app_locale_provider.dart';
 import '../../providers/channel_library_provider.dart';
+import '../../providers/ui_settings_provider.dart';
 import '../../services/monitor_service.dart';
 import '../../services/playlist_service.dart';
 import '../../services/settings_service.dart';
 import '../../widgets/tv_focus_wrapper.dart';
+import '../settings/settings_screen.dart';
 
 enum _TvPanelType { none, progressbar, playlist }
 
@@ -65,8 +67,11 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
   bool _controlsVisible = true;
   Timer? _hideTimer;
   bool _isPlaying = true; 
-  BoxFit _viewFit = BoxFit.contain; // Local override for TV selector
+  BoxFit _viewFit = BoxFit.contain;
   final FocusNode _playerFocus = FocusNode();
+  bool _isFullscreen = false;
+  bool _fullscreenOverlayVisible = false;
+  Timer? _fullscreenOverlayTimer;
 
   // TV Overhaul State
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
@@ -263,6 +268,7 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
   void dispose() {
     _clockTimer?.cancel();
     _bufferingOverlayTimer?.cancel();
+    _fullscreenOverlayTimer?.cancel();
     for (final s in _subscriptions) {
       s.cancel();
     }
@@ -343,12 +349,13 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
       child: Scaffold(
         key: _scaffoldKey,
         backgroundColor: Colors.black,
-        // Drawers removed for TV to match Ghosten bottom horizontal list
         body: Stack(
           fit: StackFit.expand,
           children: [
             if (!isTv)
-              _buildMobileScaffold(uiLocale, s, bottomPad)
+              _isFullscreen
+                  ? _buildFullscreenMode(uiLocale, s)
+                  : _buildMobileScaffold(uiLocale, s, bottomPad)
             else ...[
               _buildVideoView(),
               _buildTvArchitectureOverhaul(s),
@@ -716,9 +723,7 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
       color: Colors.black,
       child: Column(
         children: [
-          // 1. Header
-          _buildMobileHeader(s),
-          // 2. Video Preview (Top)
+          _buildMobileHeader(s, uiLocale),
           AspectRatio(
             aspectRatio: 16 / 9,
             child: Stack(
@@ -728,15 +733,12 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
               ],
             ),
           ),
-          // 3. Dual Pane Selector
           Expanded(
             child: Row(
               children: [
-                // Left: Categories
-                _buildMobileCategoryPane(s),
-                Container(width: 1, color: Colors.white10),
-                // Right: Channels
-                _buildMobileChannelPane(s, bottomPad),
+                _buildMobileCategoryPane(s, uiLocale),
+                Container(width: 1, color: _accent.withOpacity(0.1)),
+                _buildMobileChannelPane(s, uiLocale, bottomPad),
               ],
             ),
           ),
@@ -745,23 +747,53 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
     );
   }
 
-  Widget _buildMobileHeader(AppStrings s) {
+  Widget _buildMobileHeader(AppStrings s, Locale uiLocale) {
     return Container(
-      padding: EdgeInsets.only(top: MediaQuery.paddingOf(context).top, left: 16, right: 16, bottom: 8),
+      padding: EdgeInsets.only(
+        top: MediaQuery.paddingOf(context).top + 4,
+        left: 16,
+        right: 8,
+        bottom: 10,
+      ),
+      decoration: BoxDecoration(
+        color: const Color(0xFF0A0E14),
+        border: Border(bottom: BorderSide(color: _accent.withOpacity(0.08))),
+      ),
       child: Row(
         children: [
-          const Icon(Icons.qr_code_scanner_rounded, color: Colors.white, size: 24),
-          const Expanded(
-            child: Center(
-              child: Text(
-                'EasyTV',
-                style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
+          const OpticWordmark(height: 20),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Text(
+              _current.name,
+              style: AppTheme.withRabarIfKurdish(
+                uiLocale,
+                TextStyle(
+                  color: Colors.white,
+                  fontSize: 16,
+                  fontWeight: FontWeight.w700,
+                  letterSpacing: -0.2,
+                ),
               ),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              textAlign: TextAlign.center,
             ),
           ),
-          const Icon(Icons.add_rounded, color: Colors.white, size: 28),
-          const SizedBox(width: 16),
-          const Icon(Icons.settings_outlined, color: Colors.white, size: 24),
+          const SizedBox(width: 8),
+          IconButton(
+            icon: Icon(Icons.settings_outlined, color: Colors.white.withOpacity(0.7), size: 22),
+            onPressed: () async {
+              await Navigator.push<void>(
+                context,
+                MaterialPageRoute(builder: (_) => const SettingsScreen()),
+              );
+              if (mounted) {
+                final newSettings = await AppSettingsData.load();
+                setState(() => _settings = newSettings);
+              }
+            },
+          ),
         ],
       ),
     );
@@ -773,7 +805,7 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
         gradient: LinearGradient(
           begin: Alignment.topCenter,
           end: Alignment.bottomCenter,
-          colors: [Colors.black54, Colors.transparent, Colors.black54],
+          colors: [Colors.black45, Colors.transparent, Colors.black45],
         ),
       ),
       child: Stack(
@@ -782,16 +814,24 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
             child: StreamBuilder<bool>(
               stream: _player!.stream.buffering,
               builder: (context, snap) => (snap.data ?? false)
-                  ? const CircularProgressIndicator(color: Colors.white)
+                  ? CircularProgressIndicator(color: _accent, strokeWidth: 3)
                   : const SizedBox(),
             ),
           ),
           Positioned(
             right: 8,
             bottom: 8,
-            child: IconButton(
-              icon: const Icon(Icons.screen_rotation_rounded, color: Colors.white, size: 20),
-              onPressed: _toggleFullscreen,
+            child: Material(
+              color: Colors.black38,
+              shape: const CircleBorder(),
+              clipBehavior: Clip.antiAlias,
+              child: InkWell(
+                onTap: () => setState(() => _isFullscreen = true),
+                child: const Padding(
+                  padding: EdgeInsets.all(8),
+                  child: Icon(Icons.fullscreen_rounded, color: Colors.white, size: 22),
+                ),
+              ),
             ),
           ),
         ],
@@ -799,35 +839,55 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
     );
   }
 
-  Widget _buildMobileCategoryPane(AppStrings s) {
+  Widget _buildMobileCategoryPane(AppStrings s, Locale uiLocale) {
     final groups = _groupNames;
     return Container(
-      width: 110,
-      color: const Color(0xFF0E131A),
+      width: 100,
+      color: const Color(0xFF0A0E14),
       child: ListView.builder(
+        padding: const EdgeInsets.only(top: 8),
         itemCount: groups.length,
         itemBuilder: (context, i) {
           final g = groups[i];
           final selected = g == _selectedGroup;
-          return InkWell(
+          return GestureDetector(
             onTap: () => setState(() => _selectedGroup = g),
-            child: Container(
-              padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 8),
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 300),
+              curve: Curves.easeOutCubic,
+              padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 8),
+              margin: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
               decoration: BoxDecoration(
-                color: selected ? Colors.red.withOpacity(0.2) : Colors.transparent,
-                border: Border(left: BorderSide(color: selected ? Colors.red : Colors.transparent, width: 3)),
+                color: selected ? _accent.withOpacity(0.12) : Colors.transparent,
+                borderRadius: BorderRadius.circular(10),
+                border: Border(
+                  left: BorderSide(
+                    color: selected ? _accent : Colors.transparent,
+                    width: 3,
+                  ),
+                ),
               ),
               child: Column(
                 children: [
-                   if (selected) const Icon(Icons.tv_rounded, color: Colors.red, size: 16),
-                   const SizedBox(height: 4),
-                   Text(
+                  AnimatedSwitcher(
+                    duration: const Duration(milliseconds: 200),
+                    child: selected
+                        ? Icon(Icons.live_tv_rounded, color: _accent, size: 18, key: const ValueKey('active'))
+                        : Icon(Icons.folder_outlined, color: Colors.white30, size: 16, key: const ValueKey('inactive')),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
                     g,
                     textAlign: TextAlign.center,
-                    style: TextStyle(
-                      color: selected ? Colors.white : Colors.white60,
-                      fontSize: 12,
-                      fontWeight: selected ? FontWeight.bold : FontWeight.normal,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: AppTheme.withRabarIfKurdish(
+                      uiLocale,
+                      TextStyle(
+                        color: selected ? _accent : Colors.white54,
+                        fontSize: 11,
+                        fontWeight: selected ? FontWeight.w700 : FontWeight.normal,
+                      ),
                     ),
                   ),
                 ],
@@ -839,32 +899,215 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
     );
   }
 
-  Widget _buildMobileChannelPane(AppStrings s, double bottomPad) {
+  Widget _buildMobileChannelPane(AppStrings s, Locale uiLocale, double bottomPad) {
     final channels = _channelsInSelectedGroup;
     return Expanded(
       child: Container(
         color: Colors.black,
         child: ListView.separated(
-          padding: EdgeInsets.fromLTRB(12, 12, 12, bottomPad + 20),
+          padding: EdgeInsets.fromLTRB(0, 8, 8, bottomPad + 20),
           itemCount: channels.length,
-          separatorBuilder: (_, __) => const Divider(color: Colors.white10),
+          separatorBuilder: (_, __) => Divider(color: Colors.white.withOpacity(0.04), height: 1),
           itemBuilder: (context, i) {
             final ch = channels[i];
+            final fullIdx = widget.channels.indexOf(ch);
             final active = ch.url == _current.url;
-            return ListTile(
-              dense: true,
-              contentPadding: EdgeInsets.zero,
-              title: Text(
-                '${widget.channels.indexOf(ch) + 1}  ${ch.name.toUpperCase()}',
-                style: TextStyle(
-                  color: active ? Colors.red : Colors.white70,
-                  fontSize: 13,
-                  fontWeight: active ? FontWeight.bold : FontWeight.w500,
+            return Material(
+              color: active ? _accent.withOpacity(0.08) : Colors.transparent,
+              child: InkWell(
+                onTap: () => _selectChannelByIndex(fullIdx),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                  child: Row(
+                    children: [
+                      // Channel number
+                      SizedBox(
+                        width: 28,
+                        child: Text(
+                          '${fullIdx + 1}',
+                          style: TextStyle(
+                            color: active ? _accent : Colors.white24,
+                            fontSize: 11,
+                            fontWeight: FontWeight.w700,
+                            fontFamily: 'monospace',
+                          ),
+                        ),
+                      ),
+                      // Channel logo
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(6),
+                        child: Container(
+                          width: 32,
+                          height: 32,
+                          color: Colors.white.withOpacity(0.05),
+                          child: ch.logo != null && ch.logo!.isNotEmpty
+                              ? ChannelLogoImage(logo: ch.logo, width: 32, height: 32)
+                              : Icon(Icons.tv_rounded, color: Colors.white12, size: 18),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      // TV Icon as requested
+                      Icon(
+                        Icons.live_tv_rounded,
+                        size: 14,
+                        color: active ? _accent.withOpacity(0.9) : Colors.white24,
+                      ),
+                      const SizedBox(width: 8),
+                      // Channel name
+                      Expanded(
+                        child: Text(
+                          ch.name,
+                          style: AppTheme.withRabarIfKurdish(
+                            uiLocale,
+                            TextStyle(
+                              color: active ? _accent : Colors.white.withOpacity(0.8),
+                              fontSize: 13,
+                              fontWeight: active ? FontWeight.w700 : FontWeight.w500,
+                            ),
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                      // Active indicator
+                      if (active)
+                        Container(
+                          width: 6,
+                          height: 6,
+                          decoration: BoxDecoration(
+                            color: _accent,
+                            shape: BoxShape.circle,
+                            boxShadow: [BoxShadow(color: _accent.withOpacity(0.5), blurRadius: 6)],
+                          ),
+                        ),
+                    ],
+                  ),
                 ),
               ),
-              onTap: () => _selectChannelByIndex(widget.channels.indexOf(ch)),
             );
           },
+        ),
+      ),
+    );
+  }
+
+  // ── Fullscreen Mode ──
+
+  Widget _buildFullscreenMode(Locale uiLocale, AppStrings s) {
+    return GestureDetector(
+      onTap: () {
+        setState(() => _fullscreenOverlayVisible = !_fullscreenOverlayVisible);
+        _resetFullscreenOverlayTimer();
+      },
+      child: Stack(
+        fit: StackFit.expand,
+        children: [
+          _buildVideoView(),
+          // Dark overlay with channel guide
+          AnimatedOpacity(
+            opacity: _fullscreenOverlayVisible ? 1.0 : 0.0,
+            duration: const Duration(milliseconds: 300),
+            child: IgnorePointer(
+              ignoring: !_fullscreenOverlayVisible,
+              child: _buildFullscreenOverlayContent(uiLocale, s),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _resetFullscreenOverlayTimer() {
+    _fullscreenOverlayTimer?.cancel();
+    if (_fullscreenOverlayVisible) {
+      _fullscreenOverlayTimer = Timer(const Duration(seconds: 8), () {
+        if (mounted) setState(() => _fullscreenOverlayVisible = false);
+      });
+    }
+  }
+
+  Widget _buildFullscreenOverlayContent(Locale uiLocale, AppStrings s) {
+    return Container(
+      color: Colors.black.withOpacity(0.7),
+      child: SafeArea(
+        child: Column(
+          children: [
+            // Top bar: channel name
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+              child: Row(
+                children: [
+                  IconButton(
+                    icon: const Icon(Icons.arrow_back_rounded, color: Colors.white),
+                    onPressed: () => setState(() {
+                      _isFullscreen = false;
+                      _fullscreenOverlayVisible = false;
+                    }),
+                  ),
+                  Expanded(
+                    child: Text(
+                      _current.name,
+                      textAlign: TextAlign.center,
+                      style: AppTheme.withRabarIfKurdish(
+                        uiLocale,
+                        const TextStyle(
+                          color: Colors.white,
+                          fontSize: 20,
+                          fontWeight: FontWeight.w800,
+                          shadows: [Shadow(color: Colors.black, blurRadius: 10)],
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 48),
+                ],
+              ),
+            ),
+            // Channel guide
+            Expanded(
+              child: Row(
+                children: [
+                  _buildMobileCategoryPane(s, uiLocale),
+                  Container(width: 1, color: _accent.withOpacity(0.1)),
+                  _buildMobileChannelPane(s, uiLocale, 0),
+                ],
+              ),
+            ),
+            // Bottom bar: exit fullscreen
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: [
+                  Material(
+                    color: Colors.white.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(12),
+                    child: InkWell(
+                      borderRadius: BorderRadius.circular(12),
+                      onTap: () => setState(() {
+                        _isFullscreen = false;
+                        _fullscreenOverlayVisible = false;
+                      }),
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(Icons.fullscreen_exit_rounded, color: _accent, size: 20),
+                            const SizedBox(width: 8),
+                            Text(
+                              'Exit Fullscreen',
+                              style: TextStyle(color: _accent, fontWeight: FontWeight.w700, fontSize: 13),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
         ),
       ),
     );
