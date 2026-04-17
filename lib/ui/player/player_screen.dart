@@ -1006,7 +1006,7 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
           // Dark overlay with channel guide
           AnimatedOpacity(
             opacity: _fullscreenOverlayVisible ? 1.0 : 0.0,
-            duration: const Duration(milliseconds: 300),
+            duration: const Duration(milliseconds: 400),
             child: IgnorePointer(
               ignoring: !_fullscreenOverlayVisible,
               child: _buildFullscreenOverlayContent(uiLocale, s),
@@ -1020,7 +1020,7 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
   void _resetFullscreenOverlayTimer() {
     _fullscreenOverlayTimer?.cancel();
     if (_fullscreenOverlayVisible) {
-      _fullscreenOverlayTimer = Timer(const Duration(seconds: 8), () {
+      _fullscreenOverlayTimer = Timer(const Duration(seconds: 12), () {
         if (mounted) setState(() => _fullscreenOverlayVisible = false);
       });
     }
@@ -1028,87 +1028,187 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
 
   Widget _buildFullscreenOverlayContent(Locale uiLocale, AppStrings s) {
     return Container(
-      color: Colors.black.withOpacity(0.7),
-      child: SafeArea(
-        child: Column(
-          children: [
-            // Top bar: channel name
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-              child: Row(
-                children: [
-                  IconButton(
-                    icon: const Icon(Icons.arrow_back_rounded, color: Colors.white),
-                    onPressed: () => setState(() {
-                      _isFullscreen = false;
-                      _fullscreenOverlayVisible = false;
-                    }),
-                  ),
-                  Expanded(
-                    child: Text(
-                      _current.name,
-                      textAlign: TextAlign.center,
-                      style: AppTheme.withRabarIfKurdish(
-                        uiLocale,
-                        const TextStyle(
-                          color: Colors.white,
-                          fontSize: 20,
-                          fontWeight: FontWeight.w800,
-                          shadows: [Shadow(color: Colors.black, blurRadius: 10)],
-                        ),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 48),
-                ],
+      color: Colors.black.withOpacity(0.45),
+      child: Stack(
+        children: [
+          // 1. Categories (Far Left)
+          Positioned(
+            left: 0,
+            top: 0,
+            bottom: 0,
+            width: 120,
+            child: _buildFullscreenCategoryPane(s, uiLocale),
+          ),
+          
+          // 2. Channels (Next to categories)
+          Positioned(
+            left: 120,
+            top: 0,
+            bottom: 0,
+            right: MediaQuery.sizeOf(context).width * 0.4,
+            child: _buildFullscreenChannelPane(s, uiLocale),
+          ),
+
+          // 3. Clock & Date (Top Right)
+          Positioned(
+            right: 30,
+            top: 40,
+            child: _buildFullscreenClock(uiLocale),
+          ),
+
+          // 4. Back/Exit (Bottom Right)
+          Positioned(
+            right: 30,
+            bottom: 40,
+            child: Material(
+              color: Colors.black45,
+              borderRadius: BorderRadius.circular(12),
+              child: InkWell(
+                onTap: () => setState(() => _isFullscreen = false),
+                borderRadius: BorderRadius.circular(12),
+                child: const Padding(
+                  padding: EdgeInsets.all(12),
+                  child: Icon(Icons.fullscreen_exit_rounded, color: Colors.white, size: 28),
+                ),
               ),
             ),
-            // Channel guide
-            Expanded(
-              child: Row(
-                children: [
-                  _buildMobileCategoryPane(s, uiLocale),
-                  Container(width: 1, color: _accent.withOpacity(0.1)),
-                  _buildMobileChannelPane(s, uiLocale, 0),
-                ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildFullscreenCategoryPane(AppStrings s, Locale uiLocale) {
+    final groups = _groupNames;
+    return Container(
+      color: Colors.black.withOpacity(0.3),
+      child: ListView.builder(
+        padding: const EdgeInsets.symmetric(vertical: 40),
+        itemCount: groups.length,
+        itemBuilder: (context, i) {
+          final g = groups[i];
+          final selected = g == _selectedGroup;
+          return GestureDetector(
+            onTap: () => setState(() => _selectedGroup = g),
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 200),
+              margin: const EdgeInsets.symmetric(vertical: 4),
+              padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 12),
+              decoration: BoxDecoration(
+                color: selected ? _accent.withOpacity(0.3) : Colors.transparent,
+                border: Border(left: BorderSide(color: selected ? _accent : Colors.transparent, width: 4)),
               ),
-            ),
-            // Bottom bar: exit fullscreen
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.end,
-                children: [
-                  Material(
-                    color: Colors.white.withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(12),
-                    child: InkWell(
-                      borderRadius: BorderRadius.circular(12),
-                      onTap: () => setState(() {
-                        _isFullscreen = false;
-                        _fullscreenOverlayVisible = false;
-                      }),
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Icon(Icons.fullscreen_exit_rounded, color: _accent, size: 20),
-                            const SizedBox(width: 8),
-                            Text(
-                              'Exit Fullscreen',
-                              style: TextStyle(color: _accent, fontWeight: FontWeight.w700, fontSize: 13),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
+              child: Text(
+                g.toUpperCase(),
+                style: AppTheme.withRabarIfKurdish(
+                  uiLocale,
+                  TextStyle(
+                    color: selected ? Colors.white : Colors.white60,
+                    fontSize: 14,
+                    fontWeight: selected ? FontWeight.w900 : FontWeight.w500,
+                    letterSpacing: 0.5,
                   ),
-                ],
+                ),
               ),
             ),
-          ],
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _buildFullscreenChannelPane(AppStrings s, Locale uiLocale) {
+    final channels = _channelsInSelectedGroup;
+    return Container(
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.centerLeft,
+          end: Alignment.centerRight,
+          colors: [Colors.black.withOpacity(0.3), Colors.transparent],
         ),
+      ),
+      child: ListView.builder(
+        padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 10),
+        itemCount: channels.length,
+        itemBuilder: (context, i) {
+          final ch = channels[i];
+          final active = ch.url == _current.url;
+          final fullIdx = widget.channels.indexOf(ch);
+          return Material(
+            color: active ? _accent.withOpacity(0.2) : Colors.transparent,
+            child: InkWell(
+              onTap: () => _selectChannelByIndex(fullIdx),
+              child: Container(
+                padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
+                child: Row(
+                  children: [
+                    Text(
+                      '${fullIdx + 1}',
+                      style: const TextStyle(color: Colors.white54, fontSize: 13, fontFamily: 'monospace'),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Text(
+                        ch.name.toUpperCase(),
+                        style: AppTheme.withRabarIfKurdish(
+                          uiLocale,
+                          TextStyle(
+                            color: active ? Colors.white : Colors.white70,
+                            fontSize: 15,
+                            fontWeight: active ? FontWeight.w800 : FontWeight.w400,
+                          ),
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                    if (active)
+                      const Icon(Icons.equalizer_rounded, color: Colors.white, size: 18),
+                  ],
+                ),
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _buildFullscreenClock(Locale uiLocale) {
+    final now = DateTime.now();
+    final timeStr = DateFormat('HH:mm').format(now);
+    final dateStr = DateFormat('yyyy/MM/dd').format(now);
+    final dayStr = DateFormat('EEEE', uiLocale.languageCode).format(now);
+    
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+      decoration: BoxDecoration(
+        color: Colors.black45,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: Colors.white10),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.end,
+        children: [
+          Text(
+            timeStr,
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 48,
+              fontWeight: FontWeight.w200,
+              fontFamily: 'RobotoThin',
+            ),
+          ),
+          Text(
+            dateStr,
+            style: const TextStyle(color: Colors.white70, fontSize: 16, fontWeight: FontWeight.bold),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            dayStr,
+            style: TextStyle(color: _accent, fontSize: 14, fontWeight: FontWeight.bold),
+          ),
+        ],
       ),
     );
   }
