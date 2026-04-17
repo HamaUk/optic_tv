@@ -15,6 +15,8 @@ import '../../services/playlist_service.dart';
 import '../../services/subtitle_service.dart';
 import '../../services/tmdb_service.dart';
 import '../dashboard/movie_details_screen.dart';
+import '../../providers/ui_settings_provider.dart';
+import '../../services/settings_service.dart';
 import 'widgets/subtitle_studio.dart';
 
 class MoviePlayerPage extends ConsumerStatefulWidget {
@@ -193,7 +195,7 @@ class _MoviePlayerPageState extends ConsumerState<MoviePlayerPage> {
   @override
   Widget build(BuildContext context) {
     final settingsAsync = ref.watch(appUiSettingsProvider);
-    final settings = settingsAsync.asData?.value ?? const AppSettingsData();
+    final settings = settingsAsync.asData?.value ?? AppSettingsData();
     return WillPopScope(
       onWillPop: _exitFullscreen,
       child: Scaffold(

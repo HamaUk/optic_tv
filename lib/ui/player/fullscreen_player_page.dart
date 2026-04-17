@@ -42,6 +42,7 @@ class _FullscreenPlayerPageState extends ConsumerState<FullscreenPlayerPage> {
   late String _selectedGroup;
   bool _overlayVisible = false; // Starts hidden as requested
   Timer? _hideTimer;
+  final TextEditingController _searchController = TextEditingController();
   
   // Movie HUD & Clock State
   Duration _position = Duration.zero;
@@ -197,7 +198,7 @@ class _FullscreenPlayerPageState extends ConsumerState<FullscreenPlayerPage> {
   @override
   Widget build(BuildContext context) {
     final settingsAsync = ref.watch(appUiSettingsProvider);
-    final settings = settingsAsync.asData?.value ?? const AppSettingsData();
+    final settings = settingsAsync.asData?.value ?? AppSettingsData();
 
     return WillPopScope(
       onWillPop: _exitFullscreen,
