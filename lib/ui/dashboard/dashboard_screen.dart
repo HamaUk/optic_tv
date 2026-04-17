@@ -19,12 +19,34 @@ import '../../services/playlist_service.dart';
 import '../../services/settings_service.dart';
 import '../admin/admin_screen.dart';
 import '../player/player_screen.dart';
+import 'dart:async';
+import 'dart:math' as math;
+import 'package:firebase_database/firebase_database.dart';
+import 'package:url_launcher/url_launcher.dart';
+
+import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:flutter/cupertino.dart';
+import 'package:animations/animations.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../core/theme.dart';
+import '../../widgets/channel_logo_image.dart';
+import '../../widgets/optic_wordmark.dart';
+import '../../l10n/app_strings.dart';
+import '../../providers/app_locale_provider.dart';
+import '../../providers/channel_library_provider.dart';
+import '../../providers/ui_settings_provider.dart';
+import '../../services/playlist_service.dart';
+import '../../services/settings_service.dart';
+import '../admin/admin_screen.dart';
+import '../player/player_screen.dart';
 import '../settings/settings_screen.dart';
 import '../sport/sport_scores_screen.dart';
 import '../../services/tmdb_service.dart';
 import '../../widgets/dynamic_background.dart';
 import '../../widgets/tv_focus_wrapper.dart';
 import './movie_details_screen.dart';
+import '../../widgets/tv_fluid_focusable.dart';
 import 'package:lottie/lottie.dart';
 
  // Admin portal is handled via AdminScreen with Firebase Auth.
@@ -54,6 +76,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
   // Professional TV State
   final GlobalKey<ScaffoldState> _tvScaffoldKey = GlobalKey<ScaffoldState>();
   int _tvTabIndex = 0;
+  bool _tvTabReverse = false;
 
   Color get _accent {
     final settings = ref.read(appUiSettingsProvider);
@@ -1302,165 +1325,194 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
   }
 
 
-  // Ã¢â€â‚¬Ã¢â€â‚¬ TV-only methods (gated by isTv check in build) Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
+  // ── TV-only methods — Ghosten-Player exact layout ──────────────────────────
 
   PreferredSizeWidget _buildTvTopAppbar(AppStrings s, AppSettingsData settings) {
-    return PreferredSize(
-      preferredSize: const Size.fromHeight(100),
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(48, 24, 48, 0),
-        child: Row(
-          children: [
-            const OpticWordmark(height: 38),
-            const SizedBox(width: 80),
-            _TvTabs(
-              activeIndex: _tvTabIndex,
-              tabs: const ['Live TV', 'Movies', 'Favorites'],
-              onTabChange: (i) => setState(() {
-                _tvTabIndex = i;
-                _selectedTvGroup = null;
-              }),
-            ),
-            const Spacer(),
-            TvFocusWrapper(
-              onTap: () => _tvScaffoldKey.currentState?.openEndDrawer(),
-              borderRadius: 30,
-              child: Container(
-                padding: const EdgeInsets.all(12),
-                child: const Icon(Icons.settings_outlined, color: Colors.white70, size: 28),
-              ),
-            ),
-            const SizedBox(width: 24),
-            const _TvClock(),
-          ],
-        ),
-      ),
+    return _GhostenTvAppBar(
+      activeIndex: _tvTabIndex,
+      tabs: const ['Live TV', 'Movies', 'Favorites'],
+      onTabChange: (i) {
+        setState(() {
+          _tvTabReverse = i < _tvTabIndex;
+          _tvTabIndex = i;
+          _selectedTvGroup = null;
+        });
+      },
+      onSearchTap: () {
+        setState(() => _searchOpen = !_searchOpen);
+      },
+      onSettingsTap: () => _tvScaffoldKey.currentState?.openEndDrawer(),
     );
   }
 
   Widget _buildTvLiveTvTab(AppStrings s, List<Channel> all, List<Channel> favs, AppSettingsData settings) {
-    return _buildTvDualPaneView(s, all.where((c) => !_isMovieChannel(c)).toList(), settings);
+    final live = all.where((c) => !_isMovieChannel(c)).toList();
+    return _buildTvDualPaneView(s, live, settings);
   }
 
   Widget _buildTvMoviesTab(AppStrings s, List<Channel> all, List<Channel> favs, AppSettingsData settings) {
-    return _buildTvDualPaneView(s, all.where(_isMovieChannel).toList(), settings);
+    final movies = all.where(_isMovieChannel).toList();
+    return _buildTvDualPaneView(s, movies, settings);
   }
 
   Widget _buildTvFavoritesTab(AppStrings s, List<Channel> favs, AppSettingsData settings) {
     return _buildTvDualPaneView(s, favs, settings);
   }
 
+  /// Ghosten-exact dual-pane: left groups (flex 2) + right channel grid (flex 3)
   Widget _buildTvDualPaneView(AppStrings s, List<Channel> channels, AppSettingsData settings) {
     final groups = _groupMap(channels);
     final sortedKeys = groups.keys.toList()..sort();
     final displayChannels = _selectedTvGroup == null
         ? channels
         : groups[_selectedTvGroup] ?? [];
+
     return Row(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        Container(
-          width: 300,
-          color: const Color(0xFF0A0E14),
-          padding: const EdgeInsets.fromLTRB(24, 40, 24, 24),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text('Categories',
-                  style: TextStyle(
-                      color: Colors.white.withValues(alpha: 0.3),
-                      fontSize: 12,
-                      fontWeight: FontWeight.bold,
-                      letterSpacing: 1.4)),
-              const SizedBox(height: 16),
-              Expanded(
-                child: ListView(
-                  children: [
-                    _tvCategoryItem('All', channels.length, _selectedTvGroup == null,
-                        () => setState(() => _selectedTvGroup = null)),
-                    const SizedBox(height: 8),
-                    for (final g in sortedKeys) ...[
-                      _tvCategoryItem(g, groups[g]?.length ?? 0, _selectedTvGroup == g,
-                          () => setState(() => _selectedTvGroup = g)),
-                      const SizedBox(height: 8),
-                    ],
-                  ],
-                ),
-              ),
-            ],
+        // ── Left pane: group list (Ghosten flex:2) ──
+        Flexible(
+          flex: 2,
+          child: Material(
+            type: MaterialType.transparency,
+            clipBehavior: Clip.hardEdge,
+            child: ListView.separated(
+              padding: const EdgeInsets.only(left: 36, right: 12, top: 80, bottom: 60),
+              itemCount: sortedKeys.length + 1,
+              separatorBuilder: (_, __) => const SizedBox(height: 4),
+              itemBuilder: (context, index) {
+                if (index == 0) {
+                  // "All" entry
+                  return _tvGhostenGroupTile(
+                    label: 'All channels',
+                    count: channels.length,
+                    selected: _selectedTvGroup == null,
+                    autofocus: true,
+                    onTap: () => setState(() => _selectedTvGroup = null),
+                  );
+                }
+                final g = sortedKeys[index - 1];
+                return _tvGhostenGroupTile(
+                  label: g,
+                  count: groups[g]?.length ?? 0,
+                  selected: _selectedTvGroup == g,
+                  onTap: () => setState(() => _selectedTvGroup = g),
+                );
+              },
+            ),
           ),
         ),
-        Expanded(
-          child: displayChannels.isEmpty
-              ? _buildEmptyState(s)
-              : GridView.builder(
-                  padding: const EdgeInsets.all(40),
-                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                    crossAxisCount: 5,
-                    mainAxisSpacing: 28,
-                    crossAxisSpacing: 28,
-                    childAspectRatio: 0.82,
+        // ── Right pane: channel grid (Ghosten flex:3, maxCrossAxisExtent 198) ──
+        if (channels.isNotEmpty)
+          Flexible(
+            flex: 3,
+            child: displayChannels.isEmpty
+                ? _buildEmptyState(s)
+                : ScrollConfiguration(
+                    behavior: ScrollConfiguration.of(context),
+                    child: GridView.builder(
+                      padding: const EdgeInsets.only(left: 8, right: 48, top: 80, bottom: 60),
+                      gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
+                        maxCrossAxisExtent: 198,
+                        mainAxisSpacing: 16,
+                        crossAxisSpacing: 16,
+                      ),
+                      itemCount: displayChannels.length,
+                      itemBuilder: (context, idx) {
+                        final ch = displayChannels[idx];
+                        return _tvGhostenChannelCard(channels, ch);
+                      },
+                    ),
                   ),
-                  itemCount: displayChannels.length,
-                  itemBuilder: (context, idx) {
-                    final ch = displayChannels[idx];
-                    return _tvTabIndex == 1
-                        ? _buildMovieTile(context, s, channels, ch, 250)
-                        : _buildTvCinemaTile(s, channels, ch);
-                  },
-                ),
-        ),
+          ),
       ],
     );
   }
 
-  Widget _buildTvSettingsDrawer(AppStrings s) {
-    return Container(
-      width: 480,
-      color: const Color(0xFF0F1115),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+  /// Ghosten-exact group item (SlidableSettingItem port)
+  Widget _tvGhostenGroupTile({
+    required String label,
+    required int count,
+    required bool selected,
+    required VoidCallback onTap,
+    bool autofocus = false,
+  }) {
+    return GhostenFocusable(
+      autofocus: autofocus,
+      selected: selected,
+      onTap: onTap,
+      selectedBackgroundColor: Theme.of(context).colorScheme.secondaryContainer,
+      child: ListTile(
+        selected: selected,
+        selectedTileColor: Colors.transparent,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
+        visualDensity: VisualDensity.compact,
+        title: Text(
+          label,
+          overflow: TextOverflow.ellipsis,
+          style: TextStyle(
+            fontWeight: selected ? FontWeight.bold : FontWeight.normal,
+            color: selected
+                ? Theme.of(context).colorScheme.onSecondaryContainer
+                : Theme.of(context).colorScheme.onSurface,
+          ),
+        ),
+        trailing: Text(
+          count.toString(),
+          style: TextStyle(
+            color: selected
+                ? Theme.of(context).colorScheme.secondary
+                : Theme.of(context).colorScheme.outline,
+            fontSize: 12,
+          ),
+        ),
+      ),
+    );
+  }
+
+  /// Ghosten-exact channel card (FocusableImage port)
+  Widget _tvGhostenChannelCard(List<Channel> all, Channel ch) {
+    return GhostenFocusable(
+      onTap: () => _openPlayer(all, ch),
+      child: Stack(
+        fit: StackFit.expand,
         children: [
+          // Logo centered with padding 36 (exact Ghosten)
+          ch.logo != null && ch.logo!.isNotEmpty
+              ? Padding(
+                  padding: const EdgeInsets.all(36),
+                  child: ChannelLogoImage(
+                    logo: ch.logo,
+                    fit: BoxFit.contain,
+                  ),
+                )
+              : Center(
+                  child: Icon(
+                    Icons.live_tv_outlined,
+                    size: 50,
+                    color: Theme.of(context).colorScheme.surfaceContainerHigh,
+                  ),
+                ),
+          // Title + group at bottom-left (exact Ghosten)
           Padding(
-            padding: const EdgeInsets.fromLTRB(40, 80, 40, 40),
+            padding: const EdgeInsets.all(12),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisAlignment: MainAxisAlignment.end,
               children: [
-                Text('Settings',
-                    style: TextStyle(
-                        fontSize: 42,
-                        fontWeight: FontWeight.w900,
-                        color: _accent,
-                        letterSpacing: -1)),
-                const SizedBox(height: 8),
-                Text('Configure your professional experience',
-                    style: TextStyle(color: Colors.white.withValues(alpha: 0.3), fontSize: 16)),
-              ],
-            ),
-          ),
-          Expanded(
-            child: ListView(
-              padding: const EdgeInsets.symmetric(horizontal: 24),
-              children: [
-                _buildTvMenuItem(Icons.account_circle_outlined, 'My Account', 'Manage subscription & profile', () {}),
-                _buildTvMenuItem(Icons.palette_outlined, 'Appearance', 'Custom colors & dashboard layout', _openSettings),
-                _buildTvMenuItem(Icons.settings_input_component_rounded, 'Video Engine', 'Codec & hardware acceleration', () {}),
-                _buildTvMenuItem(Icons.dns_outlined, 'Server Status', 'Connection & latency check', () {}),
-                _buildTvMenuItem(Icons.help_outline_rounded, 'Help & Support', 'Reach out to Optic TV team', () {}),
-                _buildTvMenuItem(Icons.info_outline_rounded, 'About Optic TV', 'Version info & legal', () {}),
-              ],
-            ),
-          ),
-          Padding(
-            padding: const EdgeInsets.all(40),
-            child: Row(
-              children: [
-                const OpticWordmark(height: 24),
-                const Spacer(),
-                Text('v1.0.0 Pro',
-                    style: TextStyle(
-                        color: Colors.white.withValues(alpha: 0.1),
-                        fontSize: 12,
-                        fontWeight: FontWeight.bold)),
+                Text(
+                  ch.name,
+                  style: Theme.of(context).textTheme.titleSmall,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                if (ch.group.isNotEmpty)
+                  Text(
+                    ch.group,
+                    style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                      color: Theme.of(context).colorScheme.secondary,
+                    ),
+                    overflow: TextOverflow.ellipsis,
+                  ),
               ],
             ),
           ),
@@ -1469,231 +1521,234 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     );
   }
 
-  Widget _buildTvMenuItem(IconData icon, String label, String subtitle, VoidCallback onTap) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 16),
-      child: TvFocusWrapper(
+  Widget _buildTvSettingsDrawer(AppStrings s) {
+    return Container(
+      width: 360,
+      color: Theme.of(context).colorScheme.surfaceContainerLow,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(36, 80, 36, 32),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const OpticWordmark(height: 28),
+                const SizedBox(height: 24),
+                Text(
+                  'Settings',
+                  style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          Expanded(
+            child: ListView(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              children: [
+                _tvGhostenSettingsItem(Icons.palette_outlined, 'Appearance', 'Colors & theme', _openSettings),
+                _tvGhostenSettingsItem(Icons.settings_input_component_rounded, 'Video Engine', 'Codec & hardware', () {}),
+                _tvGhostenSettingsItem(Icons.dns_outlined, 'Server Status', 'Connection check', () {}),
+                _tvGhostenSettingsItem(Icons.info_outline_rounded, 'About', 'Version info', () {}),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _tvGhostenSettingsItem(IconData icon, String label, String subtitle, VoidCallback onTap) {
+    final focusNode = FocusNode();
+    return GhostenFluidFocusable(
+      focusNode: focusNode,
+      backgroundColor: Colors.transparent,
+      child: ListTile(
+        focusNode: focusNode,
+        leading: Icon(icon),
+        title: Text(label),
+        subtitle: Text(subtitle),
+        trailing: const Icon(Icons.chevron_right_rounded),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
+        visualDensity: VisualDensity.compact,
         onTap: onTap,
-        borderRadius: 20,
-        child: Container(
-          padding: const EdgeInsets.all(20),
-          decoration: BoxDecoration(
-            color: Colors.white.withValues(alpha: 0.04),
-            borderRadius: BorderRadius.circular(20),
-            border: Border.all(color: Colors.white.withValues(alpha: 0.06)),
-          ),
-          child: Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: _accent.withValues(alpha: 0.12),
-                  borderRadius: BorderRadius.circular(14),
-                ),
-                child: Icon(icon, color: _accent, size: 28),
-              ),
-              const SizedBox(width: 20),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(label,
-                        style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold)),
-                    const SizedBox(height: 4),
-                    Text(subtitle,
-                        style: TextStyle(
-                            color: Colors.white.withValues(alpha: 0.4),
-                            fontSize: 13)),
-                  ],
-                ),
-              ),
-              Icon(Icons.chevron_right_rounded,
-                  color: Colors.white.withValues(alpha: 0.2)),
-            ],
-          ),
-        ),
       ),
     );
   }
 
-  Widget _tvCategoryItem(String label, int count, bool active, VoidCallback onTap) {
-    return TvFocusWrapper(
-      onTap: onTap,
-      borderRadius: 12,
-      accentColor: _accent,
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 200),
-        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
-        decoration: BoxDecoration(
-          color: active ? _accent.withValues(alpha: 0.15) : Colors.white.withValues(alpha: 0.04),
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: active ? _accent : Colors.white10),
-        ),
-        child: Row(
-          children: [
-            Expanded(
-              child: Text(label,
-                  style: TextStyle(
-                      color: active ? Colors.white : Colors.white70,
-                      fontSize: 16,
-                      fontWeight:
-                          active ? FontWeight.bold : FontWeight.w500)),
-            ),
-            Text(count.toString(),
-                style: TextStyle(
-                    color: active ? _accent : Colors.white24,
-                    fontSize: 14,
-                    fontWeight: FontWeight.bold)),
-          ],
-        ),
-      ),
-    );
-  }
+  Widget _buildTvCinemaTile(AppStrings s, List<Channel> all, Channel ch) =>
+      _tvGhostenChannelCard(all, ch);
 
-  Widget _buildTvCinemaTile(AppStrings s, List<Channel> all, Channel ch) {
-    return TvFocusWrapper(
-      onTap: () => Navigator.push(
-          context,
-          MaterialPageRoute(
-              builder: (c) =>
-                  PlayerScreen(channels: all, initialIndex: all.indexOf(ch)))),
-      borderRadius: 16,
-      child: Container(
-        decoration: BoxDecoration(
-          color: Colors.white.withValues(alpha: 0.05),
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
-        ),
-        child: Column(
-          children: [
-            Expanded(
-              child: ClipRRect(
-                borderRadius:
-                    const BorderRadius.vertical(top: Radius.circular(16)),
-                child: ChannelLogoImage(logo: ch.logo, fit: BoxFit.contain),
-              ),
-            ),
-            Padding(
-              padding: const EdgeInsets.all(12),
-              child: Text(ch.name,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                      color: Colors.white, fontWeight: FontWeight.bold)),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
+  Widget _tvCategoryItem(String label, int count, bool active, VoidCallback onTap) =>
+      _tvGhostenGroupTile(label: label, count: count, selected: active, onTap: onTap);
+
+  Widget _buildTvMenuItem(IconData icon, String label, String subtitle, VoidCallback onTap) =>
+      _tvGhostenSettingsItem(icon, label, subtitle, onTap);
 }
 
-
-
-class _PulsingLogoBox extends StatefulWidget {
-  const _PulsingLogoBox({
-    required this.channel,
-    required this.baseSize,
-    required this.reduceMotion,
+// ── Ghosten-exact auto-hiding TV AppBar ─────────────────────────────────────
+class _GhostenTvAppBar extends StatefulWidget implements PreferredSizeWidget {
+  const _GhostenTvAppBar({
+    required this.activeIndex,
+    required this.tabs,
+    required this.onTabChange,
+    required this.onSearchTap,
+    required this.onSettingsTap,
   });
 
-  final Channel channel;
-  final double baseSize;
-  final bool reduceMotion;
+  final int activeIndex;
+  final List<String> tabs;
+  final ValueChanged<int> onTabChange;
+  final VoidCallback onSearchTap;
+  final VoidCallback onSettingsTap;
 
   @override
-  State<_PulsingLogoBox> createState() => _PulsingLogoBoxState();
+  State<_GhostenTvAppBar> createState() => _GhostenTvAppBarState();
+
+  @override
+  Size get preferredSize => const Size.fromHeight(kToolbarHeight);
 }
 
-class _PulsingLogoBoxState extends State<_PulsingLogoBox> with SingleTickerProviderStateMixin {
-  AnimationController? _pulse;
+class _GhostenTvAppBarState extends State<_GhostenTvAppBar> {
+  bool _show = true;
+  ScrollNotificationObserverState? _scrollObserver;
 
   @override
-  void initState() {
-    super.initState();
-    if (!widget.reduceMotion) {
-      _pulse = AnimationController(
-        vsync: this,
-        duration: const Duration(milliseconds: 2800),
-      )..repeat(reverse: true);
-      _pulse!.addListener(() => setState(() {}));
-    }
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _scrollObserver?.removeListener(_handleScroll);
+    final scaffoldState = Scaffold.maybeOf(context);
+    if (scaffoldState != null && (scaffoldState.isDrawerOpen || scaffoldState.isEndDrawerOpen)) return;
+    _scrollObserver = ScrollNotificationObserver.maybeOf(context);
+    _scrollObserver?.addListener(_handleScroll);
   }
 
   @override
   void dispose() {
-    _pulse?.dispose();
+    _scrollObserver?.removeListener(_handleScroll);
     super.dispose();
   }
 
-  double get _scale {
-    if (_pulse == null) return 1.0;
-    return 1.0 + 0.045 * Curves.easeInOut.transform(_pulse!.value);
-  }
-
-  double get _glow {
-    if (_pulse == null) return 0.32;
-    return 0.2 + 0.28 * Curves.easeInOut.transform(_pulse!.value);
+  void _handleScroll(ScrollNotification note) {
+    if (note is ScrollUpdateNotification && !(Scaffold.maybeOf(context)?.isEndDrawerOpen ?? false)) {
+      final oldShow = _show;
+      final metrics = note.metrics;
+      switch (metrics.axisDirection) {
+        case AxisDirection.up:
+        case AxisDirection.down:
+          _show = metrics.extentBefore < 100;
+          break;
+        default:
+          break;
+      }
+      if (_show != oldShow) setState(() {});
+    }
   }
 
   @override
   Widget build(BuildContext context) {
-    final pad = 10.0;
-    final inner = widget.baseSize;
-    return Transform.scale(
-      scale: _scale,
-      child: Container(
-        width: inner + pad * 2,
-        height: inner + pad * 2,
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(22),
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [
-              AppTheme.accentTeal.withOpacity(0.45),
-              Colors.white.withOpacity(0.1),
-              AppTheme.primaryGold.withOpacity(0.35),
-            ],
-          ),
-          border: Border.all(color: Colors.white.withOpacity(0.28)),
-          boxShadow: [
-            BoxShadow(
-              color: AppTheme.accentTeal.withOpacity(_glow),
-              blurRadius: 22,
-              spreadRadius: 0,
-            ),
-            BoxShadow(
-              color: AppTheme.primaryGold.withOpacity(_glow * 0.35),
-              blurRadius: 14,
-              spreadRadius: 0,
-            ),
-          ],
-        ),
-        padding: EdgeInsets.all(pad),
-        child: DecoratedBox(
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(14),
-            color: Colors.black.withOpacity(0.25),
-          ),
-          child: Center(
-            child: ChannelLogoImage(
-              logo: widget.channel.logo,
-              width: inner,
-              height: inner,
-              fit: BoxFit.contain,
-              fallback: Icon(Icons.live_tv_rounded, color: Colors.white38, size: inner * 0.5),
-            ),
-          ),
-        ),
+    return PageTransitionSwitcher(
+      reverse: _show,
+      duration: const Duration(milliseconds: 600),
+      transitionBuilder: (child, animation, secondaryAnimation) {
+        return SharedAxisTransition(
+          animation: animation,
+          secondaryAnimation: secondaryAnimation,
+          transitionType: SharedAxisTransitionType.vertical,
+          fillColor: Colors.transparent,
+          child: child,
+        );
+      },
+      child: _show
+          ? Padding(
+              padding: const EdgeInsets.only(left: 36, right: 48),
+              child: Row(
+                children: [
+                  // Search button (Ghosten-exact: TextButton.icon)
+                  TextButton.icon(
+                    label: const Text('Search'),
+                    onPressed: widget.onSearchTap,
+                    style: TextButton.styleFrom(
+                      backgroundColor: Colors.transparent,
+                      foregroundColor: Theme.of(context).colorScheme.onSurface,
+                      visualDensity: VisualDensity.compact,
+                    ),
+                    icon: const Icon(Icons.search_rounded, size: 20, color: Colors.grey),
+                  ),
+                  const SizedBox(width: 60),
+                  // Tabs — Ghosten-exact animated underline
+                  _TvTabs(
+                    activeIndex: widget.activeIndex,
+                    tabs: widget.tabs,
+                    onTabChange: widget.onTabChange,
+                  ),
+                  const Spacer(),
+                  // Settings icon (Ghosten-exact TVIconButton port)
+                  _GhostenTvIconButton(
+                    onPressed: widget.onSettingsTap,
+                    icon: const Icon(Icons.settings_outlined),
+                  ),
+                  const SizedBox(width: 12),
+                  // Clock
+                  const _TvClock(),
+                ],
+              ),
+            )
+          : const SizedBox(),
+    );
+  }
+}
+
+// ── Ghosten TVIconButton port — focus border on focus ────────────────────────
+class _GhostenTvIconButton extends StatefulWidget {
+  const _GhostenTvIconButton({required this.onPressed, required this.icon});
+  final VoidCallback? onPressed;
+  final Widget icon;
+
+  @override
+  State<_GhostenTvIconButton> createState() => _GhostenTvIconButtonState();
+}
+
+class _GhostenTvIconButtonState extends State<_GhostenTvIconButton> {
+  bool _focused = false;
+  final _focusNode = FocusNode();
+
+  @override
+  void initState() {
+    super.initState();
+    _focusNode.addListener(() {
+      if (_focused != _focusNode.hasFocus) setState(() => _focused = _focusNode.hasFocus);
+    });
+  }
+
+  @override
+  void dispose() {
+    _focusNode.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return IconButton(
+      onPressed: widget.onPressed,
+      icon: widget.icon,
+      focusNode: _focusNode,
+      style: IconButton.styleFrom(
+        side: _focused
+            ? BorderSide(
+                width: 4,
+                color: Theme.of(context).colorScheme.inverseSurface,
+                strokeAlign: 2,
+              )
+            : null,
       ),
     );
   }
 }
 
+// ── Restored _FeaturedCarousel (mobile use only) ─────────────────────────────
 class _FeaturedCarousel extends StatefulWidget {
   const _FeaturedCarousel({
     required this.slides,
@@ -1717,7 +1772,6 @@ class _FeaturedCarousel extends StatefulWidget {
 
 class _FeaturedCarouselState extends State<_FeaturedCarousel> {
   static const _autoAdvance = Duration(seconds: 10);
-
   late final PageController _pageController;
   Timer? _autoTimer;
   int _index = 0;
@@ -1730,14 +1784,12 @@ class _FeaturedCarouselState extends State<_FeaturedCarousel> {
   }
 
   @override
-  void didUpdateWidget(covariant _FeaturedCarousel oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    if (!_sameSlideOrder(oldWidget.slides, widget.slides)) {
+  void didUpdateWidget(covariant _FeaturedCarousel old) {
+    super.didUpdateWidget(old);
+    if (!_sameSlideOrder(old.slides, widget.slides)) {
       _autoTimer?.cancel();
       _index = 0;
-      if (_pageController.hasClients) {
-        _pageController.jumpToPage(0);
-      }
+      if (_pageController.hasClients) _pageController.jumpToPage(0);
       setState(() {});
       _armAutoAdvance();
     }
@@ -1780,18 +1832,13 @@ class _FeaturedCarouselState extends State<_FeaturedCarousel> {
   @override
   Widget build(BuildContext context) {
     final s = widget.s;
-
     return Container(
       height: 240,
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(24),
         color: const Color(0xFF0D1118),
         boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.4),
-            blurRadius: 20,
-            offset: const Offset(0, 10),
-          ),
+          BoxShadow(color: Colors.black.withValues(alpha: 0.4), blurRadius: 20, offset: const Offset(0, 10)),
         ],
       ),
       clipBehavior: Clip.antiAlias,
@@ -1804,23 +1851,19 @@ class _FeaturedCarouselState extends State<_FeaturedCarousel> {
             itemBuilder: (context, i) {
               final ch = widget.slides[i];
               final hasBackdrop = ch.backdrop != null && ch.backdrop!.isNotEmpty;
-
               return Stack(
                 fit: StackFit.expand,
                 children: [
-                  // Layer 1: Backdrop Image (or fallback)
                   if (hasBackdrop)
                     ChannelLogoImage(
                       logo: ch.backdrop,
                       width: double.infinity,
                       height: double.infinity,
                       fit: BoxFit.cover,
-                      fallback: _heroFallback(ch),
+                      fallback: _heroFallback(),
                     )
                   else
-                    _heroFallback(ch),
-
-                  // Layer 2: Cinematic Gradient Overlays
+                    _heroFallback(),
                   Positioned.fill(
                     child: DecoratedBox(
                       decoration: BoxDecoration(
@@ -1828,18 +1871,16 @@ class _FeaturedCarouselState extends State<_FeaturedCarousel> {
                           begin: Alignment.bottomCenter,
                           end: Alignment.topCenter,
                           colors: [
-                            Colors.black.withOpacity(0.95),
-                            Colors.black.withOpacity(0.4),
+                            Colors.black.withValues(alpha: 0.95),
+                            Colors.black.withValues(alpha: 0.4),
                             Colors.transparent,
-                            Colors.black.withOpacity(0.3),
+                            Colors.black.withValues(alpha: 0.3),
                           ],
                           stops: const [0.0, 0.45, 0.75, 1.0],
                         ),
                       ),
                     ),
                   ),
-
-                  // Layer 3: Content
                   Padding(
                     padding: const EdgeInsets.fromLTRB(20, 20, 20, 16),
                     child: Column(
@@ -1857,19 +1898,35 @@ class _FeaturedCarouselState extends State<_FeaturedCarousel> {
                               fontWeight: FontWeight.w900,
                               color: Colors.white,
                               height: 1.15,
-                              shadows: [
-                                Shadow(color: Colors.black.withOpacity(0.5), blurRadius: 10)
-                              ],
+                              shadows: [Shadow(color: Colors.black.withValues(alpha: 0.5), blurRadius: 10)],
                             ),
                           ),
                         ),
                         const SizedBox(height: 16),
                         Align(
                           alignment: s.locale.languageCode == 'ckb' ? Alignment.centerLeft : Alignment.centerRight,
-                          child: _glassButton(
-                            label: s.watchNow,
-                            icon: Icons.play_arrow_rounded,
-                            onTap: () => widget.onWatch(ch),
+                          child: Material(
+                            color: Colors.transparent,
+                            child: InkWell(
+                              onTap: () => widget.onWatch(ch),
+                              borderRadius: BorderRadius.circular(12),
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                                decoration: BoxDecoration(
+                                  color: Colors.white.withValues(alpha: 0.12),
+                                  borderRadius: BorderRadius.circular(12),
+                                  border: Border.all(color: Colors.white.withValues(alpha: 0.2)),
+                                ),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    const Icon(Icons.play_arrow_rounded, color: Colors.white, size: 20),
+                                    const SizedBox(width: 8),
+                                    Text(s.watchNow, style: const TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w700)),
+                                  ],
+                                ),
+                              ),
+                            ),
                           ),
                         ),
                       ],
@@ -1881,9 +1938,7 @@ class _FeaturedCarouselState extends State<_FeaturedCarousel> {
           ),
           if (widget.slides.length > 1)
             Positioned(
-              bottom: 12,
-              left: 0,
-              right: 0,
+              bottom: 12, left: 0, right: 0,
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: List.generate(
@@ -1894,9 +1949,7 @@ class _FeaturedCarouselState extends State<_FeaturedCarousel> {
                     height: 4,
                     margin: const EdgeInsets.symmetric(horizontal: 3),
                     decoration: BoxDecoration(
-                      color: _index == i 
-                          ? AppTheme.accentColor(widget.gradientPreset) 
-                          : Colors.white24,
+                      color: _index == i ? AppTheme.accentColor(widget.gradientPreset) : Colors.white24,
                       borderRadius: BorderRadius.circular(4),
                     ),
                   ),
@@ -1908,17 +1961,13 @@ class _FeaturedCarouselState extends State<_FeaturedCarousel> {
     );
   }
 
-  Widget _heroFallback(Channel ch) {
+  Widget _heroFallback() {
     return Container(
       decoration: BoxDecoration(
         gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: [
-            AppTheme.backgroundBlack,
-            const Color(0xFF1A222E),
-            AppTheme.surfaceGray,
-          ],
+          colors: [AppTheme.backgroundBlack, const Color(0xFF1A222E), AppTheme.surfaceGray],
         ),
       ),
       child: Center(
@@ -1929,150 +1978,8 @@ class _FeaturedCarouselState extends State<_FeaturedCarousel> {
       ),
     );
   }
-
-  Widget _glassButton({
-    required String label,
-    required IconData icon,
-    required VoidCallback onTap,
-  }) {
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(12),
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-          decoration: BoxDecoration(
-            color: Colors.white.withOpacity(0.12),
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: Colors.white.withOpacity(0.2)),
-          ),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(icon, color: Colors.white, size: 20),
-              const SizedBox(width: 8),
-              Text(
-                label,
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 14,
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
 }
 
-
-class _TvClock extends StatefulWidget {
-  const _TvClock();
-
-  @override
-  State<_TvClock> createState() => _TvClockState();
-}
-
-class _TvClockState extends State<_TvClock> {
-  Timer? _timer;
-  @override
-  void initState() {
-    super.initState();
-    _timer = Timer.periodic(const Duration(seconds: 30), (t) => setState(() {}));
-  }
-  @override
-  void dispose() {
-    _timer?.cancel();
-    super.dispose();
-  }
-  @override
-  Widget build(BuildContext context) {
-    final now = DateTime.now();
-    final time ='${now.hour.toString().padLeft(2, '0')}:${now.minute.toString().padLeft(2, '0')}';
-    return Text(
-      time,
-      style: const TextStyle(color: Colors.white70, fontSize: 22, fontWeight: FontWeight.bold),
-    );
-  }
-}
-
-class _TvTabs extends StatefulWidget {
-  const _TvTabs({required this.tabs, required this.onTabChange, required this.activeIndex});
-  final List<String> tabs;
-  final ValueChanged<int> onTabChange;
-  final int activeIndex;
-
-  @override
-  State<_TvTabs> createState() => _TvTabsState();
-}
-
-class _TvTabsState extends State<_TvTabs> {
-  int _internalActive = 0;
-  bool _focused = false;
-
-  @override
-  void initState() {
-    super.initState();
-    _internalActive = widget.activeIndex;
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Focus(
-      onFocusChange: (f) => setState(() => _focused = f),
-      onKeyEvent: (node, event) {
-        if (event is KeyDownEvent) {
-          if (event.logicalKey == LogicalKeyboardKey.arrowLeft && _internalActive > 0) {
-            setState(() => _internalActive--);
-            widget.onTabChange(_internalActive);
-            return KeyEventResult.handled;
-          }
-          if (event.logicalKey == LogicalKeyboardKey.arrowRight && _internalActive < widget.tabs.length -1) {
-            setState(() => _internalActive++);
-            widget.onTabChange(_internalActive);
-            return KeyEventResult.handled;
-          }
-        }
-        return KeyEventResult.ignored;
-      },
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: List.generate(widget.tabs.length, (i) {
-          final active = i == _internalActive;
-          return Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 24),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  widget.tabs[i],
-                  style: TextStyle(
-                    color: active ? Colors.white : Colors.white38,
-                    fontSize: 20,
-                    fontWeight: active ? FontWeight.w900 : FontWeight.w500,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                AnimatedContainer(
-                  duration: const Duration(milliseconds: 300),
-                  width: active ? 40 : 0,
-                  height: 3,
-                  decoration: BoxDecoration(
-                    color: active ? Colors.white : Colors.transparent,
-                    borderRadius: BorderRadius.circular(2),
-                  ),
-                ),
-              ],
-            ),
-          );
-        }),
-      ),
-    );
-  }
-}
 
 
 
@@ -2336,6 +2243,179 @@ class _AboutTab extends StatelessWidget {
             style: TextStyle(color: Colors.white10, fontSize: 10),
           ),
         ],
+      ),
+    );
+  }
+}
+
+
+
+class _TvClock extends StatefulWidget {
+  const _TvClock();
+
+  @override
+  State<_TvClock> createState() => _TvClockState();
+}
+
+class _TvClockState extends State<_TvClock> {
+  Timer? _timer;
+  @override
+  void initState() {
+    super.initState();
+    _timer = Timer.periodic(const Duration(seconds: 30), (t) => setState(() {}));
+  }
+  @override
+  void dispose() {
+    _timer?.cancel();
+    super.dispose();
+  }
+  @override
+  Widget build(BuildContext context) {
+    final now = DateTime.now();
+    final time ='${now.hour.toString().padLeft(2, '0')}:${now.minute.toString().padLeft(2, '0')}';
+    return Text(
+      time,
+      style: const TextStyle(color: Colors.white70, fontSize: 22, fontWeight: FontWeight.bold),
+    );
+  }
+}
+
+class _TvTabs extends StatefulWidget {
+  const _TvTabs({
+    required this.tabs,
+    required this.onTabChange,
+    required this.activeIndex,
+    this.nextFocusNode,
+  });
+  final List<String> tabs;
+  final ValueChanged<int> onTabChange;
+  final int activeIndex;
+  final FocusNode? nextFocusNode;
+
+  @override
+  State<_TvTabs> createState() => _TvTabsState();
+}
+
+class _TvTabsState extends State<_TvTabs> {
+  double _lineWidth = 0;
+  double _lineOffset = 0;
+  bool _tabFocused = false;
+  late int _active = widget.activeIndex;
+  late final _tabKeys = List.generate(widget.tabs.length, (_) => GlobalKey());
+
+  @override
+  void didUpdateWidget(covariant _TvTabs old) {
+    super.didUpdateWidget(old);
+    if (widget.activeIndex != _active) {
+      _active = widget.activeIndex;
+      setState(() {});
+    }
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    Future.delayed(const Duration(milliseconds: 10)).then((_) {
+      if (mounted && _tabKeys[_active].currentContext != null) {
+        setState(() => _updateActiveLine(_tabKeys[_active].currentContext!));
+      }
+    });
+  }
+
+  void _updateActiveLine(BuildContext ctx) {
+    final box = ctx.findRenderObject()! as RenderBox;
+    final parentBox = box.parent?.parent?.parent?.parent as RenderBox?;
+    if (parentBox == null) return;
+    final offset = box.globalToLocal(Offset.zero, ancestor: parentBox);
+    _lineWidth = box.size.width;
+    _lineOffset = -offset.dx;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final color = Theme.of(context).colorScheme.onSurface;
+    return Focus(
+      autofocus: true,
+      onFocusChange: (f) => setState(() => _tabFocused = f),
+      onKeyEvent: (node, event) {
+        if (event is KeyDownEvent || event is KeyRepeatEvent) {
+          if (event.logicalKey == LogicalKeyboardKey.arrowLeft && _active > 0) {
+            _active -= 1;
+            widget.onTabChange(_active);
+            if (_tabKeys[_active].currentContext != null) {
+              _updateActiveLine(_tabKeys[_active].currentContext!);
+            }
+            setState(() {});
+            return KeyEventResult.handled;
+          }
+          if (event.logicalKey == LogicalKeyboardKey.arrowRight) {
+            if (_active < widget.tabs.length - 1) {
+              _active += 1;
+              widget.onTabChange(_active);
+              if (_tabKeys[_active].currentContext != null) {
+                _updateActiveLine(_tabKeys[_active].currentContext!);
+              }
+              setState(() {});
+            } else {
+              final siblings = node.parent!.children.toList();
+              final index = siblings.indexOf(node);
+              if (index + 1 < siblings.length) siblings[index + 1].requestFocus();
+            }
+            return KeyEventResult.handled;
+          }
+        }
+        return KeyEventResult.ignored;
+      },
+      child: Material(
+        type: MaterialType.transparency,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Row(
+              mainAxisSize: MainAxisSize.min,
+              children: widget.tabs.indexed.map((tab) {
+                return GestureDetector(
+                  onTap: () {
+                    _active = tab.$1;
+                    widget.onTabChange(_active);
+                    if (_tabKeys[_active].currentContext != null) {
+                      _updateActiveLine(_tabKeys[_active].currentContext!);
+                    }
+                    setState(() {});
+                  },
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 12),
+                    child: Text(
+                      tab.$2,
+                      key: _tabKeys[tab.$1],
+                      style: Theme.of(context).textTheme.titleMedium!.copyWith(
+                        color: tab.$1 == _active && _tabFocused ? color : Colors.grey,
+                      ),
+                    ),
+                  ),
+                );
+              }).toList(),
+            ),
+            if (_lineWidth > 0)
+              AnimatedContainer(
+                duration: const Duration(milliseconds: 400),
+                curve: Curves.easeOut,
+                width: _tabFocused ? _lineWidth : _lineWidth * 0.6,
+                height: 2,
+                margin: EdgeInsets.only(
+                    left: _tabFocused ? _lineOffset : _lineOffset + _lineWidth * 0.2),
+                decoration: BoxDecoration(
+                  color: _tabFocused ? color : Colors.grey,
+                  borderRadius: const BorderRadius.only(
+                    topLeft: Radius.circular(2),
+                    topRight: Radius.circular(2),
+                  ),
+                ),
+              ),
+          ],
+        ),
       ),
     );
   }
