@@ -387,7 +387,6 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
           children: [
             _buildVideoView(),
             _buildTvArchitectureOverhaul(s),
-            if (_showSubtitlePrompt) _buildSubtitleChoicePrompt(uiLocale, s),
           ],
         ),
       );
@@ -418,117 +417,13 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
                 ],
               ),
             ),
-            
-            if (_showSubtitlePrompt) _buildSubtitleChoicePrompt(uiLocale, s),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildSubtitleChoicePrompt(Locale uiLocale, AppStrings s) {
-    // Group subtitles by language
-    final kurdish = _availableSubtitles.where((sub) => sub.language == 'ku' || sub.language == 'ckb').toList();
-    final english = _availableSubtitles.where((sub) => sub.language == 'en').toList();
-
-    return Container(
-      color: Colors.black87,
-      child: Center(
-        child: Container(
-          width: 320,
-          padding: const EdgeInsets.all(24),
-          decoration: BoxDecoration(
-            color: const Color(0xFF1A1D21),
-            borderRadius: BorderRadius.circular(24),
-            border: Border.all(color: Colors.white10),
-            boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.5), blurRadius: 30)],
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(
-                s.isEnglish ? 'Subtitle Options' : 'هەڵبژاردنی ژێرنووس',
-                style: AppTheme.withRabarIfKurdish(
-                  uiLocale,
-                  const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.w900),
-                ),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                s.isEnglish ? 'Choose a language for this movie' : 'زمانێک هەڵبژێرە بۆ ئەم فیلمە',
-                textAlign: TextAlign.center,
-                style: AppTheme.withRabarIfKurdish(
-                  uiLocale,
-                  TextStyle(color: Colors.white.withOpacity(0.5), fontSize: 13),
-                ),
-              ),
-              const SizedBox(height: 24),
-              if (kurdish.isNotEmpty)
-                _buildSubtitleChoiceButton(
-                  label: 'KURDISH (سۆرانی)',
-                  icon: Icons.translate_rounded,
-                  color: _accent,
-                  onTap: () => _applySubtitle(kurdish.first),
-                ),
-              if (english.isNotEmpty)
-                _buildSubtitleChoiceButton(
-                  label: 'ENGLISH',
-                  icon: Icons.language_rounded,
-                  color: Colors.blueAccent,
-                  onTap: () => _applySubtitle(english.first),
-                ),
-              _buildSubtitleChoiceButton(
-                label: s.isEnglish ? 'NONE' : 'بەبێ ژێرنووس',
-                icon: Icons.close_rounded,
-                color: Colors.white24,
-                onTap: () => setState(() => _showSubtitlePrompt = false),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildSubtitleChoiceButton({
-    required String label,
-    required IconData icon,
-    required Color color,
-    required VoidCallback onTap,
-  }) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 12),
-      child: Material(
-        color: color.withOpacity(0.1),
-        borderRadius: BorderRadius.circular(12),
-        child: InkWell(
-          onTap: onTap,
-          borderRadius: BorderRadius.circular(12),
-          child: Container(
-            padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
-            decoration: BoxDecoration(
-              border: Border.all(color: color.withOpacity(0.3)),
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Row(
-              children: [
-                Icon(icon, color: color, size: 20),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Text(
-                    label,
-                    style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 13),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
-  // Redundant Overlay Scaffold removed to fix layout issues
+  // Subtitle search and VOD logic removed (Moved to MoviePlayerPage)
 
   Widget _buildVideoView() {
     return ColoredBox(

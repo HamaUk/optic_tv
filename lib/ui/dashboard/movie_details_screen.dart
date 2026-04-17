@@ -6,10 +6,11 @@ import 'package:media_kit_video/media_kit_video.dart';
 import 'dart:ui' show ImageFilter;
 import '../../core/theme.dart';
 import '../../services/playlist_service.dart';
-import '../player/player_screen.dart';
-import '../player/movie_player_page.dart';
+import '../../services/tmdb_service.dart';
+import '../../providers/channel_library_provider.dart';
 import '../../providers/app_locale_provider.dart';
 import '../../l10n/app_strings.dart';
+import '../player/movie_player_page.dart';
 
 class MovieDetailsScreen extends ConsumerStatefulWidget {
   final List<Channel> allChannels;
