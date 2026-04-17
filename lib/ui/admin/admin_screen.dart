@@ -472,8 +472,10 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
       _publishShelf = v;
       if (v == _PublishShelf.liveTv) {
         _channelGroupController.text = 'Live TV';
+        _channelType = 'live';
       } else if (v == _PublishShelf.movies) {
         _channelGroupController.text = 'Movies';
+        _channelType = 'movie';
       } else {
         final t = _channelGroupController.text.trim();
         if (t == 'Live TV' || t == 'Movies') {
@@ -1534,9 +1536,9 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
                                 Text('Shortcuts', style: Theme.of(context).textTheme.titleMedium),
                                 const SizedBox(height: 16),
                                 FilledButton.icon(
-                                  onPressed: () => _tabController.animateTo(2),
+                                  onPressed: () => _tabController.animateTo(3),
                                   icon: const Icon(Icons.publish_rounded),
-                                  label: const Text('Add new channel'),
+                                  label: const Text('Add new content'),
                                 ),
                                 const SizedBox(height: 10),
                                 OutlinedButton.icon(
@@ -1546,19 +1548,19 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
                                 ),
                                 const SizedBox(height: 10),
                                 OutlinedButton.icon(
-                                  onPressed: () => _tabController.animateTo(3),
+                                  onPressed: () => _tabController.animateTo(4),
                                   icon: const Icon(Icons.file_download_rounded),
                                   label: const Text('Import M3U / Xtream'),
                                 ),
                                 const SizedBox(height: 10),
                                 OutlinedButton.icon(
-                                  onPressed: () => _tabController.animateTo(4),
+                                  onPressed: () => _tabController.animateTo(5),
                                   icon: const Icon(Icons.health_and_safety_rounded),
                                   label: const Text('Check channel health'),
                                 ),
                                 const SizedBox(height: 10),
                                 OutlinedButton.icon(
-                                  onPressed: () => _tabController.animateTo(5),
+                                  onPressed: () => _tabController.animateTo(6),
                                   icon: const Icon(Icons.key_rounded),
                                   label: const Text('Groups & login codes'),
                                 ),
@@ -2138,6 +2140,44 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
                 _field(_channelNameController, 'Channel name', Icons.label_outline_rounded),
                 const SizedBox(height: 14),
                 _field(_channelUrlController, 'Stream URL (M3U8 / HLS / MP4)', Icons.link_rounded, maxLines: 3),
+                const SizedBox(height: 14),
+                // Content Type Toggle
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(14),
+                    color: Colors.black.withOpacity(0.2),
+                    border: Border.all(color: Colors.white.withOpacity(0.08)),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(
+                        _channelType == 'movie' ? Icons.movie_filter_rounded : Icons.live_tv_rounded,
+                        color: AppTheme.primaryGold.withOpacity(0.85),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text('Content Type', style: TextStyle(fontSize: 12, color: Colors.white70)),
+                            Text(
+                              _channelType == 'movie' ? 'VOD / MOVIE' : 'LIVE STREAM',
+                              style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.white),
+                            ),
+                          ],
+                        ),
+                      ),
+                      Switch(
+                        value: _channelType == 'movie',
+                        onChanged: (isMovie) {
+                          setState(() => _channelType = isMovie ? 'movie' : 'live');
+                        },
+                        activeColor: AppTheme.primaryGold,
+                      ),
+                    ],
+                  ),
+                ),
                 const SizedBox(height: 14),
                 DropdownButtonFormField<_PublishShelf>(
                   value: _publishShelf,
