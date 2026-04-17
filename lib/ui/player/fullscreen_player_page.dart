@@ -1,9 +1,11 @@
-import 'dart:async';
+import 'dart:convert';
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:media_kit/media_kit.dart';
 import 'package:media_kit_video/media_kit_video.dart';
 import 'package:intl/intl.dart' hide TextDirection;
+import 'package:path_provider/path_provider.dart';
 
 import '../../core/theme.dart';
 import '../../l10n/app_strings.dart';
@@ -79,6 +81,35 @@ class _FullscreenPlayerPageState extends State<FullscreenPlayerPage> {
     ]);
 
     _resetHideTimer();
+    
+    // Priority: Load manual subtitle for the initial channel
+    _loadManualSubtitle();
+  }
+
+  Future<void> _loadManualSubtitle() async {
+    final subUrl = _current.subtitleUrl;
+    if (subUrl == null || subUrl.isEmpty) return;
+
+    try {
+      if (subUrl.startsWith('data:')) {
+        // Enforce Local File: Encoded SRT/VTT from Admin Portal
+        final parts = subUrl.split(';base64,');
+        if (parts.length != 2) return;
+        
+        final bytes = base64Decode(parts[1]);
+        final tempDir = await getTemporaryDirectory();
+        final isVtt = subUrl.contains('text/vtt');
+        final tempFile = File('${tempDir.path}/live_sub_${DateTime.now().millisecondsSinceEpoch}.${isVtt ? 'vtt' : 'srt'}');
+        
+        await tempFile.writeAsBytes(bytes);
+        await widget.player.setSubtitleTrack(SubtitleTrack.uri(tempFile.uri.toString()));
+      } else if (subUrl.startsWith('http')) {
+        // Enforce URL: Direct web link
+        await widget.player.setSubtitleTrack(SubtitleTrack.uri(subUrl));
+      }
+    } catch (e) {
+      debugPrint('Error loading live subtitle: $e');
+    }
   }
 
   void _resetHideTimer() {
@@ -109,6 +140,7 @@ class _FullscreenPlayerPageState extends State<FullscreenPlayerPage> {
       _selectedGroup = widget.channels[_index].group;
     });
     widget.player.open(Media(widget.channels[_index].url));
+    _loadManualSubtitle();
     _resetHideTimer();
   }
 
@@ -193,36 +225,23 @@ class _FullscreenPlayerPageState extends State<FullscreenPlayerPage> {
       color: Colors.black.withOpacity(0.45),
       child: Stack(
         children: [
-          // Left Side Category Selection (Compact rioplayer style)
+          // 1. Left Side Category Selection
           _buildCategorySidebar(),
           
-          // Row for Channel List (Smaller)
+          // 2. Row for Channel List
           Positioned(
-            left: 100, // Matches compact Sidebar width
+            left: 100,
             top: 0,
             bottom: 0,
             child: _buildChannelList(),
           ),
 
-          // 3. Exit Button (Bottom Right)
+          // 3. Bottom Quick HUD (Subtitles / Settings / Exit)
           Positioned(
-            right: 32,
-            bottom: 32,
-            child: Material(
-              color: Colors.black45,
-              borderRadius: BorderRadius.circular(12),
-              child: InkWell(
-                onTap: () async {
-                  await _exitFullscreen();
-                  if (mounted) Navigator.of(context).pop();
-                },
-                borderRadius: BorderRadius.circular(12),
-                child: const Padding(
-                  padding: EdgeInsets.all(16),
-                  child: Icon(Icons.fullscreen_exit_rounded, color: Colors.white, size: 32),
-                ),
-              ),
-            ),
+            left: 100,
+            right: 0,
+            bottom: 0,
+            child: _buildBottomHUD(),
           ),
         ],
       ),
@@ -335,37 +354,85 @@ class _FullscreenPlayerPageState extends State<FullscreenPlayerPage> {
     );
   }
 
-  Widget _buildAmbientClock() {
-    final timeStr = DateFormat('HH:mm').format(_now);
-    final dateStr = DateFormat('yyyy/MM/dd').format(_now);
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.end,
-      children: [
-        Text(
-          timeStr,
-          style: const TextStyle(
-            color: Colors.white,
-            fontSize: 48,
-            fontWeight: FontWeight.w900,
-            letterSpacing: -1,
-            shadows: [Shadow(color: Colors.black, blurRadius: 15)],
-          ),
+  Widget _buildBottomHUD() {
+    return Container(
+      padding: const EdgeInsets.fromLTRB(40, 20, 40, 40),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.bottomCenter,
+          end: Alignment.topCenter,
+          colors: [Colors.black.withOpacity(0.9), Colors.transparent],
         ),
-        Text(
-          dateStr.toUpperCase(),
-          style: TextStyle(
-            color: Colors.white.withOpacity(0.5),
-            fontSize: 16,
-            fontWeight: FontWeight.w900,
-            letterSpacing: 2,
-            shadows: [Shadow(color: Colors.black, blurRadius: 10)],
+      ),
+      child: Row(
+        children: [
+          _buildHUDAction(Icons.closed_caption_rounded, _showSubtitleSelector, label: 'Subtitles'),
+          const SizedBox(width: 16),
+          _buildHUDAction(Icons.settings_outlined, _showSettingsModal, label: 'Settings'),
+          const Spacer(),
+          Text(
+            _current.name.toUpperCase(),
+            style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.w900, letterSpacing: 1),
           ),
-        ),
-      ],
+          const SizedBox(width: 40),
+          _buildHUDAction(Icons.fullscreen_exit_rounded, () async {
+            await _exitFullscreen();
+            if (mounted) Navigator.of(context).pop();
+          }, label: 'Exit'),
+        ],
+      ),
     );
   }
 
-  // ── Gesture OSD ──
+  Widget _buildHUDAction(IconData icon, VoidCallback onTap, {required String label}) {
+    return Material(
+      color: Colors.black45,
+      borderRadius: BorderRadius.circular(12),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(12),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(icon, color: Colors.white, size: 24),
+              const SizedBox(width: 12),
+              Text(
+                label.toUpperCase(),
+                style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w900, letterSpacing: 1),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildHUDAction(IconData icon, VoidCallback onTap, {required String label}) {
+    return Material(
+      color: Colors.black45,
+      borderRadius: BorderRadius.circular(12),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(12),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(icon, color: Colors.white, size: 24),
+              const SizedBox(width: 12),
+              Text(
+                label.toUpperCase(),
+                style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w900, letterSpacing: 1),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
 
   Widget _buildOSDIndicator() {
     return Container(
