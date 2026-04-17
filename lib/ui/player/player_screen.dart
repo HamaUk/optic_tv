@@ -196,18 +196,20 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
   }
 
   void _configureNativePlayer() {
-    // Professional Media 3 / MPV properties (Corrected API)
+    // Professional Media 3 / MPV properties for 4K and GPU Acceleration
     if (_player?.platform is NativePlayer) {
       final native = _player!.platform as NativePlayer;
       Future<void> set(String k, String v) async {
         try { await native.setProperty(k, v); } catch (_) {}
       }
-      set('hwdec', 'auto');
-      set('vo', 'gpu');
-      set('gpu-api', 'opengl');
-      set('vd-lavc-threads', '16');
-      set('cache', 'yes');
-      set('demuxer-max-bytes', '16777216');
+      set('hwdec', 'auto');              // Automatic hardware decoding
+      set('vo', 'gpu');                  // GPU video output
+      set('gpu-api', 'opengl');          // OpenGL for Android stability
+      set('vd-lavc-threads', '0');       // Let ffmpeg decide threading (0 = auto)
+      set('cache', 'yes');               // Enable caching
+      set('demuxer-max-bytes', '33554432'); // 32MB demuxer cache for 4K stability
+      set('hr-seek', 'yes');             // High-precision seeking
+      set('opengl-es', 'yes');           // Force GLES for Android
     }
   }
 
@@ -259,8 +261,8 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
       if (mounted) setState(() => _isPlaying = pl);
     }));
 
-    MonitorService.updateActivity(_current.name);
     _viewFit = _settings.videoFit;
+    _configureNativePlayer(); // Apply GPU/Hardware properties
     await p.open(Media(_current.url));
   }
 
@@ -598,19 +600,46 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
   Widget _buildVideoView() {
     return ColoredBox(
       color: Colors.black,
-      child: GestureDetector(
-        onTap: _playPause,
-        child: _controller != null
-            ? Video(
-                key: _videoKey,
-                controller: _controller!,
-                controls: NoVideoControls,
-                wakelock: _settings!.keepScreenOnWhilePlaying,
-                fit: _viewFit,
-                fill: const Color(0xFF000000),
-                filterQuality: FilterQuality.high,
-              )
-            : const Center(child: CircularProgressIndicator(color: Colors.white24)),
+      child: Stack(
+        fit: StackFit.expand,
+        children: [
+          GestureDetector(
+            onTap: _playPause,
+            child: _controller != null
+                ? Video(
+                    key: _videoKey,
+                    controller: _controller!,
+                    controls: NoVideoControls,
+                    wakelock: _settings!.keepScreenOnWhilePlaying,
+                    fit: _viewFit,
+                    fill: const Color(0xFF000000),
+                    filterQuality: FilterQuality.high,
+                  )
+                : const Center(child: CircularProgressIndicator(color: Colors.white24)),
+          ),
+          // Fullscreen Toggle Icon (Bottom Right)
+          if (!_isFullscreen)
+            Positioned(
+              bottom: 8,
+              right: 8,
+              child: Material(
+                color: Colors.black.withOpacity(0.5),
+                borderRadius: BorderRadius.circular(8),
+                child: InkWell(
+                  onTap: _toggleFullscreen,
+                  borderRadius: BorderRadius.circular(8),
+                  child: const Padding(
+                    padding: EdgeInsets.all(8.0),
+                    child: Icon(
+                      Icons.fullscreen_rounded,
+                      color: Colors.white,
+                      size: 26,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+        ],
       ),
     );
   }
@@ -958,12 +987,7 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
           _buildMobileHeader(s, uiLocale),
           AspectRatio(
             aspectRatio: 16 / 9,
-            child: Stack(
-              children: [
-                _buildVideoView(),
-                _buildMobileVideoOverlay(),
-              ],
-            ),
+            child: _buildVideoView(),
           ),
           Expanded(
             child: Row(
@@ -982,14 +1006,14 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
   Widget _buildMobileHeader(AppStrings s, Locale uiLocale) {
     return Container(
       padding: EdgeInsets.only(
-        top: MediaQuery.paddingOf(context).top + 4,
+        top: MediaQuery.viewPaddingOf(context).top + 4,
         left: 16,
         right: 8,
-        bottom: 10,
+        bottom: 12,
       ),
       decoration: BoxDecoration(
         color: const Color(0xFF0A0E14),
-        border: Border(bottom: BorderSide(color: _accent.withOpacity(0.08))),
+        border: Border(bottom: BorderSide(color: Colors.white.withOpacity(0.05))),
       ),
       child: Row(
         children: [
