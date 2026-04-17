@@ -1,6 +1,6 @@
 import 'dart:convert';
-
 import 'package:flutter/material.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 
 /// Renders [logo] from a network URL or a `data:image/...;base64,...` data URI.
 class ChannelLogoImage extends StatelessWidget {
@@ -47,6 +47,7 @@ class ChannelLogoImage extends StatelessWidget {
             width: w,
             height: h,
             fit: fit,
+            gaplessPlayback: true,
             errorBuilder: (_, __, ___) => fb,
           );
           return _wrap(img, w, h);
@@ -56,12 +57,15 @@ class ChannelLogoImage extends StatelessWidget {
       }
     }
 
-    final net = Image.network(
-      s,
+    final net = CachedNetworkImage(
+      imageUrl: s,
       width: w,
       height: h,
       fit: fit,
-      errorBuilder: (_, __, ___) => fb,
+      placeholder: (_, __) => fb,
+      errorWidget: (_, __, ___) => fb,
+      fadeInDuration: Duration.zero,
+      fadeOutDuration: Duration.zero,
     );
     return _wrap(net, w, h);
   }

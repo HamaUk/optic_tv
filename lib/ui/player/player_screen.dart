@@ -913,6 +913,7 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
             final fullIdx = widget.channels.indexOf(ch);
             final active = ch.url == _current.url;
             return Material(
+              key: ValueKey('mobile_${ch.url}_$fullIdx'),
               color: active ? _accent.withOpacity(0.08) : Colors.transparent,
               child: InkWell(
                 onTap: () => _selectChannelByIndex(fullIdx),
@@ -1135,6 +1136,7 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
           final active = ch.url == _current.url;
           final fullIdx = widget.channels.indexOf(ch);
           return Material(
+            key: ValueKey('fs_${ch.url}_$fullIdx'),
             color: active ? _accent.withOpacity(0.2) : Colors.transparent,
             child: InkWell(
               onTap: () => _selectChannelByIndex(fullIdx),
