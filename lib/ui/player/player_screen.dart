@@ -1293,9 +1293,7 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
           ),
         ),
       );
-    }
   }
-}
 
 class _GhostenPlayerInfoView extends StatelessWidget {
   const _GhostenPlayerInfoView({required this.channel});
