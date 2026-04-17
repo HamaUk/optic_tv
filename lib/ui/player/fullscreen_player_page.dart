@@ -161,15 +161,29 @@ class _FullscreenPlayerPageState extends State<FullscreenPlayerPage> {
           child: Stack(
             fit: StackFit.expand,
             children: [
-              // Video Layer
+              // 1. Video Layer
               Video(
                 controller: widget.controller,
                 controls: NoVideoControls,
                 fit: BoxFit.contain,
               ),
-                  child: _buildOverlayContent(),
+
+              // 2. Ambient Clock (Always visible or toggleable?)
+              // We'll show it only when UI is visible to keep the screen clean on start as requested
+              if (_overlayVisible)
+                Positioned(
+                  top: 30,
+                  right: 40,
+                  child: _buildAmbientClock(),
                 ),
-              ),
+
+              // 3. Gesture OSD Indicators
+              if (_osdLabel != null)
+                Center(child: _buildOSDIndicator()),
+
+              // 4. UI Layer (HUD / Guide)
+              if (_overlayVisible)
+                _buildOverlayContent(),
             ],
           ),
         ),
@@ -404,7 +418,7 @@ class _FullscreenPlayerPageState extends State<FullscreenPlayerPage> {
     } else {
       // VOLUME
       _volumeValue = ((_volumeValue ?? 0.5) - details.delta.dy / 300).clamp(0.0, 1.0);
-      widget.player.setVolume(((_volumeValue ?? 0.5) * 100).toInt());
+      widget.player.setVolume(((_volumeValue ?? 0.5) * 100.0).toDouble());
       _osdLabel = "VOLUME";
     }
     setState(() {});
