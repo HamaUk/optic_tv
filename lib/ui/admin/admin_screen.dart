@@ -2396,20 +2396,6 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
     );
   }
 
-  Widget _field(TextEditingController c, String label, IconData icon, {int maxLines = 1}) {
-    return TextField(
-      controller: c,
-      maxLines: maxLines,
-      style: const TextStyle(color: Colors.white),
-      decoration: InputDecoration(
-        labelText: label,
-        prefixIcon: Icon(icon, color: AppTheme.primaryGold.withOpacity(0.85)),
-        border: OutlineInputBorder(borderRadius: BorderRadius.circular(14)),
-        filled: true,
-        fillColor: Colors.black.withOpacity(0.2),
-      ),
-    );
-  }
 
   Widget _buildGroupQuickPick() {
     return StreamBuilder<DatabaseEvent>(
