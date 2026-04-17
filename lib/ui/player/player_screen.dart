@@ -27,6 +27,8 @@ import '../../services/playlist_service.dart';
 import '../../services/settings_service.dart';
 import '../../widgets/tv_focus_wrapper.dart';
 import '../settings/settings_screen.dart';
+import '../../services/subtitle_service.dart';
+import '../../services/tmdb_service.dart';
 
 enum _TvPanelType { none, progressbar, playlist }
 
@@ -93,6 +95,13 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
   StreamSubscription? _techInfoSubscription;
 
   final List<StreamSubscription<dynamic>> _subscriptions = [];
+  
+  // Subtitle System
+  final SubtitleService _subtitleService = SubtitleService();
+  final TmdbService _tmdbService = TmdbService();
+  List<SubtitleResult> _availableSubtitles = [];
+  bool _isSearchingSubtitles = false;
+  bool _showSubtitlePrompt = false;
 
   Channel get _current => widget.channels[_index];
 
@@ -303,7 +312,59 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
   Future<void> _reopenCurrentStream() async {
     final p = _player;
     if (p == null) return;
+    
+    // Clear old subtitles
+    setState(() {
+      _availableSubtitles = [];
+      _showSubtitlePrompt = false;
+    });
+
     await p.open(Media(_current.url));
+    
+    // Start subtitle search if it's a movie
+    if (_isMovie) {
+      _searchSubtitles();
+    }
+  }
+
+  bool get _isMovie {
+    final g = _current.group.toLowerCase();
+    return g.contains('movie') || g.contains('film') || g.contains('cinema');
+  }
+
+  Future<void> _searchSubtitles() async {
+    if (!_subtitleService.hasApiKey) return;
+    
+    setState(() => _isSearchingSubtitles = true);
+    
+    try {
+      // 1. Find movie on TMDB to get IMDb ID
+      final movie = await _tmdbService.findMovie(_current.name);
+      
+      // 2. Search OpenSubtitles
+      final results = await _subtitleService.search(
+        imdbId: movie?.imdbId,
+        query: movie?.title ?? _current.name,
+      );
+      
+      if (mounted && results.isNotEmpty) {
+        setState(() {
+          _availableSubtitles = results;
+          _showSubtitlePrompt = true;
+          _isSearchingSubtitles = false;
+        });
+      }
+    } catch (_) {
+      if (mounted) setState(() => _isSearchingSubtitles = false);
+    }
+  }
+
+  Future<void> _applySubtitle(SubtitleResult sub) async {
+    final url = await _subtitleService.getDownloadUrl(sub.id);
+    if (url != null && _player != null) {
+      await _player!.setSubtitleTrack(SubtitleTrack.uri(url));
+      if (mounted) setState(() => _showSubtitlePrompt = false);
+    }
   }
 
   Future<void> _toggleFullscreen() async {
@@ -356,10 +417,6 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
     SimplePip().enterPipMode();
   }
 
-  bool get _isMovie =>
-      _current.group.toLowerCase().contains('movie') ||
-      _current.group.toLowerCase().contains('film') ||
-      _current.group.toLowerCase().contains('cinema');
 
   @override
   Widget build(BuildContext context) {
@@ -404,7 +461,113 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
             _isFullscreen
                 ? _buildFullscreenMode(uiLocale, s)
                 : _buildMobileScaffoldOverlay(uiLocale, s, bottomPad),
+
+          // 3. Subtitle Choice Prompt (Always on top)
+          if (_showSubtitlePrompt)
+            _buildSubtitleChoicePrompt(uiLocale, s),
         ],
+      ),
+    );
+  }
+
+  Widget _buildSubtitleChoicePrompt(Locale uiLocale, AppStrings s) {
+    // Group subtitles by language
+    final kurdish = _availableSubtitles.where((sub) => sub.language == 'ku' || sub.language == 'ckb').toList();
+    final english = _availableSubtitles.where((sub) => sub.language == 'en').toList();
+
+    return Container(
+      color: Colors.black87,
+      child: Center(
+        child: Container(
+          width: 320,
+          padding: const EdgeInsets.all(24),
+          decoration: BoxDecoration(
+            color: const Color(0xFF1A1D21),
+            borderRadius: BorderRadius.circular(24),
+            border: Border.all(color: Colors.white10),
+            boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.5), blurRadius: 30)],
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                s.isEnglish ? 'Subtitle Options' : 'هەڵبژاردنی ژێرنووس',
+                style: AppTheme.withRabarIfKurdish(
+                  uiLocale,
+                  const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.w900),
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                s.isEnglish ? 'Choose a language for this movie' : 'زمانێک هەڵبژێرە بۆ ئەم فیلمە',
+                textAlign: TextAlign.center,
+                style: AppTheme.withRabarIfKurdish(
+                  uiLocale,
+                  TextStyle(color: Colors.white.withOpacity(0.5), fontSize: 13),
+                ),
+              ),
+              const SizedBox(height: 24),
+              if (kurdish.isNotEmpty)
+                _buildSubtitleChoiceButton(
+                  label: 'KURDISH (سۆرانی)',
+                  icon: Icons.translate_rounded,
+                  color: _accent,
+                  onTap: () => _applySubtitle(kurdish.first),
+                ),
+              if (english.isNotEmpty)
+                _buildSubtitleChoiceButton(
+                  label: 'ENGLISH',
+                  icon: Icons.language_rounded,
+                  color: Colors.blueAccent,
+                  onTap: () => _applySubtitle(english.first),
+                ),
+              _buildSubtitleChoiceButton(
+                label: s.isEnglish ? 'NONE' : 'بەبێ ژێرنووس',
+                icon: Icons.close_rounded,
+                color: Colors.white24,
+                onTap: () => setState(() => _showSubtitlePrompt = false),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSubtitleChoiceButton({
+    required String label,
+    required IconData icon,
+    required Color color,
+    required VoidCallback onTap,
+  }) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: Material(
+        color: color.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(12),
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(12),
+          child: Container(
+            padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
+            decoration: BoxDecoration(
+              border: Border.all(color: color.withOpacity(0.3)),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Row(
+              children: [
+                Icon(icon, color: color, size: 20),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    label,
+                    style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 13),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
       ),
     );
   }
@@ -835,21 +998,24 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
           Expanded(
             child: Text(
               _current.name,
-              style: AppTheme.withRabarIfKurdish(
-                uiLocale,
-                TextStyle(
-                  color: Colors.white,
-                  fontSize: 16,
-                  fontWeight: FontWeight.w700,
-                  letterSpacing: -0.2,
-                ),
-              ),
-              maxLines: 1,
               overflow: TextOverflow.ellipsis,
               textAlign: TextAlign.center,
+              style: AppTheme.withRabarIfKurdish(
+                uiLocale,
+                const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold),
+              ),
             ),
           ),
           const SizedBox(width: 8),
+          if (_isMovie)
+            IconButton(
+              icon: Icon(
+                Icons.closed_caption_rounded,
+                color: _availableSubtitles.isNotEmpty ? _accent : Colors.white24,
+                size: 24,
+              ),
+              onPressed: () => _showSubtitleModal(uiLocale, s),
+            ),
           IconButton(
             icon: Icon(Icons.settings_outlined, color: Colors.white.withOpacity(0.7), size: 22),
             onPressed: () async {
@@ -864,6 +1030,67 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
             },
           ),
         ],
+      ),
+    );
+  }
+
+  void _showSubtitleModal(Locale uiLocale, AppStrings s) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (context) => Container(
+        height: MediaQuery.of(context).size.height * 0.5,
+        decoration: BoxDecoration(
+          color: const Color(0xFF14171C),
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(32)),
+          border: Border.all(color: Colors.white10),
+        ),
+        child: Column(
+          children: [
+            const SizedBox(height: 12),
+            Container(width: 40, height: 4, decoration: BoxDecoration(color: Colors.white12, borderRadius: BorderRadius.circular(2))),
+            const SizedBox(height: 24),
+            Text(
+              s.isEnglish ? 'Subtitles' : 'ژێرنووس',
+              style: AppTheme.withRabarIfKurdish(
+                uiLocale,
+                const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.w900),
+              ),
+            ),
+            const SizedBox(height: 16),
+            Expanded(
+              child: ListView.builder(
+                padding: const EdgeInsets.symmetric(horizontal: 20),
+                itemCount: _availableSubtitles.length + 1,
+                itemBuilder: (context, i) {
+                  if (i == 0) {
+                    return ListTile(
+                      leading: const Icon(Icons.close_rounded, color: Colors.white60),
+                      title: Text(s.isEnglish ? 'None' : 'بەبێ ژێرنووس', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                      onTap: () {
+                        _player?.setSubtitleTrack(SubtitleTrack.no());
+                        Navigator.pop(context);
+                      },
+                    );
+                  }
+                  final sub = _availableSubtitles[i - 1];
+                  final isKur = sub.language == 'ku' || sub.language == 'ckb';
+                  return ListTile(
+                    leading: Icon(isKur ? Icons.translate_rounded : Icons.language_rounded, color: isKur ? _accent : Colors.blue),
+                    title: Text(sub.fileName, style: const TextStyle(color: Colors.white, fontSize: 13)),
+                    subtitle: Text(sub.language.toUpperCase(), style: TextStyle(color: Colors.white.withOpacity(0.5), fontSize: 11)),
+                    trailing: const Icon(Icons.download_rounded, color: Colors.white24, size: 18),
+                    onTap: () {
+                      _applySubtitle(sub);
+                      Navigator.pop(context);
+                    },
+                  );
+                },
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

@@ -38,7 +38,21 @@ class TmdbService {
       if (results == null || results.isEmpty) return null;
 
       final first = results.first as Map<String, dynamic>;
-      return TmdbMovie.fromJson(first, _imageBaseUrl);
+      final movie = TmdbMovie.fromJson(first, _imageBaseUrl);
+      
+      // Also fetch external IDs to get the IMDb ID (essential for subtitles)
+      final imdbId = await fetchImdbId(movie.id);
+      return movie.copyWith(imdbId: imdbId);
+    } catch (_) {
+      return null;
+    }
+  }
+
+  /// Get the IMDb ID for a given TMDB movie ID.
+  Future<String?> fetchImdbId(int movieId) async {
+    try {
+      final res = await _dio.get('/movie/$movieId/external_ids');
+      return res.data['imdb_id'] as String?;
     } catch (_) {
       return null;
     }
@@ -86,6 +100,7 @@ class TmdbMovie {
   final String? backdropUrl;
   final double rating;
   final String? releaseDate;
+  final String? imdbId;
 
   TmdbMovie({
     required this.id,
@@ -95,7 +110,30 @@ class TmdbMovie {
     this.backdropUrl,
     required this.rating,
     this.releaseDate,
+    this.imdbId,
   });
+
+  TmdbMovie copyWith({
+    int? id,
+    String? title,
+    String? overview,
+    String? posterUrl,
+    String? backdropUrl,
+    double? rating,
+    String? releaseDate,
+    String? imdbId,
+  }) {
+    return TmdbMovie(
+      id: id ?? this.id,
+      title: title ?? this.title,
+      overview: overview ?? this.overview,
+      posterUrl: posterUrl ?? this.posterUrl,
+      backdropUrl: backdropUrl ?? this.backdropUrl,
+      rating: rating ?? this.rating,
+      releaseDate: releaseDate ?? this.releaseDate,
+      imdbId: imdbId ?? this.imdbId,
+    );
+  }
 
   factory TmdbMovie.fromJson(Map<String, dynamic> json, String imageBase) {
     final posterPath = json['poster_path'] as String?;
