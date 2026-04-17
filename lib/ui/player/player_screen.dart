@@ -136,10 +136,6 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
 
     _initFlow();
     
-    // Hide engine splash after 4 seconds per user request
-    Timer(const Duration(seconds: 4), () {
-      if (mounted) setState(() => _showEngineSplash = false);
-    });
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
@@ -196,20 +192,17 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
   }
 
   void _configureNativePlayer() {
-    // Professional Media 3 / MPV properties for 4K and GPU Acceleration
+    // Balanced Hardware Acceleration for Stability & 4K Performance
     if (_player?.platform is NativePlayer) {
       final native = _player!.platform as NativePlayer;
       Future<void> set(String k, String v) async {
         try { await native.setProperty(k, v); } catch (_) {}
       }
-      set('hwdec', 'auto');              // Automatic hardware decoding
-      set('vo', 'gpu');                  // GPU video output
-      set('gpu-api', 'opengl');          // OpenGL for Android stability
-      set('vd-lavc-threads', '0');       // Let ffmpeg decide threading (0 = auto)
+      set('hwdec', 'auto-safe');         // Use safest hardware decoding mode
       set('cache', 'yes');               // Enable caching
-      set('demuxer-max-bytes', '33554432'); // 32MB demuxer cache for 4K stability
-      set('hr-seek', 'yes');             // High-precision seeking
-      set('opengl-es', 'yes');           // Force GLES for Android
+      set('demuxer-max-bytes', '16777216'); // 16MB demuxer cache (balanced)
+      set('vd-lavc-threads', '0');       // Auto-detect optimal threads
+      // Removed vo-gpu and opengl to prevent driver crashes on some Android devices
     }
   }
 
@@ -262,8 +255,13 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
     }));
 
     _viewFit = _settings.videoFit;
-    _configureNativePlayer(); // Apply GPU/Hardware properties
+    _configureNativePlayer(); // Apply stable properties
     await p.open(Media(_current.url));
+    
+    // Hide engine splash only after video attempts to start
+    Timer(const Duration(seconds: 4), () {
+      if (mounted) setState(() => _showEngineSplash = false);
+    });
   }
 
   void _ensureClockTimer() {
