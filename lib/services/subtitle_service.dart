@@ -16,12 +16,12 @@ class SubtitleResult {
 }
 
 class SubtitleService {
-  /// TODO: Replace with your actual OpenSubtitles.com API Key
-  static const String _apiKey = 'API_KEY_HERE';
+  /// Replaced with your actual OpenSubtitles.com API Key
+  static const String _apiKey = 'ZCgdTcguyFqXsE0yJ2kqVvbAfKFnv4jh';
   static const String _baseUrl = 'https://api.opensubtitles.com/api/v1';
   
   /// Mandatory User-Agent as per documentation
-  static const String _userAgent = 'OpticTV v1.0';
+  static const String _userAgent = 'Hama v1.0';
 
   final Dio _dio = Dio(BaseOptions(
     baseUrl: _baseUrl,
