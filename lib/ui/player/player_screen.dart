@@ -347,10 +347,10 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
         body: Stack(
           fit: StackFit.expand,
           children: [
-            _buildVideoView(),
-            if (!isTv) ...[
-              _buildMobileControls(uiLocale, s, bottomPad),
-            ] else ...[
+            if (!isTv)
+              _buildMobileScaffold(uiLocale, s, bottomPad)
+            else ...[
+              _buildVideoView(),
               _buildTvArchitectureOverhaul(s),
             ],
           ],
@@ -711,49 +711,163 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
     if (_index < widget.channels.length - 1) _selectChannelByIndex(_index + 1);
   }
 
-  Widget _buildMobileControls(Locale uiLocale, AppStrings s, double bottomPad) {
-    return Column(
-      children: [
-        Padding(
-          padding: const EdgeInsets.all(16.0),
-          child: Row(
-            children: [
-              Expanded(child: Text(_current.name, style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold))),
-            ],
+  Widget _buildMobileScaffold(Locale uiLocale, AppStrings s, double bottomPad) {
+    return Container(
+      color: Colors.black,
+      child: Column(
+        children: [
+          // 1. Header
+          _buildMobileHeader(s),
+          // 2. Video Preview (Top)
+          AspectRatio(
+            aspectRatio: 16 / 9,
+            child: Stack(
+              children: [
+                _buildVideoView(),
+                _buildMobileVideoOverlay(),
+              ],
+            ),
           ),
-        ),
-        StreamBuilder<bool>(
-          stream: _player!.stream.buffering,
-          builder: (context, snapshot) => (snapshot.data ?? false) 
-            ? const Center(child: CircularProgressIndicator()) 
-            : const SizedBox(),
-        ),
-        Expanded(
-          child: _isMovie 
-            ? _buildRelatedMovies(uiLocale, s, bottomPad)
-            : _buildMobileChannelLists(uiLocale, s, bottomPad),
-        ),
-      ],
+          // 3. Dual Pane Selector
+          Expanded(
+            child: Row(
+              children: [
+                // Left: Categories
+                _buildMobileCategoryPane(s),
+                Container(width: 1, color: Colors.white10),
+                // Right: Channels
+                _buildMobileChannelPane(s, bottomPad),
+              ],
+            ),
+          ),
+        ],
+      ),
     );
   }
 
-  Widget _buildMobileChannelLists(Locale uiLocale, AppStrings s, double bottomPad) {
-    return ListView.builder(
-      padding: EdgeInsets.only(bottom: bottomPad),
-      itemCount: widget.channels.length,
-      itemBuilder: (context, i) {
-        final ch = widget.channels[i];
-        final selected = ch == _current;
-        return ListTile(
-          title: Text(ch.name, style: TextStyle(color: selected ? _accent : Colors.white)),
-          onTap: () => _selectChannelByIndex(i),
-        );
-      },
+  Widget _buildMobileHeader(AppStrings s) {
+    return Container(
+      padding: EdgeInsets.only(top: MediaQuery.paddingOf(context).top, left: 16, right: 16, bottom: 8),
+      child: Row(
+        children: [
+          const Icon(Icons.qr_code_scanner_rounded, color: Colors.white, size: 24),
+          const Expanded(
+            child: Center(
+              child: Text(
+                'EasyTV',
+                style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
+              ),
+            ),
+          ),
+          const Icon(Icons.add_rounded, color: Colors.white, size: 28),
+          const SizedBox(width: 16),
+          const Icon(Icons.settings_outlined, color: Colors.white, size: 24),
+        ],
+      ),
     );
   }
 
-  Widget _buildRelatedMovies(Locale uiLocale, AppStrings s, double bottomPad) {
-    return Center(child: Text("Related Movies", style: TextStyle(color: Colors.white54)));
+  Widget _buildMobileVideoOverlay() {
+    return Container(
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [Colors.black54, Colors.transparent, Colors.black54],
+        ),
+      ),
+      child: Stack(
+        children: [
+          Center(
+            child: StreamBuilder<bool>(
+              stream: _player!.stream.buffering,
+              builder: (context, snap) => (snap.data ?? false)
+                  ? const CircularProgressIndicator(color: Colors.white)
+                  : const SizedBox(),
+            ),
+          ),
+          Positioned(
+            right: 8,
+            bottom: 8,
+            child: IconButton(
+              icon: const Icon(Icons.screen_rotation_rounded, color: Colors.white, size: 20),
+              onPressed: _toggleFullscreen,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildMobileCategoryPane(AppStrings s) {
+    final groups = _groupNames;
+    return Container(
+      width: 110,
+      color: const Color(0xFF0E131A),
+      child: ListView.builder(
+        itemCount: groups.length,
+        itemBuilder: (context, i) {
+          final g = groups[i];
+          final selected = g == _selectedGroup;
+          return InkWell(
+            onTap: () => setState(() => _selectedGroup = g),
+            child: Container(
+              padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 8),
+              decoration: BoxDecoration(
+                color: selected ? Colors.red.withOpacity(0.2) : Colors.transparent,
+                border: Border(left: BorderSide(color: selected ? Colors.red : Colors.transparent, width: 3)),
+              ),
+              child: Column(
+                children: [
+                   if (selected) const Icon(Icons.tv_rounded, color: Colors.red, size: 16),
+                   const SizedBox(height: 4),
+                   Text(
+                    g,
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      color: selected ? Colors.white : Colors.white60,
+                      fontSize: 12,
+                      fontWeight: selected ? FontWeight.bold : FontWeight.normal,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _buildMobileChannelPane(AppStrings s, double bottomPad) {
+    final channels = _channelsInSelectedGroup;
+    return Expanded(
+      child: Container(
+        color: Colors.black,
+        child: ListView.separated(
+          padding: EdgeInsets.fromLTRB(12, 12, 12, bottomPad + 20),
+          itemCount: channels.length,
+          separatorBuilder: (_, __) => const Divider(color: Colors.white10),
+          itemBuilder: (context, i) {
+            final ch = channels[i];
+            final active = ch.url == _current.url;
+            return ListTile(
+              dense: true,
+              contentPadding: EdgeInsets.zero,
+              title: Text(
+                '${widget.channels.indexOf(ch) + 1}  ${ch.name.toUpperCase()}',
+                style: TextStyle(
+                  color: active ? Colors.red : Colors.white70,
+                  fontSize: 13,
+                  fontWeight: active ? FontWeight.bold : FontWeight.w500,
+                ),
+              ),
+              onTap: () => _selectChannelByIndex(widget.channels.indexOf(ch)),
+            );
+          },
+        ),
+      ),
+    );
   }
 }
 
