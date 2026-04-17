@@ -1302,6 +1302,21 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
     );
   }
 
+  Widget _field(TextEditingController controller, String label, IconData icon, {int maxLines = 1, FocusNode? focusNode}) {
+    return TextField(
+      controller: controller,
+      maxLines: maxLines,
+      focusNode: focusNode,
+      decoration: InputDecoration(
+        labelText: label,
+        prefixIcon: Icon(icon, color: AppTheme.primaryGold.withOpacity(0.8)),
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(14)),
+        filled: true,
+        fillColor: Colors.black.withOpacity(0.2),
+      ),
+    );
+  }
+
   Widget _sheetField(TextEditingController c, String label, IconData icon, {int maxLines = 1}) {
     return TextField(
       controller: c,
@@ -2231,7 +2246,63 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
                 ),
                 if (_publishShelf == _PublishShelf.custom) ...[
                   const SizedBox(height: 14),
-                  _field(_channelGroupController, 'Group name', Icons.folder_outlined),
+                  // Intelligent Category Autocomplete
+                  StreamBuilder<DatabaseEvent>(
+                    stream: _playlistRef.onValue,
+                    builder: (context, snapshot) {
+                      final List<String> options = [];
+                      if (snapshot.hasData && snapshot.data!.snapshot.value != null) {
+                        final items = _parsePlaylist(snapshot.data!.snapshot.value);
+                        final set = <String>{};
+                        for (final item in items) {
+                          final val = item.value;
+                          if (val is Map) {
+                            final g = '${val['group'] ?? val['category'] ?? ''}'.trim();
+                            if (g.isNotEmpty) set.add(g);
+                          }
+                        }
+                        options.addAll(set.toList()..sort());
+                      }
+
+                      return RawAutocomplete<String>(
+                        textEditingController: _channelGroupController,
+                        focusNode: FocusNode(),
+                        optionsBuilder: (TextEditingValue textEditingValue) {
+                          if (textEditingValue.text.isEmpty) return options;
+                          return options.where((String option) {
+                            return option.toLowerCase().contains(textEditingValue.text.toLowerCase());
+                          });
+                        },
+                        fieldViewBuilder: (context, controller, focusNode, onFieldSubmitted) {
+                          return _field(controller, 'Group name (e.g., Action, Horror)', Icons.folder_outlined, focusNode: focusNode);
+                        },
+                        optionsViewBuilder: (context, onSelected, options) {
+                          return Align(
+                            alignment: Alignment.topLeft,
+                            child: Material(
+                              elevation: 8,
+                              color: AppTheme.surfaceElevated,
+                              borderRadius: BorderRadius.circular(12),
+                              child: ConstrainedBox(
+                                constraints: const BoxConstraints(maxHeight: 200, maxWidth: 350),
+                                child: ListView.builder(
+                                  padding: const EdgeInsets.all(8),
+                                  itemCount: options.length,
+                                  itemBuilder: (BuildContext context, int index) {
+                                    final String option = options.elementAt(index);
+                                    return ListTile(
+                                      title: Text(option, style: const TextStyle(color: Colors.white)),
+                                      onTap: () => onSelected(option),
+                                    );
+                                  },
+                                ),
+                              ),
+                            ),
+                          );
+                        },
+                      );
+                    },
+                  ),
                   const SizedBox(height: 12),
                   _buildGroupQuickPick(),
                 ] else ...[

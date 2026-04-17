@@ -192,7 +192,8 @@ class _MoviePlayerPageState extends ConsumerState<MoviePlayerPage> {
 
   @override
   Widget build(BuildContext context) {
-    final settings = ref.watch(settingsProvider);
+    final settingsAsync = ref.watch(appUiSettingsProvider);
+    final settings = settingsAsync.asData?.value ?? const AppSettingsData();
     return WillPopScope(
       onWillPop: _exitFullscreen,
       child: Scaffold(

@@ -110,14 +110,24 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
   List<String> get _groupNames {
     final set = <String>{};
     for (final c in widget.channels) {
-      set.add(c.group);
+      final isMovie = c.type == 'movie' || 
+                      c.group.toLowerCase().contains('movie') || 
+                      c.group.toLowerCase().contains('cinema');
+      if (!isMovie) {
+        set.add(c.group);
+      }
     }
     final list = set.toList()..sort();
     return list;
   }
 
   List<Channel> get _channelsInSelectedGroup {
-    return widget.channels.where((c) => c.group == _selectedGroup).toList();
+    return widget.channels.where((c) {
+      final isMovie = c.type == 'movie' || 
+                      c.group.toLowerCase().contains('movie') || 
+                      c.group.toLowerCase().contains('cinema');
+      return !isMovie && c.group == _selectedGroup;
+    }).toList();
   }
 
   @override

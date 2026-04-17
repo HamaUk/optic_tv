@@ -141,23 +141,45 @@ class _FullscreenPlayerPageState extends ConsumerState<FullscreenPlayerPage> {
   void _onChannelSelected(int fullIdx) {
     setState(() {
       _index = fullIdx;
-      _selectedGroup = widget.channels[_index].group;
     });
     widget.player.open(Media(widget.channels[_index].url));
     _loadManualSubtitle();
     _resetHideTimer();
   }
 
-  Channel get _current => widget.channels[_index];
+  List<Channel> get _filteredChannels {
+    final q = _searchController.text.trim().toLowerCase();
+    return widget.channels.where((c) {
+      // STRICT FILTER: Exclude anything that is a movie or vod
+      final isMovie = c.type == 'movie' || 
+                      c.group.toLowerCase().contains('movie') || 
+                      c.group.toLowerCase().contains('cinema');
+      if (isMovie) return false;
+
+      final matchSearch = q.isEmpty ||
+          c.name.toLowerCase().contains(q) ||
+          c.group.toLowerCase().contains(q);
+      final matchGroup = _selectedGroup == 'ALL' || c.group == _selectedGroup;
+      return matchSearch && matchGroup;
+    }).toList();
+  }
 
   List<String> get _groupNames {
-    final set = <String>{};
+    final set = <String>{'ALL'};
     for (final c in widget.channels) {
-      set.add(c.group);
+      // Only include groups that contain at least one live channel
+      final isMovie = c.type == 'movie' || 
+                      c.group.toLowerCase().contains('movie') || 
+                      c.group.toLowerCase().contains('cinema');
+      if (!isMovie) {
+        set.add(c.group);
+      }
     }
     final list = set.toList()..sort();
     return list;
   }
+
+  Channel get _current => widget.channels[_index];
 
   List<Channel> get _channelsInSelectedGroup {
     return widget.channels.where((c) => c.group == _selectedGroup).toList();
