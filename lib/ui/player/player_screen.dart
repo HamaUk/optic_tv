@@ -1333,25 +1333,25 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
             left: 0,
             top: 0,
             bottom: 0,
-            width: 120,
+            width: 180,
             child: _buildFullscreenCategoryPane(s, uiLocale),
           ),
           
           // 2. Channels (Next to categories)
           Positioned(
-            left: 120,
+            left: 180,
             top: 0,
             bottom: 0,
-            right: MediaQuery.sizeOf(context).width * 0.4,
+            right: MediaQuery.sizeOf(context).width * 0.25,
             child: _buildFullscreenChannelPane(s, uiLocale),
           ),
 
-          // 3. Clock & Date (Top Right)
-          Positioned(
-            right: 30,
-            top: 40,
-            child: _buildFullscreenClock(uiLocale),
-          ),
+          // 3. Clock & Date (Removed per user request)
+          // Positioned(
+          //   right: 30,
+          //   top: 40,
+          //   child: _buildFullscreenClock(uiLocale),
+          // ),
 
           // 4. Back/Exit (Bottom Right)
           Positioned(
@@ -1378,9 +1378,12 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
   Widget _buildFullscreenCategoryPane(AppStrings s, Locale uiLocale) {
     final groups = _groupNames;
     return Container(
-      color: Colors.black.withOpacity(0.3),
+      decoration: BoxDecoration(
+        color: Colors.black.withOpacity(0.6),
+        border: Border(right: BorderSide(color: Colors.white.withOpacity(0.05), width: 0.5)),
+      ),
       child: ListView.builder(
-        padding: const EdgeInsets.symmetric(vertical: 40),
+        padding: const EdgeInsets.symmetric(vertical: 60),
         itemCount: groups.length,
         itemBuilder: (context, i) {
           final g = groups[i];
@@ -1388,22 +1391,21 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
           return GestureDetector(
             onTap: () => setState(() => _selectedGroup = g),
             child: AnimatedContainer(
-              duration: const Duration(milliseconds: 200),
-              margin: const EdgeInsets.symmetric(vertical: 4),
-              padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 12),
+              duration: const Duration(milliseconds: 250),
+              margin: const EdgeInsets.only(bottom: 2),
+              padding: const EdgeInsets.symmetric(vertical: 18, horizontal: 24),
               decoration: BoxDecoration(
-                color: selected ? _accent.withOpacity(0.3) : Colors.transparent,
-                border: Border(left: BorderSide(color: selected ? _accent : Colors.transparent, width: 4)),
+                color: selected ? Colors.red.withOpacity(0.85) : Colors.transparent,
               ),
               child: Text(
                 g.toUpperCase(),
                 style: AppTheme.withRabarIfKurdish(
                   uiLocale,
                   TextStyle(
-                    color: selected ? Colors.white : Colors.white60,
-                    fontSize: 14,
+                    color: Colors.white,
+                    fontSize: 15,
                     fontWeight: selected ? FontWeight.w900 : FontWeight.w500,
-                    letterSpacing: 0.5,
+                    letterSpacing: 1.2,
                   ),
                 ),
               ),
@@ -1417,51 +1419,52 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
   Widget _buildFullscreenChannelPane(AppStrings s, Locale uiLocale) {
     final channels = _channelsInSelectedGroup;
     return Container(
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.centerLeft,
-          end: Alignment.centerRight,
-          colors: [Colors.black.withOpacity(0.3), Colors.transparent],
-        ),
-      ),
+      color: Colors.transparent, // Let parent handle dimming
       child: ListView.builder(
-        padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 10),
+        padding: const EdgeInsets.symmetric(vertical: 30, horizontal: 0),
         itemCount: channels.length,
         itemBuilder: (context, i) {
           final ch = channels[i];
           final active = ch.url == _current.url;
           final fullIdx = widget.channels.indexOf(ch);
           return Material(
-            key: ValueKey('fs_${ch.url}_$fullIdx'),
-            color: active ? _accent.withOpacity(0.2) : Colors.transparent,
+            key: ValueKey('fs_v2_${ch.url}_$fullIdx'),
+            color: active ? Colors.red.withOpacity(0.25) : Colors.transparent,
             child: InkWell(
               onTap: () => _selectChannelByIndex(fullIdx),
               child: Container(
-                padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
+                padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 32),
+                decoration: BoxDecoration(
+                  border: active ? const Border(left: BorderSide(color: Colors.red, width: 6)) : null,
+                ),
                 child: Row(
                   children: [
                     Text(
                       '${fullIdx + 1}',
-                      style: const TextStyle(color: Colors.white54, fontSize: 13, fontFamily: 'monospace'),
+                      style: TextStyle(
+                        color: active ? Colors.redAccent.shade100 : Colors.white38,
+                        fontSize: 16,
+                        fontFamily: 'monospace',
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
-                    const SizedBox(width: 12),
+                    const SizedBox(width: 24),
                     Expanded(
                       child: Text(
                         ch.name.toUpperCase(),
                         style: AppTheme.withRabarIfKurdish(
                           uiLocale,
                           TextStyle(
-                            color: active ? Colors.white : Colors.white70,
-                            fontSize: 15,
-                            fontWeight: active ? FontWeight.w800 : FontWeight.w400,
+                            color: active ? Colors.redAccent : Colors.white.withOpacity(0.9),
+                            fontSize: 18,
+                            fontWeight: active ? FontWeight.w900 : FontWeight.w600,
+                            letterSpacing: 0.8,
                           ),
                         ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
                       ),
                     ),
                     if (active)
-                      const Icon(Icons.equalizer_rounded, color: Colors.white, size: 18),
+                      _buildEqualizerIcon(),
                   ],
                 ),
               ),
@@ -1471,6 +1474,34 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
       ),
     );
   }
+
+  Widget _buildEqualizerIcon() {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.end,
+      children: [
+        _eqBar(12),
+        const SizedBox(width: 2),
+        _eqBar(18),
+        const SizedBox(width: 2),
+        _eqBar(14),
+        const SizedBox(width: 2),
+        _eqBar(22),
+      ],
+    );
+  }
+
+  Widget _eqBar(double height) {
+    return Container(
+      width: 4,
+      height: height,
+      decoration: BoxDecoration(
+        color: Colors.red,
+        borderRadius: BorderRadius.circular(2),
+      ),
+    );
+  }
+
 
   Widget _buildFullscreenClock(Locale uiLocale) {
     final now = DateTime.now();
