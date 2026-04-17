@@ -8,6 +8,8 @@ import 'package:intl/intl.dart' hide TextDirection;
 import '../../core/theme.dart';
 import '../../l10n/app_strings.dart';
 import '../../services/playlist_service.dart';
+import '../../services/subtitle_service.dart';
+import '../../services/tmdb_service.dart';
 
 class MoviePlayerPage extends StatefulWidget {
   final Player player;
@@ -47,6 +49,13 @@ class _MoviePlayerPageState extends State<MoviePlayerPage> {
   String? _osdLabel;
   Timer? _osdTimer;
 
+  // Subtitle & TMDB Services
+  final SubtitleService _subtitleService = SubtitleService();
+  final TmdbService _tmdbService = TmdbService();
+  List<SubtitleResult> _availableSubtitles = [];
+  bool _isSearchingSubtitles = false;
+  bool _showSubtitlePrompt = false;
+
   @override
   void initState() {
     super.initState();
@@ -72,6 +81,46 @@ class _MoviePlayerPageState extends State<MoviePlayerPage> {
     ]);
 
     _resetHideTimer();
+    
+    // Auto-search for Kurdish (Sorani) subtitles on launch
+    _searchSubtitles();
+  }
+
+  Future<void> _searchSubtitles() async {
+    if (!_subtitleService.hasApiKey) return;
+    setState(() => _isSearchingSubtitles = true);
+    
+    try {
+      final movie = await _tmdbService.findMovie(widget.channel.name);
+      final results = await _subtitleService.search(
+        imdbId: movie?.imdbId,
+        query: movie?.title ?? widget.channel.name,
+      );
+      
+      if (mounted && results.isNotEmpty) {
+        setState(() {
+          _availableSubtitles = results;
+          // Sort to put Kurdish/Sorani at the top if found
+          _availableSubtitles.sort((a, b) {
+            final aIsKur = a.language == 'ku' || a.language == 'ckb';
+            final bIsKur = b.language == 'ku' || b.language == 'ckb';
+            if (aIsKur && !bIsKur) return -1;
+            if (!aIsKur && bIsKur) return 1;
+            return 0;
+          });
+          _isSearchingSubtitles = false;
+        });
+      }
+    } catch (_) {
+      if (mounted) setState(() => _isSearchingSubtitles = false);
+    }
+  }
+
+  Future<void> _applySubtitle(SubtitleResult sub) async {
+    final url = await _subtitleService.getDownloadUrl(sub.id);
+    if (url != null) {
+      await widget.player.setSubtitleTrack(SubtitleTrack.uri(url));
+    }
   }
 
   void _resetHideTimer() {
@@ -91,6 +140,8 @@ class _MoviePlayerPageState extends State<MoviePlayerPage> {
     for (final s in _subscriptions) {
       s.cancel();
     }
+    // STOP AUDIO LEAK: Explicitly dispose the player engine
+    widget.player.dispose();
     super.dispose();
   }
 
@@ -350,23 +401,65 @@ class _MoviePlayerPageState extends State<MoviePlayerPage> {
   }
 
   void _showSubtitleSelector() {
-    final tracks = widget.player.state.tracks.subtitle;
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.transparent,
+      isScrollControlled: true,
       builder: (context) => Container(
-        decoration: BoxDecoration(color: Colors.black87, borderRadius: const BorderRadius.vertical(top: Radius.circular(24))),
+        height: MediaQuery.of(context).size.height * 0.7,
+        decoration: BoxDecoration(
+          color: const Color(0xFF14171C),
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(32)),
+          border: Border.all(color: Colors.white10),
+        ),
         padding: const EdgeInsets.all(24),
         child: Column(
-          mainAxisSize: MainAxisSize.min,
           children: [
-            const Text("SUBTITLES", style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.w900)),
-            const SizedBox(height: 20),
-            ...tracks.map((t) => ListTile(
-              leading: Icon(Icons.subtitles, color: t == widget.player.state.track.subtitle ? Colors.red : Colors.white),
-              title: Text(t.title ?? t.language ?? "Track ${t.id}", style: const TextStyle(color: Colors.white)),
-              onTap: () { widget.player.setSubtitleTrack(t); Navigator.pop(context); },
-            )),
+            Container(width: 40, height: 4, decoration: BoxDecoration(color: Colors.white12, borderRadius: BorderRadius.circular(2))),
+            const SizedBox(height: 24),
+            Text(
+              widget.strings.isEnglish ? 'SUBTITLE OPTIONS' : 'هەڵبژاردنی ژێرنووس',
+              style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.w900, letterSpacing: 1.2),
+            ),
+            const SizedBox(height: 8),
+            if (_isSearchingSubtitles)
+              const Padding(
+                padding: EdgeInsets.all(40),
+                child: CircularProgressIndicator(color: Colors.red),
+              )
+            else if (_availableSubtitles.isEmpty)
+              const Padding(
+                padding: EdgeInsets.all(40),
+                child: Text("No subtitles found tracking this movie.", style: TextStyle(color: Colors.white38)),
+              )
+            else
+              Expanded(
+                child: ListView.builder(
+                  itemCount: _availableSubtitles.length,
+                  itemBuilder: (context, i) {
+                    final sub = _availableSubtitles[i];
+                    final isKur = sub.language == 'ku' || sub.language == 'ckb';
+                    return ListTile(
+                      leading: Icon(
+                        isKur ? Icons.translate_rounded : Icons.language_rounded,
+                        color: isKur ? Colors.red : Colors.blue,
+                      ),
+                      title: Text(
+                        isKur ? "KURDISH (سۆرانی)" : sub.language.toUpperCase(),
+                        style: TextStyle(
+                          color: isKur ? Colors.white : Colors.white70,
+                          fontWeight: isKur ? FontWeight.w900 : FontWeight.normal,
+                        ),
+                      ),
+                      subtitle: Text(sub.fileName, style: const TextStyle(color: Colors.white24, fontSize: 11), maxLines: 1),
+                      onTap: () {
+                        _applySubtitle(sub);
+                        Navigator.pop(context);
+                      },
+                    );
+                  },
+                ),
+              ),
           ],
         ),
       ),

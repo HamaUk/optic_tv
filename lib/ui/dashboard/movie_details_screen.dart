@@ -135,29 +135,41 @@ class _MovieDetailsScreenState extends ConsumerState<MovieDetailsScreen> {
               // Header Space
               SliverToBoxAdapter(child: SizedBox(height: size.height * 0.35)),
               
-              // Info Section
+              // Movie Info Section (Netflix Style)
               SliverPadding(
                 padding: const EdgeInsets.symmetric(horizontal: 24),
                 sliver: SliverToBoxAdapter(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
+                      // Wordmark / Logo logic could go here, but using Title for now
                       Text(
-                        _movie?.title ?? widget.channel.name,
-                        style: const TextStyle(fontSize: 32, fontWeight: FontWeight.w900, color: Colors.white, height: 1.1),
+                        (_movie?.title ?? widget.channel.name).toUpperCase(),
+                        style: const TextStyle(
+                          fontSize: 34,
+                          fontWeight: FontWeight.w900,
+                          color: Colors.white,
+                          height: 1.0,
+                          letterSpacing: -0.5,
+                        ),
                       ),
-                      const SizedBox(height: 12),
-                      _buildMetaRow(),
-                      const SizedBox(height: 24),
-                      _buildMainActions(isFavorite),
-                      const SizedBox(height: 32),
+                      const SizedBox(height: 16),
+                      _buildNetflixMetaRow(),
+                      const SizedBox(height: 28),
+                      _buildNetflixPlayButton(isFavorite),
+                      const SizedBox(height: 36),
                       _buildSectionTitle('Overview'),
                       const SizedBox(height: 12),
                       Text(
-                        _movie?.overview ?? 'No description available for this content.',
-                        style: TextStyle(color: Colors.white.withOpacity(0.65), fontSize: 15, height: 1.5),
+                        _movie?.overview ?? 'Cinematic details for this title are being retrieved. Enjoy the high-quality stream.',
+                        style: TextStyle(
+                          color: Colors.white.withOpacity(0.8),
+                          fontSize: 16,
+                          height: 1.6,
+                          letterSpacing: 0.2,
+                        ),
                       ),
-                      const SizedBox(height: 32),
+                      const SizedBox(height: 40),
                     ],
                   ),
                 ),
@@ -208,70 +220,93 @@ class _MovieDetailsScreenState extends ConsumerState<MovieDetailsScreen> {
     );
   }
 
-  Widget _buildMetaRow() {
+  Widget _buildNetflixMetaRow() {
     return Row(
       children: [
         if (_movie != null) ...[
-          const Icon(Icons.star_rounded, color: AppTheme.primaryGold, size: 20),
-          const SizedBox(width: 4),
           Text(
-            _movie!.rating.toStringAsFixed(1),
-            style: const TextStyle(color: AppTheme.primaryGold, fontWeight: FontWeight.bold),
+            '${(_movie!.rating * 10).toInt()}% Match',
+            style: const TextStyle(color: Color(0xFF46D369), fontWeight: FontWeight.w900, fontSize: 15),
           ),
-          const SizedBox(width: 16),
-        ],
-        if (_movie?.releaseDate != null) ...[
+          const SizedBox(width: 14),
           Text(
             _movie!.releaseDate!.split('-').first,
-            style: TextStyle(color: Colors.white.withOpacity(0.5)),
+            style: const TextStyle(color: Colors.white70, fontSize: 15, fontWeight: FontWeight.w600),
           ),
-          const SizedBox(width: 16),
+          const SizedBox(width: 14),
         ],
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-          decoration: BoxDecoration(
-            border: Border.all(color: Colors.white24),
-            borderRadius: BorderRadius.circular(4),
+        _buildQualityBadge('4K'),
+        const SizedBox(width: 8),
+        _buildQualityBadge('HDR'),
+        const SizedBox(width: 14),
+        const Icon(Icons.info_outline, color: Colors.white38, size: 18),
+      ],
+    );
+  }
+
+  Widget _buildQualityBadge(String text) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
+      decoration: BoxDecoration(
+        border: Border.all(color: Colors.white38, width: 1),
+        borderRadius: BorderRadius.circular(3),
+      ),
+      child: Text(
+        text,
+        style: const TextStyle(color: Colors.white70, fontSize: 10, fontWeight: FontWeight.w900),
+      ),
+    );
+  }
+
+  Widget _buildNetflixPlayButton(bool isFavorite) {
+    return Row(
+      children: [
+        Expanded(
+          child: Material(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(6),
+            child: InkWell(
+              onTap: _play,
+              borderRadius: BorderRadius.circular(6),
+              child: Container(
+                height: 52,
+                alignment: Alignment.center,
+                child: const Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(Icons.play_arrow_rounded, color: Colors.black, size: 32),
+                    SizedBox(width: 4),
+                    Text(
+                      'Play',
+                      style: TextStyle(color: Colors.black, fontSize: 18, fontWeight: FontWeight.w900),
+                    ),
+                  ],
+                ),
+              ),
+            ),
           ),
-          child: const Text('4K', style: TextStyle(color: Colors.white54, fontSize: 10, fontWeight: FontWeight.bold)),
+        ),
+        const SizedBox(width: 12),
+        _buildCircularAction(
+          isFavorite ? Icons.check_rounded : Icons.add_rounded,
+          () => ref.read(favoritesProvider.notifier).toggle(widget.channel),
+          isFavorite ? 'My List' : 'Add to List',
         ),
       ],
     );
   }
 
-  Widget _buildMainActions(bool isFavorite) {
-    return Row(
+  Widget _buildCircularAction(IconData icon, VoidCallback onTap, String label) {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
       children: [
-        Expanded(
-          child: FilledButton.icon(
-            onPressed: _play,
-            icon: const Icon(Icons.play_arrow_rounded, size: 28),
-            label: const Text('Watch Now', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-            style: FilledButton.styleFrom(
-              backgroundColor: Colors.white,
-              foregroundColor: Colors.black,
-              padding: const EdgeInsets.symmetric(vertical: 16),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-            ),
-          ),
+        IconButton(
+          onPressed: onTap,
+          icon: Icon(icon, color: Colors.white, size: 30),
         ),
-        const SizedBox(width: 16),
-        Container(
-          height: 56,
-          width: 56,
-          decoration: BoxDecoration(
-            color: Colors.white10,
-            borderRadius: BorderRadius.circular(12),
-          ),
-          child: IconButton(
-            icon: Icon(
-              isFavorite ? Icons.favorite_rounded : Icons.favorite_border_rounded,
-              color: isFavorite ? Colors.redAccent : Colors.white,
-            ),
-            onPressed: () {
-              ref.read(favoritesProvider.notifier).toggle(widget.channel);
-            },
-          ),
+        Text(
+          label,
+          style: const TextStyle(color: Colors.white54, fontSize: 10, fontWeight: FontWeight.w600),
         ),
       ],
     );
