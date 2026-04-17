@@ -422,52 +422,59 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
 
   @override
   Widget build(BuildContext context) {
-    if (_settings == null || _player == null) {
+    if (_player == null || _controller == null) {
       return const Scaffold(backgroundColor: Colors.black, body: Center(child: CircularProgressIndicator()));
     }
 
-    // Correctly watch the locale and initialize strings
     final uiLocale = ref.watch(appLocaleProvider);
     final s = AppStrings(uiLocale);
     final bottomPad = MediaQuery.of(context).padding.bottom;
     final isTv = MediaQuery.of(context).size.width > 900;
 
-    return Scaffold(
-      key: _scaffoldKey,
-      backgroundColor: Colors.black,
-      body: Stack(
-        fit: StackFit.expand,
-        children: [
-          // 1. Stable Video Layer (Keeps the texture alive during orientation changes)
-          if (!isTv)
-            Positioned.fill(
-              child: _isFullscreen
-                  ? _buildVideoView()
-                  : Column(
-                      children: [
-                        AspectRatio(
-                          aspectRatio: 16 / 9,
-                          child: _buildVideoView(),
-                        ),
-                        // Remainder is empty; content is in the overlay layer
-                      ],
-                    ),
-            )
-          else ...[
+    if (isTv) {
+      return Scaffold(
+        key: _scaffoldKey,
+        backgroundColor: Colors.black,
+        body: Stack(
+          fit: StackFit.expand,
+          children: [
             _buildVideoView(),
             _buildTvArchitectureOverhaul(s),
+            if (_showSubtitlePrompt) _buildSubtitleChoicePrompt(uiLocale, s),
           ],
+        ),
+      );
+    }
 
-          // 2. Interaction & Interface Layer
-          if (!isTv)
-            _isFullscreen
-                ? _buildFullscreenMode(uiLocale, s)
-                : _buildMobileScaffoldOverlay(uiLocale, s, bottomPad),
-
-          // 3. Subtitle Choice Prompt (Always on top)
-          if (_showSubtitlePrompt)
-            _buildSubtitleChoicePrompt(uiLocale, s),
-        ],
+    // New Simplified Mobile Architecture (Matches Picture 1 layout)
+    return Scaffold(
+      backgroundColor: Colors.black,
+      body: SafeArea(
+        child: Column(
+          children: [
+            // 1. Top Header (Logo, Name, Settings)
+            _buildMobileHeader(s, uiLocale),
+            
+            // 2. Video Area (Below Header)
+            AspectRatio(
+              aspectRatio: 16 / 9,
+              child: _buildVideoView(),
+            ),
+            
+            // 3. Channel Lists (Bottom)
+            Expanded(
+              child: Row(
+                children: [
+                  _buildMobileCategoryPane(s, uiLocale),
+                  Container(width: 1, color: Colors.white.withOpacity(0.05)),
+                  _buildMobileChannelPane(s, uiLocale, bottomPad),
+                ],
+              ),
+            ),
+            
+            if (_showSubtitlePrompt) _buildSubtitleChoicePrompt(uiLocale, s),
+          ],
+        ),
       ),
     );
   }
@@ -574,28 +581,7 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
     );
   }
 
-  Widget _buildMobileScaffoldOverlay(Locale uiLocale, AppStrings s, double bottomPad) {
-    return SafeArea(
-      child: Column(
-        children: [
-          // Transparent placeholder for the video area
-          const AspectRatio(aspectRatio: 16 / 9, child: SizedBox.expand()),
-          
-          _buildMobileHeader(s, uiLocale),
-          
-          Expanded(
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                _buildMobileCategoryPane(s, uiLocale),
-                _buildMobileChannelPane(s, uiLocale, bottomPad),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
+  // Redundant Overlay Scaffold removed to fix layout issues
 
   Widget _buildVideoView() {
     return ColoredBox(
@@ -1005,28 +991,28 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
 
   Widget _buildMobileHeader(AppStrings s, Locale uiLocale) {
     return Container(
-      padding: EdgeInsets.only(
-        top: MediaQuery.viewPaddingOf(context).top + 4,
-        left: 16,
-        right: 8,
-        bottom: 12,
-      ),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       decoration: BoxDecoration(
         color: const Color(0xFF0A0E14),
         border: Border(bottom: BorderSide(color: Colors.white.withOpacity(0.05))),
       ),
       child: Row(
         children: [
-          const OpticWordmark(height: 20),
+          const OpticWordmark(height: 22),
           const SizedBox(width: 12),
           Expanded(
             child: Text(
-              _current.name,
+              _current.name.toUpperCase(),
               overflow: TextOverflow.ellipsis,
               textAlign: TextAlign.center,
               style: AppTheme.withRabarIfKurdish(
                 uiLocale,
-                const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold),
+                const TextStyle(
+                  color: Colors.white,
+                  fontSize: 15,
+                  fontWeight: FontWeight.w900,
+                  letterSpacing: 0.5,
+                ),
               ),
             ),
           ),
