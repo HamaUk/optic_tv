@@ -1,9 +1,11 @@
-import 'dart:async';
+import 'dart:convert';
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:media_kit/media_kit.dart';
 import 'package:media_kit_video/media_kit_video.dart';
 import 'package:intl/intl.dart' hide TextDirection;
+import 'package:path_provider/path_provider.dart';
 
 import '../../core/theme.dart';
 import '../../l10n/app_strings.dart';
@@ -82,8 +84,39 @@ class _MoviePlayerPageState extends State<MoviePlayerPage> {
 
     _resetHideTimer();
     
-    // Auto-search for Kurdish (Sorani) subtitles on launch
+    // Priority 1: Load manual subtitle from Admin Portal (URL or File)
+    _loadManualSubtitle();
+
+    // Priority 2: Auto-search for Kurdish (Sorani) subtitles as backup
     _searchSubtitles();
+  }
+
+  Future<void> _loadManualSubtitle() async {
+    final subUrl = widget.channel.subtitleUrl;
+    if (subUrl == null || subUrl.isEmpty) return;
+
+    try {
+      if (subUrl.startsWith('data:')) {
+        // Enforce Local File: It's an encoded SRT/VTT file from the Admin Portal
+        final parts = subUrl.split(';base64,');
+        if (parts.length != 2) return;
+        
+        final bytes = base64Decode(parts[1]);
+        final tempDir = await getTemporaryDirectory();
+        final isVtt = subUrl.contains('text/vtt');
+        final tempFile = File('${tempDir.path}/manual_sub_${DateTime.now().millisecondsSinceEpoch}.${isVtt ? 'vtt' : 'srt'}');
+        
+        await tempFile.writeAsBytes(bytes);
+        await widget.player.setSubtitleTrack(SubtitleTrack.uri(tempFile.uri.toString()));
+        debugPrint('Loaded local subtitle file: ${tempFile.path}');
+      } else if (subUrl.startsWith('http')) {
+        // Enforce URL: Direct web link
+        await widget.player.setSubtitleTrack(SubtitleTrack.uri(subUrl));
+        debugPrint('Loaded manual subtitle URL: $subUrl');
+      }
+    } catch (e) {
+      debugPrint('Error loading manual subtitle: $e');
+    }
   }
 
   Future<void> _searchSubtitles() async {

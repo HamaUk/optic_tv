@@ -7,6 +7,7 @@ class Channel {
   final String group;
   final String? logo;
   final String? backdrop;
+  final String? subtitleUrl;
   final String type; // 'live' or 'movie'
   final bool featured;
   final int order;
@@ -17,6 +18,7 @@ class Channel {
     this.group = 'General',
     this.logo,
     this.backdrop,
+    this.subtitleUrl,
     this.type = 'live',
     this.featured = false,
     this.order = 999999,
@@ -29,6 +31,7 @@ class Channel {
       group: map['group'] ?? map['category'] ?? 'General',
       logo: map['logo'] ?? map['icon_url'],
       backdrop: map['backdrop'] as String?,
+      subtitleUrl: map['subtitleUrl'] as String?,
       type: map['type'] as String? ?? 'live',
       featured: map['featured'] == true,
       order: map['order'] is int ? map['order'] as int : 999999,

@@ -39,6 +39,7 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
   final _channelGroupController = TextEditingController();
   final _channelLogoController = TextEditingController();
   final _channelBackdropController = TextEditingController();
+  final _channelSubtitleUrlController = TextEditingController();
   final _newGroupController = TextEditingController();
   final _newLoginCodeController = TextEditingController();
   final _channelSearchController = TextEditingController();
@@ -106,6 +107,7 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
     _channelGroupController.dispose();
     _channelLogoController.dispose();
     _channelBackdropController.dispose();
+    _channelSubtitleUrlController.dispose();
     _newGroupController.dispose();
     _newLoginCodeController.dispose();
     _channelSearchController.dispose();
@@ -410,6 +412,7 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
     required String group,
     required String logo,
     String? backdrop,
+    String? subtitleUrl,
     String? type,
     bool? featured,
     int? order,
@@ -421,6 +424,7 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
     };
     if (logo.isNotEmpty) map['logo'] = logo;
     if (backdrop != null && backdrop.isNotEmpty) map['backdrop'] = backdrop;
+    if (subtitleUrl != null && subtitleUrl.isNotEmpty) map['subtitleUrl'] = subtitleUrl;
     if (type != null) map['type'] = type;
     if (featured == true) map['featured'] = true;
     if (order != null) map['order'] = order;
@@ -512,6 +516,30 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
     }
   }
 
+  Future<void> _pickSubtitleFile() async {
+    final result = await FilePicker.platform.pickFiles(
+      type: FileType.custom,
+      allowedExtensions: ['srt', 'vtt'],
+      withData: true,
+    );
+    if (result == null || result.files.isEmpty || !mounted) return;
+    try {
+      final file = result.files.first;
+      final bytes = file.bytes;
+      if (bytes == null) return;
+      
+      final b64 = base64Encode(bytes);
+      final ext = file.extension?.toLowerCase() ?? 'srt';
+      final mime = ext == 'vtt' ? 'text/vtt' : 'application/x-subrip';
+      
+      _channelSubtitleUrlController.text = 'data:$mime;base64,$b64';
+      setState(() {});
+      _snack('Subtitle file attached (${file.name})');
+    } catch (e) {
+      _snack('Could not read subtitle: $e', error: true);
+    }
+  }
+
   Future<void> _addChannel() async {
     final name = _channelNameController.text.trim();
     final url = _channelUrlController.text.trim();
@@ -527,12 +555,14 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
     try {
       final logo = _channelLogoController.text.trim();
       final backdrop = _channelBackdropController.text.trim();
+      final subUrl = _channelSubtitleUrlController.text.trim();
       await _playlistRef.push().set(_channelPayload(
             name: name,
             url: url,
             group: group,
             logo: logo,
             backdrop: backdrop,
+            subtitleUrl: subUrl,
             type: _channelType,
             featured: _isFeaturedAdmin,
           ));
@@ -540,6 +570,7 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
       _channelUrlController.clear();
       _channelLogoController.clear();
       _channelBackdropController.clear();
+      _channelSubtitleUrlController.clear();
       setState(() {
         _isFeaturedAdmin = false;
         _channelType = 'live';
@@ -2233,15 +2264,15 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Expanded(
-                      child: _field(_channelBackdropController, 'Hero Backdrop URL', Icons.wallpaper_rounded, maxLines: 2),
+                      child: _field(_channelSubtitleUrlController, 'Subtitle URL (Optional SRT/VTT)', Icons.subtitles_rounded, maxLines: 2),
                     ),
                     const SizedBox(width: 8),
                     Padding(
                       padding: const EdgeInsets.only(top: 6),
                       child: IconButton.filledTonal(
-                        tooltip: 'Pick from gallery',
-                        onPressed: () => _pickLogoInto(_channelBackdropController),
-                        icon: const Icon(Icons.image_search_rounded),
+                        tooltip: 'Pick local subtitle (.srt/.vtt)',
+                        onPressed: _pickSubtitleFile,
+                        icon: const Icon(Icons.attach_file_rounded),
                       ),
                     ),
                   ],
