@@ -11,8 +11,8 @@ import 'package:media_kit_video/media_kit_video.dart';
 import 'package:simple_pip_mode/simple_pip.dart';
 import 'dart:ui' show ImageFilter;
 import 'package:animations/animations.dart';
-import 'package:flutter/services.dart';
 import 'package:optic_tv/widgets/tv_fluid_focusable.dart';
+import 'fullscreen_player_page.dart';
 
 import '../../core/theme.dart';
 import '../../widgets/channel_logo_image.dart';
@@ -370,35 +370,35 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
   }
 
   Future<void> _toggleFullscreen() async {
-    if (_isFullscreen) {
-      // Exit Fullscreen
-      await SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
-      await SystemChrome.setPreferredOrientations([
-        DeviceOrientation.portraitUp,
-        DeviceOrientation.portraitDown,
-      ]);
-      
-      // Delay slightly to allow orientation to settle before UI update
-      await Future.delayed(const Duration(milliseconds: 300));
-      
-      if (mounted) {
-        setState(() {
-          _isFullscreen = false;
-          _fullscreenOverlayVisible = false;
-        });
-      }
-    } else {
-      // Enter Fullscreen
-      await SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
-      await SystemChrome.setPreferredOrientations([
-        DeviceOrientation.landscapeLeft,
-        DeviceOrientation.landscapeRight,
-      ]);
+    if (_isFullscreen) return; // Should not happen in this flow if we navigate away
 
-      await Future.delayed(const Duration(milliseconds: 300));
+    if (_player == null || _controller == null) return;
 
-      if (mounted) setState(() => _isFullscreen = true);
+    final result = await Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (context) => FullscreenPlayerPage(
+          player: _player!,
+          controller: _controller!,
+          channels: widget.channels,
+          initialIndex: _index,
+          uiLocale: ref.read(appLocaleProvider),
+          strings: AppStrings(ref.read(appLocaleProvider)),
+        ),
+      ),
+    );
+
+    // When returning from fullscreen, we might need to update the local index if it changed
+    if (result is int && mounted) {
+      setState(() {
+        _index = result;
+        _selectedGroup = widget.channels[_index].group;
+      });
+      // Stream is already opened in the FullscreenPage, but we sync local state here
     }
+    
+    // Ensure portrait orientation logic is solid on return
+    await SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
+    await SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
   }
 
   Future<void> _playPause() async {
@@ -1304,266 +1304,12 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
                     ],
                   ),
                 ),
-              ),
-            );
-          },
+              );
+            },
+          ),
         ),
-      ),
-    );
-  }
-
-  // ── Fullscreen Mode ──
-
-  Widget _buildFullscreenMode(Locale uiLocale, AppStrings s) {
-    return GestureDetector(
-      onTap: () {
-        setState(() => _fullscreenOverlayVisible = !_fullscreenOverlayVisible);
-        _resetFullscreenOverlayTimer();
-      },
-      child: Stack(
-        fit: StackFit.expand,
-        children: [
-          _buildVideoView(),
-          // Dark overlay with channel guide
-          AnimatedOpacity(
-            opacity: _fullscreenOverlayVisible ? 1.0 : 0.0,
-            duration: const Duration(milliseconds: 400),
-            child: IgnorePointer(
-              ignoring: !_fullscreenOverlayVisible,
-              child: _buildFullscreenOverlayContent(uiLocale, s),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  void _resetFullscreenOverlayTimer() {
-    _fullscreenOverlayTimer?.cancel();
-    if (_fullscreenOverlayVisible) {
-      _fullscreenOverlayTimer = Timer(const Duration(seconds: 12), () {
-        if (mounted) setState(() => _fullscreenOverlayVisible = false);
-      });
+      );
     }
-  }
-
-  Widget _buildFullscreenOverlayContent(Locale uiLocale, AppStrings s) {
-    return Container(
-      color: Colors.black.withOpacity(0.45),
-      child: Stack(
-        children: [
-          // 1. Categories (Far Left)
-          Positioned(
-            left: 0,
-            top: 0,
-            bottom: 0,
-            width: 180,
-            child: _buildFullscreenCategoryPane(s, uiLocale),
-          ),
-          
-          // 2. Channels (Next to categories)
-          Positioned(
-            left: 180,
-            top: 0,
-            bottom: 0,
-            right: MediaQuery.sizeOf(context).width * 0.25,
-            child: _buildFullscreenChannelPane(s, uiLocale),
-          ),
-
-          // 3. Clock & Date (Removed per user request)
-          // Positioned(
-          //   right: 30,
-          //   top: 40,
-          //   child: _buildFullscreenClock(uiLocale),
-          // ),
-
-          // 4. Back/Exit (Bottom Right)
-          Positioned(
-            right: 30,
-            bottom: 40,
-            child: Material(
-              color: Colors.black45,
-              borderRadius: BorderRadius.circular(12),
-              child: InkWell(
-                onTap: _toggleFullscreen,
-                borderRadius: BorderRadius.circular(12),
-                child: const Padding(
-                  padding: EdgeInsets.all(12),
-                  child: Icon(Icons.fullscreen_exit_rounded, color: Colors.white, size: 28),
-                ),
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildFullscreenCategoryPane(AppStrings s, Locale uiLocale) {
-    final groups = _groupNames;
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.black.withOpacity(0.6),
-        border: Border(right: BorderSide(color: Colors.white.withOpacity(0.05), width: 0.5)),
-      ),
-      child: ListView.builder(
-        padding: const EdgeInsets.symmetric(vertical: 60),
-        itemCount: groups.length,
-        itemBuilder: (context, i) {
-          final g = groups[i];
-          final selected = g == _selectedGroup;
-          return GestureDetector(
-            onTap: () => setState(() => _selectedGroup = g),
-            child: AnimatedContainer(
-              duration: const Duration(milliseconds: 250),
-              margin: const EdgeInsets.only(bottom: 2),
-              padding: const EdgeInsets.symmetric(vertical: 18, horizontal: 24),
-              decoration: BoxDecoration(
-                color: selected ? Colors.red.withOpacity(0.85) : Colors.transparent,
-              ),
-              child: Text(
-                g.toUpperCase(),
-                style: AppTheme.withRabarIfKurdish(
-                  uiLocale,
-                  TextStyle(
-                    color: Colors.white,
-                    fontSize: 15,
-                    fontWeight: selected ? FontWeight.w900 : FontWeight.w500,
-                    letterSpacing: 1.2,
-                  ),
-                ),
-              ),
-            ),
-          );
-        },
-      ),
-    );
-  }
-
-  Widget _buildFullscreenChannelPane(AppStrings s, Locale uiLocale) {
-    final channels = _channelsInSelectedGroup;
-    return Container(
-      color: Colors.transparent, // Let parent handle dimming
-      child: ListView.builder(
-        padding: const EdgeInsets.symmetric(vertical: 30, horizontal: 0),
-        itemCount: channels.length,
-        itemBuilder: (context, i) {
-          final ch = channels[i];
-          final active = ch.url == _current.url;
-          final fullIdx = widget.channels.indexOf(ch);
-          return Material(
-            key: ValueKey('fs_v2_${ch.url}_$fullIdx'),
-            color: active ? Colors.red.withOpacity(0.25) : Colors.transparent,
-            child: InkWell(
-              onTap: () => _selectChannelByIndex(fullIdx),
-              child: Container(
-                padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 32),
-                decoration: BoxDecoration(
-                  border: active ? const Border(left: BorderSide(color: Colors.red, width: 6)) : null,
-                ),
-                child: Row(
-                  children: [
-                    Text(
-                      '${fullIdx + 1}',
-                      style: TextStyle(
-                        color: active ? Colors.redAccent.shade100 : Colors.white38,
-                        fontSize: 16,
-                        fontFamily: 'monospace',
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    const SizedBox(width: 24),
-                    Expanded(
-                      child: Text(
-                        ch.name.toUpperCase(),
-                        style: AppTheme.withRabarIfKurdish(
-                          uiLocale,
-                          TextStyle(
-                            color: active ? Colors.redAccent : Colors.white.withOpacity(0.9),
-                            fontSize: 18,
-                            fontWeight: active ? FontWeight.w900 : FontWeight.w600,
-                            letterSpacing: 0.8,
-                          ),
-                        ),
-                      ),
-                    ),
-                    if (active)
-                      _buildEqualizerIcon(),
-                  ],
-                ),
-              ),
-            ),
-          );
-        },
-      ),
-    );
-  }
-
-  Widget _buildEqualizerIcon() {
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      crossAxisAlignment: CrossAxisAlignment.end,
-      children: [
-        _eqBar(12),
-        const SizedBox(width: 2),
-        _eqBar(18),
-        const SizedBox(width: 2),
-        _eqBar(14),
-        const SizedBox(width: 2),
-        _eqBar(22),
-      ],
-    );
-  }
-
-  Widget _eqBar(double height) {
-    return Container(
-      width: 4,
-      height: height,
-      decoration: BoxDecoration(
-        color: Colors.red,
-        borderRadius: BorderRadius.circular(2),
-      ),
-    );
-  }
-
-
-  Widget _buildFullscreenClock(Locale uiLocale) {
-    final now = DateTime.now();
-    final timeStr = DateFormat('HH:mm').format(now);
-    final dateStr = DateFormat('yyyy/MM/dd').format(now);
-    final dayStr = DateFormat('EEEE', uiLocale.languageCode).format(now);
-    
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
-      decoration: BoxDecoration(
-        color: Colors.black45,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: Colors.white10),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.end,
-        children: [
-          Text(
-            timeStr,
-            style: const TextStyle(
-              color: Colors.white,
-              fontSize: 48,
-              fontWeight: FontWeight.w200,
-              fontFamily: 'RobotoThin',
-            ),
-          ),
-          Text(
-            dateStr,
-            style: const TextStyle(color: Colors.white70, fontSize: 16, fontWeight: FontWeight.bold),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            dayStr,
-            style: TextStyle(color: _accent, fontSize: 14, fontWeight: FontWeight.bold),
-          ),
-        ],
-      ),
-    );
   }
 }
 
