@@ -385,36 +385,6 @@ class _FullscreenPlayerPageState extends State<FullscreenPlayerPage> {
     );
   }
 
-  Widget _buildAmbientClock() {
-    final timeStr = DateFormat('HH:mm').format(_now);
-    final dateStr = DateFormat('yyyy/MM/dd').format(_now);
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.end,
-      children: [
-        Text(
-          timeStr,
-          style: const TextStyle(
-            color: Colors.white,
-            fontSize: 48,
-            fontWeight: FontWeight.w900,
-            letterSpacing: -1,
-            shadows: [Shadow(color: Colors.black, blurRadius: 15)],
-          ),
-        ),
-        Text(
-          dateStr.toUpperCase(),
-          style: TextStyle(
-            color: Colors.white.withOpacity(0.5),
-            fontSize: 16,
-            fontWeight: FontWeight.w900,
-            letterSpacing: 2,
-            shadows: [Shadow(color: Colors.black, blurRadius: 10)],
-          ),
-        ),
-      ],
-    );
-  }
-
   Widget _buildBottomHUD() {
     return Container(
       padding: const EdgeInsets.fromLTRB(40, 20, 40, 40),
@@ -724,10 +694,6 @@ class _FullscreenPlayerPageState extends State<FullscreenPlayerPage> {
           ),
         ),
       ],
-    );
-  }
-
-      ),
     );
   }
 
