@@ -109,7 +109,6 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
   bool get _hideChannelLogoOverlay {
     final g = _current.group.toLowerCase();
     final u = _current.url.toLowerCase();
-    if (g.contains('movie') || g.contains('film') || g.contains('cinema')) return true;
     if (g.contains('live')) return true;
     if (u.contains('.m3u8')) return true;
     return false;
@@ -312,60 +311,10 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
   Future<void> _reopenCurrentStream() async {
     final p = _player;
     if (p == null) return;
-    
-    // Clear old subtitles
-    setState(() {
-      _availableSubtitles = [];
-      _showSubtitlePrompt = false;
-    });
-
     await p.open(Media(_current.url));
-    
-    // Start subtitle search if it's a movie
-    if (_isMovie) {
-      _searchSubtitles();
-    }
   }
 
-  bool get _isMovie {
-    final g = _current.group.toLowerCase();
-    return g.contains('movie') || g.contains('film') || g.contains('cinema');
-  }
-
-  Future<void> _searchSubtitles() async {
-    if (!_subtitleService.hasApiKey) return;
-    
-    setState(() => _isSearchingSubtitles = true);
-    
-    try {
-      // 1. Find movie on TMDB to get IMDb ID
-      final movie = await _tmdbService.findMovie(_current.name);
-      
-      // 2. Search OpenSubtitles
-      final results = await _subtitleService.search(
-        imdbId: movie?.imdbId,
-        query: movie?.title ?? _current.name,
-      );
-      
-      if (mounted && results.isNotEmpty) {
-        setState(() {
-          _availableSubtitles = results;
-          _showSubtitlePrompt = true;
-          _isSearchingSubtitles = false;
-        });
-      }
-    } catch (_) {
-      if (mounted) setState(() => _isSearchingSubtitles = false);
-    }
-  }
-
-  Future<void> _applySubtitle(SubtitleResult sub) async {
-    final url = await _subtitleService.getDownloadUrl(sub.id);
-    if (url != null && _player != null) {
-      await _player!.setSubtitleTrack(SubtitleTrack.uri(url));
-      if (mounted) setState(() => _showSubtitlePrompt = false);
-    }
-  }
+  // Subtitle search and VOD logic removed (Moved to MoviePlayerPage)
 
   Future<void> _toggleFullscreen() async {
     if (_isFullscreen) return; // Should not happen in this flow if we navigate away

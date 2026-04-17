@@ -101,10 +101,7 @@ class _FullscreenPlayerPageState extends State<FullscreenPlayerPage> {
     super.dispose();
   }
 
-  bool get _isMovie {
-    final g = widget.channels[_index].group.toLowerCase();
-    return g.contains('movie') || g.contains('film') || g.contains('cinema');
-  }
+  bool get _isMovie => false; // Logic moved to MoviePlayerPage
 
   void _onChannelSelected(int fullIdx) {
     setState(() {
@@ -192,10 +189,6 @@ class _FullscreenPlayerPageState extends State<FullscreenPlayerPage> {
   }
 
   Widget _buildOverlayContent() {
-    if (_isMovie) {
-      return _buildMovieHUD();
-    }
-
     return Container(
       color: Colors.black.withOpacity(0.45),
       child: Stack(
@@ -479,117 +472,7 @@ class _FullscreenPlayerPageState extends State<FullscreenPlayerPage> {
     );
   }
 
-  // ── Movie HUD ──
-
-  Widget _buildMovieHUD() {
-    return Stack(
-      children: [
-        // 1. Top Bar: Title & Badge
-        Positioned(
-          top: 0,
-          left: 0,
-          right: 0,
-          child: Container(
-            padding: const EdgeInsets.symmetric(vertical: 40, horizontal: 50),
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topCenter,
-                end: Alignment.bottomCenter,
-                colors: [Colors.black.withOpacity(0.8), Colors.transparent],
-              ),
-            ),
-            child: Row(
-              children: [
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        _current.name.toUpperCase(),
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 22,
-                          fontWeight: FontWeight.w900,
-                          letterSpacing: 1.2,
-                        ),
-                      ),
-                      const SizedBox(height: 6),
-                      Row(
-                        children: [
-                          _buildBadge('4K ULTRA HD', Colors.red),
-                          const SizedBox(width: 12),
-                          _buildBadge('ATMOS', Colors.white30),
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
-                _buildHUDAction(Icons.settings_outlined, _showSettingsModal),
-              ],
-            ),
-          ),
-        ),
-
-        // 2. Play/Pause Big Icon (Center)
-        Center(
-          child: AnimatedOpacity(
-            opacity: _overlayVisible ? 1.0 : 0.0,
-            duration: const Duration(milliseconds: 200),
-            child: _buildHUDAction(
-              widget.player.state.playing ? Icons.pause_rounded : Icons.play_arrow_rounded,
-              () => widget.player.playOrPause(),
-              isLarge: true,
-            ),
-          ),
-        ),
-
-        // 3. Bottom HUD
-        Positioned(
-          bottom: 0,
-          left: 0,
-          right: 0,
-          child: Container(
-            padding: const EdgeInsets.fromLTRB(50, 20, 50, 40),
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.bottomCenter,
-                end: Alignment.topCenter,
-                colors: [Colors.black.withOpacity(0.9), Colors.transparent],
-              ),
-            ),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                // Seek Bar
-                _buildSeekBar(),
-                const SizedBox(height: 16),
-                // Control Bar
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Row(
-                      children: [
-                        _buildHUDAction(Icons.replay_10_rounded, () => widget.player.seek(_position - const Duration(seconds: 10))),
-                        const SizedBox(width: 20),
-                        _buildHUDAction(Icons.forward_10_rounded, () => widget.player.seek(_position + const Duration(seconds: 10))),
-                      ],
-                    ),
-                    Row(
-                      children: [
-                        _buildHUDAction(Icons.closed_caption_rounded, _showSubtitleSelector),
-                        const SizedBox(width: 24),
-                        _buildSpeedButton(),
-                      ],
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
-        ),
-      ],
-    );
-  }
+  // Movie HUD logic removed (Moved to MoviePlayerPage)
 
   void _showSubtitleSelector() {
     final tracks = widget.player.state.tracks.subtitle;

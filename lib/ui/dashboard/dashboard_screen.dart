@@ -8,6 +8,8 @@ import 'package:flutter/services.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:animations/animations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:media_kit/media_kit.dart';
+import 'package:media_kit_video/media_kit_video.dart';
 import '../../core/theme.dart';
 import '../../widgets/channel_logo_image.dart';
 import '../../widgets/optic_wordmark.dart';
@@ -19,27 +21,8 @@ import '../../services/playlist_service.dart';
 import '../../services/settings_service.dart';
 import '../admin/admin_screen.dart';
 import '../player/player_screen.dart';
-import 'dart:async';
-import 'dart:math' as math;
-import 'package:firebase_database/firebase_database.dart';
-import 'package:url_launcher/url_launcher.dart';
-
-import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
-import 'package:flutter/cupertino.dart';
-import 'package:animations/animations.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../core/theme.dart';
-import '../../widgets/channel_logo_image.dart';
-import '../../widgets/optic_wordmark.dart';
-import '../../l10n/app_strings.dart';
-import '../../providers/app_locale_provider.dart';
-import '../../providers/channel_library_provider.dart';
-import '../../providers/ui_settings_provider.dart';
-import '../../services/playlist_service.dart';
-import '../../services/settings_service.dart';
-import '../admin/admin_screen.dart';
-import '../player/player_screen.dart';
+import '../player/movie_player_page.dart';
+import '../settings/settings_screen.dart';
 import '../settings/settings_screen.dart';
 import '../sport/sport_scores_screen.dart';
 import '../../services/tmdb_service.dart';
@@ -313,15 +296,41 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
 
   void _openPlayer(List<Channel> allFlat, Channel channel) {
     final i = allFlat.indexOf(channel);
-    Navigator.push(
-      context,
-      MaterialPageRoute<void>(
-        builder: (context) => PlayerScreen(
-          channels: allFlat,
-          initialIndex: i >= 0 ? i : 0,
+    final uiLocale = ref.read(appLocaleProvider);
+    final s = AppStrings(uiLocale);
+
+    if (_isMovieChannel(channel)) {
+      // PRO MOVIE PLAYER: Strict VOD focus as requested
+      Navigator.push(
+        context,
+        MaterialPageRoute<void>(
+          builder: (context) {
+            final p = Player(configuration: const PlayerConfiguration(title: 'Optic TV Movie'));
+            final vc = VideoController(p, configuration: const VideoControllerConfiguration(enableHardwareAcceleration: true));
+            p.open(Media(channel.url));
+            
+            return MoviePlayerPage(
+              player: p,
+              controller: vc,
+              channel: channel,
+              uiLocale: uiLocale,
+              strings: s,
+            );
+          },
         ),
-      ),
-    );
+      );
+    } else {
+      // STANDARD TV PLAYER: Includes Guide & Sidebar
+      Navigator.push(
+        context,
+        MaterialPageRoute<void>(
+          builder: (context) => PlayerScreen(
+            channels: allFlat,
+            initialIndex: i >= 0 ? i : 0,
+          ),
+        ),
+      );
+    }
   }
 
   @override

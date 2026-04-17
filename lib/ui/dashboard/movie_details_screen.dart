@@ -1,12 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:media_kit/media_kit.dart';
+import 'package:media_kit_video/media_kit_video.dart';
 import 'dart:ui' show ImageFilter;
 import '../../core/theme.dart';
 import '../../services/playlist_service.dart';
-import '../../services/tmdb_service.dart';
-import '../../providers/channel_library_provider.dart';
 import '../player/player_screen.dart';
+import '../player/movie_player_page.dart';
+import '../../providers/app_locale_provider.dart';
+import '../../l10n/app_strings.dart';
 
 class MovieDetailsScreen extends ConsumerStatefulWidget {
   final List<Channel> allChannels;
@@ -63,13 +66,25 @@ class _MovieDetailsScreenState extends ConsumerState<MovieDetailsScreen> {
   }
 
   void _play() {
+    final uiLocale = ref.read(appLocaleProvider);
+    final s = AppStrings(uiLocale);
+
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (_) => PlayerScreen(
-          channels: widget.allChannels,
-          initialIndex: widget.allChannels.indexOf(widget.channel),
-        ),
+        builder: (_) {
+          final p = Player(configuration: const PlayerConfiguration(title: 'Optic TV Movie'));
+          final vc = VideoController(p, configuration: const VideoControllerConfiguration(enableHardwareAcceleration: true));
+          p.open(Media(widget.channel.url));
+          
+          return MoviePlayerPage(
+            player: p,
+            controller: vc,
+            channel: widget.channel,
+            uiLocale: uiLocale,
+            strings: s,
+          );
+        },
       ),
     );
   }
