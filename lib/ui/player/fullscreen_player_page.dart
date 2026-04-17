@@ -34,14 +34,22 @@ class FullscreenPlayerPage extends StatefulWidget {
 class _FullscreenPlayerPageState extends State<FullscreenPlayerPage> {
   late int _index;
   late String _selectedGroup;
-  bool _overlayVisible = true;
+  bool _overlayVisible = false; // Starts hidden as requested
   Timer? _hideTimer;
   
-  // Movie HUD State
+  // Movie HUD & Clock State
   Duration _position = Duration.zero;
   Duration _duration = Duration.zero;
   double _playbackSpeed = 1.0;
+  DateTime _now = DateTime.now();
+  Timer? _clockTimer;
   final List<StreamSubscription> _subscriptions = [];
+  
+  // Gesture OSD State
+  double? _volumeValue;
+  double? _brightnessValue;
+  String? _osdLabel;
+  Timer? _osdTimer;
 
   @override
   void initState() {
@@ -58,6 +66,10 @@ class _FullscreenPlayerPageState extends State<FullscreenPlayerPage> {
     _subscriptions.add(widget.player.stream.duration.listen((d) {
       if (mounted) setState(() => _duration = d);
     }));
+
+    _clockTimer = Timer.periodic(const Duration(seconds: 1), (t) {
+      if (mounted) setState(() => _now = DateTime.now());
+    });
 
     // Set orientations
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
@@ -81,6 +93,8 @@ class _FullscreenPlayerPageState extends State<FullscreenPlayerPage> {
   @override
   void dispose() {
     _hideTimer?.cancel();
+    _clockTimer?.cancel();
+    _osdTimer?.cancel();
     for (final s in _subscriptions) {
       s.cancel();
     }
@@ -132,26 +146,27 @@ class _FullscreenPlayerPageState extends State<FullscreenPlayerPage> {
       child: Scaffold(
         backgroundColor: Colors.black,
         body: GestureDetector(
+          onVerticalDragUpdate: _handleVerticalDrag,
+          onVerticalDragEnd: (_) => _hideOSD(),
+          onHorizontalDragUpdate: _handleHorizontalDrag,
+          onHorizontalDragEnd: (_) => _hideOSD(),
           onTap: () {
-            setState(() => _overlayVisible = !_overlayVisible);
-            _resetHideTimer();
+            setState(() {
+              _overlayVisible = !_overlayVisible;
+            });
+            if (_overlayVisible) {
+              _resetHideTimer();
+            }
           },
           child: Stack(
             fit: StackFit.expand,
             children: [
-              // 1. Video Layer
+              // Video Layer
               Video(
                 controller: widget.controller,
                 controls: NoVideoControls,
                 fit: BoxFit.contain,
               ),
-
-              // 2. Precision Guide Overlay
-              AnimatedOpacity(
-                opacity: _overlayVisible ? 1.0 : 0.0,
-                duration: const Duration(milliseconds: 300),
-                child: IgnorePointer(
-                  ignoring: !_overlayVisible,
                   child: _buildOverlayContent(),
                 ),
               ),
@@ -171,22 +186,15 @@ class _FullscreenPlayerPageState extends State<FullscreenPlayerPage> {
       color: Colors.black.withOpacity(0.45),
       child: Stack(
         children: [
-          // 1. Categories (Far Left)
+          // Left Side Category Selection (Compact rioplayer style)
+          _buildCategorySidebar(),
+          
+          // Row for Channel List (Smaller)
           Positioned(
-            left: 0,
+            left: 100, // Matches compact Sidebar width
             top: 0,
             bottom: 0,
-            width: 180,
-            child: _buildCategoryPane(),
-          ),
-
-          // 2. Channels (Center-Left)
-          Positioned(
-            left: 180,
-            top: 0,
-            bottom: 0,
-            right: MediaQuery.sizeOf(context).width * 0.25,
-            child: _buildChannelPane(),
+            child: _buildChannelList(),
           ),
 
           // 3. Exit Button (Bottom Right)
@@ -214,11 +222,12 @@ class _FullscreenPlayerPageState extends State<FullscreenPlayerPage> {
     );
   }
 
-  Widget _buildCategoryPane() {
+  Widget _buildCategorySidebar() {
     final groups = _groupNames;
     return Container(
+      width: 100, // Professional rioplayer width
       decoration: BoxDecoration(
-        color: Colors.black.withOpacity(0.6),
+        color: Colors.black.withOpacity(0.8),
         border: Border(right: BorderSide(color: Colors.white.withOpacity(0.05), width: 0.5)),
       ),
       child: ListView.builder(
@@ -235,17 +244,18 @@ class _FullscreenPlayerPageState extends State<FullscreenPlayerPage> {
             child: AnimatedContainer(
               duration: const Duration(milliseconds: 250),
               margin: const EdgeInsets.only(bottom: 2),
-              padding: const EdgeInsets.symmetric(vertical: 18, horizontal: 24),
+              padding: const EdgeInsets.symmetric(vertical: 18, horizontal: 12),
               decoration: BoxDecoration(
                 color: selected ? Colors.red.withOpacity(0.85) : Colors.transparent,
               ),
               child: Text(
                 g.toUpperCase(),
+                textAlign: TextAlign.center,
                 style: AppTheme.withRabarIfKurdish(
                   widget.uiLocale,
                   TextStyle(
                     color: Colors.white,
-                    fontSize: 15,
+                    fontSize: 12,
                     fontWeight: selected ? FontWeight.w900 : FontWeight.w500,
                     letterSpacing: 1.2,
                   ),
@@ -258,13 +268,15 @@ class _FullscreenPlayerPageState extends State<FullscreenPlayerPage> {
     );
   }
 
-  Widget _buildChannelPane() {
+  Widget _buildChannelList() {
     final channels = _channelsInSelectedGroup;
     return Container(
-      color: Colors.transparent,
-      child: ListView.builder(
+      width: 240, // More compact as requested
+      color: Colors.black.withOpacity(0.6),
+      child: ListView.separated(
         padding: const EdgeInsets.symmetric(vertical: 30, horizontal: 0),
         itemCount: channels.length,
+        separatorBuilder: (_, __) => Divider(color: Colors.white.withOpacity(0.05), height: 1),
         itemBuilder: (context, i) {
           final ch = channels[i];
           final active = ch.url == _current.url;
@@ -314,6 +326,115 @@ class _FullscreenPlayerPageState extends State<FullscreenPlayerPage> {
         },
       ),
     );
+  }
+
+  Widget _buildAmbientClock() {
+    final timeStr = DateFormat('HH:mm').format(_now);
+    final dateStr = DateFormat('yyyy/MM/dd').format(_now);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.end,
+      children: [
+        Text(
+          timeStr,
+          style: const TextStyle(
+            color: Colors.white,
+            fontSize: 48,
+            fontWeight: FontWeight.w900,
+            letterSpacing: -1,
+            shadows: [Shadow(color: Colors.black, blurRadius: 15)],
+          ),
+        ),
+        Text(
+          dateStr.toUpperCase(),
+          style: TextStyle(
+            color: Colors.white.withOpacity(0.5),
+            fontSize: 16,
+            fontWeight: FontWeight.w900,
+            letterSpacing: 2,
+            shadows: [Shadow(color: Colors.black, blurRadius: 10)],
+          ),
+        ),
+      ],
+    );
+  }
+
+  // ── Gesture OSD ──
+
+  Widget _buildOSDIndicator() {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 15),
+      decoration: BoxDecoration(
+        color: Colors.black.withOpacity(0.7),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.white10),
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            _osdLabel!,
+            style: const TextStyle(color: Colors.white, fontSize: 32, fontWeight: FontWeight.w900),
+          ),
+          const SizedBox(height: 8),
+          if (_volumeValue != null || _brightnessValue != null)
+            Container(
+              width: 150,
+              height: 4,
+              decoration: BoxDecoration(color: Colors.white10, borderRadius: BorderRadius.circular(2)),
+              clipBehavior: Clip.antiAlias,
+              child: FractionallySizedBox(
+                alignment: Alignment.centerLeft,
+                widthFactor: (_volumeValue ?? _brightnessValue ?? 0.0).clamp(0.0, 1.0),
+                child: Container(color: Colors.red),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+
+  void _handleVerticalDrag(DragUpdateDetails details) {
+    final screenWidth = MediaQuery.of(context).size.width;
+    final isLeftSide = details.localPosition.dx < screenWidth / 2;
+    
+    if (isLeftSide) {
+      // BRIGHTNESS (simulate or use plugin if available)
+      _brightnessValue = ((_brightnessValue ?? 0.5) - details.delta.dy / 300).clamp(0.0, 1.0);
+      _osdLabel = "BRIGHTNESS";
+    } else {
+      // VOLUME
+      _volumeValue = ((_volumeValue ?? 0.5) - details.delta.dy / 300).clamp(0.0, 1.0);
+      widget.player.setVolume(((_volumeValue ?? 0.5) * 100).toInt());
+      _osdLabel = "VOLUME";
+    }
+    setState(() {});
+    _resetOSDTimer();
+  }
+
+  void _handleHorizontalDrag(DragUpdateDetails details) {
+    if (!_isMovie) return;
+    
+    final offset = details.delta.dx * 10; // 10s per pixel-ish
+    final target = _position + Duration(seconds: offset.toInt());
+    _osdLabel = offset > 0 ? "+ ${offset.toInt()}s" : "${offset.toInt()}s";
+    
+    widget.player.seek(target);
+    setState(() {});
+    _resetOSDTimer();
+  }
+
+  void _resetOSDTimer() {
+    _osdTimer?.cancel();
+    _osdTimer = Timer(const Duration(seconds: 1), () {
+      if (mounted) setState(() => _osdLabel = null);
+    });
+  }
+
+  void _hideOSD() {
+    _osdTimer?.cancel();
+    _osdTimer = Timer(const Duration(milliseconds: 500), () {
+      if (mounted) setState(() => _osdLabel = null);
+    });
   }
 
   Widget _buildEqualizerIcon() {
