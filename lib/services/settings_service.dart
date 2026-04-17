@@ -11,6 +11,9 @@ class AppSettingsData {
   final bool showOnScreenClock;
   final bool reduceMotion;
   final AppGradientPreset gradientPreset;
+  final double subtitleFontSize;
+  final int subtitleColor; // ARGB
+  final int subtitleBgColor; // ARGB
 
   const AppSettingsData({
     this.keepScreenOnWhilePlaying = true,
@@ -19,6 +22,9 @@ class AppSettingsData {
     this.showOnScreenClock = false,
     this.reduceMotion = false,
     this.gradientPreset = AppGradientPreset.classic,
+    this.subtitleFontSize = 20.0,
+    this.subtitleColor = 0xFFFFFFFF, // White
+    this.subtitleBgColor = 0x73000000, // 45% Black
   });
 
   static Future<AppSettingsData> load() async {
@@ -31,6 +37,9 @@ class AppSettingsData {
       showOnScreenClock: p.getBool(_kShowClock) ?? false,
       reduceMotion: p.getBool(_kReduceMotion) ?? false,
       gradientPreset: _decodeGradientPreset(p.getString(_kGradientPreset)),
+      subtitleFontSize: p.getDouble(_kSubtitleFontSize) ?? 20.0,
+      subtitleColor: p.getInt(_kSubtitleColor) ?? 0xFFFFFFFF,
+      subtitleBgColor: p.getInt(_kSubtitleBgColor) ?? 0x73000000,
     );
   }
 
@@ -42,6 +51,9 @@ class AppSettingsData {
     await p.setBool(_kShowClock, showOnScreenClock);
     await p.setBool(_kReduceMotion, reduceMotion);
     await p.setString(_kGradientPreset, gradientPreset.name);
+    await p.setDouble(_kSubtitleFontSize, subtitleFontSize);
+    await p.setInt(_kSubtitleColor, subtitleColor);
+    await p.setInt(_kSubtitleBgColor, subtitleBgColor);
   }
 
   AppSettingsData copyWith({
@@ -51,6 +63,9 @@ class AppSettingsData {
     bool? showOnScreenClock,
     bool? reduceMotion,
     AppGradientPreset? gradientPreset,
+    double? subtitleFontSize,
+    int? subtitleColor,
+    int? subtitleBgColor,
   }) {
     return AppSettingsData(
       keepScreenOnWhilePlaying: keepScreenOnWhilePlaying ?? this.keepScreenOnWhilePlaying,
@@ -59,6 +74,9 @@ class AppSettingsData {
       showOnScreenClock: showOnScreenClock ?? this.showOnScreenClock,
       reduceMotion: reduceMotion ?? this.reduceMotion,
       gradientPreset: gradientPreset ?? this.gradientPreset,
+      subtitleFontSize: subtitleFontSize ?? this.subtitleFontSize,
+      subtitleColor: subtitleColor ?? this.subtitleColor,
+      subtitleBgColor: subtitleBgColor ?? this.subtitleBgColor,
     );
   }
 
@@ -113,4 +131,6 @@ const _kAutoHideControls = 'settings_auto_hide_controls';
 const _kShowClock = 'settings_show_clock';
 const _kReduceMotion = 'settings_reduce_motion';
 const _kGradientPreset = 'settings_gradient_preset';
-const _kPlayerEngine = 'settings_player_engine';
+const _kSubtitleFontSize = 'settings_subtitle_font_size';
+const _kSubtitleColor = 'settings_subtitle_color';
+const _kSubtitleBgColor = 'settings_subtitle_bg_color';

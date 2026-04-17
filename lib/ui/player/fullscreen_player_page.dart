@@ -7,12 +7,15 @@ import 'package:media_kit/media_kit.dart';
 import 'package:media_kit_video/media_kit_video.dart';
 import 'package:intl/intl.dart' hide TextDirection;
 import 'package:path_provider/path_provider.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/theme.dart';
 import '../../l10n/app_strings.dart';
 import '../../services/playlist_service.dart';
+import '../../providers/ui_settings_provider.dart';
+import 'widgets/subtitle_studio.dart';
 
-class FullscreenPlayerPage extends StatefulWidget {
+class FullscreenPlayerPage extends ConsumerStatefulWidget {
   final Player player;
   final VideoController controller;
   final List<Channel> channels;
@@ -31,10 +34,10 @@ class FullscreenPlayerPage extends StatefulWidget {
   });
 
   @override
-  State<FullscreenPlayerPage> createState() => _FullscreenPlayerPageState();
+  ConsumerState<FullscreenPlayerPage> createState() => _FullscreenPlayerPageState();
 }
 
-class _FullscreenPlayerPageState extends State<FullscreenPlayerPage> {
+class _FullscreenPlayerPageState extends ConsumerState<FullscreenPlayerPage> {
   late int _index;
   late String _selectedGroup;
   bool _overlayVisible = false; // Starts hidden as requested
@@ -171,6 +174,9 @@ class _FullscreenPlayerPageState extends State<FullscreenPlayerPage> {
 
   @override
   Widget build(BuildContext context) {
+    final settingsAsync = ref.watch(appUiSettingsProvider);
+    final settings = settingsAsync.asData?.value ?? const AppSettingsData();
+
     return WillPopScope(
       onWillPop: _exitFullscreen,
       child: Scaffold(
@@ -196,6 +202,15 @@ class _FullscreenPlayerPageState extends State<FullscreenPlayerPage> {
                 controller: widget.controller,
                 controls: NoVideoControls,
                 fit: BoxFit.contain,
+                subtitleViewConfiguration: SubtitleViewConfiguration(
+                  style: TextStyle(
+                    fontSize: settings.subtitleFontSize,
+                    color: Color(settings.subtitleColor),
+                    fontWeight: FontWeight.bold,
+                    backgroundColor: Color(settings.subtitleBgColor),
+                  ),
+                  padding: const EdgeInsets.all(24),
+                ),
               ),
 
               // 2. Ambient Clock
@@ -397,7 +412,9 @@ class _FullscreenPlayerPageState extends State<FullscreenPlayerPage> {
       ),
       child: Row(
         children: [
-          _buildHUDAction(Icons.closed_caption_rounded, _showSubtitleSelector, label: 'Subtitles'),
+          _buildHUDAction(Icons.closed_caption_rounded, () {
+            SubtitleStudioModal.show(context, widget.player);
+          }, label: 'Subtitles'),
           const SizedBox(width: 16),
           _buildHUDAction(Icons.settings_outlined, _showSettingsModal, label: 'Settings'),
           const Spacer(),
@@ -547,52 +564,7 @@ class _FullscreenPlayerPageState extends State<FullscreenPlayerPage> {
 
   // Movie HUD logic removed (Moved to MoviePlayerPage)
 
-  void _showSubtitleSelector() {
-    final tracks = widget.player.state.tracks.subtitle;
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: Colors.transparent,
-      builder: (context) => Container(
-        decoration: BoxDecoration(
-          color: Colors.black.withOpacity(0.95),
-          borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
-          border: Border.all(color: Colors.white10),
-        ),
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text("SUBTITLES & TRACKS", style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.w900)),
-            const SizedBox(height: 20),
-            if (tracks.isEmpty)
-              const Padding(
-                padding: EdgeInsets.symmetric(vertical: 20),
-                child: Text("No tracks found", style: TextStyle(color: Colors.white38)),
-              ),
-            ...tracks.map((t) => ListTile(
-                  leading: Icon(Icons.subtitles_rounded, color: t == widget.player.state.track.subtitle ? Colors.red : Colors.white70),
-                  title: Text(t.title ?? t.language ?? "Track ${t.id}", style: const TextStyle(color: Colors.white)),
-                  trailing: t == widget.player.state.track.subtitle ? const Icon(Icons.check_circle_rounded, color: Colors.red) : null,
-                  onTap: () {
-                    widget.player.setSubtitleTrack(t);
-                    Navigator.pop(context);
-                  },
-                )),
-            const SizedBox(height: 10),
-            ListTile(
-              leading: const Icon(Icons.subtitles_off_rounded, color: Colors.white38),
-              title: const Text("None (Off)", style: TextStyle(color: Colors.white38)),
-              onTap: () {
-                widget.player.setSubtitleTrack(SubtitleTrack.no());
-                Navigator.pop(context);
-              },
-            ),
-          ],
-        ),
-      ),
-    );
-  }
+  // Subtitle Studio replaces _showSubtitleSelector
 
   void _showSettingsModal() {
     showModalBottomSheet(

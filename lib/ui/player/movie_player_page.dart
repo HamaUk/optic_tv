@@ -7,14 +7,17 @@ import 'package:media_kit/media_kit.dart';
 import 'package:media_kit_video/media_kit_video.dart';
 import 'package:intl/intl.dart' hide TextDirection;
 import 'package:path_provider/path_provider.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/theme.dart';
 import '../../l10n/app_strings.dart';
 import '../../services/playlist_service.dart';
 import '../../services/subtitle_service.dart';
 import '../../services/tmdb_service.dart';
+import '../dashboard/movie_details_screen.dart';
+import 'widgets/subtitle_studio.dart';
 
-class MoviePlayerPage extends StatefulWidget {
+class MoviePlayerPage extends ConsumerStatefulWidget {
   final Player player;
   final VideoController controller;
   final Channel channel;
@@ -31,10 +34,10 @@ class MoviePlayerPage extends StatefulWidget {
   });
 
   @override
-  State<MoviePlayerPage> createState() => _MoviePlayerPageState();
+  ConsumerState<MoviePlayerPage> createState() => _MoviePlayerPageState();
 }
 
-class _MoviePlayerPageState extends State<MoviePlayerPage> {
+class _MoviePlayerPageState extends ConsumerState<MoviePlayerPage> {
   bool _overlayVisible = true; // Starts visible for movies as requested
   Timer? _hideTimer;
   
@@ -189,6 +192,7 @@ class _MoviePlayerPageState extends State<MoviePlayerPage> {
 
   @override
   Widget build(BuildContext context) {
+    final settings = ref.watch(settingsProvider);
     return WillPopScope(
       onWillPop: _exitFullscreen,
       child: Scaffold(
@@ -213,7 +217,16 @@ class _MoviePlayerPageState extends State<MoviePlayerPage> {
               Video(
                 controller: widget.controller,
                 controls: NoVideoControls,
-                fit: BoxFit.contain,
+                fit: settings.videoFit,
+                subtitleViewConfiguration: SubtitleViewConfiguration(
+                  style: TextStyle(
+                    fontSize: settings.subtitleFontSize,
+                    color: Color(settings.subtitleColor),
+                    fontWeight: FontWeight.bold,
+                    backgroundColor: Color(settings.subtitleBgColor),
+                  ),
+                  padding: const EdgeInsets.all(24),
+                ),
               ),
 
               // 2. Ambient Clock
@@ -326,7 +339,9 @@ class _MoviePlayerPageState extends State<MoviePlayerPage> {
                     ),
                     Row(
                       children: [
-                        _buildHUDAction(Icons.closed_caption_rounded, _showSubtitleSelector),
+                        _buildHUDAction(Icons.closed_caption_rounded, () {
+                          SubtitleStudioModal.show(context, widget.player);
+                        }),
                         const SizedBox(width: 24),
                         _buildSpeedButton(),
                       ],
@@ -430,72 +445,6 @@ class _MoviePlayerPageState extends State<MoviePlayerPage> {
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
         decoration: BoxDecoration(border: Border.all(color: Colors.white24), borderRadius: BorderRadius.circular(8)),
         child: Text('${_playbackSpeed.toStringAsFixed(1)}x', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-      ),
-    );
-  }
-
-  void _showSubtitleSelector() {
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: Colors.transparent,
-      isScrollControlled: true,
-      builder: (context) => Container(
-        height: MediaQuery.of(context).size.height * 0.7,
-        decoration: BoxDecoration(
-          color: const Color(0xFF14171C),
-          borderRadius: const BorderRadius.vertical(top: Radius.circular(32)),
-          border: Border.all(color: Colors.white10),
-        ),
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          children: [
-            Container(width: 40, height: 4, decoration: BoxDecoration(color: Colors.white12, borderRadius: BorderRadius.circular(2))),
-            const SizedBox(height: 24),
-            Text(
-              widget.strings.isEnglish ? 'SUBTITLE OPTIONS' : 'هەڵبژاردنی ژێرنووس',
-              style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.w900, letterSpacing: 1.2),
-            ),
-            const SizedBox(height: 8),
-            if (_isSearchingSubtitles)
-              const Padding(
-                padding: EdgeInsets.all(40),
-                child: CircularProgressIndicator(color: Colors.red),
-              )
-            else if (_availableSubtitles.isEmpty)
-              const Padding(
-                padding: EdgeInsets.all(40),
-                child: Text("No subtitles found tracking this movie.", style: TextStyle(color: Colors.white38)),
-              )
-            else
-              Expanded(
-                child: ListView.builder(
-                  itemCount: _availableSubtitles.length,
-                  itemBuilder: (context, i) {
-                    final sub = _availableSubtitles[i];
-                    final isKur = sub.language == 'ku' || sub.language == 'ckb';
-                    return ListTile(
-                      leading: Icon(
-                        isKur ? Icons.translate_rounded : Icons.language_rounded,
-                        color: isKur ? Colors.red : Colors.blue,
-                      ),
-                      title: Text(
-                        isKur ? "KURDISH (سۆرانی)" : sub.language.toUpperCase(),
-                        style: TextStyle(
-                          color: isKur ? Colors.white : Colors.white70,
-                          fontWeight: isKur ? FontWeight.w900 : FontWeight.normal,
-                        ),
-                      ),
-                      subtitle: Text(sub.fileName, style: const TextStyle(color: Colors.white24, fontSize: 11), maxLines: 1),
-                      onTap: () {
-                        _applySubtitle(sub);
-                        Navigator.pop(context);
-                      },
-                    );
-                  },
-                ),
-              ),
-          ],
-        ),
       ),
     );
   }
