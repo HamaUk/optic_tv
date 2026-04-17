@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/material.dart';
@@ -354,6 +355,66 @@ class _FullscreenPlayerPageState extends State<FullscreenPlayerPage> {
     );
   }
 
+  Widget _buildAmbientClock() {
+    final timeStr = DateFormat('HH:mm').format(_now);
+    final dateStr = DateFormat('yyyy/MM/dd').format(_now);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.end,
+      children: [
+        Text(
+          timeStr,
+          style: const TextStyle(
+            color: Colors.white,
+            fontSize: 48,
+            fontWeight: FontWeight.w900,
+            letterSpacing: -1,
+            shadows: [Shadow(color: Colors.black, blurRadius: 15)],
+          ),
+        ),
+        Text(
+          dateStr.toUpperCase(),
+          style: TextStyle(
+            color: Colors.white.withOpacity(0.5),
+            fontSize: 16,
+            fontWeight: FontWeight.w900,
+            letterSpacing: 2,
+            shadows: [Shadow(color: Colors.black, blurRadius: 10)],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildAmbientClock() {
+    final timeStr = DateFormat('HH:mm').format(_now);
+    final dateStr = DateFormat('yyyy/MM/dd').format(_now);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.end,
+      children: [
+        Text(
+          timeStr,
+          style: const TextStyle(
+            color: Colors.white,
+            fontSize: 48,
+            fontWeight: FontWeight.w900,
+            letterSpacing: -1,
+            shadows: [Shadow(color: Colors.black, blurRadius: 15)],
+          ),
+        ),
+        Text(
+          dateStr.toUpperCase(),
+          style: TextStyle(
+            color: Colors.white.withOpacity(0.5),
+            fontSize: 16,
+            fontWeight: FontWeight.w900,
+            letterSpacing: 2,
+            shadows: [Shadow(color: Colors.black, blurRadius: 10)],
+          ),
+        ),
+      ],
+    );
+  }
+
   Widget _buildBottomHUD() {
     return Container(
       padding: const EdgeInsets.fromLTRB(40, 20, 40, 40),
@@ -380,31 +441,6 @@ class _FullscreenPlayerPageState extends State<FullscreenPlayerPage> {
             if (mounted) Navigator.of(context).pop();
           }, label: 'Exit'),
         ],
-      ),
-    );
-  }
-
-  Widget _buildHUDAction(IconData icon, VoidCallback onTap, {required String label}) {
-    return Material(
-      color: Colors.black45,
-      borderRadius: BorderRadius.circular(12),
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(12),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(icon, color: Colors.white, size: 24),
-              const SizedBox(width: 12),
-              Text(
-                label.toUpperCase(),
-                style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w900, letterSpacing: 1),
-              ),
-            ],
-          ),
-        ),
       ),
     );
   }
@@ -691,16 +727,6 @@ class _FullscreenPlayerPageState extends State<FullscreenPlayerPage> {
     );
   }
 
-  Widget _buildHUDAction(IconData icon, VoidCallback onTap, {bool isLarge = false}) {
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(50),
-        child: Padding(
-          padding: const EdgeInsets.all(12),
-          child: Icon(icon, color: Colors.white, size: isLarge ? 56 : 28),
-        ),
       ),
     );
   }

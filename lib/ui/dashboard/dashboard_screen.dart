@@ -4,6 +4,7 @@ import 'package:firebase_database/firebase_database.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import 'package:flutter/material.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:animations/animations.dart';
@@ -144,6 +145,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
         return [];
       default:
         // Home: exclude movies so they only appear in the Movies tab.
+        return all.where((c) => !_isMovieChannel(c)).toList();
     }
   }
 
@@ -196,7 +198,10 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 4),
       child: GestureDetector(
-        onTap: () => _openPlayer(m),
+        onTap: () {
+          final channels = ref.read(channelsProvider).asData?.value ?? [];
+          _openPlayer(channels, m);
+        },
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -213,7 +218,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                   imageUrl: m.logo ?? '',
                   fit: BoxFit.cover,
                   errorWidget: (context, url, error) => Container(
-                    color: Colors.white05,
+                    color: Colors.white.withOpacity(0.05),
                     child: const Center(child: Icon(Icons.movie_outlined, color: Colors.white24)),
                   ),
                 ),
