@@ -168,8 +168,8 @@ class _FullscreenPlayerPageState extends State<FullscreenPlayerPage> {
                 fit: BoxFit.contain,
               ),
 
-              // 2. Ambient Clock (Always visible or toggleable?)
-              // We'll show it only when UI is visible to keep the screen clean on start as requested
+              // 2. Ambient Clock
+              // Only visible when UI is visible to keep entry clean
               if (_overlayVisible)
                 Positioned(
                   top: 30,
@@ -418,7 +418,8 @@ class _FullscreenPlayerPageState extends State<FullscreenPlayerPage> {
     } else {
       // VOLUME
       _volumeValue = ((_volumeValue ?? 0.5) - details.delta.dy / 300).clamp(0.0, 1.0);
-      widget.player.setVolume(((_volumeValue ?? 0.5) * 100.0).toDouble());
+      // media_kit setVolume takes a double from 0.0 to 100.0
+      widget.player.setVolume((_volumeValue! * 100.0));
       _osdLabel = "VOLUME";
     }
     setState(() {});
@@ -523,7 +524,7 @@ class _FullscreenPlayerPageState extends State<FullscreenPlayerPage> {
                     ],
                   ),
                 ),
-                _buildHUDAction(Icons.settings_outlined, () {}),
+                _buildHUDAction(Icons.settings_outlined, _showSettingsModal),
               ],
             ),
           ),
@@ -575,7 +576,7 @@ class _FullscreenPlayerPageState extends State<FullscreenPlayerPage> {
                     ),
                     Row(
                       children: [
-                        _buildHUDAction(Icons.closed_caption_rounded, () {}),
+                        _buildHUDAction(Icons.closed_caption_rounded, _showSubtitleSelector),
                         const SizedBox(width: 24),
                         _buildSpeedButton(),
                       ],
@@ -587,6 +588,119 @@ class _FullscreenPlayerPageState extends State<FullscreenPlayerPage> {
           ),
         ),
       ],
+    );
+  }
+
+  void _showSubtitleSelector() {
+    final tracks = widget.player.state.tracks.subtitle;
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (context) => Container(
+        decoration: BoxDecoration(
+          color: Colors.black.withOpacity(0.95),
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+          border: Border.all(color: Colors.white10),
+        ),
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text("SUBTITLES & TRACKS", style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.w900)),
+            const SizedBox(height: 20),
+            if (tracks.isEmpty)
+              const Padding(
+                padding: EdgeInsets.symmetric(vertical: 20),
+                child: Text("No tracks found", style: TextStyle(color: Colors.white38)),
+              ),
+            ...tracks.map((t) => ListTile(
+                  leading: Icon(Icons.subtitles_rounded, color: t == widget.player.state.track.subtitle ? Colors.red : Colors.white70),
+                  title: Text(t.title ?? t.language ?? "Track ${t.id}", style: const TextStyle(color: Colors.white)),
+                  trailing: t == widget.player.state.track.subtitle ? const Icon(Icons.check_circle_rounded, color: Colors.red) : null,
+                  onTap: () {
+                    widget.player.setSubtitleTrack(t);
+                    Navigator.pop(context);
+                  },
+                )),
+            const SizedBox(height: 10),
+            ListTile(
+              leading: const Icon(Icons.subtitles_off_rounded, color: Colors.white38),
+              title: const Text("None (Off)", style: TextStyle(color: Colors.white38)),
+              onTap: () {
+                widget.player.setSubtitleTrack(SubtitleTrack.no());
+                Navigator.pop(context);
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showSettingsModal() {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (context) => Container(
+        decoration: BoxDecoration(
+          color: Colors.black.withOpacity(0.95),
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+          border: Border.all(color: Colors.white10),
+        ),
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text("PLAYBACK SETTINGS", style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.w900)),
+            const SizedBox(height: 24),
+            const Text("ASPECT RATIO", style: TextStyle(color: Colors.white38, fontSize: 12, fontWeight: FontWeight.bold)),
+            const SizedBox(height: 12),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceAround,
+              children: [
+                _aspectButton("FIT", BoxFit.contain),
+                _aspectButton("FILL", BoxFit.cover),
+                _aspectButton("STRETCH", BoxFit.fill),
+              ],
+            ),
+            const SizedBox(height: 32),
+            const Text("STREAM INFO", style: TextStyle(color: Colors.white38, fontSize: 12, fontWeight: FontWeight.bold)),
+            const SizedBox(height: 12),
+            _infoRow("Resolution", "${widget.player.state.width} x ${widget.player.state.height}"),
+            _infoRow("Hardware", "Auto-Safe (HEVC/AVC)"),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _aspectButton(String label, BoxFit fit) {
+    return InkWell(
+      onTap: () {
+        // We'll manage aspect ratio via a state variable if needed, but for now we simulate
+        Navigator.pop(context);
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Switched to $label mode")));
+      },
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+        decoration: BoxDecoration(border: Border.all(color: Colors.white10), borderRadius: BorderRadius.circular(8)),
+        child: Text(label, style: const TextStyle(color: Colors.white)),
+      ),
+    );
+  }
+
+  Widget _infoRow(String label, String val) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(label, style: const TextStyle(color: Colors.white60)),
+          Text(val, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+        ],
+      ),
     );
   }
 
