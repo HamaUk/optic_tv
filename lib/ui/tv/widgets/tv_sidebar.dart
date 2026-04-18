@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import '../../../../core/theme.dart';
 import '../../../../widgets/tv_fluid_focusable.dart';
 
-enum TvNavDestination { home, live, movies, sports, favorites, search, settings }
+enum TvNavDestination { live, movies, sports, search, settings }
 
 class TvSidebar extends StatefulWidget {
   final TvNavDestination selected;
@@ -10,6 +11,7 @@ class TvSidebar extends StatefulWidget {
   final List<String> customCategories;
   final String? selectedCategory;
   final ValueChanged<String> onCategorySelected;
+  final VoidCallback? onMoveRight;
 
   const TvSidebar({
     super.key,
@@ -18,6 +20,7 @@ class TvSidebar extends StatefulWidget {
     required this.customCategories,
     required this.onCategorySelected,
     this.selectedCategory,
+    this.onMoveRight,
   });
 
   @override
@@ -41,6 +44,13 @@ class _TvSidebarState extends State<TvSidebar> with SingleTickerProviderStateMix
       onFocusChange: (focused) {
         setState(() => _isExpanded = focused);
       },
+      onKey: (node, event) {
+        if (event is RawKeyDownEvent && event.logicalKey == LogicalKeyboardKey.arrowRight) {
+          widget.onMoveRight?.call();
+          return KeyEventResult.handled;
+        }
+        return KeyEventResult.ignored;
+      },
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 300),
         curve: Curves.easeInOutQuart,
@@ -51,12 +61,10 @@ class _TvSidebarState extends State<TvSidebar> with SingleTickerProviderStateMix
         ),
         child: Column(
           children: [
-            const SizedBox(height: 40),
-            _buildNavItem(TvNavDestination.home, Icons.home_rounded, 'Home'),
+            const SizedBox(height: 60),
             _buildNavItem(TvNavDestination.live, Icons.live_tv_rounded, 'Live TV'),
             _buildNavItem(TvNavDestination.movies, Icons.movie_filter_rounded, 'Movies'),
             _buildNavItem(TvNavDestination.sports, Icons.sports_soccer_rounded, 'Sports'),
-            _buildNavItem(TvNavDestination.favorites, Icons.star_rounded, 'Favorites'),
             _buildNavItem(TvNavDestination.search, Icons.search_rounded, 'Search'),
             const Spacer(),
             
@@ -66,6 +74,8 @@ class _TvSidebarState extends State<TvSidebar> with SingleTickerProviderStateMix
               Expanded(
                 flex: 3,
                 child: ListView.builder(
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(), // No sidebar scrolling as requested
                   itemCount: widget.customCategories.length,
                   itemBuilder: (context, index) {
                     final cat = widget.customCategories[index];
@@ -76,7 +86,7 @@ class _TvSidebarState extends State<TvSidebar> with SingleTickerProviderStateMix
             ],
             
             _buildNavItem(TvNavDestination.settings, Icons.settings_rounded, 'Settings'),
-            const SizedBox(height: 20),
+            const SizedBox(height: 40),
           ],
         ),
       ),

@@ -19,13 +19,17 @@ class TvDashboardScreen extends ConsumerStatefulWidget {
 }
 
 class _TvDashboardScreenState extends ConsumerState<TvDashboardScreen> {
-  TvNavDestination _selectedDest = TvNavDestination.home;
+  TvNavDestination _selectedDest = TvNavDestination.live;
   String? _activeCategory;
   final ScrollController _homeScrollController = ScrollController();
+  final FocusNode _sidebarFocusNode = FocusNode();
+  final FocusNode _gridFocusNode = FocusNode();
 
   @override
   void dispose() {
     _homeScrollController.dispose();
+    _sidebarFocusNode.dispose();
+    _gridFocusNode.dispose();
     super.dispose();
   }
 
@@ -46,6 +50,7 @@ class _TvDashboardScreenState extends ConsumerState<TvDashboardScreen> {
               // 1. Pro Sidebar
               TvSidebar(
                 selected: _selectedDest,
+                onMoveRight: () => _gridFocusNode.requestFocus(),
                 onDestinationSelected: (dest) {
                   setState(() {
                     _selectedDest = dest;
@@ -107,12 +112,31 @@ class _TvDashboardScreenState extends ConsumerState<TvDashboardScreen> {
 
     // Otherwise, show standard destinations
     switch (_selectedDest) {
-      case TvNavDestination.home:
-        return _buildHomeView(allChannels);
       case TvNavDestination.live:
-        return TvChannelGrid(channels: allChannels, categoryName: 'All Channels');
+        return TvChannelGrid(
+          channels: allChannels, 
+          categoryName: 'All Channels',
+          focusNode: _gridFocusNode,
+        );
+      case TvNavDestination.movies:
+        return TvChannelGrid(
+          channels: allChannels.where((c) => c.group.toLowerCase().contains('movie')).toList(),
+          categoryName: 'Movies',
+          isPosterStyle: true,
+          focusNode: _gridFocusNode,
+        );
+      case TvNavDestination.sports:
+        return TvChannelGrid(
+          channels: allChannels.where((c) => c.group.toLowerCase().contains('sport')).toList(),
+          categoryName: 'Sports',
+          focusNode: _gridFocusNode,
+        );
       default:
-        return _buildHomeView(allChannels);
+        return TvChannelGrid(
+          channels: allChannels, 
+          categoryName: 'General',
+          focusNode: _gridFocusNode,
+        );
     }
   }
 
