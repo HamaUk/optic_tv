@@ -436,10 +436,6 @@ class _FullscreenPlayerPageState extends ConsumerState<FullscreenPlayerPage> {
       ),
       child: Row(
         children: [
-          _buildHUDAction(Icons.closed_caption_rounded, () {
-            SubtitleStudioModal.show(context, widget.player);
-          }, label: 'Subtitles'),
-          const SizedBox(width: 16),
           _buildHUDAction(Icons.settings_outlined, _showSettingsModal, label: 'Settings'),
           const Spacer(),
           Text(
