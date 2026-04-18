@@ -31,7 +31,7 @@ class _TvDashboardScreenState extends ConsumerState<TvDashboardScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final channelsAsync = ref.watch(playlistProvider);
+    final channelsAsync = ref.watch(channelsProvider);
 
     return Scaffold(
       backgroundColor: Colors.black,
@@ -171,7 +171,7 @@ class _TvDashboardScreenState extends ConsumerState<TvDashboardScreen> {
             separatorBuilder: (_, __) => const SizedBox(width: 24),
             itemBuilder: (context, index) {
               final ch = rowChannels[index];
-              return TVFluidFocusable(
+              return GhostenFocusable(
                 onTap: () {
                   Navigator.push(
                     context,

@@ -44,7 +44,7 @@ class TvChannelGrid extends StatelessWidget {
             itemCount: channels.length,
             itemBuilder: (context, index) {
               final ch = channels[index];
-              return TVFluidFocusable(
+              return GhostenFocusable(
                 onTap: () {
                   Navigator.push(
                     context,

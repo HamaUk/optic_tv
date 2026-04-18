@@ -87,7 +87,7 @@ class _TvSidebarState extends State<TvSidebar> with SingleTickerProviderStateMix
     final isSelected = widget.selected == dest;
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 8),
-      child: TVFluidFocusable(
+      child: GhostenFocusable(
         onTap: () => widget.onDestinationSelected(dest),
         child: Container(
           height: 56,
@@ -122,7 +122,7 @@ class _TvSidebarState extends State<TvSidebar> with SingleTickerProviderStateMix
     final isSelected = widget.selectedCategory == category;
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 2, horizontal: 12),
-      child: TVFluidFocusable(
+      child: GhostenFocusable(
         onTap: () => widget.onCategorySelected(category),
         child: Container(
           padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),

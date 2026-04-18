@@ -58,7 +58,7 @@ class _TvLoginScreenState extends ConsumerState<TvLoginScreen> {
     });
 
     try {
-      final success = await ref.read(sessionProvider.notifier).login(_enteredCode);
+      final success = await ref.read(sessionProvider.notifier).loginWithCode(_enteredCode);
       if (!success && mounted) {
         setState(() {
           _isLoading = false;
@@ -113,7 +113,7 @@ class _TvLoginScreenState extends ConsumerState<TvLoginScreen> {
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    const OpticWordmark(size: 80),
+                    const OpticWordmark(height: 80),
                     const SizedBox(height: 60),
                     Text(
                       'ACTIVATE SERVICE',
@@ -229,7 +229,7 @@ class _TvLoginScreenState extends ConsumerState<TvLoginScreen> {
   }
 
   Widget _buildKey(String label) {
-    return TVFluidFocusable(
+    return GhostenFocusable(
       onTap: () => _onDigitPressed(label),
       child: Container(
         decoration: BoxDecoration(
@@ -246,7 +246,7 @@ class _TvLoginScreenState extends ConsumerState<TvLoginScreen> {
   }
 
   Widget _buildSpecialKey(IconData icon, VoidCallback onTap) {
-    return TVFluidFocusable(
+    return GhostenFocusable(
       onTap: onTap,
       child: Container(
         decoration: BoxDecoration(
@@ -260,7 +260,7 @@ class _TvLoginScreenState extends ConsumerState<TvLoginScreen> {
   }
 
   Widget _buildSubmitButton() {
-    return TVFluidFocusable(
+    return GhostenFocusable(
       onTap: _handleLogin,
       child: Container(
         height: 64,
