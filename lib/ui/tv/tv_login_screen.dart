@@ -17,23 +17,40 @@ class TvLoginScreen extends ConsumerStatefulWidget {
 }
 
 class _TvLoginScreenState extends ConsumerState<TvLoginScreen> {
-  final _codeController = TextEditingController();
-  final _codeFocus = FocusNode();
-  final _submitFocus = FocusNode();
+  String _enteredCode = "";
   bool _isLoading = false;
   String? _error;
 
-  @override
-  void dispose() {
-    _codeController.dispose();
-    _codeFocus.dispose();
-    _submitFocus.dispose();
-    super.dispose();
+  void _onDigitPressed(String digit) {
+    if (_enteredCode.length < 6) {
+      setState(() {
+        _enteredCode += digit;
+        _error = null;
+      });
+    }
+  }
+
+  void _onBackspace() {
+    if (_enteredCode.isNotEmpty) {
+      setState(() {
+        _enteredCode = _enteredCode.substring(0, _enteredCode.length - 1);
+        _error = null;
+      });
+    }
+  }
+
+  void _onClear() {
+    setState(() {
+      _enteredCode = "";
+      _error = null;
+    });
   }
 
   Future<void> _handleLogin() async {
-    final code = _codeController.text.trim();
-    if (code.isEmpty) return;
+    if (_enteredCode.length < 6) {
+      setState(() => _error = "Please enter a 6-digit code");
+      return;
+    }
 
     setState(() {
       _isLoading = true;
@@ -41,7 +58,7 @@ class _TvLoginScreenState extends ConsumerState<TvLoginScreen> {
     });
 
     try {
-      final success = await ref.read(sessionProvider.notifier).login(code);
+      final success = await ref.read(sessionProvider.notifier).login(_enteredCode);
       if (!success && mounted) {
         setState(() {
           _isLoading = false;
@@ -67,17 +84,16 @@ class _TvLoginScreenState extends ConsumerState<TvLoginScreen> {
           // 1. Cinematic Background
           Positioned.fill(
             child: Opacity(
-              opacity: 0.4,
+              opacity: 0.3,
               child: Image.asset(
                 'assets/images/optic_logo.png',
                 fit: BoxFit.cover,
-                color: Colors.black.withOpacity(0.8),
+                color: Colors.black.withOpacity(0.9),
                 colorBlendMode: BlendMode.darken,
               ),
             ),
           ),
           
-          // 2. Animated Ambient Layer
           Positioned.fill(
             child: Center(
               child: Lottie.network(
@@ -88,140 +104,183 @@ class _TvLoginScreenState extends ConsumerState<TvLoginScreen> {
             ),
           ),
 
-          // 3. Main Login Panel
-          Center(
-            child: SingleChildScrollView(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  const Hero(
-                    tag: 'logo',
-                    child: OpticWordmark(size: 64),
-                  ),
-                  const SizedBox(height: 48),
-                  
-                  GlassmorphicContainer(
-                    width: 480,
-                    height: 380,
+          // 3. Dual-Panel Layout (Display + Keypad)
+          Row(
+            children: [
+              // LEFT: Branding & Code Display
+              Expanded(
+                flex: 4,
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const OpticWordmark(size: 80),
+                    const SizedBox(height: 60),
+                    Text(
+                      'ACTIVATE SERVICE',
+                      style: GoogleFonts.outfit(
+                        fontSize: 32,
+                        fontWeight: FontWeight.w900,
+                        color: AppTheme.primaryGold,
+                        letterSpacing: 6,
+                      ),
+                    ),
+                    const SizedBox(height: 40),
+                    _buildCodeDisplay(),
+                    if (_error != null) ...[
+                      const SizedBox(height: 24),
+                      Text(
+                        _error!.toUpperCase(),
+                        style: const TextStyle(color: Colors.redAccent, fontSize: 14, fontWeight: FontWeight.bold, letterSpacing: 1),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+
+              // RIGHT: Pro Keypad
+              Expanded(
+                flex: 3,
+                child: Center(
+                  child: GlassmorphicContainer(
+                    width: 400,
+                    height: 550,
                     borderRadius: 32,
-                    blur: 20,
+                    blur: 25,
                     alignment: Alignment.center,
                     border: 2,
                     linearGradient: LinearGradient(
                       begin: Alignment.topLeft,
                       end: Alignment.bottomRight,
                       colors: [
-                        Colors.white.withOpacity(0.1),
-                        Colors.white.withOpacity(0.05),
+                        Colors.white.withOpacity(0.08),
+                        Colors.white.withOpacity(0.02),
                       ],
                     ),
                     borderGradient: LinearGradient(
                       begin: Alignment.topLeft,
                       end: Alignment.bottomRight,
                       colors: [
-                        AppTheme.primaryGold.withOpacity(0.5),
-                        AppTheme.primaryGold.withOpacity(0.1),
+                        AppTheme.primaryGold.withOpacity(0.3),
+                        AppTheme.primaryGold.withOpacity(0.05),
                       ],
                     ),
                     child: Padding(
-                      padding: const EdgeInsets.all(40),
+                      padding: const EdgeInsets.all(32),
                       child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          Text(
-                            'ACTIVATE TV',
-                            style: GoogleFonts.outfit(
-                              fontSize: 28,
-                              fontWeight: FontWeight.w900,
-                              color: Colors.white,
-                              letterSpacing: 4,
+                          Expanded(
+                            child: GridView.count(
+                              crossAxisCount: 3,
+                              mainAxisSpacing: 12,
+                              crossAxisSpacing: 12,
+                              childAspectRatio: 1.2,
+                              children: [
+                                for (var i = 1; i <= 9; i++) _buildKey('$i'),
+                                _buildSpecialKey(Icons.backspace_rounded, _onBackspace),
+                                _buildKey('0'),
+                                _buildSpecialKey(Icons.delete_forever_rounded, _onClear),
+                              ],
                             ),
                           ),
-                          const SizedBox(height: 8),
-                          Text(
-                            'Enter your activation code below',
-                            style: TextStyle(
-                              color: Colors.white.withOpacity(0.4),
-                              fontSize: 14,
-                            ),
-                          ),
-                          const SizedBox(height: 40),
-                          
-                          // Code Input with Focus logic
-                          TVFluidFocusable(
-                            focusNode: _codeFocus,
-                            onTap: () => _codeFocus.requestFocus(),
-                            child: TextField(
-                              controller: _codeController,
-                              focusNode: _codeFocus,
-                              textAlign: TextAlign.center,
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontSize: 24,
-                                fontWeight: FontWeight.bold,
-                                letterSpacing: 8,
-                              ),
-                              decoration: InputDecoration(
-                                hintText: '000000',
-                                hintStyle: TextStyle(color: Colors.white.withOpacity(0.1)),
-                                border: InputBorder.none,
-                                contentPadding: const EdgeInsets.symmetric(vertical: 16),
-                              ),
-                              onSubmitted: (_) => _submitFocus.requestFocus(),
-                            ),
-                          ),
-                          
-                          if (_error != null) ...[
-                            const SizedBox(height: 16),
-                            Text(
-                              _error!,
-                              style: const TextStyle(color: Colors.redAccent, fontSize: 13),
-                            ),
-                          ],
-                          
-                          const SizedBox(height: 32),
-                          
-                          // Submit Button
-                          TVFluidFocusable(
-                            focusNode: _submitFocus,
-                            onTap: _handleLogin,
-                            child: Container(
-                              height: 64,
-                              width: double.infinity,
-                              decoration: BoxDecoration(
-                                color: AppTheme.primaryGold,
-                                borderRadius: BorderRadius.circular(16),
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: AppTheme.primaryGold.withOpacity(0.3),
-                                    blurRadius: 15,
-                                    offset: const Offset(0, 8),
-                                  ),
-                                ],
-                              ),
-                              alignment: Alignment.center,
-                              child: _isLoading 
-                                ? const CircularProgressIndicator(color: Colors.black)
-                                : const Text(
-                                    'CONNECT',
-                                    style: TextStyle(
-                                      color: Colors.black,
-                                      fontWeight: FontWeight.w900,
-                                      fontSize: 18,
-                                      letterSpacing: 2,
-                                    ),
-                                  ),
-                            ),
-                          ),
+                          const SizedBox(height: 24),
+                          _buildSubmitButton(),
                         ],
                       ),
                     ),
                   ),
-                ],
+                ),
               ),
-            ),
+            ],
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildCodeDisplay() {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: List.generate(6, (index) {
+        final hasDigit = index < _enteredCode.length;
+        return Container(
+          width: 64,
+          height: 80,
+          margin: const EdgeInsets.symmetric(horizontal: 8),
+          decoration: BoxDecoration(
+            color: Colors.white.withOpacity(0.05),
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(
+              color: hasDigit ? AppTheme.primaryGold : Colors.white.withOpacity(0.1),
+              width: hasDigit ? 2 : 1,
+            ),
+          ),
+          alignment: Alignment.center,
+          child: Text(
+            hasDigit ? _enteredCode[index] : "",
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 36,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+        );
+      }),
+    );
+  }
+
+  Widget _buildKey(String label) {
+    return TVFluidFocusable(
+      onTap: () => _onDigitPressed(label),
+      child: Container(
+        decoration: BoxDecoration(
+          color: Colors.white.withOpacity(0.03),
+          borderRadius: BorderRadius.circular(16),
+        ),
+        alignment: Alignment.center,
+        child: Text(
+          label,
+          style: const TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSpecialKey(IconData icon, VoidCallback onTap) {
+    return TVFluidFocusable(
+      onTap: onTap,
+      child: Container(
+        decoration: BoxDecoration(
+          color: Colors.white.withOpacity(0.03),
+          borderRadius: BorderRadius.circular(16),
+        ),
+        alignment: Alignment.center,
+        child: Icon(icon, color: Colors.white, size: 28),
+      ),
+    );
+  }
+
+  Widget _buildSubmitButton() {
+    return TVFluidFocusable(
+      onTap: _handleLogin,
+      child: Container(
+        height: 64,
+        width: double.infinity,
+        decoration: BoxDecoration(
+          color: _enteredCode.length == 6 ? AppTheme.primaryGold : Colors.white.withOpacity(0.1),
+          borderRadius: BorderRadius.circular(16),
+        ),
+        alignment: Alignment.center,
+        child: _isLoading 
+          ? const CircularProgressIndicator(color: Colors.black)
+          : Text(
+              'ACTIVATE DEVICE',
+              style: TextStyle(
+                color: _enteredCode.length == 6 ? Colors.black : Colors.white24,
+                fontWeight: FontWeight.w900,
+                fontSize: 16,
+                letterSpacing: 2,
+              ),
+            ),
       ),
     );
   }
