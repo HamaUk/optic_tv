@@ -12,6 +12,9 @@ import 'services/notification_service.dart';
 import 'services/settings_service.dart';
 import 'ui/auth/login_screen.dart';
 import 'ui/dashboard/dashboard_screen.dart';
+import 'ui/tv/tv_login_screen.dart';
+import 'ui/tv/tv_dashboard_screen.dart';
+import 'services/platform_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -102,6 +105,8 @@ class _OpticTvAppState extends ConsumerState<OpticTvApp> {
     final uiLocale = ref.watch(appLocaleProvider);
     final session = ref.watch(sessionProvider);
     final settings = ref.watch(appUiSettingsProvider).asData?.value ?? const AppSettingsData();
+    final deviceTypeAsync = ref.watch(deviceTypeProvider);
+    final deviceType = deviceTypeAsync.asData?.value ?? DeviceType.phone;
 
     return MaterialApp(
       title: 'Optic TV',
@@ -120,7 +125,9 @@ class _OpticTvAppState extends ConsumerState<OpticTvApp> {
         GlobalCupertinoLocalizations.delegate,
       ],
       supportedLocales: const [Locale('en')],
-      home: session.loggedIn ? const DashboardScreen() : const LoginScreen(),
+      home: deviceType == DeviceType.tv 
+        ? (session.loggedIn ? const TvDashboardScreen() : const TvLoginScreen())
+        : (session.loggedIn ? const DashboardScreen() : const LoginScreen()),
     );
   }
 }

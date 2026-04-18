@@ -56,6 +56,10 @@ dependencies:
   simple_pip_mode: ^1.1.0
   dio_cache_interceptor: ^3.5.0
 
+  # Native TV Engine & Detection
+  video_player: ^2.9.1
+  device_info_plus: ^11.1.0
+
 dev_dependencies:
   flutter_test:
     sdk: flutter
