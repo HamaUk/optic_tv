@@ -97,8 +97,9 @@ class _TvLoginScreenState extends ConsumerState<TvLoginScreen> {
           Positioned.fill(
             child: Center(
               child: Lottie.network(
-                'https://assets9.lottiefiles.com/packages/lf20_kyu7xb1v.json',
+                'https://assets3.lottiefiles.com/packages/lf20_M9pWvS.json', // Pro Cinematic Ambient
                 fit: BoxFit.cover,
+                opacity: 0.5,
                 errorBuilder: (context, error, stackTrace) => const SizedBox.shrink(),
               ),
             ),
