@@ -1,5 +1,7 @@
 import 'package:firebase_database/firebase_database.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:media_kit/media_kit.dart';
+import 'package:media_kit_video/media_kit_video.dart';
 
 class Channel {
   final String name;
@@ -77,4 +79,11 @@ final channelsProvider = StreamProvider<List<Channel>>((ref) {
 
     return remoteChannels;
   });
+});
+
+// TV Media Engine Providers
+final playerProvider = Provider<Player>((ref) => Player());
+final videoControllerProvider = Provider<VideoController>((ref) {
+  final player = ref.watch(playerProvider);
+  return VideoController(player);
 });
