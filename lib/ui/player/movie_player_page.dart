@@ -81,12 +81,17 @@ class _MoviePlayerPageState extends ConsumerState<MoviePlayerPage> {
       if (mounted) setState(() => _now = DateTime.now());
     });
 
-    // Set orientations
+    // Set orientations based on device type
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
-    SystemChrome.setPreferredOrientations([
-      DeviceOrientation.landscapeLeft,
-      DeviceOrientation.landscapeRight,
-    ]);
+    
+    // Check device type (simple check for now, can be improved with ref.read if needed)
+    final isTv = MediaQuery.of(context).size.shortestSide >= 600; 
+    if (isTv) {
+      SystemChrome.setPreferredOrientations([
+        DeviceOrientation.landscapeLeft,
+        DeviceOrientation.landscapeRight,
+      ]);
+    }
 
     _resetHideTimer();
     
@@ -186,9 +191,12 @@ class _MoviePlayerPageState extends ConsumerState<MoviePlayerPage> {
 
   Future<bool> _exitFullscreen() async {
     await SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
-    await SystemChrome.setPreferredOrientations([
-      DeviceOrientation.portraitUp,
-    ]);
+    
+    // Smart reset: Only force portrait on exit for phones
+    final isTv = MediaQuery.of(context).size.shortestSide >= 600;
+    if (!isTv) {
+      await SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
+    }
     return true;
   }
 

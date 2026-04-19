@@ -346,8 +346,11 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
       // Stream is already opened in the FullscreenPage, but we sync local state here
     }
     
-    // Ensure portrait orientation logic is solid on return
-    await SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
+    // Smart orientation reset: Only force portrait on return for phones
+    final isTv = MediaQuery.of(context).size.shortestSide >= 600;
+    if (!isTv) {
+      await SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
+    }
     await SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
   }
 
