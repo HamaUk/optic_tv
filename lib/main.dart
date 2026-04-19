@@ -14,6 +14,7 @@ import 'ui/auth/login_screen.dart';
 import 'ui/dashboard/dashboard_screen.dart';
 import 'ui/tv/tv_login_screen.dart';
 import 'ui/tv/tv_dashboard_screen.dart';
+import 'ui/tv/tv_mode_selector_screen.dart';
 import 'services/platform_service.dart';
 
 void main() async {
@@ -126,7 +127,7 @@ class _OpticTvAppState extends ConsumerState<OpticTvApp> {
       ],
       supportedLocales: const [Locale('en')],
       home: deviceType == DeviceType.tv 
-        ? (session.loggedIn ? const TvDashboardScreen() : const TvLoginScreen())
+        ? (session.loggedIn ? const TvModeSelectorScreen() : const TvLoginScreen())
         : (session.loggedIn ? const DashboardScreen() : const LoginScreen()),
     );
   }

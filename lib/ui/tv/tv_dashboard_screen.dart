@@ -9,28 +9,59 @@ import '../../../widgets/tv_fluid_focusable.dart';
 import 'widgets/tv_sidebar.dart';
 import 'widgets/tv_channel_grid.dart';
 import 'tv_player_page.dart';
-import '../../../widgets/channel_logo_image.dart';
+import 'tv_settings_page.dart';
 
 class TvDashboardScreen extends ConsumerStatefulWidget {
-  const TvDashboardScreen({super.key});
+  final TvNavDestination initialMode;
+  const TvDashboardScreen({super.key, required this.initialMode});
 
   @override
   ConsumerState<TvDashboardScreen> createState() => _TvDashboardScreenState();
 }
 
 class _TvDashboardScreenState extends ConsumerState<TvDashboardScreen> {
-  TvNavDestination _selectedDest = TvNavDestination.live;
+  late TvNavDestination _selectedMode;
   String? _activeCategory;
-  final ScrollController _homeScrollController = ScrollController();
   final FocusNode _sidebarFocusNode = FocusNode();
   final FocusNode _gridFocusNode = FocusNode();
 
   @override
+  void initState() {
+    super.initState();
+    _selectedMode = widget.initialMode;
+  }
+
+  @override
   void dispose() {
-    _homeScrollController.dispose();
     _sidebarFocusNode.dispose();
     _gridFocusNode.dispose();
     super.dispose();
+  }
+
+  // Pure filtering based on Mode + Category
+  List<Channel> _getFilteredChannels(List<Channel> all) {
+    List<Channel> modeFiltered = [];
+    
+    switch (_selectedMode) {
+      case TvNavDestination.settings:
+        return [];
+      case TvNavDestination.movies:
+        modeFiltered = all.where((c) => c.type == 'movie').toList();
+        break;
+      case TvNavDestination.sports:
+        modeFiltered = all.where((c) => c.group.toLowerCase().contains('sport')).toList();
+        break;
+      case TvNavDestination.live:
+      default:
+        modeFiltered = all.where((c) => c.type == 'live').toList();
+        break;
+    }
+
+    if (_activeCategory != null) {
+      return modeFiltered.where((c) => c.group == _activeCategory).toList();
+    }
+    
+    return modeFiltered;
   }
 
   @override
@@ -43,31 +74,33 @@ class _TvDashboardScreenState extends ConsumerState<TvDashboardScreen> {
         loading: () => const Center(child: CircularProgressIndicator(color: AppTheme.primaryGold)),
         error: (err, stack) => Center(child: Text('Error: $err', style: const TextStyle(color: Colors.white))),
         data: (channels) {
-          final categories = channels.map((c) => c.group).toSet().toList()..sort();
+          final filteredChannels = _getFilteredChannels(channels);
+          // Categories should only be from the currently filtered MODE
+          final modeAllChannels = channels.where((c) {
+            if (_selectedMode == TvNavDestination.movies) return c.type == 'movie';
+            if (_selectedMode == TvNavDestination.sports) return c.group.toLowerCase().contains('sport');
+            return c.type == 'live';
+          }).toList();
+          
+          final categories = modeAllChannels.map((c) => c.group).toSet().toList()..sort();
           
           return Row(
             children: [
-              // 1. Pro Sidebar
+              // 1. Morphing Sidebar
               TvSidebar(
-                selected: _selectedDest,
+                mode: _selectedMode,
                 onMoveRight: () => _gridFocusNode.requestFocus(),
-                onDestinationSelected: (dest) {
-                  setState(() {
-                    _selectedDest = dest;
-                    _activeCategory = null;
-                  });
-                },
                 customCategories: categories,
                 selectedCategory: _activeCategory,
+                onBackToSelector: () => Navigator.pop(context),
                 onCategorySelected: (cat) {
                   setState(() {
                     _activeCategory = cat;
-                    _selectedDest = TvNavDestination.live; // Use live as the 'grid' mode base
                   });
                 },
               ),
 
-              // 2. Main Content Area
+              // 2. Main Content Area (Stable Grid)
               Expanded(
                 child: Stack(
                   children: [
@@ -91,7 +124,13 @@ class _TvDashboardScreenState extends ConsumerState<TvDashboardScreen> {
                     // Content Switching
                     Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 48),
-                      child: _buildContent(channels),
+                      child: TvChannelGrid(
+                        key: ValueKey('grid_$_selectedMode$_activeCategory'), // Stable key for focus persistence
+                        channels: filteredChannels, 
+                        categoryName: _activeCategory ?? 'All Channels',
+                        isPosterStyle: _selectedMode == TvNavDestination.movies || _selectedMode == TvNavDestination.sports,
+                        focusNode: _gridFocusNode,
+                      ),
                     ),
                   ],
                 ),
@@ -100,167 +139,6 @@ class _TvDashboardScreenState extends ConsumerState<TvDashboardScreen> {
           );
         },
       ),
-    );
-  }
-
-  Widget _buildContent(List<Channel> allChannels) {
-    // If a specific category is selected, show the Grid
-    if (_activeCategory != null) {
-      final filtered = allChannels.where((c) => c.group == _activeCategory).toList();
-      return TvChannelGrid(channels: filtered, categoryName: _activeCategory!);
-    }
-
-    // Otherwise, show standard destinations
-    switch (_selectedDest) {
-      case TvNavDestination.live:
-        return TvChannelGrid(
-          channels: allChannels, 
-          categoryName: 'All Channels',
-          focusNode: _gridFocusNode,
-        );
-      case TvNavDestination.movies:
-        return TvChannelGrid(
-          channels: allChannels.where((c) => c.group.toLowerCase().contains('movie')).toList(),
-          categoryName: 'Movies',
-          isPosterStyle: true,
-          focusNode: _gridFocusNode,
-        );
-      case TvNavDestination.sports:
-        return TvChannelGrid(
-          channels: allChannels.where((c) => c.group.toLowerCase().contains('sport')).toList(),
-          categoryName: 'Sports',
-          focusNode: _gridFocusNode,
-        );
-      default:
-        return TvChannelGrid(
-          channels: allChannels, 
-          categoryName: 'General',
-          focusNode: _gridFocusNode,
-        );
-    }
-  }
-
-  Widget _buildHomeView(List<Channel> channels) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const SizedBox(height: 60),
-        Text(
-          'OPTIC TV ELITE',
-          style: GoogleFonts.outfit(
-            color: AppTheme.primaryGold,
-            fontSize: 32,
-            fontWeight: FontWeight.w900,
-            letterSpacing: 8,
-          ),
-        ),
-        const SizedBox(height: 60),
-        Expanded(
-          child: ListView(
-            controller: _homeScrollController,
-            physics: const BouncingScrollPhysics(),
-            children: [
-              _buildTvRow('CONTINUE WATCHING', channels.take(5).toList()),
-              const SizedBox(height: 60),
-              _buildTvRow('TRENDING NOW', channels.skip(5).take(10).toList()),
-              const SizedBox(height: 60),
-              _buildTvRow('BASED ON YOUR INTEREST', channels.reversed.take(10).toList()),
-              const SizedBox(height: 100),
-            ],
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildTvRow(String title, List<Channel> rowChannels) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          title,
-          style: const TextStyle(
-            color: Colors.white54,
-            fontSize: 18,
-            fontWeight: FontWeight.w900,
-            letterSpacing: 2,
-          ),
-        ),
-        const SizedBox(height: 24),
-        SizedBox(
-          height: 180,
-          child: ListView.separated(
-            scrollDirection: Axis.horizontal,
-            itemCount: rowChannels.length,
-            separatorBuilder: (_, __) => const SizedBox(width: 24),
-            itemBuilder: (context, index) {
-              final ch = rowChannels[index];
-              return GhostenFocusable(
-                onTap: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => TvPlayerPage(
-                        channels: rowChannels,
-                        initialIndex: index,
-                      ),
-                    ),
-                  );
-                },
-                child: Container(
-                  width: 320,
-                  decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.03),
-                    borderRadius: BorderRadius.circular(16),
-                    border: Border.all(color: Colors.white.withOpacity(0.05)),
-                  ),
-                  child: ClipRRect(
-                    borderRadius: BorderRadius.circular(16),
-                    child: Stack(
-                      children: [
-                        Center(
-                          child: Opacity(
-                            opacity: 0.6,
-                            child: ChannelLogoImage(logo: ch.logo, height: 100, width: 100),
-                          ),
-                        ),
-                        Positioned(
-                          bottom: 0,
-                          left: 0,
-                          right: 0,
-                          child: Container(
-                            padding: const EdgeInsets.all(16),
-                            decoration: BoxDecoration(
-                              gradient: LinearGradient(
-                                begin: Alignment.topCenter,
-                                end: Alignment.bottomCenter,
-                                colors: [
-                                  Colors.transparent,
-                                  Colors.black.withOpacity(0.8),
-                                ],
-                              ),
-                            ),
-                            child: Text(
-                              ch.name,
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontWeight: FontWeight.bold,
-                                fontSize: 16,
-                              ),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              );
-            },
-          ),
-        ),
-      ],
     );
   }
 }
