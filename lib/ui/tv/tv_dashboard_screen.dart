@@ -87,17 +87,12 @@ class _TvDashboardScreenState extends ConsumerState<TvDashboardScreen> {
           return Row(
             children: [
               // 1. Morphing Sidebar
-              TvSidebar(
-                mode: _selectedMode,
-                onMoveRight: () => _gridFocusNode.requestFocus(),
-                customCategories: categories,
+              TVSidebar(
+                selectedDestination: _selectedMode,
+                onDestinationSelected: (dest) => setState(() => _selectedMode = dest),
                 selectedCategory: _activeCategory,
-                onBackToSelector: () => Navigator.pop(context),
-                onCategorySelected: (cat) {
-                  setState(() {
-                    _activeCategory = cat;
-                  });
-                },
+                onCategorySelected: (cat) => setState(() => _activeCategory = cat),
+                child: const SizedBox.shrink(), // Bridge to old implementation
               ),
 
               // 2. Main Content Area (Stable Grid)

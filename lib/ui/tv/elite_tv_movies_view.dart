@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:media_kit/media_kit.dart';
 import '../../core/theme.dart';
 import '../../services/playlist_service.dart';
+import '../../providers/app_locale_provider.dart';
 import '../../widgets/tv/tv_channel_card.dart';
 import '../player/fullscreen_player_page.dart';
 
@@ -23,7 +24,6 @@ class EliteTvMoviesView extends ConsumerWidget {
           channels: list,
           initialIndex: list.indexOf(movie),
           uiLocale: ref.read(appLocaleProvider),
-          strings: null,
         ),
       ),
     );

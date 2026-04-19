@@ -3,6 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../services/playlist_service.dart';
 import '../../../widgets/tv/tv_focusable.dart';
 import '../../../core/theme.dart';
+import '../../../../providers/app_locale_provider.dart';
+import '../../../../providers/ui_settings_provider.dart';
 
 /// Navigation Destinations for the Main Sidebar
 enum TvNavDestination { live, movies, search, settings, sports }
@@ -41,63 +43,64 @@ class _TVSidebarState extends ConsumerState<TVSidebar> {
       child: FocusTraversalGroup(
         policy: ReadingOrderTraversalPolicy(),
         child: Row(
-        children: [
-          // LAYER 1: NARROW ICON NAV (Far Left)
-          Container(
-            width: navWidth,
-            color: Colors.black,
-            child: Column(
-              children: [
-                const SizedBox(height: 32),
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(8),
-                  child: Image.asset('assets/images/optic_logo.png', width: 32, height: 32),
-                ),
-                const SizedBox(height: 40),
-                _buildNavIcon(0, Icons.live_tv, TvNavDestination.live),
-                _buildNavIcon(1, Icons.movie_filter, TvNavDestination.movies),
-                _buildNavIcon(2, Icons.search, TvNavDestination.search),
-                _buildNavIcon(3, Icons.settings, TvNavDestination.settings),
-              ],
-            ),
-          ),
-
-          // LAYER 2: WIDE CATEGORY LIST (Mid Left)
-          Container(
-            width: categoryWidth,
-            decoration: BoxDecoration(
-              color: Colors.black.withOpacity(0.95),
-              border: const Border(right: BorderSide(color: Colors.white10, width: 1)),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(24, 40, 24, 20),
-                  child: Text(
-                    widget.selectedDestination.name.toUpperCase(),
-                    style: const TextStyle(color: AppTheme.primaryGold, letterSpacing: 2, fontWeight: FontWeight.bold, fontSize: 14),
-                  ),
-                ),
-                Expanded(
-                  child: channelsAsync.when(
-                    data: (channels) => _buildCategoryList(channels),
-                    loading: () => const Center(child: CircularProgressIndicator(color: AppTheme.primaryGold)),
-                    error: (_, __) => const SizedBox(),
-                  ),
-                ),
-              ],
-            ),
-          ),
-
-          // LAYER 3: THE CONTENT GRID
-          Expanded(
-            child: Container(
+          children: [
+            // LAYER 1: NARROW ICON NAV (Far Left)
+            Container(
+              width: navWidth,
               color: Colors.black,
-              child: widget.child,
+              child: Column(
+                children: [
+                  const SizedBox(height: 32),
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(8),
+                    child: Image.asset('assets/images/optic_logo.png', width: 32, height: 32),
+                  ),
+                  const SizedBox(height: 40),
+                  _buildNavIcon(0, Icons.live_tv, TvNavDestination.live),
+                  _buildNavIcon(1, Icons.movie_filter, TvNavDestination.movies),
+                  _buildNavIcon(2, Icons.search, TvNavDestination.search),
+                  _buildNavIcon(3, Icons.settings, TvNavDestination.settings),
+                ],
+              ),
             ),
-          ),
-        ],
+
+            // LAYER 2: WIDE CATEGORY LIST (Mid Left)
+            Container(
+              width: categoryWidth,
+              decoration: BoxDecoration(
+                color: Colors.black.withOpacity(0.95),
+                border: const Border(right: BorderSide(color: Colors.white10, width: 1)),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(24, 40, 24, 20),
+                    child: Text(
+                      widget.selectedDestination.name.toUpperCase(),
+                      style: const TextStyle(color: AppTheme.primaryGold, letterSpacing: 2, fontWeight: FontWeight.bold, fontSize: 14),
+                    ),
+                  ),
+                  Expanded(
+                    child: channelsAsync.when(
+                      data: (channels) => _buildCategoryList(channels),
+                      loading: () => const Center(child: CircularProgressIndicator(color: AppTheme.primaryGold)),
+                      error: (_, __) => const SizedBox(),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+
+            // LAYER 3: THE CONTENT GRID
+            Expanded(
+              child: Container(
+                color: Colors.black,
+                child: widget.child,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -180,7 +183,7 @@ class _TVSidebarState extends ConsumerState<TVSidebar> {
                   ),
                 ),
                 if (isSelected && !isFocused)
-                  const Icon(Icons.arrow_forward_ios, color: AppTheme.primaryGold, size: 12),
+                  const Icon(Icons.arrow_forward_ios, color: AppTheme.primaryGold, size: 10),
                 const SizedBox(width: 8),
                 Text(
                   count.toString(),

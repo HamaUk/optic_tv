@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:media_kit/media_kit.dart';
 import '../../core/theme.dart';
 import '../../services/playlist_service.dart';
+import '../../providers/app_locale_provider.dart';
 import '../../widgets/tv/tv_channel_card.dart';
 import '../player/fullscreen_player_page.dart';
 import 'widgets/tv_sidebar.dart';
@@ -31,11 +32,10 @@ class _EliteTvDashboardState extends ConsumerState<EliteTvDashboard> {
       MaterialPageRoute(
         builder: (context) => FullscreenPlayerPage(
           player: player,
-          controller: ref.read(videoControllerProvider), // Using existing provider
+          controller: ref.read(videoControllerProvider), 
           channels: contextChannels,
           initialIndex: contextChannels.indexOf(channel),
           uiLocale: ref.read(appLocaleProvider),
-          strings: null, // Will be handled by the player's internal strings
         ),
       ),
     );
