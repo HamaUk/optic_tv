@@ -8,13 +8,14 @@ import 'package:media_kit_video/media_kit_video.dart';
 import 'package:intl/intl.dart' hide TextDirection;
 import 'package:path_provider/path_provider.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:glassmorphism/glassmorphism.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 import '../../core/theme.dart';
 import '../../l10n/app_strings.dart';
 import '../../services/playlist_service.dart';
 import '../../services/settings_service.dart';
 import '../../providers/ui_settings_provider.dart';
-import 'widgets/subtitle_studio.dart';
 
 class FullscreenPlayerPage extends ConsumerStatefulWidget {
   final Player player;
@@ -41,19 +42,16 @@ class FullscreenPlayerPage extends ConsumerStatefulWidget {
 class _FullscreenPlayerPageState extends ConsumerState<FullscreenPlayerPage> {
   late int _index;
   late String _selectedGroup;
-  bool _overlayVisible = false; // Starts hidden as requested
+  bool _overlayVisible = false;
   Timer? _hideTimer;
-  final TextEditingController _searchController = TextEditingController();
+  BoxFit _fit = BoxFit.contain;
   
-  // Movie HUD & Clock State
   Duration _position = Duration.zero;
   Duration _duration = Duration.zero;
-  double _playbackSpeed = 1.0;
   DateTime _now = DateTime.now();
   Timer? _clockTimer;
   final List<StreamSubscription> _subscriptions = [];
   
-  // Gesture OSD State
   double? _volumeValue;
   double? _brightnessValue;
   String? _osdLabel;
@@ -79,7 +77,6 @@ class _FullscreenPlayerPageState extends ConsumerState<FullscreenPlayerPage> {
       if (mounted) setState(() => _now = DateTime.now());
     });
 
-    // Set orientations
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
     SystemChrome.setPreferredOrientations([
       DeviceOrientation.landscapeLeft,
@@ -87,41 +84,12 @@ class _FullscreenPlayerPageState extends ConsumerState<FullscreenPlayerPage> {
     ]);
 
     _resetHideTimer();
-    
-    // Priority: Load manual subtitle for the initial channel
-    _loadManualSubtitle();
-  }
-
-  Future<void> _loadManualSubtitle() async {
-    final subUrl = _current.subtitleUrl;
-    if (subUrl == null || subUrl.isEmpty) return;
-
-    try {
-      if (subUrl.startsWith('data:')) {
-        // Enforce Local File: Encoded SRT/VTT from Admin Portal
-        final parts = subUrl.split(';base64,');
-        if (parts.length != 2) return;
-        
-        final bytes = base64Decode(parts[1]);
-        final tempDir = await getTemporaryDirectory();
-        final isVtt = subUrl.contains('text/vtt');
-        final tempFile = File('${tempDir.path}/live_sub_${DateTime.now().millisecondsSinceEpoch}.${isVtt ? 'vtt' : 'srt'}');
-        
-        await tempFile.writeAsBytes(bytes);
-        await widget.player.setSubtitleTrack(SubtitleTrack.uri(tempFile.uri.toString()));
-      } else if (subUrl.startsWith('http')) {
-        // Enforce URL: Direct web link
-        await widget.player.setSubtitleTrack(SubtitleTrack.uri(subUrl));
-      }
-    } catch (e) {
-      debugPrint('Error loading live subtitle: $e');
-    }
   }
 
   void _resetHideTimer() {
     _hideTimer?.cancel();
     if (_overlayVisible) {
-      _hideTimer = Timer(const Duration(seconds: 12), () {
+      _hideTimer = Timer(const Duration(seconds: 8), () {
         if (mounted) setState(() => _overlayVisible = false);
       });
     }
@@ -132,50 +100,41 @@ class _FullscreenPlayerPageState extends ConsumerState<FullscreenPlayerPage> {
     _hideTimer?.cancel();
     _clockTimer?.cancel();
     _osdTimer?.cancel();
-    for (final s in _subscriptions) {
-      s.cancel();
-    }
+    for (final s in _subscriptions) s.cancel();
     super.dispose();
   }
 
-  bool get _isMovie => false; // Logic moved to MoviePlayerPage
-
   void _onChannelSelected(int fullIdx) {
-    setState(() {
-      _index = fullIdx;
-    });
+    setState(() => _index = fullIdx);
     widget.player.open(Media(widget.channels[_index].url));
-    _loadManualSubtitle();
     _resetHideTimer();
   }
 
-  List<Channel> get _filteredChannels {
-    final q = _searchController.text.trim().toLowerCase();
-    return widget.channels.where((c) {
-      // STRICT FILTER: Exclude anything that is a movie or vod
-      final isMovie = c.type == 'movie' || 
-                      c.group.toLowerCase().contains('movie') || 
-                      c.group.toLowerCase().contains('cinema');
-      if (isMovie) return false;
+  void _cycleAspectRatio() {
+    setState(() {
+      if (_fit == BoxFit.contain) {
+        _fit = BoxFit.cover;
+      } else if (_fit == BoxFit.cover) {
+        _fit = BoxFit.fill;
+      } else {
+        _fit = BoxFit.contain;
+      }
+    });
+    _resetHideTimer();
+  }
 
-      final matchSearch = q.isEmpty ||
-          c.name.toLowerCase().contains(q) ||
-          c.group.toLowerCase().contains(q);
-      final matchGroup = _selectedGroup == 'ALL' || c.group == _selectedGroup;
-      return matchSearch && matchGroup;
+  List<Channel> get _channelsInSelectedGroup {
+    return widget.channels.where((c) {
+       final isMovie = c.type == 'movie' || c.group.toLowerCase().contains('movie');
+       return !isMovie && (_selectedGroup == 'ALL' || c.group == _selectedGroup);
     }).toList();
   }
 
   List<String> get _groupNames {
     final set = <String>{'ALL'};
     for (final c in widget.channels) {
-      // Only include groups that contain at least one live channel
-      final isMovie = c.type == 'movie' || 
-                      c.group.toLowerCase().contains('movie') || 
-                      c.group.toLowerCase().contains('cinema');
-      if (!isMovie) {
-        set.add(c.group);
-      }
+      final isMovie = c.type == 'movie' || c.group.toLowerCase().contains('movie');
+      if (!isMovie) set.add(c.group);
     }
     final list = set.toList()..sort();
     return list;
@@ -183,24 +142,14 @@ class _FullscreenPlayerPageState extends ConsumerState<FullscreenPlayerPage> {
 
   Channel get _current => widget.channels[_index];
 
-  List<Channel> get _channelsInSelectedGroup {
-    return widget.channels.where((c) => c.group == _selectedGroup).toList();
-  }
-
   Future<bool> _exitFullscreen() async {
-    // Restore orientations before popping
     await SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
-    await SystemChrome.setPreferredOrientations([
-      DeviceOrientation.portraitUp,
-    ]);
+    await SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
     return true;
   }
 
   @override
   Widget build(BuildContext context) {
-    final settingsAsync = ref.watch(appUiSettingsProvider);
-    final settings = settingsAsync.asData?.value ?? AppSettingsData();
-
     return WillPopScope(
       onWillPop: _exitFullscreen,
       child: Scaffold(
@@ -208,15 +157,9 @@ class _FullscreenPlayerPageState extends ConsumerState<FullscreenPlayerPage> {
         body: GestureDetector(
           onVerticalDragUpdate: _handleVerticalDrag,
           onVerticalDragEnd: (_) => _hideOSD(),
-          onHorizontalDragUpdate: _handleHorizontalDrag,
-          onHorizontalDragEnd: (_) => _hideOSD(),
           onTap: () {
-            setState(() {
-              _overlayVisible = !_overlayVisible;
-            });
-            if (_overlayVisible) {
-              _resetHideTimer();
-            }
+            setState(() => _overlayVisible = !_overlayVisible);
+            if (_overlayVisible) _resetHideTimer();
           },
           child: Stack(
             fit: StackFit.expand,
@@ -225,34 +168,14 @@ class _FullscreenPlayerPageState extends ConsumerState<FullscreenPlayerPage> {
               Video(
                 controller: widget.controller,
                 controls: NoVideoControls,
-                fit: BoxFit.contain,
-                subtitleViewConfiguration: SubtitleViewConfiguration(
-                  style: TextStyle(
-                    fontSize: settings.subtitleFontSize,
-                    color: Color(settings.subtitleColor),
-                    fontWeight: FontWeight.bold,
-                    backgroundColor: Color(settings.subtitleBgColor),
-                  ),
-                  padding: const EdgeInsets.all(24),
-                ),
+                fit: _fit,
               ),
 
-              // 2. Ambient Clock
-              // Only visible when UI is visible to keep entry clean
-              if (_overlayVisible)
-                Positioned(
-                  top: 30,
-                  right: 40,
-                  child: _buildAmbientClock(),
-                ),
+              // 2. Nano Banana Overlay
+              if (_overlayVisible) _buildNanoOverlay(),
 
-              // 3. Gesture OSD Indicators
-              if (_osdLabel != null)
-                Center(child: _buildOSDIndicator()),
-
-              // 4. UI Layer (HUD / Guide)
-              if (_overlayVisible)
-                _buildOverlayContent(),
+              // 3. Gesture OSD
+              if (_osdLabel != null) Center(child: _buildOSDIndicator()),
             ],
           ),
         ),
@@ -260,482 +183,209 @@ class _FullscreenPlayerPageState extends ConsumerState<FullscreenPlayerPage> {
     );
   }
 
-  Widget _buildOverlayContent() {
+  Widget _buildNanoOverlay() {
     return Container(
-      color: Colors.black.withOpacity(0.45),
-      child: Stack(
-        children: [
-          // 1. Left Side Category Selection
-          _buildCategorySidebar(),
-          
-          // 2. Row for Channel List
-          Positioned(
-            left: 100,
-            top: 0,
-            bottom: 0,
-            child: _buildChannelList(),
-          ),
-
-          // 3. Bottom Quick HUD (Subtitles / Settings / Exit)
-          Positioned(
-            left: 100,
-            right: 0,
-            bottom: 0,
-            child: _buildBottomHUD(),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildCategorySidebar() {
-    final groups = _groupNames;
-    return Container(
-      width: 100, // Professional rioplayer width
-      decoration: BoxDecoration(
-        color: Colors.black.withOpacity(0.8),
-        border: Border(right: BorderSide(color: Colors.white.withOpacity(0.05), width: 0.5)),
-      ),
-      child: ListView.builder(
-        padding: const EdgeInsets.symmetric(vertical: 60),
-        itemCount: groups.length,
-        itemBuilder: (context, i) {
-          final g = groups[i];
-          final selected = g == _selectedGroup;
-          return GestureDetector(
-            onTap: () => setState(() {
-              _selectedGroup = g;
-              _resetHideTimer();
-            }),
-            child: AnimatedContainer(
-              duration: const Duration(milliseconds: 250),
-              margin: const EdgeInsets.only(bottom: 2),
-              padding: const EdgeInsets.symmetric(vertical: 18, horizontal: 12),
-              decoration: BoxDecoration(
-                color: selected ? Colors.red.withOpacity(0.85) : Colors.transparent,
-              ),
-              child: Text(
-                g.toUpperCase(),
-                textAlign: TextAlign.center,
-                style: AppTheme.withRabarIfKurdish(
-                  widget.uiLocale,
-                  TextStyle(
-                    color: Colors.white,
-                    fontSize: 12,
-                    fontWeight: selected ? FontWeight.w900 : FontWeight.w500,
-                    letterSpacing: 1.2,
-                  ),
-                ),
-              ),
-            ),
-          );
-        },
-      ),
-    );
-  }
-
-  Widget _buildChannelList() {
-    final channels = _channelsInSelectedGroup;
-    return Container(
-      width: 240, // More compact as requested
-      color: Colors.black.withOpacity(0.6),
-      child: ListView.separated(
-        padding: const EdgeInsets.symmetric(vertical: 30, horizontal: 0),
-        itemCount: channels.length,
-        separatorBuilder: (_, __) => Divider(color: Colors.white.withOpacity(0.05), height: 1),
-        itemBuilder: (context, i) {
-          final ch = channels[i];
-          final active = ch.url == _current.url;
-          final fullIdx = widget.channels.indexOf(ch);
-          return Material(
-            key: ValueKey('fs_page_${ch.url}_$fullIdx'),
-            color: active ? Colors.red.withOpacity(0.25) : Colors.transparent,
-            child: InkWell(
-              onTap: () => _onChannelSelected(fullIdx),
-              child: Container(
-                padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 32),
-                decoration: BoxDecoration(
-                  border: active ? const Border(left: BorderSide(color: Colors.red, width: 6)) : null,
-                ),
-                child: Row(
-                  children: [
-                    Text(
-                      '${fullIdx + 1}',
-                      style: TextStyle(
-                        color: active ? Colors.redAccent.shade100 : Colors.white38,
-                        fontSize: 16,
-                        fontFamily: 'monospace',
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    const SizedBox(width: 24),
-                    Expanded(
-                      child: Text(
-                        ch.name.toUpperCase(),
-                        style: AppTheme.withRabarIfKurdish(
-                          widget.uiLocale,
-                          TextStyle(
-                            color: active ? Colors.redAccent : Colors.white.withOpacity(0.9),
-                            fontSize: 18,
-                            fontWeight: active ? FontWeight.w900 : FontWeight.w600,
-                            letterSpacing: 0.8,
-                          ),
-                        ),
-                      ),
-                    ),
-                    if (active) _buildEqualizerIcon(),
-                  ],
-                ),
-              ),
-            ),
-          );
-        },
-      ),
-    );
-  }
-
-  Widget _buildAmbientClock() {
-    final timeStr = DateFormat('HH:mm').format(_now);
-    final dateStr = DateFormat('yyyy/MM/dd').format(_now);
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.end,
-      children: [
-        Text(
-          timeStr,
-          style: const TextStyle(
-            color: Colors.white,
-            fontSize: 48,
-            fontWeight: FontWeight.w900,
-            letterSpacing: -1,
-            shadows: [Shadow(color: Colors.black, blurRadius: 15)],
-          ),
-        ),
-        Text(
-          dateStr.toUpperCase(),
-          style: TextStyle(
-            color: Colors.white.withOpacity(0.5),
-            fontSize: 16,
-            fontWeight: FontWeight.w900,
-            letterSpacing: 2,
-            shadows: [Shadow(color: Colors.black, blurRadius: 10)],
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildBottomHUD() {
-    return Container(
-      padding: const EdgeInsets.fromLTRB(40, 20, 40, 40),
       decoration: BoxDecoration(
         gradient: LinearGradient(
-          begin: Alignment.bottomCenter,
-          end: Alignment.topCenter,
-          colors: [Colors.black.withOpacity(0.9), Colors.transparent],
+          colors: [Colors.black.withOpacity(0.4), Colors.transparent, Colors.black.withOpacity(0.6)],
+          stops: const [0.0, 0.5, 1.0],
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
         ),
       ),
-      child: Row(
+      child: Stack(
         children: [
-          _buildHUDAction(Icons.settings_outlined, _showSettingsModal, label: 'Settings'),
-          const Spacer(),
-          Text(
-            _current.name.toUpperCase(),
-            style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.w900, letterSpacing: 1),
-          ),
-          const SizedBox(width: 40),
-          _buildHUDAction(Icons.fullscreen_exit_rounded, () async {
-            await _exitFullscreen();
-            if (mounted) Navigator.of(context).pop();
-          }, label: 'Exit'),
-        ],
-      ),
-    );
-  }
+          // 1. Precise Header Info (Clock & Channel)
+          Positioned(top: 40, right: 60, child: _buildAmbientClock()),
+          Positioned(top: 40, left: 160, child: _buildCurrentInfo()),
 
-  Widget _buildHUDAction(IconData icon, VoidCallback onTap, {required String label}) {
-    return Material(
-      color: Colors.black45,
-      borderRadius: BorderRadius.circular(12),
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(12),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(icon, color: Colors.white, size: 24),
-              const SizedBox(width: 12),
-              Text(
-                label.toUpperCase(),
-                style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w900, letterSpacing: 1),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
+          // 2. Pro Quick-Zap Area (Left Side)
+          _buildProZapArea(),
 
-  Widget _buildOSDIndicator() {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 15),
-      decoration: BoxDecoration(
-        color: Colors.black.withOpacity(0.7),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.white10),
-      ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Text(
-            _osdLabel!,
-            style: const TextStyle(color: Colors.white, fontSize: 32, fontWeight: FontWeight.w900),
-          ),
-          const SizedBox(height: 8),
-          if (_volumeValue != null || _brightnessValue != null)
-            Container(
-              width: 150,
-              height: 4,
-              decoration: BoxDecoration(color: Colors.white10, borderRadius: BorderRadius.circular(2)),
-              clipBehavior: Clip.antiAlias,
-              child: FractionallySizedBox(
-                alignment: Alignment.centerLeft,
-                widthFactor: (_volumeValue ?? _brightnessValue ?? 0.0).clamp(0.0, 1.0),
-                child: Container(color: Colors.red),
-              ),
+          // 3. Minimalist Control Stack (Bottom Right)
+          Positioned(
+            right: 40,
+            bottom: 40,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                 _buildHUDAction(
+                   Icon(Icons.aspect_ratio_rounded, color: Colors.white, size: 24), 
+                   'ASPECT', 
+                   _cycleAspectRatio
+                 ),
+                 const SizedBox(height: 12),
+                 _buildHUDAction(
+                   Icon(Icons.fullscreen_exit_rounded, color: Colors.white, size: 24), 
+                   'EXIT', 
+                   () async {
+                     await _exitFullscreen();
+                     if (mounted) Navigator.pop(context);
+                   }
+                 ),
+              ],
             ),
+          ),
         ],
       ),
     );
   }
 
-  void _handleVerticalDrag(DragUpdateDetails details) {
-    final screenWidth = MediaQuery.of(context).size.width;
-    final isLeftSide = details.localPosition.dx < screenWidth / 2;
-    
-    if (isLeftSide) {
-      // BRIGHTNESS (simulate or use plugin if available)
-      _brightnessValue = ((_brightnessValue ?? 0.5) - details.delta.dy / 300).clamp(0.0, 1.0);
-      _osdLabel = "BRIGHTNESS";
-    } else {
-      // VOLUME
-      _volumeValue = ((_volumeValue ?? 0.5) - details.delta.dy / 300).clamp(0.0, 1.0);
-      // media_kit setVolume takes a double from 0.0 to 100.0
-      widget.player.setVolume((_volumeValue! * 100.0));
-      _osdLabel = "VOLUME";
-    }
-    setState(() {});
-    _resetOSDTimer();
-  }
-
-  void _handleHorizontalDrag(DragUpdateDetails details) {
-    if (!_isMovie) return;
-    
-    final offset = details.delta.dx * 10; // 10s per pixel-ish
-    final target = _position + Duration(seconds: offset.toInt());
-    _osdLabel = offset > 0 ? "+ ${offset.toInt()}s" : "${offset.toInt()}s";
-    
-    widget.player.seek(target);
-    setState(() {});
-    _resetOSDTimer();
-  }
-
-  void _resetOSDTimer() {
-    _osdTimer?.cancel();
-    _osdTimer = Timer(const Duration(seconds: 1), () {
-      if (mounted) setState(() => _osdLabel = null);
-    });
-  }
-
-  void _hideOSD() {
-    _osdTimer?.cancel();
-    _osdTimer = Timer(const Duration(milliseconds: 500), () {
-      if (mounted) setState(() => _osdLabel = null);
-    });
-  }
-
-  Widget _buildEqualizerIcon() {
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      crossAxisAlignment: CrossAxisAlignment.end,
+  Widget _buildCurrentInfo() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _eqBar(12),
-        const SizedBox(width: 2),
-        _eqBar(18),
-        const SizedBox(width: 2),
-        _eqBar(14),
-        const SizedBox(width: 2),
-        _eqBar(22),
+        Text(_current.group.toUpperCase(), style: TextStyle(color: AppTheme.primaryGold, fontWeight: FontWeight.w900, fontSize: 13, letterSpacing: 3)),
+        Text(_current.name.toUpperCase(), style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 24, letterSpacing: 1)),
       ],
     );
   }
 
-  Widget _eqBar(double height) {
-    return Container(
-      width: 4,
-      height: height,
-      decoration: BoxDecoration(
-        color: Colors.red,
-        borderRadius: BorderRadius.circular(2),
-      ),
+  Widget _buildProZapArea() {
+    return Row(
+      children: [
+        // Categories
+        GlassmorphicContainer(
+          width: 120,
+          height: double.infinity,
+          borderRadius: 0,
+          blur: 25,
+          alignment: Alignment.center,
+          border: 0,
+          linearGradient: LinearGradient(colors: [Colors.black.withOpacity(0.85), Colors.black.withOpacity(0.6)]),
+          borderGradient: LinearGradient(colors: [Colors.white10, Colors.white10]),
+          child: ListView.builder(
+            padding: const EdgeInsets.symmetric(vertical: 60),
+            itemCount: _groupNames.length,
+            itemBuilder: (context, i) {
+              final g = _groupNames[i];
+              final selected = g == _selectedGroup;
+              return GestureDetector(
+                onTap: () => setState(() => _selectedGroup = g),
+                child: Container(
+                  height: 54,
+                  alignment: Alignment.center,
+                  color: selected ? AppTheme.primaryGold.withOpacity(0.15) : Colors.transparent,
+                  child: Text(
+                    g.toUpperCase(),
+                    style: TextStyle(
+                      color: selected ? Colors.white : Colors.white38,
+                      fontWeight: selected ? FontWeight.w900 : FontWeight.bold,
+                      fontSize: 11,
+                      letterSpacing: 2,
+                    ),
+                  ),
+                ),
+              );
+            },
+          ),
+        ),
+        // Channels
+        GlassmorphicContainer(
+          width: 320,
+          height: double.infinity,
+          borderRadius: 0,
+          blur: 15,
+          alignment: Alignment.center,
+          border: 0,
+          linearGradient: LinearGradient(colors: [Colors.black.withOpacity(0.5), Colors.black.withOpacity(0.2)]),
+          borderGradient: LinearGradient(colors: [Colors.white10, Colors.white10]),
+          child: ListView.builder(
+            padding: const EdgeInsets.symmetric(vertical: 40, horizontal: 12),
+            itemCount: _channelsInSelectedGroup.length,
+            itemBuilder: (context, i) {
+              final ch = _channelsInSelectedGroup[i];
+              final active = ch.url == _current.url;
+              return GestureDetector(
+                onTap: () => _onChannelSelected(widget.channels.indexOf(ch)),
+                child: Container(
+                  margin: const EdgeInsets.only(bottom: 4),
+                  padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 20),
+                  decoration: BoxDecoration(
+                    color: active ? Colors.white.withOpacity(0.08) : Colors.transparent,
+                    borderRadius: BorderRadius.circular(14),
+                    border: Border.all(color: active ? AppTheme.primaryGold.withOpacity(0.3) : Colors.transparent),
+                    boxShadow: active ? [BoxShadow(color: AppTheme.primaryGold.withOpacity(0.05), blurRadius: 10)] : [],
+                  ),
+                  child: Row(
+                    children: [
+                      ChannelLogoImage(logo: ch.logo, height: 32, width: 32),
+                      const SizedBox(width: 16),
+                      Expanded(
+                        child: Text(
+                          ch.name,
+                          style: TextStyle(color: active ? Colors.white : Colors.white54, fontWeight: active ? FontWeight.w900 : FontWeight.bold, fontSize: 14),
+                        ),
+                      ),
+                      if (active) Icon(Icons.graphic_eq_rounded, color: AppTheme.primaryGold, size: 16),
+                    ],
+                  ),
+                ),
+              );
+            },
+          ),
+        ),
+      ],
     );
   }
 
-  // Movie HUD logic removed (Moved to MoviePlayerPage)
-
-  // Subtitle Studio replaces _showSubtitleSelector
-
-  void _showSettingsModal() {
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: Colors.transparent,
-      builder: (context) => Container(
-        decoration: BoxDecoration(
-          color: Colors.black.withOpacity(0.95),
-          borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
-          border: Border.all(color: Colors.white10),
-        ),
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
+  Widget _buildHUDAction(Widget icon, String label, VoidCallback onTap) {
+    return GestureDetector(
+      onTap: onTap,
+      child: GlassmorphicContainer(
+        width: 130,
+        height: 52,
+        borderRadius: 16,
+        blur: 10,
+        alignment: Alignment.center,
+        border: 1,
+        linearGradient: LinearGradient(colors: [Colors.black.withOpacity(0.6), Colors.black.withOpacity(0.4)]),
+        borderGradient: LinearGradient(colors: [Colors.white10, Colors.white10]),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Text("PLAYBACK SETTINGS", style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.w900)),
-            const SizedBox(height: 24),
-            const Text("ASPECT RATIO", style: TextStyle(color: Colors.white38, fontSize: 12, fontWeight: FontWeight.bold)),
-            const SizedBox(height: 12),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceAround,
-              children: [
-                _aspectButton("FIT", BoxFit.contain),
-                _aspectButton("FILL", BoxFit.cover),
-                _aspectButton("STRETCH", BoxFit.fill),
-              ],
-            ),
-            const SizedBox(height: 32),
-            const Text("STREAM INFO", style: TextStyle(color: Colors.white38, fontSize: 12, fontWeight: FontWeight.bold)),
-            const SizedBox(height: 12),
-            _infoRow("Resolution", "${widget.player.state.width} x ${widget.player.state.height}"),
-            _infoRow("Hardware", "Auto-Safe (HEVC/AVC)"),
+            icon,
+            const SizedBox(width: 12),
+            Text(label, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 12, letterSpacing: 2)),
           ],
         ),
       ),
     );
   }
 
-  Widget _aspectButton(String label, BoxFit fit) {
-    return InkWell(
-      onTap: () {
-        // We'll manage aspect ratio via a state variable if needed, but for now we simulate
-        Navigator.pop(context);
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Switched to $label mode")));
-      },
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-        decoration: BoxDecoration(border: Border.all(color: Colors.white10), borderRadius: BorderRadius.circular(8)),
-        child: Text(label, style: const TextStyle(color: Colors.white)),
-      ),
-    );
-  }
-
-  Widget _infoRow(String label, String val) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Text(label, style: const TextStyle(color: Colors.white60)),
-          Text(val, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildSeekBar() {
-    final pos = _position.inSeconds.toDouble();
-    final dur = _duration.inSeconds.toDouble().clamp(1.0, double.infinity);
+  Widget _buildAmbientClock() {
+    final timeStr = DateFormat('HH:mm').format(_now);
     return Column(
+      crossAxisAlignment: CrossAxisAlignment.end,
       children: [
-        SliderTheme(
-          data: SliderTheme.of(context).copyWith(
-            trackHeight: 4,
-            thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 6),
-            overlayShape: const RoundSliderOverlayShape(overlayRadius: 14),
-            activeTrackColor: Colors.red,
-            inactiveTrackColor: Colors.white24,
-            thumbColor: Colors.red,
-          ),
-          child: Slider(
-            value: pos.clamp(0.0, dur),
-            max: dur,
-            onChanged: (v) {
-              widget.player.seek(Duration(seconds: v.toInt()));
-              _resetHideTimer();
-            },
-          ),
-        ),
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(_formatDuration(_position), style: const TextStyle(color: Colors.white70, fontSize: 12)),
-              Text(_formatDuration(_duration), style: const TextStyle(color: Colors.white30, fontSize: 12)),
-            ],
-          ),
-        ),
+        Text(timeStr, style: const TextStyle(color: Colors.white, fontSize: 44, fontWeight: FontWeight.w900, letterSpacing: -1)),
+        Text(DateFormat('yyyy/MM/dd').format(_now), style: TextStyle(color: Colors.white.withOpacity(0.4), fontSize: 13, fontWeight: FontWeight.w900, letterSpacing: 2)),
       ],
     );
   }
 
-  Widget _buildBadge(String label, Color color) {
+  void _handleVerticalDrag(DragUpdateDetails details) {
+    _brightnessValue = ((_brightnessValue ?? 0.5) - details.delta.dy / 300).clamp(0.0, 1.0);
+    _osdLabel = "BRIGHTNESS";
+    setState(() {});
+    _resetOSDTimer();
+  }
+
+  void _resetOSDTimer() {
+    _osdTimer?.cancel();
+    _osdTimer = Timer(const Duration(seconds: 1), () => setState(() => _osdLabel = null));
+  }
+
+  void _hideOSD() {
+    _osdTimer?.cancel();
+    _osdTimer = Timer(const Duration(milliseconds: 500), () => setState(() => _osdLabel = null));
+  }
+
+  Widget _buildOSDIndicator() {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-      decoration: BoxDecoration(
-        color: color.withOpacity(0.15),
-        borderRadius: BorderRadius.circular(4),
-        border: Border.all(color: color.withOpacity(0.5), width: 1),
-      ),
-      child: Text(
-        label,
-        style: TextStyle(color: color, fontSize: 10, fontWeight: FontWeight.w900, letterSpacing: 1),
-      ),
+      padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 15),
+      decoration: BoxDecoration(color: Colors.black.withOpacity(0.8), borderRadius: BorderRadius.circular(16), border: Border.all(color: Colors.white10)),
+      child: Text(_osdLabel!, style: const TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.w900)),
     );
-  }
-
-  Widget _buildSpeedButton() {
-    return InkWell(
-      onTap: () {
-        setState(() {
-          if (_playbackSpeed >= 3.0) {
-            _playbackSpeed = 1.0;
-          } else {
-            _playbackSpeed += 0.5;
-          }
-        });
-        widget.player.setRate(_playbackSpeed);
-        _resetHideTimer();
-      },
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-        decoration: BoxDecoration(
-          border: Border.all(color: Colors.white24),
-          borderRadius: BorderRadius.circular(8),
-        ),
-        child: Text(
-          '${_playbackSpeed.toStringAsFixed(1)}x',
-          style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
-        ),
-      ),
-    );
-  }
-
-  String _formatDuration(Duration d) {
-    final hh = d.inHours;
-    final mm = d.inMinutes.remainder(60).toString().padLeft(2, '0');
-    final ss = d.inSeconds.remainder(60).toString().padLeft(2, '0');
-    if (hh > 0) return '$hh:$mm:$ss';
-    return '$mm:$ss';
   }
 }
