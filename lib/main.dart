@@ -126,8 +126,11 @@ class _OpticTvAppState extends ConsumerState<OpticTvApp> {
         GlobalCupertinoLocalizations.delegate,
       ],
       supportedLocales: const [Locale('en')],
+import 'ui/tv/elite_tv_dashboard.dart';
+
+// ... (inside OpticTvApp build)
       home: deviceType == DeviceType.tv 
-        ? (session.loggedIn ? const TvModeSelectorScreen() : const TvLoginScreen())
+        ? (session.loggedIn ? const EliteTvDashboard() : const TvLoginScreen())
         : (session.loggedIn ? const DashboardScreen() : const LoginScreen()),
     );
   }

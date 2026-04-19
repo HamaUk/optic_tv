@@ -1,233 +1,195 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
-import 'package:google_fonts/google_fonts.dart';
-import '../../../../core/theme.dart';
-import '../../../../widgets/tv_fluid_focusable.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../services/playlist_service.dart';
+import '../../../widgets/tv/tv_focusable.dart';
+import '../../../core/theme.dart';
 
-enum TvNavDestination { live, movies, sports, search, settings }
+/// Navigation Destinations for the Main Sidebar
+enum TvNavDestination { live, movies, search, settings, sports }
 
-class TvSidebar extends StatefulWidget {
-  final TvNavDestination mode;
-  final ValueChanged<TvNavDestination>? onDestinationSelected;
-  final List<String> customCategories;
+/// Ported Koya-style Sidebar with dual-layer (Icons & Categories) as per reference image.
+/// This version is strictly isolated for TV use only.
+class TVSidebar extends ConsumerStatefulWidget {
+  final TvNavDestination selectedDestination;
+  final ValueChanged<TvNavDestination> onDestinationSelected;
   final String? selectedCategory;
-  final ValueChanged<String> onCategorySelected;
-  final VoidCallback? onMoveRight;
-  final VoidCallback? onBackToSelector;
+  final ValueChanged<String?> onCategorySelected;
+  final Widget child;
 
-  const TvSidebar({
+  const TVSidebar({
     super.key,
-    required this.mode,
-    required this.customCategories,
+    required this.selectedDestination,
+    required this.onDestinationSelected,
+    required this.selectedCategory,
     required this.onCategorySelected,
-    this.onDestinationSelected,
-    this.selectedCategory,
-    this.onMoveRight,
-    this.onBackToSelector,
+    required this.child,
   });
 
   @override
-  State<TvSidebar> createState() => _TvSidebarState();
+  ConsumerState<TVSidebar> createState() => _TVSidebarState();
 }
 
-class _TvSidebarState extends State<TvSidebar> with SingleTickerProviderStateMixin {
-  bool _isExpanded = false;
-  final FocusScopeNode _sideBarFocusScope = FocusScopeNode();
-
-  @override
-  void dispose() {
-    _sideBarFocusScope.dispose();
-    super.dispose();
-  }
-
-  String _getModeTitle() {
-    switch (widget.mode) {
-      case TvNavDestination.live: return "LIVE CHANNELS";
-      case TvNavDestination.movies: return "MOVIES & VOD";
-      case TvNavDestination.sports: return "SPORTS CENTER";
-      case TvNavDestination.settings: return "SETTINGS";
-      default: return "MENU";
-    }
-  }
-
+class _TVSidebarState extends ConsumerState<TVSidebar> {
   @override
   Widget build(BuildContext context) {
-    return FocusScope(
-      node: _sideBarFocusScope,
-      onFocusChange: (focused) {
-        setState(() => _isExpanded = focused);
-      },
-      onKey: (node, event) {
-        if (event is RawKeyDownEvent && event.logicalKey == LogicalKeyboardKey.arrowRight) {
-          widget.onMoveRight?.call();
-          return KeyEventResult.handled;
-        }
-        return KeyEventResult.ignored;
-      },
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 300),
-        curve: Curves.easeInOutQuart,
-        width: _isExpanded ? 280 : 80,
-        decoration: BoxDecoration(
-          color: Colors.black,
-          boxShadow: [
-            BoxShadow(color: AppTheme.primaryGold.withOpacity(0.05), blurRadius: 40, spreadRadius: 0)
-          ],
-          border: Border(right: BorderSide(color: Colors.white.withOpacity(0.05))),
-        ),
-        child: Column(
-          children: [
-            const SizedBox(height: 60),
-            
-            // Back to Selector Icon
-            _buildBackAction(),
-            
-            const SizedBox(height: 20),
-            
-            if (_isExpanded) ...[
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
-                child: Text(
-                  _getModeTitle(),
-                  style: GoogleFonts.outfit(
-                    color: AppTheme.primaryGold,
-                    fontSize: 18,
-                    fontWeight: FontWeight.w900,
-                    letterSpacing: 2,
+    final channelsAsync = ref.watch(channelsProvider);
+    
+    const navWidth = 64.0;
+    const categoryWidth = 240.0;
+
+    return FocusTraversalGroup(
+      policy: ReadingOrderTraversalPolicy(),
+      child: Row(
+        children: [
+          // LAYER 1: NARROW ICON NAV (Far Left)
+          Container(
+            width: navWidth,
+            color: Colors.black,
+            child: Column(
+              children: [
+                const SizedBox(height: 32),
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(8),
+                  child: Image.asset('assets/images/optic_logo.png', width: 32, height: 32),
+                ),
+                const SizedBox(height: 40),
+                _buildNavIcon(0, Icons.live_tv, TvNavDestination.live),
+                _buildNavIcon(1, Icons.movie_filter, TvNavDestination.movies),
+                _buildNavIcon(2, Icons.search, TvNavDestination.search),
+                _buildNavIcon(3, Icons.settings, TvNavDestination.settings),
+              ],
+            ),
+          ),
+
+          // LAYER 2: WIDE CATEGORY LIST (Mid Left)
+          Container(
+            width: categoryWidth,
+            decoration: BoxDecoration(
+              color: Colors.black.withOpacity(0.95),
+              border: const Border(right: BorderSide(color: Colors.white10, width: 1)),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(24, 40, 24, 20),
+                  child: Text(
+                    widget.selectedDestination.name.toUpperCase(),
+                    style: const TextStyle(color: AppTheme.primaryGold, letterSpacing: 2, fontWeight: FontWeight.bold, fontSize: 14),
                   ),
                 ),
-              ),
-              const Divider(color: Colors.white10, indent: 24, endIndent: 24),
-            ],
-
-            // Category List - Purely Categories as requested
-            Expanded(
-              child: ListView.builder(
-                padding: const EdgeInsets.symmetric(vertical: 20),
-                itemCount: widget.customCategories.length,
-                itemBuilder: (context, index) {
-                  final cat = widget.customCategories[index];
-                  return _buildCategoryItem(cat);
-                },
-              ),
-            ),
-            
-            const SizedBox(height: 20),
-            // Minimal Search icon at bottom
-            _buildActionItem(Icons.search_rounded, 'Search'),
-            const SizedBox(height: 40),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildBackAction() {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 12),
-      child: GhostenFocusable(
-        onTap: () {
-          if (widget.onBackToSelector != null) {
-            widget.onBackToSelector!();
-          } else {
-             Navigator.pop(context);
-          }
-        },
-        child: Container(
-          height: 56,
-          decoration: BoxDecoration(
-            color: Colors.white.withOpacity(0.05),
-            borderRadius: BorderRadius.circular(16),
-          ),
-          child: Row(
-            children: [
-              const SizedBox(width: 22),
-              const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.white54, size: 24),
-              if (_isExpanded) ...[
-                const SizedBox(width: 20),
-                Text(
-                  'EXIT MODE',
-                  style: TextStyle(
-                    color: Colors.white.withOpacity(0.4),
-                    fontWeight: FontWeight.bold,
-                    letterSpacing: 2,
-                    fontSize: 12,
+                Expanded(
+                  child: channelsAsync.when(
+                    data: (channels) => _buildCategoryList(channels),
+                    loading: () => const Center(child: CircularProgressIndicator(color: AppTheme.primaryGold)),
+                    error: (_, __) => const SizedBox(),
                   ),
                 ),
               ],
-            ],
+            ),
           ),
-        ),
+
+          // LAYER 3: THE CONTENT GRID
+          Expanded(
+            child: Container(
+              color: Colors.black,
+              child: widget.child,
+            ),
+          ),
+        ],
       ),
     );
   }
 
-  Widget _buildCategoryItem(String category) {
-    final isSelected = widget.selectedCategory == category;
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 12),
-      child: GhostenFocusable(
-        onTap: () => widget.onCategorySelected(category),
-        child: Container(
-          height: 56,
+  Widget _buildNavIcon(int index, IconData icon, TvNavDestination dest) {
+    final isSelected = widget.selectedDestination == dest;
+    return TVFocusable(
+      onSelect: () => widget.onDestinationSelected(dest),
+      showFocusBorder: false,
+      builder: (context, isFocused, child) {
+        return Container(
+          height: 64,
+          width: 64,
           decoration: BoxDecoration(
-            color: isSelected ? AppTheme.primaryGold.withOpacity(0.1) : Colors.transparent,
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: isSelected ? AppTheme.primaryGold.withOpacity(0.3) : Colors.transparent),
+            border: isFocused ? const Border(left: BorderSide(color: AppTheme.primaryGold, width: 4)) : null,
+            color: isFocused ? Colors.white10 : Colors.transparent,
           ),
-          child: Row(
-            children: [
-              const SizedBox(width: 22),
-              Icon(
-                widget.mode == TvNavDestination.movies ? Icons.movie_rounded : Icons.live_tv_rounded, 
-                color: isSelected ? AppTheme.primaryGold : Colors.white24, 
-                size: 20
-              ),
-              if (_isExpanded) ...[
-                const SizedBox(width: 20),
+          child: Icon(
+            icon,
+            color: isFocused || isSelected ? AppTheme.primaryGold : Colors.white24,
+            size: 28,
+          ),
+        );
+      },
+      child: const SizedBox.shrink(),
+    );
+  }
+
+  Widget _buildCategoryList(List<Channel> channels) {
+    final counts = <String, int>{};
+    for (var c in channels) {
+      if (widget.selectedDestination == TvNavDestination.movies && c.type != 'movie') continue;
+      if (widget.selectedDestination == TvNavDestination.live && c.type != 'live') continue;
+      counts[c.group] = (counts[c.group] ?? 0) + 1;
+    }
+
+    final sortedCategories = counts.keys.toList()..sort();
+    final allCount = counts.values.fold(0, (sum, count) => sum + count);
+
+    return ListView(
+      padding: const EdgeInsets.symmetric(horizontal: 12),
+      children: [
+        _buildCategoryItem('All Channels', allCount, isAll: true),
+        const Divider(color: Colors.white10, height: 20),
+        for (var cat in sortedCategories)
+          _buildCategoryItem(cat, counts[cat]!),
+      ],
+    );
+  }
+
+  Widget _buildCategoryItem(String name, int count, {bool isAll = false}) {
+    final isSelected = (isAll && widget.selectedCategory == null) || (widget.selectedCategory == name);
+    
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 2),
+      child: TVFocusable(
+        onSelect: () => widget.onCategorySelected(isAll ? null : name),
+        showFocusBorder: false,
+        builder: (context, isFocused, child) {
+          final active = isFocused || isSelected;
+          return Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            decoration: BoxDecoration(
+              color: isFocused ? AppTheme.primaryGold.withOpacity(0.1) : (isSelected ? Colors.white10 : Colors.transparent),
+              borderRadius: BorderRadius.circular(8),
+              border: isFocused ? Border.all(color: AppTheme.primaryGold, width: 2) : null,
+            ),
+            child: Row(
+              children: [
                 Expanded(
                   child: Text(
-                    category.toUpperCase(),
+                    name,
                     style: TextStyle(
-                      color: isSelected ? Colors.white : Colors.white30,
-                      fontWeight: isSelected ? FontWeight.w900 : FontWeight.bold,
-                      letterSpacing: 1.5,
+                      color: active ? Colors.white : Colors.white54,
+                      fontWeight: active ? FontWeight.w900 : FontWeight.normal,
                       fontSize: 14,
                     ),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
                 ),
-              ],
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildActionItem(IconData icon, String label) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 12),
-      child: GhostenFocusable(
-        onTap: () {},
-        child: Container(
-          height: 56,
-          alignment: Alignment.center,
-          child: Row(
-            children: [
-              const SizedBox(width: 22),
-              Icon(icon, color: Colors.white30, size: 24),
-              if (_isExpanded) ...[
-                const SizedBox(width: 20),
                 Text(
-                  label.toUpperCase(),
-                  style: const TextStyle(color: Colors.white24, fontWeight: FontWeight.bold, letterSpacing: 1.5),
+                  count.toString(),
+                  style: TextStyle(
+                    color: active ? AppTheme.primaryGold : Colors.white24,
+                    fontSize: 12,
+                  ),
                 ),
               ],
-            ],
-          ),
-        ),
+            ),
+          );
+        },
+        child: const SizedBox.shrink(),
       ),
     );
   }

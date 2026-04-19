@@ -1,39 +1,38 @@
 import 'dart:async';
-import 'dart:convert';
-import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:media_kit/media_kit.dart';
 import 'package:media_kit_video/media_kit_video.dart';
 import 'package:intl/intl.dart' hide TextDirection;
-import 'package:path_provider/path_provider.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:glassmorphism/glassmorphism.dart';
-import 'package:google_fonts/google_fonts.dart';
 
-import '../../core/theme.dart';
-import '../../l10n/app_strings.dart';
 import '../../services/playlist_service.dart';
-import '../../services/settings_service.dart';
-import '../../providers/ui_settings_provider.dart';
+import '../../services/platform_service.dart';
+import '../../core/theme.dart';
+import '../../widgets/tv/tv_focusable.dart';
 import '../../widgets/channel_logo_image.dart';
+import '../../l10n/app_strings.dart';
 
+/// Professional Universal Player Page with isolated Platform HUDs.
+/// - TV: Premium Koya HUD + D-pad Zapping + Quick Zap Sidebar.
+/// - Phone: Restored "Nano Banana" Elite Mobile HUD + Glassmorphism + Gestures.
 class FullscreenPlayerPage extends ConsumerStatefulWidget {
   final Player player;
   final VideoController controller;
   final List<Channel> channels;
   final int initialIndex;
   final Locale uiLocale;
-  final AppStrings strings;
+  final dynamic strings; // Using dynamic for compatibility with original calls
 
   const FullscreenPlayerPage({
-    super.key,
+    super.key, 
     required this.player,
     required this.controller,
     required this.channels,
     required this.initialIndex,
     required this.uiLocale,
-    required this.strings,
+    this.strings,
   });
 
   @override
@@ -41,37 +40,33 @@ class FullscreenPlayerPage extends ConsumerStatefulWidget {
 }
 
 class _FullscreenPlayerPageState extends ConsumerState<FullscreenPlayerPage> {
-  late int _index;
-  late String _selectedGroup;
+  // COMMON STATE
+  late int _currentIndex;
+  late Channel _currentChannel;
   bool _overlayVisible = false;
   Timer? _hideTimer;
-  BoxFit _fit = BoxFit.contain;
-  
-  Duration _position = Duration.zero;
-  Duration _duration = Duration.zero;
+  final List<StreamSubscription> _subscriptions = [];
+
+  // TV SPECIFIC STATE
+  bool _zapListVisible = false;
+
+  // MOBILE SPECIFIC STATE (Nano Banana)
   DateTime _now = DateTime.now();
   Timer? _clockTimer;
-  final List<StreamSubscription> _subscriptions = [];
-  
-  double? _volumeValue;
-  double? _brightnessValue;
   String? _osdLabel;
   Timer? _osdTimer;
+  double? _brightnessValue;
+  String? _selectedGroup;
 
   @override
   void initState() {
     super.initState();
-    _index = widget.initialIndex;
-    _selectedGroup = widget.channels[_index].group;
+    _currentIndex = widget.initialIndex;
+    _currentChannel = widget.channels[_currentIndex];
+    _selectedGroup = _currentChannel.group;
     
-    _position = widget.player.state.position;
-    _duration = widget.player.state.duration;
-
     _subscriptions.add(widget.player.stream.position.listen((p) {
-      if (mounted) setState(() => _position = p);
-    }));
-    _subscriptions.add(widget.player.stream.duration.listen((d) {
-      if (mounted) setState(() => _duration = d);
+      if (mounted) setState(() {}); // Refresh for progress if needed
     }));
 
     _clockTimer = Timer.periodic(const Duration(seconds: 1), (t) {
@@ -79,104 +74,117 @@ class _FullscreenPlayerPageState extends ConsumerState<FullscreenPlayerPage> {
     });
 
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
-    SystemChrome.setPreferredOrientations([
-      DeviceOrientation.landscapeLeft,
-      DeviceOrientation.landscapeRight,
-    ]);
-
     _resetHideTimer();
+  }
+
+  @override
+  void dispose() {
+    for (var s in _subscriptions) {
+      s.cancel();
+    }
+    _hideTimer?.cancel();
+    _clockTimer?.cancel();
+    _osdTimer?.cancel();
+    super.dispose();
   }
 
   void _resetHideTimer() {
     _hideTimer?.cancel();
+    if (_zapListVisible) return;
     if (_overlayVisible) {
-      _hideTimer = Timer(const Duration(seconds: 8), () {
+      _hideTimer = Timer(const Duration(seconds: 5), () {
         if (mounted) setState(() => _overlayVisible = false);
       });
     }
   }
 
-  @override
-  void dispose() {
-    _hideTimer?.cancel();
-    _clockTimer?.cancel();
-    _osdTimer?.cancel();
-    for (final s in _subscriptions) s.cancel();
-    super.dispose();
-  }
-
-  void _onChannelSelected(int fullIdx) {
-    setState(() => _index = fullIdx);
-    widget.player.open(Media(widget.channels[_index].url));
-    _resetHideTimer();
-  }
-
-  void _cycleAspectRatio() {
+  void _zapTo(int index) {
+    if (index < 0 || index >= widget.channels.length) return;
+    
     setState(() {
-      if (_fit == BoxFit.contain) {
-        _fit = BoxFit.cover;
-      } else if (_fit == BoxFit.cover) {
-        _fit = BoxFit.fill;
-      } else {
-        _fit = BoxFit.contain;
-      }
+      _currentIndex = index;
+      _currentChannel = widget.channels[_currentIndex];
+      _selectedGroup = _currentChannel.group;
+      _overlayVisible = true;
+      _zapListVisible = false;
     });
+
+    widget.player.open(Media(_currentChannel.url));
     _resetHideTimer();
   }
 
-  List<Channel> get _channelsInSelectedGroup {
-    return widget.channels.where((c) {
-       final isMovie = c.type == 'movie' || c.group.toLowerCase().contains('movie');
-       return !isMovie && (_selectedGroup == 'ALL' || c.group == _selectedGroup);
-    }).toList();
-  }
+  // TV D-PAD HANDLER
+  KeyEventResult _handleKeyEvent(FocusNode node, KeyEvent event) {
+    if (event is! KeyDownEvent) return KeyEventResult.ignored;
+    final key = event.logicalKey;
 
-  List<String> get _groupNames {
-    final set = <String>{'ALL'};
-    for (final c in widget.channels) {
-      final isMovie = c.type == 'movie' || c.group.toLowerCase().contains('movie');
-      if (!isMovie) set.add(c.group);
+    if (key == LogicalKeyboardKey.arrowUp) {
+      _zapTo(_currentIndex - 1);
+      return KeyEventResult.handled;
     }
-    final list = set.toList()..sort();
-    return list;
-  }
+    if (key == LogicalKeyboardKey.arrowDown) {
+      _zapTo(_currentIndex + 1);
+      return KeyEventResult.handled;
+    }
+    if (key == LogicalKeyboardKey.select || key == LogicalKeyboardKey.enter) {
+      setState(() {
+        _zapListVisible = !_zapListVisible;
+        _overlayVisible = true;
+      });
+      if (!_zapListVisible) _resetHideTimer();
+      return KeyEventResult.handled;
+    }
+    if (key == LogicalKeyboardKey.escape || key == LogicalKeyboardKey.backspace) {
+      if (_zapListVisible) {
+        setState(() => _zapListVisible = false);
+        _resetHideTimer();
+        return KeyEventResult.handled;
+      }
+    }
 
-  Channel get _current => widget.channels[_index];
-
-  Future<bool> _exitFullscreen() async {
-    await SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
-    await SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
-    return true;
+    return KeyEventResult.ignored;
   }
 
   @override
   Widget build(BuildContext context) {
-    return WillPopScope(
-      onWillPop: _exitFullscreen,
-      child: Scaffold(
-        backgroundColor: Colors.black,
-        body: GestureDetector(
-          onVerticalDragUpdate: _handleVerticalDrag,
-          onVerticalDragEnd: (_) => _hideOSD(),
+    final deviceType = ref.watch(deviceTypeProvider).value ?? DeviceType.phone;
+    final isTv = deviceType == DeviceType.tv;
+
+    return Scaffold(
+      backgroundColor: Colors.black,
+      body: Focus(
+        autofocus: isTv,
+        onKeyEvent: isTv ? _handleKeyEvent : null,
+        child: GestureDetector(
           onTap: () {
             setState(() => _overlayVisible = !_overlayVisible);
             if (_overlayVisible) _resetHideTimer();
           },
+          onVerticalDragUpdate: !isTv ? _handleVerticalDrag : null,
           child: Stack(
-            fit: StackFit.expand,
             children: [
-              // 1. Video Layer
-              Video(
-                controller: widget.controller,
-                controls: NoVideoControls,
-                fit: _fit,
+              // THE VIDEO LAYER
+              Center(
+                child: Video(
+                  controller: widget.controller,
+                  fill: Colors.black,
+                  controls: NoVideoControls, 
+                ),
               ),
+              
+              // THE HUD LAYER
+              if (_overlayVisible && !_zapListVisible)
+                AnimatedOpacity(
+                  opacity: _overlayVisible ? 1.0 : 0.0,
+                  duration: const Duration(milliseconds: 300),
+                  child: isTv ? _buildTvHud() : _buildNanoOverlay(),
+                ),
 
-              // 2. Nano Banana Overlay
-              if (_overlayVisible) _buildNanoOverlay(),
+              // QUICK ZAP OVERLAY (TV Only)
+              if (isTv && _zapListVisible) _buildQuickZap(),
 
-              // 3. Gesture OSD
-              if (_osdLabel != null) Center(child: _buildOSDIndicator()),
+              // GESTURE OSD (Mobile Only)
+              if (!isTv && _osdLabel != null) Center(child: _buildOSDIndicator()),
             ],
           ),
         ),
@@ -184,47 +192,33 @@ class _FullscreenPlayerPageState extends ConsumerState<FullscreenPlayerPage> {
     );
   }
 
+  // ==========================================
+  // RESTORED NANO BANANA MOBILE HUD
+  // ==========================================
+
   Widget _buildNanoOverlay() {
     return Container(
       decoration: BoxDecoration(
         gradient: LinearGradient(
-          colors: [Colors.black.withOpacity(0.4), Colors.transparent, Colors.black.withOpacity(0.6)],
-          stops: const [0.0, 0.5, 1.0],
+          colors: [Colors.black54, Colors.transparent, Colors.black87],
           begin: Alignment.topCenter,
           end: Alignment.bottomCenter,
         ),
       ),
       child: Stack(
         children: [
-          // 1. Precise Header Info (Clock & Channel)
-          Positioned(top: 40, right: 60, child: _buildAmbientClock()),
+          Positioned(top: 40, right: 40, child: _buildAmbientClock()),
           Positioned(top: 40, left: 160, child: _buildCurrentInfo()),
 
-          // 2. Pro Quick-Zap Area (Left Side)
           _buildProZapArea(),
 
-          // 3. Minimalist Control Stack (Bottom Right)
           Positioned(
             right: 40,
             bottom: 40,
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                 _buildHUDAction(
-                   Icon(Icons.aspect_ratio_rounded, color: Colors.white, size: 24), 
-                   'ASPECT', 
-                   _cycleAspectRatio
-                 ),
-                 const SizedBox(height: 12),
-                 _buildHUDAction(
-                   Icon(Icons.fullscreen_exit_rounded, color: Colors.white, size: 24), 
-                   'EXIT', 
-                   () async {
-                     await _exitFullscreen();
-                     if (mounted) Navigator.pop(context);
-                   }
-                 ),
-              ],
+            child: _buildHUDAction(
+              const Icon(Icons.fullscreen_exit_rounded, color: Colors.white, size: 24), 
+              'EXIT', 
+              () => Navigator.pop(context)
             ),
           ),
         ],
@@ -236,13 +230,16 @@ class _FullscreenPlayerPageState extends ConsumerState<FullscreenPlayerPage> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(_current.group.toUpperCase(), style: TextStyle(color: AppTheme.primaryGold, fontWeight: FontWeight.w900, fontSize: 13, letterSpacing: 3)),
-        Text(_current.name.toUpperCase(), style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 24, letterSpacing: 1)),
+        Text(_currentChannel.group.toUpperCase(), style: const TextStyle(color: AppTheme.primaryGold, fontWeight: FontWeight.w900, fontSize: 13, letterSpacing: 3)),
+        Text(_currentChannel.name.toUpperCase(), style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 24, letterSpacing: 1)),
       ],
     );
   }
 
   Widget _buildProZapArea() {
+    final groups = widget.channels.map((e) => e.group).toSet().toList()..sort();
+    final channelsInGroup = widget.channels.where((c) => c.group == _selectedGroup).toList();
+
     return Row(
       children: [
         // Categories
@@ -254,12 +251,12 @@ class _FullscreenPlayerPageState extends ConsumerState<FullscreenPlayerPage> {
           alignment: Alignment.center,
           border: 0,
           linearGradient: LinearGradient(colors: [Colors.black.withOpacity(0.85), Colors.black.withOpacity(0.6)]),
-          borderGradient: LinearGradient(colors: [Colors.white10, Colors.white10]),
+          borderGradient: const LinearGradient(colors: [Colors.white10, Colors.white10]),
           child: ListView.builder(
             padding: const EdgeInsets.symmetric(vertical: 60),
-            itemCount: _groupNames.length,
+            itemCount: groups.length,
             itemBuilder: (context, i) {
-              final g = _groupNames[i];
+              final g = groups[i];
               final selected = g == _selectedGroup;
               return GestureDetector(
                 onTap: () => setState(() => _selectedGroup = g),
@@ -272,7 +269,7 @@ class _FullscreenPlayerPageState extends ConsumerState<FullscreenPlayerPage> {
                     style: TextStyle(
                       color: selected ? Colors.white : Colors.white38,
                       fontWeight: selected ? FontWeight.w900 : FontWeight.bold,
-                      fontSize: 11,
+                      fontSize: 10,
                       letterSpacing: 2,
                     ),
                   ),
@@ -290,15 +287,15 @@ class _FullscreenPlayerPageState extends ConsumerState<FullscreenPlayerPage> {
           alignment: Alignment.center,
           border: 0,
           linearGradient: LinearGradient(colors: [Colors.black.withOpacity(0.5), Colors.black.withOpacity(0.2)]),
-          borderGradient: LinearGradient(colors: [Colors.white10, Colors.white10]),
+          borderGradient: const LinearGradient(colors: [Colors.white10, Colors.white10]),
           child: ListView.builder(
             padding: const EdgeInsets.symmetric(vertical: 40, horizontal: 12),
-            itemCount: _channelsInSelectedGroup.length,
+            itemCount: channelsInGroup.length,
             itemBuilder: (context, i) {
-              final ch = _channelsInSelectedGroup[i];
-              final active = ch.url == _current.url;
+              final ch = channelsInGroup[i];
+              final active = ch.url == _currentChannel.url;
               return GestureDetector(
-                onTap: () => _onChannelSelected(widget.channels.indexOf(ch)),
+                onTap: () => _zapTo(widget.channels.indexOf(ch)),
                 child: Container(
                   margin: const EdgeInsets.only(bottom: 4),
                   padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 20),
@@ -306,7 +303,6 @@ class _FullscreenPlayerPageState extends ConsumerState<FullscreenPlayerPage> {
                     color: active ? Colors.white.withOpacity(0.08) : Colors.transparent,
                     borderRadius: BorderRadius.circular(14),
                     border: Border.all(color: active ? AppTheme.primaryGold.withOpacity(0.3) : Colors.transparent),
-                    boxShadow: active ? [BoxShadow(color: AppTheme.primaryGold.withOpacity(0.05), blurRadius: 10)] : [],
                   ),
                   child: Row(
                     children: [
@@ -315,10 +311,10 @@ class _FullscreenPlayerPageState extends ConsumerState<FullscreenPlayerPage> {
                       Expanded(
                         child: Text(
                           ch.name,
-                          style: TextStyle(color: active ? Colors.white : Colors.white54, fontWeight: active ? FontWeight.w900 : FontWeight.bold, fontSize: 14),
+                          style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13),
                         ),
                       ),
-                      if (active) Icon(Icons.graphic_eq_rounded, color: AppTheme.primaryGold, size: 16),
+                      if (active) const Icon(Icons.graphic_eq_rounded, color: AppTheme.primaryGold, size: 16),
                     ],
                   ),
                 ),
@@ -341,13 +337,13 @@ class _FullscreenPlayerPageState extends ConsumerState<FullscreenPlayerPage> {
         alignment: Alignment.center,
         border: 1,
         linearGradient: LinearGradient(colors: [Colors.black.withOpacity(0.6), Colors.black.withOpacity(0.4)]),
-        borderGradient: LinearGradient(colors: [Colors.white10, Colors.white10]),
+        borderGradient: const LinearGradient(colors: [Colors.white10, Colors.white10]),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             icon,
             const SizedBox(width: 12),
-            Text(label, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 12, letterSpacing: 2)),
+            Text(label, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 11, letterSpacing: 2)),
           ],
         ),
       ),
@@ -377,16 +373,129 @@ class _FullscreenPlayerPageState extends ConsumerState<FullscreenPlayerPage> {
     _osdTimer = Timer(const Duration(seconds: 1), () => setState(() => _osdLabel = null));
   }
 
-  void _hideOSD() {
-    _osdTimer?.cancel();
-    _osdTimer = Timer(const Duration(milliseconds: 500), () => setState(() => _osdLabel = null));
-  }
-
   Widget _buildOSDIndicator() {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 15),
       decoration: BoxDecoration(color: Colors.black.withOpacity(0.8), borderRadius: BorderRadius.circular(16), border: Border.all(color: Colors.white10)),
       child: Text(_osdLabel!, style: const TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.w900)),
+    );
+  }
+
+  // ==========================================
+  // PREMIUM KOYA TV HUD
+  // ==========================================
+
+  Widget _buildTvHud() {
+    return Container(
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [
+            Colors.black.withOpacity(0.7),
+            Colors.transparent,
+            Colors.black.withOpacity(0.9),
+          ],
+        ),
+      ),
+      padding: const EdgeInsets.all(40),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                width: 60,
+                height: 60,
+                decoration: BoxDecoration(
+                  color: Colors.white10,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: _currentChannel.logo != null 
+                    ? ChannelLogoImage(logo: _currentChannel.logo, width: 60, height: 60)
+                    : const Icon(Icons.tv, color: Colors.white24),
+              ),
+              const SizedBox(width: 20),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(_currentChannel.group.toUpperCase(), style: const TextStyle(color: AppTheme.primaryGold, letterSpacing: 2, fontSize: 12)),
+                  Text(_currentChannel.name, style: const TextStyle(color: Colors.white, fontSize: 32, fontWeight: FontWeight.bold)),
+                ],
+              ),
+            ],
+          ),
+          const Spacer(),
+          const Row(
+            children: [
+              Icon(Icons.unfold_more, color: AppTheme.primaryGold, size: 20),
+              SizedBox(width: 10),
+              Text('ZAP: UP/DOWN', style: TextStyle(color: Colors.white54, fontSize: 14)),
+              SizedBox(width: 40),
+              Icon(Icons.list, color: AppTheme.primaryGold, size: 20),
+              SizedBox(width: 10),
+              Text('CHANNELS: OK', style: TextStyle(color: Colors.white54, fontSize: 14)),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildQuickZap() {
+    return Positioned(
+      left: 0,
+      top: 0,
+      bottom: 0,
+      width: 400,
+      child: Container(
+        decoration: BoxDecoration(
+          color: Colors.black.withOpacity(0.9),
+          border: const Border(right: BorderSide(color: Colors.white10)),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Padding(
+              padding: EdgeInsets.fromLTRB(30, 50, 30, 20),
+              child: Text('QUICK ZAP', style: TextStyle(color: AppTheme.primaryGold, letterSpacing: 4, fontWeight: FontWeight.bold)),
+            ),
+            Expanded(
+              child: ListView.builder(
+                padding: const EdgeInsets.symmetric(horizontal: 10),
+                itemCount: widget.channels.length,
+                itemBuilder: (context, index) {
+                  final ch = widget.channels[index];
+                  final isCurrent = index == _currentIndex;
+                  return TVFocusable(
+                    autofocus: isCurrent,
+                    onSelect: () => _zapTo(index),
+                    showFocusBorder: true,
+                    builder: (context, isFocused, child) {
+                      return Container(
+                        padding: const EdgeInsets.all(15),
+                        decoration: BoxDecoration(
+                          color: isFocused ? AppTheme.primaryGold.withOpacity(0.1) : Colors.transparent,
+                          border: isCurrent ? const Border(left: BorderSide(color: AppTheme.primaryGold, width: 4)) : null,
+                        ),
+                        child: Row(
+                          children: [
+                            Text('${index + 1}', style: const TextStyle(color: Colors.white24, fontSize: 12)),
+                            const SizedBox(width: 15),
+                            Expanded(child: Text(ch.name, style: TextStyle(color: isFocused ? Colors.white : Colors.white70))),
+                            if (isCurrent) const Icon(Icons.play_arrow, color: AppTheme.primaryGold, size: 16),
+                          ],
+                        ),
+                      );
+                    },
+                    child: const SizedBox.shrink(),
+                  );
+                },
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }
