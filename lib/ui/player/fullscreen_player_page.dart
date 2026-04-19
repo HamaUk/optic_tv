@@ -75,6 +75,13 @@ class _FullscreenPlayerPageState extends ConsumerState<FullscreenPlayerPage> {
     });
 
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
+
+    // Force landscape for all devices in fullscreen mode
+    SystemChrome.setPreferredOrientations([
+      DeviceOrientation.landscapeLeft,
+      DeviceOrientation.landscapeRight,
+    ]);
+
     _resetHideTimer();
   }
 
