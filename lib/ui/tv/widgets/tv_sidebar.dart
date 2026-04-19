@@ -37,9 +37,10 @@ class _TVSidebarState extends ConsumerState<TVSidebar> {
     const navWidth = 64.0;
     const categoryWidth = 240.0;
 
-    return FocusTraversalGroup(
-      policy: ReadingOrderTraversalPolicy(),
-      child: Row(
+    return FocusScope(
+      child: FocusTraversalGroup(
+        policy: ReadingOrderTraversalPolicy(),
+        child: Row(
         children: [
           // LAYER 1: NARROW ICON NAV (Far Left)
           Container(
@@ -178,6 +179,9 @@ class _TVSidebarState extends ConsumerState<TVSidebar> {
                     overflow: TextOverflow.ellipsis,
                   ),
                 ),
+                if (isSelected && !isFocused)
+                  const Icon(Icons.arrow_forward_ios, color: AppTheme.primaryGold, size: 12),
+                const SizedBox(width: 8),
                 Text(
                   count.toString(),
                   style: TextStyle(
