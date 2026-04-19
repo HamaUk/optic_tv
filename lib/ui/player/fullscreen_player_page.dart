@@ -16,6 +16,7 @@ import '../../l10n/app_strings.dart';
 import '../../services/playlist_service.dart';
 import '../../services/settings_service.dart';
 import '../../providers/ui_settings_provider.dart';
+import '../../widgets/channel_logo_image.dart';
 
 class FullscreenPlayerPage extends ConsumerStatefulWidget {
   final Player player;
