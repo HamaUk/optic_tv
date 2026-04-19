@@ -10,6 +10,7 @@ import 'package:glassmorphism/glassmorphism.dart';
 import '../../services/playlist_service.dart';
 import '../../services/platform_service.dart';
 import '../../widgets/tv/tv_focusable.dart';
+import '../../widgets/channel_logo_image.dart';
 import '../../core/theme.dart';
 import '../../l10n/app_strings.dart';
 import '../../providers/app_locale_provider.dart';
