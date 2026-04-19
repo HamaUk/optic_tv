@@ -16,6 +16,7 @@ import 'ui/tv/tv_login_screen.dart';
 import 'ui/tv/tv_dashboard_screen.dart';
 import 'ui/tv/tv_mode_selector_screen.dart';
 import 'services/platform_service.dart';
+import 'ui/tv/elite_tv_dashboard.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -126,9 +127,6 @@ class _OpticTvAppState extends ConsumerState<OpticTvApp> {
         GlobalCupertinoLocalizations.delegate,
       ],
       supportedLocales: const [Locale('en')],
-import 'ui/tv/elite_tv_dashboard.dart';
-
-// ... (inside OpticTvApp build)
       home: deviceType == DeviceType.tv 
         ? (session.loggedIn ? const EliteTvDashboard() : const TvLoginScreen())
         : (session.loggedIn ? const DashboardScreen() : const LoginScreen()),
