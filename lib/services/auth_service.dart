@@ -4,7 +4,7 @@ import 'package:google_sign_in/google_sign_in.dart';
 
 class AuthService {
   static final FirebaseAuth _auth = FirebaseAuth.instance;
-  static final GoogleSignIn _googleSignIn = GoogleSignIn();
+  static GoogleSignIn get _googleSignIn => GoogleSignIn.instance;
 
   static User? get currentUser => _auth.currentUser;
 
@@ -23,12 +23,24 @@ class AuthService {
 
   static Future<UserCredential?> signInWithGoogle() async {
     try {
-      final GoogleSignInAccount? googleUser = await _googleSignIn.signIn();
+      // 1. Initialize for the 7.x API
+      await _googleSignIn.initialize();
+
+      // 2. Authenticate (Identify the user)
+      final GoogleSignInAccount? googleUser = await _googleSignIn.authenticate();
       if (googleUser == null) return null;
 
+      // 3. Get Authentication (ID Token)
       final GoogleSignInAuthentication googleAuth = await googleUser.authentication;
+      
+      // 4. In 7.x, the access token must be explicitly requested via authorizationClient 
+      // if it's not automatically provided or if we need specific scopes.
+      // For Firebase Auth, we usually need the accessToken too.
+      final authorized = await googleUser.authorizationClient.authorizeScopes(['email', 'profile']);
+      final String? accessToken = authorized?.accessToken;
+
       final AuthCredential credential = GoogleAuthProvider.credential(
-        accessToken: googleAuth.accessToken,
+        accessToken: accessToken,
         idToken: googleAuth.idToken,
       );
 
