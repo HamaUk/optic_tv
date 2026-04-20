@@ -13,6 +13,7 @@ import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
 
 import '../../core/theme.dart';
+import '../../services/auth_service.dart';
 import '../../widgets/channel_logo_image.dart';
 
 enum _PublishShelf { liveTv, movies, custom }
@@ -211,6 +212,54 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
                   ),
                 ),
                 const SizedBox(height: 16),
+                Row(
+                  children: [
+                    const Expanded(child: Divider(color: Colors.white10)),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                      child: Text('OR', style: TextStyle(color: Colors.white.withOpacity(0.2), fontSize: 10, fontWeight: FontWeight.bold)),
+                    ),
+                    const Expanded(child: Divider(color: Colors.white10)),
+                  ],
+                ),
+                const SizedBox(height: 16),
+                SizedBox(
+                  height: 52,
+                  child: OutlinedButton(
+                    onPressed: _isAuthenticating ? null : _performGoogleAuth,
+                    style: OutlinedButton.styleFrom(
+                      side: BorderSide(color: Colors.white.withOpacity(0.1)),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      foregroundColor: Colors.white,
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        // Custom Google icon representation
+                        Container(
+                          width: 20,
+                          height: 20,
+                          decoration: const BoxDecoration(
+                            color: Colors.white,
+                            shape: BoxShape.circle,
+                          ),
+                          alignment: Alignment.center,
+                          child: const Text(
+                            'G',
+                            style: TextStyle(
+                              color: Colors.black,
+                              fontSize: 14,
+                              fontWeight: FontWeight.w900,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        const Text('Sign in with Google', style: TextStyle(fontWeight: FontWeight.w600)),
+                      ],
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 16),
                 TextButton(
                   onPressed: () => Navigator.pop(context),
                   child: const Text('Back to App', style: TextStyle(color: Colors.white54)),
@@ -237,7 +286,7 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
     });
 
     try {
-      await FirebaseAuth.instance.signInWithEmailAndPassword(email: email, password: pass);
+      await AuthService.signIn(email, pass);
       setState(() {
         _isAuthenticating = false;
         _isAuthenticated = true;
@@ -247,6 +296,32 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
       setState(() {
         _isAuthenticating = false;
         _authError = 'Shield Check Failed: $e';
+      });
+    }
+  }
+
+  Future<void> _performGoogleAuth() async {
+    setState(() {
+      _isAuthenticating = true;
+      _authError = null;
+    });
+
+    try {
+      final cred = await AuthService.signInWithGoogle();
+      if (cred == null) {
+        // User cancelled
+        setState(() => _isAuthenticating = false);
+        return;
+      }
+      setState(() {
+        _isAuthenticating = false;
+        _isAuthenticated = true;
+      });
+      _snack('Authenticated as Owner (Google)');
+    } catch (e) {
+      setState(() {
+        _isAuthenticating = false;
+        _authError = 'Shield Check Failed (Google): $e';
       });
     }
   }
