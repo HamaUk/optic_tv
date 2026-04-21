@@ -533,6 +533,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                               settings,
                               settings.reduceMotion ? 100 : 220,
                               16.0,
+                              managedGroups,
                             ),
                   settings,
                 ),
@@ -840,6 +841,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     AppSettingsData settings,
     int animMs,
     double pad,
+    List<ChannelGroup> managedGroups,
   ) {
     final isTv = MediaQuery.sizeOf(context).width > 900;
     final crossCount = isTv ? 6 : 4;
@@ -854,9 +856,10 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
 
     // Prepare sorted groups based on Admin preference
     final sortedGroupEntries = groups.entries.toList()..sort((a, b) {
-      final orderA = ref.read(playlistServiceProvider).groupOrder[a.key] ?? 999;
-      final orderB = ref.read(playlistServiceProvider).groupOrder[b.key] ?? 999;
-      return orderA.compareTo(orderB);
+      final ga = managedGroups.firstWhere((g) => g.name == a.key, orElse: () => ChannelGroup(key: '', name: a.key, order: 999999));
+      final gb = managedGroups.firstWhere((g) => g.name == b.key, orElse: () => ChannelGroup(key: '', name: b.key, order: 999999));
+      if (ga.order != gb.order) return ga.order.compareTo(gb.order);
+      return a.key.toLowerCase().compareTo(b.key.toLowerCase());
     });
 
     final heroChannel = _focusedChannel ?? (filteredFlat.isNotEmpty ? filteredFlat.first : null);
