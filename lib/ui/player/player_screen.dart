@@ -91,6 +91,7 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
   String _resolution = "-";
   Timer? _mediaInfoTimer;
   StreamSubscription? _techInfoSubscription;
+  int _retryCount = 0;
 
   final List<StreamSubscription<dynamic>> _subscriptions = [];
   
@@ -194,17 +195,32 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
   }
 
   void _configureNativePlayer() {
-    // Balanced Hardware Acceleration for Stability & 4K Performance
+    // Advanced Media Engine Optimization for Fast Start & High Stability
     if (_player?.platform is NativePlayer) {
       final native = _player!.platform as NativePlayer;
       Future<void> set(String k, String v) async {
         try { await native.setProperty(k, v); } catch (_) {}
       }
-      set('hwdec', 'auto-safe');         // Use safest hardware decoding mode
-      set('cache', 'yes');               // Enable caching
-      set('demuxer-max-bytes', '16777216'); // 16MB demuxer cache (balanced)
-      set('vd-lavc-threads', '0');       // Auto-detect optimal threads
-      // Removed vo-gpu and opengl to prevent driver crashes on some Android devices
+      
+      // Hardware & Performance
+      set('hwdec', 'auto-safe');          // Secure hardware acceleration
+      set('vd-lavc-threads', '0');        // CPU thread optimization
+      
+      // Aggressive Buffering & Low Internet Stability
+      set('cache', 'yes');
+      set('demuxer-max-bytes', '536870912');     // 512MB max buffer for stability
+      set('demuxer-max-back-bytes', '134217728'); // 128MB back-buffer
+      set('demuxer-readahead-secs', '10');       // 10 seconds readahead
+      set('cache-secs', '20');                   // Maintain 20s of cache
+      
+      // Fast Start & Network Tweaks
+      set('network-timeout', '10');              // Faster failover on bad links
+      set('tcp-fastopen', 'yes');                // Faster TCP handshake
+      set('stream-buffer-size', '4096KiB');      // Larger initial stream buffer
+      set('user-agent', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'); // Better compatibility
+      
+      // High Quality Fallbacks
+      set('ytdl-format', 'bestvideo+bestaudio/best');
     }
   }
 
@@ -254,6 +270,9 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
     }));
     _subscriptions.add(p.stream.playing.listen((pl) {
       if (mounted) setState(() => _isPlaying = pl);
+    }));
+    _subscriptions.add(p.stream.error.listen((err) {
+      _handlePlayerError(err);
     }));
 
     _viewFit = _settings.videoFit;
@@ -306,14 +325,32 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
     setState(() {
       _index = fullListIndex;
       _selectedGroup = widget.channels[_index].group;
+      _retryCount = 0; // Reset retry count for manual selection
     });
     ref.read(recentChannelsProvider.notifier).record(_current);
     unawaited(_reopenCurrentStream());
   }
 
+  void _handlePlayerError(dynamic err) {
+    if (!mounted) return;
+    if (_retryCount < 2) {
+      _retryCount++;
+      debugPrint('Stream error, retrying ($ _retryCount / 2): $err');
+      Future.delayed(const Duration(seconds: 2), () {
+        if (mounted) _reopenCurrentStream();
+      });
+    } else {
+      _snack('Stream connection timed out. Please try again.', error: true);
+    }
+  }
+
   Future<void> _reopenCurrentStream() async {
     final p = _player;
     if (p == null) return;
+    if (_retryCount == 0) {
+      // Manual/New channel join resets retry count
+      _retryCount = 0; 
+    }
     await p.open(Media(_current.url));
   }
 

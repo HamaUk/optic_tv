@@ -10,9 +10,11 @@ class Channel {
   final String? logo;
   final String? backdrop;
   final String? subtitleUrl;
+  final String? description;
   final String type; // 'live' or 'movie'
   final bool featured;
   final int order;
+  final int featuredOrder;
 
   Channel({
     required this.name,
@@ -21,9 +23,11 @@ class Channel {
     this.logo,
     this.backdrop,
     this.subtitleUrl,
+    this.description,
     this.type = 'live',
     this.featured = false,
     this.order = 999999,
+    this.featuredOrder = 999999,
   });
 
   factory Channel.fromMap(Map<dynamic, dynamic> map) {
@@ -34,9 +38,11 @@ class Channel {
       logo: map['logo'] ?? map['icon_url'],
       backdrop: map['backdrop'] as String?,
       subtitleUrl: map['subtitleUrl'] as String?,
+      description: map['description'] as String?,
       type: map['type'] as String? ?? 'live',
       featured: map['featured'] == true,
       order: map['order'] is int ? map['order'] as int : 999999,
+      featuredOrder: map['featured_order'] is int ? map['featured_order'] as int : 999999,
     );
   }
 
@@ -78,6 +84,46 @@ final channelsProvider = StreamProvider<List<Channel>>((ref) {
     });
 
     return remoteChannels;
+  });
+});
+
+class ChannelGroup {
+  final String key;
+  final String name;
+  final int order;
+
+  ChannelGroup({
+    required this.key,
+    required this.name,
+    this.order = 999999,
+  });
+
+  factory ChannelGroup.fromMap(String key, Map<dynamic, dynamic> map) {
+    return ChannelGroup(
+      key: key,
+      name: map['name'] ?? 'Unknown',
+      order: map['order'] is int ? map['order'] as int : 999999,
+    );
+  }
+}
+
+final groupsProvider = StreamProvider<List<ChannelGroup>>((ref) {
+  final dbRef = FirebaseDatabase.instance.ref('sync/global/channelGroups');
+
+  return dbRef.onValue.map((event) {
+    final data = event.snapshot.value;
+    if (data is! Map) return [];
+
+    final list = data.entries.map((e) {
+      return ChannelGroup.fromMap(e.key.toString(), e.value as Map);
+    }).toList();
+
+    list.sort((a, b) {
+      if (a.order != b.order) return a.order.compareTo(b.order);
+      return a.name.toLowerCase().compareTo(b.name.toLowerCase());
+    });
+
+    return list;
   });
 });
 

@@ -100,10 +100,10 @@ class _MovieDetailsScreenState extends ConsumerState<MovieDetailsScreen> {
       body: Stack(
         children: [
           // Backdrop
-          if (_movie?.backdropUrl != null)
+          if (_movie?.backdropUrl != null || widget.channel.backdrop != null)
             Positioned.fill(
               child: CachedNetworkImage(
-                imageUrl: _movie!.backdropUrl!,
+                imageUrl: _movie?.backdropUrl ?? widget.channel.backdrop!,
                 fit: BoxFit.cover,
                 errorWidget: (_, __, ___) => const SizedBox(),
               ),
@@ -161,7 +161,7 @@ class _MovieDetailsScreenState extends ConsumerState<MovieDetailsScreen> {
                       _buildSectionTitle('Overview'),
                       const SizedBox(height: 12),
                       Text(
-                        _movie?.overview ?? 'Cinematic details for this title are being retrieved. Enjoy the high-quality stream.',
+                        _movie?.overview ?? widget.channel.description ?? 'Cinematic details for this title are being retrieved. Enjoy the high-quality stream.',
                         style: TextStyle(
                           color: Colors.white.withOpacity(0.8),
                           fontSize: 16,

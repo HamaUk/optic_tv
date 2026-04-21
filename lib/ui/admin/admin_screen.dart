@@ -76,6 +76,14 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
   List<Map<String, String>>? _importPreview;
   String _importStatus = '';
 
+  // Bulk movie import state
+  bool _importMoviesBusy = false;
+  double _importMoviesProgress = 0;
+  int _importMoviesTotal = 0;
+  int _importMoviesDone = 0;
+  String _importMoviesStatus = '';
+  String _importMoviesCurrentTitle = '';
+
   // Health checker state
   bool _healthCheckRunning = false;
   double _healthProgress = 0;
@@ -907,6 +915,26 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
     }
   }
 
+  Future<void> _moveGroup(
+    List<MapEntry<dynamic, dynamic>> groupEntries,
+    int oldIndex,
+    int newIndex,
+  ) async {
+    if (newIndex > oldIndex) newIndex -= 1;
+    final item = groupEntries.removeAt(oldIndex);
+    groupEntries.insert(newIndex, item);
+
+    final updates = <String, dynamic>{};
+    for (var i = 0; i < groupEntries.length; i++) {
+      updates['${groupEntries[i].key}/order'] = i;
+    }
+    try {
+      await _groupsRef.update(updates);
+    } catch (e) {
+      _snack('Group reorder failed: $e', error: true);
+    }
+  }
+
   // ─────────────────────── M3U / Xtream Import ───────────────────────
 
   List<Map<String, String>> _parseM3u(String content) {
@@ -1095,6 +1123,93 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
       setState(() {
         _importBusy = false;
         _importStatus = 'Save failed: $e';
+      });
+    }
+  }
+
+  Future<void> _importMoviesBulk() async {
+    if (_importMoviesBusy) return;
+
+    final pick = await FilePicker.platform.pickFiles(
+      type: FileType.custom,
+      allowedExtensions: const ['m3u', 'm3u8', 'txt'],
+    );
+    if (pick == null || pick.files.isEmpty || pick.files.single.path == null) return;
+
+    setState(() {
+      _importMoviesBusy = true;
+      _importMoviesProgress = 0;
+      _importMoviesStatus = 'Reading file...';
+      _importMoviesDone = 0;
+    });
+
+    try {
+      final content = await File(pick.files.single.path!).readAsString();
+      final parsed = _parseM3u(content);
+      if (parsed.isEmpty) {
+        _snack('No channels found in file', error: true);
+        setState(() => _importMoviesBusy = false);
+        return;
+      }
+
+      setState(() {
+        _importMoviesTotal = parsed.length;
+        _importMoviesStatus = 'Preparing to fetch metadata for ${parsed.length} movies...';
+      });
+
+      final tmdb = TmdbService();
+
+      for (final ch in parsed) {
+        if (!_importMoviesBusy) break; // Allow cancellation if needed (though no UI yet)
+
+        final name = ch['name'] ?? 'Unknown';
+        final url = ch['url'] ?? '';
+        if (url.isEmpty) continue;
+
+        setState(() {
+          _importMoviesCurrentTitle = name;
+          _importMoviesStatus = 'Importing: $name';
+        });
+
+        // 0. Clean the name for better TMDB matching
+        String searchName = name
+            .replaceAll(RegExp(r'\.(mp4|mkv|avi|ts|m3u8|mov)$', caseSensitive: false), '')
+            .replaceAll(RegExp(r'(1080p|720p|4k|uhd|bluray|h264|h265|web-dl|x264|x265)', caseSensitive: false), '')
+            .replaceAll('.', ' ')
+            .trim();
+
+        // 1. Fetch TMDB metadata
+        final movie = await tmdb.findMovie(searchName);
+
+        // 2. Save to Firebase with fallbacks
+        await _playlistRef.push().set({
+          'name': name,
+          'url': url,
+          'group': 'Movies',
+          'type': 'movie',
+          // Use TMDB poster if found, otherwise fallback to M3U logo
+          'logo': movie?.posterUrl ?? ch['logo'],
+          if (movie?.backdropUrl != null) 'backdrop': movie!.backdropUrl,
+          if (movie?.overview != null) 'description': movie!.overview,
+        });
+
+        setState(() {
+          _importMoviesDone++;
+          _importMoviesProgress = _importMoviesDone / _importMoviesTotal;
+        });
+
+        // Small delay to prevent hitting API rate limits too hard and keep UI responsive
+        await Future.delayed(const Duration(milliseconds: 50));
+      }
+
+      _snack('Bulk import complete! ${_importMoviesDone} movies added.', error: false);
+    } catch (e) {
+      _snack('Import error: $e', error: true);
+    } finally {
+      setState(() {
+        _importMoviesBusy = false;
+        _importMoviesStatus = '';
+        _importMoviesCurrentTitle = '';
       });
     }
   }
@@ -1471,9 +1586,11 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
       Scaffold(
         backgroundColor: AppTheme.backgroundBlack,
         body: SafeArea(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
+          child: Stack(
             children: [
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
               _buildAdminHeader(context),
               Material(
                 color: AppTheme.backgroundBlack,
@@ -1537,14 +1654,17 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
                     ),
                   ],
                 ),
-              ),
+                ),
               ),
             ],
           ),
-        ),
+          if (_importMoviesBusy) _buildBulkImportOverlay(),
+        ],
       ),
-    );
-  }
+    ),
+  ),
+);
+}
 
   // ═══════════════════════════════════════════════════════════════
   //  Tab: Overview
@@ -1730,6 +1850,8 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
                               ],
                             ),
                           ),
+                          const SizedBox(height: 28),
+                          _buildFeaturedManager(channels),
                         ],
                       );
                     },
@@ -2975,26 +3097,41 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
                     }
                     final entries = value.entries.toList()
                       ..sort((a, b) {
-                        final an = (a.value is Map) ? '${(a.value as Map)['name']}' : '';
-                        final bn = (b.value is Map) ? '${(b.value as Map)['name']}' : '';
-                        return an.compareTo(bn);
+                        final av = a.value;
+                        final bv = b.value;
+                        if (av is Map && bv is Map) {
+                          final ao = av['order'] as int? ?? 999999;
+                          final bo = bv['order'] as int? ?? 999999;
+                          if (ao != bo) return ao.compareTo(bo);
+                        }
+                        final an = (av is Map) ? '${av['name']}' : '';
+                        final bn = (bv is Map) ? '${bv['name']}' : '';
+                        return an.toLowerCase().compareTo(bn.toLowerCase());
                       });
-                    return Column(
-                      mainAxisSize: MainAxisSize.min,
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                    return ReorderableListView(
+                      shrinkWrap: true,
+                      physics: const NeverScrollableScrollPhysics(),
+                      onReorder: (oldIndex, newIndex) => _moveGroup(entries, oldIndex, newIndex),
                       children: entries.map((e) {
                         final m = e.value;
                         final label = (m is Map) ? '${m['name'] ?? e.key}' : '${e.key}';
                         return ListTile(
+                          key: ValueKey(e.key),
                           contentPadding: EdgeInsets.zero,
                           leading: CircleAvatar(
                             backgroundColor: AppTheme.accentTeal.withOpacity(0.2),
                             child: Icon(Icons.folder_rounded, color: AppTheme.accentTeal.withOpacity(0.9)),
                           ),
                           title: Text(label),
-                          trailing: IconButton(
-                            icon: const Icon(Icons.delete_outline_rounded, color: Colors.redAccent),
-                            onPressed: () => _deleteGroup('${e.key}', label),
+                          trailing: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              const Icon(Icons.drag_indicator_rounded, color: Colors.white24),
+                              IconButton(
+                                icon: const Icon(Icons.delete_outline_rounded, color: Colors.redAccent),
+                                onPressed: () => _deleteGroup('${e.key}', label),
+                              ),
+                            ],
                           ),
                         );
                       }).toList(),
@@ -3439,26 +3576,40 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
 
         return Column(
           children: [
-            Padding(
-              padding: const EdgeInsets.all(16),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: FilledButton.icon(
-                      onPressed: _showAddMovieDialog,
-                      icon: const Icon(Icons.movie_rounded),
-                      label: const Text('Add New Movie'),
-                      style: FilledButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(vertical: 16),
-                        backgroundColor: AppTheme.primaryGold,
-                        foregroundColor: Colors.black,
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+              Padding(
+                padding: const EdgeInsets.all(16),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: FilledButton.icon(
+                        onPressed: _showAddMovieDialog,
+                        icon: const Icon(Icons.movie_rounded),
+                        label: const Text('Add New'),
+                        style: FilledButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(vertical: 16),
+                          backgroundColor: AppTheme.primaryGold,
+                          foregroundColor: Colors.black,
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                        ),
                       ),
                     ),
-                  ),
-                ],
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: FilledButton.icon(
+                        onPressed: _importMoviesBusy ? null : _importMoviesBulk,
+                        icon: const Icon(Icons.auto_awesome_rounded),
+                        label: const Text('Bulk Import M3U'),
+                        style: FilledButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(vertical: 16),
+                          backgroundColor: AppTheme.accentTeal,
+                          foregroundColor: Colors.black,
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
               ),
-            ),
             if (items.isEmpty)
               Padding(
                 padding: const EdgeInsets.only(top: 40),
@@ -3569,6 +3720,171 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
         ),
       ),
     );
+  }
+
+  Widget _buildBulkImportOverlay() {
+    return Positioned.fill(
+      child: Container(
+        color: Colors.black.withOpacity(0.85),
+        padding: const EdgeInsets.all(40),
+        child: Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 400),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(Icons.movie_filter_rounded, color: AppTheme.accentTeal, size: 64),
+                const SizedBox(height: 24),
+                const Text(
+                  'BULK MOVIE IMPORT',
+                  style: TextStyle(fontSize: 22, fontWeight: FontWeight.w900, color: Colors.white, letterSpacing: 1.5),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  _importMoviesStatus,
+                  textAlign: TextAlign.center,
+                  style: TextStyle(color: Colors.white.withOpacity(0.5), fontSize: 13),
+                ),
+                const SizedBox(height: 32),
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(10),
+                  child: LinearProgressIndicator(
+                    value: _importMoviesProgress,
+                    minHeight: 12,
+                    backgroundColor: Colors.white10,
+                    valueColor: const AlwaysStoppedAnimation(AppTheme.accentTeal),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      '${(_importMoviesProgress * 100).toInt()}%',
+                      style: const TextStyle(color: AppTheme.accentTeal, fontWeight: FontWeight.bold),
+                    ),
+                    Text(
+                      '$_importMoviesDone / $_importMoviesTotal',
+                      style: TextStyle(color: Colors.white.withOpacity(0.5)),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 40),
+                Text(
+                  'Processing: $_importMoviesCurrentTitle',
+                  textAlign: TextAlign.center,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(color: Colors.white70, fontSize: 11, fontStyle: FontStyle.italic),
+                ),
+                const SizedBox(height: 24),
+                const Text(
+                  'Please do not close the app while the import is in progress. Fetching TMDB posters...',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(color: Colors.white24, fontSize: 10),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  Widget _buildFeaturedManager(List<MapEntry<dynamic, dynamic>> allChannels) {
+    final featured = allChannels.where((e) {
+      final val = e.value as Map;
+      return val['featured'] == true;
+    }).toList();
+
+    // Sort by existing order if available
+    featured.sort((a, b) {
+      final ordA = (a.value as Map)['featured_order'] ?? 999;
+      final ordB = (b.value as Map)['featured_order'] ?? 999;
+      return (ordA as int).compareTo(ordB as int);
+    });
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            const Icon(Icons.auto_awesome_motion_rounded, color: AppTheme.primaryGold, size: 24),
+            const SizedBox(width: 12),
+            Text(
+              '3D Dashboard Cards (Featured)',
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: Colors.white.withOpacity(0.9)),
+            ),
+          ],
+        ),
+        const SizedBox(height: 4),
+        Text(
+          'Drag and drop to change the order on the home screen carousel.',
+          style: TextStyle(fontSize: 12, color: Colors.white.withOpacity(0.4)),
+        ),
+        const SizedBox(height: 16),
+        if (featured.isEmpty)
+          _card(
+            child: const Center(
+              child: Padding(
+                padding: EdgeInsets.all(20),
+                child: Text('No featured items yet. Edit a channel and turn on "Featured".',
+                    textAlign: TextAlign.center, style: TextStyle(color: Colors.white38)),
+              ),
+            ),
+          )
+        else
+          Container(
+            decoration: BoxDecoration(
+              color: AppTheme.surfaceElevated,
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(color: Colors.white.withOpacity(0.05)),
+            ),
+            child: ReorderableListView.builder(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              itemCount: featured.length,
+              onReorder: (oldIndex, newIndex) => _reorderFeatured(featured, oldIndex, newIndex),
+              itemBuilder: (context, i) {
+                final e = featured[i];
+                final val = e.value as Map;
+                return ListTile(
+                  key: ValueKey('feat_${e.key}'),
+                  leading: ClipRRect(
+                    borderRadius: BorderRadius.circular(8),
+                    child: ChannelLogoImage(logo: val['logo'] ?? val['icon_url'], width: 40, height: 40, fit: BoxFit.cover),
+                  ),
+                  title: Text('${val['name']}', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14)),
+                  subtitle: Text('${val['group'] ?? 'General'}', style: TextStyle(color: Colors.white.withOpacity(0.5), fontSize: 11)),
+                  trailing: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text('#${i + 1}', style: const TextStyle(color: AppTheme.primaryGold, fontWeight: FontWeight.w900)),
+                      const SizedBox(width: 12),
+                      const Icon(Icons.drag_handle_rounded, color: Colors.white24),
+                    ],
+                  ),
+                );
+              },
+            ),
+          ),
+      ],
+    );
+  }
+
+  Future<void> _reorderFeatured(List<MapEntry<dynamic, dynamic>> featured, int oldIndex, int newIndex) async {
+    if (newIndex > oldIndex) newIndex -= 1;
+    final item = featured.removeAt(oldIndex);
+    featured.insert(newIndex, item);
+
+    final updates = <String, dynamic>{};
+    for (var i = 0; i < featured.length; i++) {
+      updates['${featured[i].key}/featured_order'] = i;
+    }
+    try {
+      await _playlistRef.update(updates);
+      _snack('Featured order updated');
+    } catch (e) {
+      _snack('Failed to update order: $e', error: true);
+    }
   }
 }
 

@@ -92,6 +92,8 @@ class _MoviePlayerPageState extends ConsumerState<MoviePlayerPage> {
 
     _resetHideTimer();
     
+    _configureEngine();
+
     // Priority 1: Load manual subtitle from Admin Portal (URL or File)
     _loadManualSubtitle();
 
@@ -184,6 +186,24 @@ class _MoviePlayerPageState extends ConsumerState<MoviePlayerPage> {
     // STOP AUDIO LEAK: Explicitly dispose the player engine
     widget.player.dispose();
     super.dispose();
+  }
+
+  void _configureEngine() {
+    if (widget.player.platform is NativePlayer) {
+      final native = widget.player.platform as NativePlayer;
+      Future<void> set(String k, String v) async {
+        try { await native.setProperty(k, v); } catch (_) {}
+      }
+      
+      set('hwdec', 'auto-safe');
+      set('cache', 'yes');
+      set('demuxer-max-bytes', '536870912'); // 512MB Buffer
+      set('demuxer-readahead-secs', '15');   // 15s readahead for movies
+      set('cache-secs', '30');               // Maintain 30s cache
+      set('tcp-fastopen', 'yes');
+      set('network-timeout', '15');
+      set('user-agent', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36');
+    }
   }
 
   Future<bool> _exitFullscreen() async {

@@ -432,6 +432,15 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
         final filteredForNav = _channelsForNav(channels, favorites, recent);
         final filtered = _applySearch(filteredForNav);
         final groups = _groupMap(filtered);
+        final managedGroups = ref.watch(groupsProvider).asData?.value ?? [];
+
+        final sortedGroupEntries = groups.entries.toList()
+          ..sort((a, b) {
+            final ga = managedGroups.firstWhere((g) => g.name == a.key, orElse: () => ChannelGroup(key: '', name: a.key, order: 999999));
+            final gb = managedGroups.firstWhere((g) => g.name == b.key, orElse: () => ChannelGroup(key: '', name: b.key, order: 999999));
+            if (ga.order != gb.order) return ga.order.compareTo(gb.order);
+            return a.key.toLowerCase().compareTo(b.key.toLowerCase());
+          });
 
         // Sport or About tab: show dedicated screen instead of channel grid.
         if (_navIndex == 2 || _navIndex == 3) {
@@ -835,10 +844,13 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     final isTv = MediaQuery.sizeOf(context).width > 900;
     final crossCount = isTv ? 6 : 4;
     
-    var slideChannels = allChannels.where((c) => c.featured).toList();
-    if (slideChannels.isEmpty) {
-      slideChannels = filteredFlat.take(5).toList();
-    }
+    final featured = allChannels.where((c) => c.featured).toList();
+    
+    // Sort by custom featured order defined in Admin Portal
+    featured.sort((a, b) => a.featuredOrder.compareTo(b.featuredOrder));
+
+    // Show up to 5 featured items
+    final slideChannels = featured.take(5).toList();
 
     final heroChannel = _focusedChannel ?? (filteredFlat.isNotEmpty ? filteredFlat.first : null);
 
@@ -862,7 +874,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
               ),
             ),
           ),
-        ...groups.entries.map((entry) {
+        ...sortedGroupEntries.map((entry) {
           return SliverToBoxAdapter(
             child: _buildGroupSection(
               context,
@@ -1879,7 +1891,7 @@ class _FeaturedCarousel extends StatefulWidget {
 }
 
 class _FeaturedCarouselState extends State<_FeaturedCarousel> {
-  static const _autoAdvance = Duration(seconds: 10);
+  static const _autoAdvance = Duration(seconds: 8);
   late final PageController _pageController;
   Timer? _autoTimer;
   int _index = 0;
@@ -1959,88 +1971,162 @@ class _FeaturedCarouselState extends State<_FeaturedCarousel> {
             itemBuilder: (context, i) {
               final ch = widget.slides[i];
               final hasBackdrop = ch.backdrop != null && ch.backdrop!.isNotEmpty;
-              return Stack(
-                fit: StackFit.expand,
-                children: [
-                  if (hasBackdrop)
-                    ChannelLogoImage(
-                      logo: ch.backdrop,
-                      width: double.infinity,
-                      height: double.infinity,
-                      fit: BoxFit.cover,
-                      fallback: _heroFallback(),
-                    )
-                  else
-                    _heroFallback(),
-                  Positioned.fill(
-                    child: DecoratedBox(
-                      decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          begin: Alignment.bottomCenter,
-                          end: Alignment.topCenter,
-                          colors: [
-                            Colors.black.withValues(alpha: 0.95),
-                            Colors.black.withValues(alpha: 0.4),
-                            Colors.transparent,
-                            Colors.black.withValues(alpha: 0.3),
-                          ],
-                          stops: const [0.0, 0.45, 0.75, 1.0],
-                        ),
-                      ),
+              
+              return AnimatedBuilder(
+                animation: _pageController,
+                builder: (context, child) {
+                  double page = 0.0;
+                  if (_pageController.position.haveDimensions) {
+                    page = _pageController.page ?? 0.0;
+                  }
+                  
+                  final diff = i - page;
+                  final scale = (1.0 - (diff.abs() * 0.12)).clamp(0.8, 1.0);
+                  final opacity = (1.0 - (diff.abs() * 0.5)).clamp(0.0, 1.0);
+                  
+                  // Perspective transformation
+                  final matrix = Matrix4.identity()
+                    ..setEntry(3, 2, 0.001) // 3D depth
+                    ..translate(diff * MediaQuery.of(context).size.width) // Counter-slide to stack
+                    ..scale(scale)
+                    ..translate(0.0, diff.abs() * -12); // Move cards behind slightly up
+                  
+                  return Transform(
+                    transform: matrix,
+                    alignment: Alignment.center,
+                    child: Opacity(
+                      opacity: opacity,
+                      child: child,
                     ),
+                  );
+                },
+                child: Container(
+                  margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(24),
+                    boxShadow: [
+                      BoxShadow(
+                        color: AppTheme.accentColor(widget.gradientPreset).withOpacity(0.15),
+                        blurRadius: 25,
+                        spreadRadius: -5,
+                        offset: const Offset(0, 10),
+                      ),
+                    ],
                   ),
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(20, 20, 20, 16),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Spacer(),
-                        Text(
-                          ch.name,
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                          style: AppTheme.withRabarIfKurdish(
-                            s.locale,
-                            TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.w900,
-                              color: Colors.white,
-                              height: 1.15,
-                              shadows: [Shadow(color: Colors.black.withValues(alpha: 0.5), blurRadius: 10)],
+                  clipBehavior: Clip.antiAlias,
+                  child: Stack(
+                    fit: StackFit.expand,
+                    children: [
+                      if (hasBackdrop)
+                        ChannelLogoImage(
+                          logo: ch.backdrop,
+                          width: double.infinity,
+                          height: double.infinity,
+                          fit: BoxFit.cover,
+                          fallback: _heroFallback(),
+                        )
+                      else
+                        _heroFallback(),
+                      
+                      // Glassmorphic border/overlay
+                      Positioned.fill(
+                        child: DecoratedBox(
+                          decoration: BoxDecoration(
+                            border: Border.all(
+                              color: Colors.white.withOpacity(0.08),
+                              width: 1.5,
+                            ),
+                            borderRadius: BorderRadius.circular(24),
+                            gradient: LinearGradient(
+                              begin: Alignment.bottomCenter,
+                              end: Alignment.topCenter,
+                              colors: [
+                                Colors.black.withOpacity(0.9),
+                                Colors.black.withOpacity(0.4),
+                                Colors.transparent,
+                                Colors.black.withOpacity(0.2),
+                              ],
+                              stops: const [0.0, 0.45, 0.75, 1.0],
                             ),
                           ),
                         ),
-                        const SizedBox(height: 16),
-                        Align(
-                          alignment: s.locale.languageCode == 'ckb' ? Alignment.centerLeft : Alignment.centerRight,
-                          child: Material(
-                            color: Colors.transparent,
-                            child: InkWell(
-                              onTap: () => widget.onWatch(ch),
-                              borderRadius: BorderRadius.circular(12),
-                              child: Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-                                decoration: BoxDecoration(
-                                  color: Colors.white.withValues(alpha: 0.12),
-                                  borderRadius: BorderRadius.circular(12),
-                                  border: Border.all(color: Colors.white.withValues(alpha: 0.2)),
-                                ),
-                                child: Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    const Icon(Icons.play_arrow_rounded, color: Colors.white, size: 20),
-                                    const SizedBox(width: 8),
-                                    Text(s.watchNow, style: const TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w700)),
-                                  ],
+                      ),
+                      
+                      Padding(
+                        padding: const EdgeInsets.fromLTRB(20, 20, 20, 16),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Spacer(),
+                            Text(
+                              ch.name,
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                              style: AppTheme.withRabarIfKurdish(
+                                s.locale,
+                                const TextStyle(
+                                  fontSize: 20,
+                                  fontWeight: FontWeight.w900,
+                                  color: Colors.white,
+                                  height: 1.1,
+                                  letterSpacing: -0.5,
+                                  shadows: [Shadow(color: Colors.black54, blurRadius: 12)],
                                 ),
                               ),
                             ),
-                          ),
+                            const SizedBox(height: 16),
+                            Align(
+                              alignment: s.locale.languageCode == 'ckb' ? Alignment.centerLeft : Alignment.centerRight,
+                              child: Material(
+                                color: Colors.transparent,
+                                child: InkWell(
+                                  onTap: () => widget.onWatch(ch),
+                                  borderRadius: BorderRadius.circular(16),
+                                  child: Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                                    decoration: BoxDecoration(
+                                      gradient: LinearGradient(
+                                        colors: [
+                                          Colors.white.withOpacity(0.15),
+                                          Colors.white.withOpacity(0.05),
+                                        ],
+                                      ),
+                                      borderRadius: BorderRadius.circular(16),
+                                      border: Border.all(color: Colors.white.withOpacity(0.2)),
+                                      boxShadow: [
+                                        BoxShadow(
+                                          color: Colors.black.withOpacity(0.2),
+                                          blurRadius: 8,
+                                          offset: const Offset(0, 4),
+                                        ),
+                                      ],
+                                    ),
+                                    child: Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        const Icon(Icons.play_circle_fill_rounded, color: Colors.white, size: 22),
+                                        const SizedBox(width: 10),
+                                        Text(
+                                          s.watchNow, 
+                                          style: const TextStyle(
+                                            color: Colors.white, 
+                                            fontSize: 15, 
+                                            fontWeight: FontWeight.w800,
+                                            letterSpacing: 0.2,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ],
                         ),
-                      ],
-                    ),
+                      ),
+                    ],
                   ),
-                ],
+                ),
               );
             },
           ),
