@@ -852,6 +852,13 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     // Show up to 5 featured items
     final slideChannels = featured.take(5).toList();
 
+    // Prepare sorted groups based on Admin preference
+    final sortedGroupEntries = groups.entries.toList()..sort((a, b) {
+      final orderA = ref.read(playlistServiceProvider).groupOrder[a.key] ?? 999;
+      final orderB = ref.read(playlistServiceProvider).groupOrder[b.key] ?? 999;
+      return orderA.compareTo(orderB);
+    });
+
     final heroChannel = _focusedChannel ?? (filteredFlat.isNotEmpty ? filteredFlat.first : null);
 
     return CustomScrollView(

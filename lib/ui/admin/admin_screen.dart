@@ -15,6 +15,7 @@ import 'package:share_plus/share_plus.dart';
 import '../../core/theme.dart';
 import '../../services/auth_service.dart';
 import '../../widgets/channel_logo_image.dart';
+import '../../services/tmdb_service.dart';
 
 enum _PublishShelf { liveTv, movies, custom }
 enum _LoginDuration { day, week, month, year, never }
@@ -3789,6 +3790,7 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
         ),
       ),
     );
+  }
   Widget _buildFeaturedManager(List<MapEntry<dynamic, dynamic>> allChannels) {
     final featured = allChannels.where((e) {
       final val = e.value as Map;

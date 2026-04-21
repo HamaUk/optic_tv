@@ -335,13 +335,24 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
     if (!mounted) return;
     if (_retryCount < 2) {
       _retryCount++;
-      debugPrint('Stream error, retrying ($ _retryCount / 2): $err');
+      debugPrint('Stream error, retrying ($_retryCount / 2): $err');
       Future.delayed(const Duration(seconds: 2), () {
         if (mounted) _reopenCurrentStream();
       });
     } else {
       _snack('Stream connection timed out. Please try again.', error: true);
     }
+  }
+
+  void _snack(String msg, {bool error = false}) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(msg),
+        backgroundColor: error ? Colors.redAccent : Colors.black87,
+        behavior: SnackBarBehavior.floating,
+      ),
+    );
   }
 
   Future<void> _reopenCurrentStream() async {
