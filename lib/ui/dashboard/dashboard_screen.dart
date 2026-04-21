@@ -643,11 +643,6 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         _buildSideRail(s, false, settings),
-        VerticalDivider(
-          width: 1,
-          thickness: 1,
-          color: Colors.white.withOpacity(0.08),
-        ),
         Expanded(
           child: Directionality(
             textDirection: contentDir,
@@ -665,16 +660,67 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     return Container(
       width: railWidth,
       decoration: BoxDecoration(
-        color: const Color(0xFF0A0E14),
+        color: const Color(0xFF080C12),
         border: Border(
-           right: BorderSide(color: Colors.white.withOpacity(0.06)),
+           right: BorderSide(color: Colors.white.withOpacity(0.04)),
         ),
+        boxShadow: [
+          BoxShadow(color: Colors.black.withOpacity(0.3), blurRadius: 40, spreadRadius: -10),
+        ],
       ),
-      padding: EdgeInsets.fromLTRB(6, 10, 6, math.max(bottom, 10)),
+      padding: EdgeInsets.fromLTRB(6, 20, 6, math.max(bottom, 10)),
       child: Column(
         children: [
-           // Mobile rail content (no changes needed)
+          const OpticWordmark(size: 24),
+          const SizedBox(height: 60),
+          _railItem(s, 0, Icons.home_rounded, s.homeLabel, _navIndex == 0),
+          const SizedBox(height: 12),
+          _railItem(s, 1, Icons.movie_filter_rounded, s.moviesLabel, _navIndex == 1),
+          const SizedBox(height: 12),
+          _railItem(s, 2, Icons.sports_kabaddi_rounded, s.sportLabel, _navIndex == 2),
+          const SizedBox(height: 12),
+          _railItem(s, 3, Icons.info_outline_rounded, s.aboutLabel, _navIndex == 3),
+          const Spacer(),
+          _railItem(s, -1, Icons.settings_rounded, s.settingsTooltip, false, onTap: _openSettings),
         ],
+      ),
+    );
+  }
+
+  Widget _railItem(AppStrings s, int index, IconData icon, String label, bool selected, {VoidCallback? onTap}) {
+    return GestureDetector(
+      onTap: onTap ?? () => setState(() => _navIndex = index),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 300),
+        curve: Curves.easeOutBack,
+        width: 70,
+        padding: const EdgeInsets.symmetric(vertical: 12),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(18),
+          color: selected ? _accent.withOpacity(0.1) : Colors.transparent,
+          border: Border.all(
+            color: selected ? _accent.withOpacity(0.3) : Colors.transparent,
+            width: 1.5,
+          ),
+          boxShadow: selected ? [
+            BoxShadow(color: _accent.withOpacity(0.15), blurRadius: 15, spreadRadius: -2),
+          ] : [],
+        ),
+        child: Column(
+          children: [
+            Icon(icon, color: selected ? _accent : Colors.white54, size: 26),
+            const SizedBox(height: 6),
+            Text(
+              label,
+              style: TextStyle(
+                color: selected ? Colors.white : Colors.white38,
+                fontSize: 10,
+                fontWeight: selected ? FontWeight.w900 : FontWeight.w500,
+              ),
+              maxLines: 1,
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -884,18 +930,24 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
               ),
             ),
           ),
-        ...sortedGroupEntries.map((entry) {
+        ...sortedGroupEntries.asMap().entries.map((groupEntry) {
+          final i = groupEntry.key;
+          final entry = groupEntry.value;
           return SliverToBoxAdapter(
-            child: _buildGroupSection(
-              context,
-              s,
-              allChannels,
-              entry.key,
-              entry.value,
-              crossCount,
-              animMs,
-              pad,
-              isTv,
+            child: _StaggeredEntrance(
+              index: i,
+              reduceMotion: settings.reduceMotion,
+              child: _buildGroupSection(
+                context,
+                s,
+                allChannels,
+                entry.key,
+                entry.value,
+                crossCount,
+                animMs,
+                pad,
+                isTv,
+              ),
             ),
           );
         }),
@@ -1134,36 +1186,76 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
         },
         child: AnimatedContainer(
           duration: Duration(milliseconds: animMs),
+          curve: Curves.easeOutCubic,
           decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(kTileRadius),
             color: focused 
-                ? _accent.withOpacity(0.12) 
-                : const Color(0xFF141A22).withOpacity(0.94),
+                ? _accent.withOpacity(0.2) 
+                : const Color(0xFF141A22).withOpacity(0.8),
+            border: Border.all(
+              color: focused ? _accent.withOpacity(0.8) : Colors.white.withOpacity(0.05),
+              width: focused ? 2.5 : 1.0,
+            ),
+            boxShadow: focused ? [
+              BoxShadow(
+                color: _accent.withOpacity(0.4),
+                blurRadius: 20,
+                spreadRadius: 1,
+              ),
+            ] : [],
           ),
-          child: Padding(
-            padding: EdgeInsets.all(isTv ? 14 : 10),
-            child: Column(
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(kTileRadius),
+            child: Stack(
               children: [
-                Expanded(
-                  child: Center(
-                    child: ChannelLogoImage(
-                      logo: channel.logo,
-                      width: isTv ? 80 : logoSize * 2.65,
-                      height: isTv ? 80 : logoSize * 2.65,
-                      fit: BoxFit.contain,
-                      fallback: Icon(Icons.tv_rounded, color: Colors.white24, size: isTv ? 40 : logoSize + 2),
+                if (focused)
+                  Positioned.fill(
+                    child: DecoratedBox(
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                          colors: [
+                            Colors.white.withOpacity(0.1),
+                            Colors.transparent,
+                          ],
+                        ),
+                      ),
                     ),
                   ),
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  channel.name,
-                  style: AppTheme.withRabarIfKurdish(
-                    s.locale,
-                    TextStyle(fontSize: isTv ? 14 : 10, color: Colors.white, fontWeight: focused ? FontWeight.w900 : FontWeight.w500),
+                Padding(
+                  padding: EdgeInsets.all(isTv ? 14 : 10),
+                  child: Column(
+                    children: [
+                      Expanded(
+                        child: Center(
+                          child: ChannelLogoImage(
+                            logo: channel.logo,
+                            width: isTv ? 80 : logoSize * 2.65,
+                            height: isTv ? 80 : logoSize * 2.65,
+                            fit: BoxFit.contain,
+                            fallback: Icon(Icons.tv_rounded, color: Colors.white24, size: isTv ? 40 : logoSize + 2),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        channel.name,
+                        style: AppTheme.withRabarIfKurdish(
+                          s.locale,
+                          TextStyle(
+                            fontSize: isTv ? 14 : 10, 
+                            color: focused ? Colors.white : Colors.white70, 
+                            fontWeight: focused ? FontWeight.w900 : FontWeight.w600,
+                            letterSpacing: focused ? 0.5 : 0,
+                          ),
+                        ),
+                        overflow: TextOverflow.ellipsis,
+                        maxLines: 1,
+                        textAlign: TextAlign.center,
+                      ),
+                    ],
                   ),
-                  overflow: TextOverflow.ellipsis,
-                  maxLines: 1,
-                  textAlign: TextAlign.center,
                 ),
               ],
             ),
@@ -1963,7 +2055,7 @@ class _FeaturedCarouselState extends State<_FeaturedCarousel> {
   Widget build(BuildContext context) {
     final s = widget.s;
     return Container(
-      height: 240,
+      height: 320,
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(24),
         color: const Color(0xFF0D1118),
@@ -1991,15 +2083,16 @@ class _FeaturedCarouselState extends State<_FeaturedCarousel> {
                   }
                   
                   final diff = i - page;
-                  final scale = (1.0 - (diff.abs() * 0.12)).clamp(0.8, 1.0);
+                  final scale = (1.0 - (diff.abs() * 0.18)).clamp(0.75, 1.0);
                   final opacity = (1.0 - (diff.abs() * 0.5)).clamp(0.0, 1.0);
                   
-                  // Perspective transformation
+                  // Prism 3D transformation
                   final matrix = Matrix4.identity()
-                    ..setEntry(3, 2, 0.001) // 3D depth
-                    ..translate(diff * MediaQuery.of(context).size.width) // Counter-slide to stack
+                    ..setEntry(3, 2, 0.0015) // Stronger 3D depth
+                    ..translate(diff * MediaQuery.of(context).size.width * 0.9) // Counter-slide
+                    ..rotateY(diff * -0.4) // Prism rotation
                     ..scale(scale)
-                    ..translate(0.0, diff.abs() * -12); // Move cards behind slightly up
+                    ..translate(0.0, diff.abs() * -20); // Elevation
                   
                   return Transform(
                     transform: matrix,
@@ -2038,12 +2131,34 @@ class _FeaturedCarouselState extends State<_FeaturedCarousel> {
                       else
                         _heroFallback(),
                       
-                      // Glassmorphic border/overlay
+                      // Glassmorphic Reflection Overlay
+                      Positioned.fill(
+                        child: AnimatedContainer(
+                          duration: const Duration(milliseconds: 500),
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(24),
+                            gradient: LinearGradient(
+                              begin: Alignment(diff * 2 - 1, -1),
+                              end: Alignment(diff * 2 + 1, 1),
+                              colors: [
+                                Colors.white.withOpacity(0.0),
+                                Colors.white.withOpacity(0.05),
+                                Colors.white.withOpacity(0.15),
+                                Colors.white.withOpacity(0.05),
+                                Colors.white.withOpacity(0.0),
+                              ],
+                              stops: const [0.0, 0.2, 0.5, 0.8, 1.0],
+                            ),
+                          ),
+                        ),
+                      ),
+
+                      // Border & Gradient Overlay
                       Positioned.fill(
                         child: DecoratedBox(
                           decoration: BoxDecoration(
                             border: Border.all(
-                              color: Colors.white.withOpacity(0.08),
+                              color: Colors.white.withOpacity(0.12),
                               width: 1.5,
                             ),
                             borderRadius: BorderRadius.circular(24),
@@ -2051,10 +2166,10 @@ class _FeaturedCarouselState extends State<_FeaturedCarousel> {
                               begin: Alignment.bottomCenter,
                               end: Alignment.topCenter,
                               colors: [
-                                Colors.black.withOpacity(0.9),
+                                Colors.black.withOpacity(0.95),
                                 Colors.black.withOpacity(0.4),
                                 Colors.transparent,
-                                Colors.black.withOpacity(0.2),
+                                Colors.black.withOpacity(0.3),
                               ],
                               stops: const [0.0, 0.45, 0.75, 1.0],
                             ),
@@ -2621,6 +2736,37 @@ class _TvTabsState extends State<_TvTabs> {
           ],
         ),
       ),
+    );
+  }
+}
+class _StaggeredEntrance extends StatelessWidget {
+  final Widget child;
+  final int index;
+  final bool reduceMotion;
+
+  const _StaggeredEntrance({
+    required this.child,
+    required this.index,
+    this.reduceMotion = false,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    if (reduceMotion) return child;
+    return TweenAnimationBuilder<double>(
+      tween: Tween(begin: 0.0, end: 1.0),
+      duration: Duration(milliseconds: 600 + (index * 50).clamp(0, 400)),
+      curve: Curves.easeOutCubic,
+      builder: (context, value, child) {
+        return Opacity(
+          opacity: value,
+          child: Transform.translate(
+            offset: Offset(0, 20 * (1.0 - value)),
+            child: child,
+          ),
+        );
+      },
+      child: child,
     );
   }
 }
