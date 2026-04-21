@@ -671,15 +671,15 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
       padding: EdgeInsets.fromLTRB(6, 20, 6, math.max(bottom, 10)),
       child: Column(
         children: [
-          const OpticWordmark(size: 24),
+          const OpticWordmark(height: 24),
           const SizedBox(height: 60),
-          _railItem(s, 0, Icons.home_rounded, s.homeLabel, _navIndex == 0),
+          _railItem(s, 0, Icons.home_rounded, s.navHome, _navIndex == 0),
           const SizedBox(height: 12),
-          _railItem(s, 1, Icons.movie_filter_rounded, s.moviesLabel, _navIndex == 1),
+          _railItem(s, 1, Icons.movie_filter_rounded, s.navMovies, _navIndex == 1),
           const SizedBox(height: 12),
-          _railItem(s, 2, Icons.sports_kabaddi_rounded, s.sportLabel, _navIndex == 2),
+          _railItem(s, 2, Icons.sports_kabaddi_rounded, s.navSport, _navIndex == 2),
           const SizedBox(height: 12),
-          _railItem(s, 3, Icons.info_outline_rounded, s.aboutLabel, _navIndex == 3),
+          _railItem(s, 3, Icons.info_outline_rounded, s.sectionAbout, _navIndex == 3),
           const Spacer(),
           _railItem(s, -1, Icons.settings_rounded, s.settingsTooltip, false, onTap: _openSettings),
         ],
@@ -2099,7 +2099,32 @@ class _FeaturedCarouselState extends State<_FeaturedCarousel> {
                     alignment: Alignment.center,
                     child: Opacity(
                       opacity: opacity,
-                      child: child,
+                      child: Stack(
+                        children: [
+                          child!,
+                          Positioned.fill(
+                            child: IgnorePointer(
+                              child: Container(
+                                decoration: BoxDecoration(
+                                  borderRadius: BorderRadius.circular(24),
+                                  gradient: LinearGradient(
+                                    begin: Alignment(diff * 2 - 1, -1),
+                                    end: Alignment(diff * 2 + 1, 1),
+                                    colors: [
+                                      Colors.white.withOpacity(0.0),
+                                      Colors.white.withOpacity(0.05),
+                                      Colors.white.withOpacity(0.15),
+                                      Colors.white.withOpacity(0.05),
+                                      Colors.white.withOpacity(0.0),
+                                    ],
+                                    stops: const [0.0, 0.2, 0.5, 0.8, 1.0],
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
                   );
                 },
@@ -2130,28 +2155,6 @@ class _FeaturedCarouselState extends State<_FeaturedCarousel> {
                         )
                       else
                         _heroFallback(),
-                      
-                      // Glassmorphic Reflection Overlay
-                      Positioned.fill(
-                        child: AnimatedContainer(
-                          duration: const Duration(milliseconds: 500),
-                          decoration: BoxDecoration(
-                            borderRadius: BorderRadius.circular(24),
-                            gradient: LinearGradient(
-                              begin: Alignment(diff * 2 - 1, -1),
-                              end: Alignment(diff * 2 + 1, 1),
-                              colors: [
-                                Colors.white.withOpacity(0.0),
-                                Colors.white.withOpacity(0.05),
-                                Colors.white.withOpacity(0.15),
-                                Colors.white.withOpacity(0.05),
-                                Colors.white.withOpacity(0.0),
-                              ],
-                              stops: const [0.0, 0.2, 0.5, 0.8, 1.0],
-                            ),
-                          ),
-                        ),
-                      ),
 
                       // Border & Gradient Overlay
                       Positioned.fill(
