@@ -970,11 +970,22 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
   }
 
   Widget _buildMovieCinematicHeader(AppStrings s, List<String> categories, double pad) {
-    final years = ['2026', '2025', '2024', '2023'];
-    final sortedCats = categories.toList()..sort();
+    final years = ['2026', '2025', '2024', '2023', '2022', '2021'];
+    final sortedCats = categories.where((c) => c.toLowerCase() != 'general' && c.toLowerCase() != 'live tv').toList()..sort();
     
     return Container(
-      padding: EdgeInsets.fromLTRB(pad, 24, pad, 12),
+      width: double.infinity,
+      padding: EdgeInsets.fromLTRB(pad, 30, pad, 20),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [
+            _accent.withOpacity(0.05),
+            Colors.transparent,
+          ],
+        ),
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -982,36 +993,86 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
             children: [
               Text(
                 s.navMovies.toUpperCase(),
-                style: const TextStyle(fontSize: 32, fontWeight: FontWeight.w900, letterSpacing: 1.5, color: Colors.white),
+                style: const TextStyle(fontSize: 40, fontWeight: FontWeight.w900, letterSpacing: 2, color: Colors.white),
               ),
               const Spacer(),
-              if (_movieCategoryFilter != null || _movieYearFilter != null)
-                TextButton.icon(
-                  onPressed: () => setState(() { _movieCategoryFilter = null; _movieYearFilter = null; }),
+              if (_movieCategoryFilter != null || _movieYearFilter != null || _searchController.text.isNotEmpty)
+                FilledButton.icon(
+                  onPressed: () => setState(() { 
+                    _movieCategoryFilter = null; 
+                    _movieYearFilter = null; 
+                    _searchController.clear();
+                  }),
                   icon: const Icon(Icons.refresh_rounded, size: 16),
-                  label: const Text('Reset', style: TextStyle(fontSize: 12)),
-                  style: TextButton.styleFrom(foregroundColor: Colors.white38),
+                  label: const Text('Clear All', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+                  style: FilledButton.styleFrom(
+                    backgroundColor: Colors.white.withOpacity(0.1),
+                    foregroundColor: Colors.white70,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  ),
                 ),
             ],
           ),
           const SizedBox(height: 24),
           
-          // Categories
-          SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
+          // Dedicated Search Field inside Header
+          Container(
+            height: 54,
+            decoration: BoxDecoration(
+              color: Colors.white.withOpacity(0.06),
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: Colors.white.withOpacity(0.1)),
+            ),
             child: Row(
               children: [
-                _buildFilterChip('All', _movieCategoryFilter == null, () => setState(() => _movieCategoryFilter = null)),
+                const SizedBox(width: 16),
+                Icon(Icons.search_rounded, color: _accent.withOpacity(0.6)),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: TextField(
+                    controller: _searchController,
+                    onChanged: (v) => setState(() {}),
+                    style: const TextStyle(color: Colors.white, fontSize: 16),
+                    decoration: InputDecoration(
+                      hintText: 'Search by movie name...',
+                      hintStyle: TextStyle(color: Colors.white.withOpacity(0.3)),
+                      border: InputBorder.none,
+                      contentPadding: const EdgeInsets.symmetric(vertical: 12),
+                    ),
+                  ),
+                ),
+                if (_searchController.text.isNotEmpty)
+                  IconButton(
+                    icon: const Icon(Icons.close_rounded, color: Colors.white38),
+                    onPressed: () => setState(() => _searchController.clear()),
+                  ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 24),
+
+          // Categories Row
+          const Text('CATEGORIES', style: TextStyle(color: Colors.white38, fontSize: 11, fontWeight: FontWeight.w800, letterSpacing: 1.2)),
+          const SizedBox(height: 12),
+          SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            physics: const BouncingScrollPhysics(),
+            child: Row(
+              children: [
+                _buildFilterChip('All Movies', _movieCategoryFilter == null, () => setState(() => _movieCategoryFilter = null), icon: Icons.movie_filter_rounded),
                 for (final cat in sortedCats)
                   _buildFilterChip(cat, _movieCategoryFilter == cat, () => setState(() => _movieCategoryFilter = cat)),
               ],
             ),
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 24),
           
-          // Years
+          // Year Selection Row
+          const Text('RELEASE YEAR', style: TextStyle(color: Colors.white38, fontSize: 11, fontWeight: FontWeight.w800, letterSpacing: 1.2)),
+          const SizedBox(height: 12),
           SingleChildScrollView(
             scrollDirection: Axis.horizontal,
+            physics: const BouncingScrollPhysics(),
             child: Row(
               children: [
                 _buildFilterChip('Any Year', _movieYearFilter == null, () => setState(() => _movieYearFilter = null), small: true),
@@ -1020,35 +1081,43 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
               ],
             ),
           ),
-          const SizedBox(height: 12),
         ],
       ),
     );
   }
 
-  Widget _buildFilterChip(String label, bool selected, VoidCallback onTap, {bool small = false}) {
+  Widget _buildFilterChip(String label, bool selected, VoidCallback onTap, {bool small = false, IconData? icon}) {
     return Padding(
-      padding: const EdgeInsets.only(right: 8),
-      child: GestureDetector(
+      padding: const EdgeInsets.only(right: 10),
+      child: InkWell(
         onTap: onTap,
+        borderRadius: BorderRadius.circular(16),
         child: AnimatedContainer(
-          duration: const Duration(milliseconds: 200),
-          padding: EdgeInsets.symmetric(horizontal: small ? 14 : 18, vertical: small ? 8 : 10),
+          duration: const Duration(milliseconds: 250),
+          padding: EdgeInsets.symmetric(horizontal: small ? 16 : 20, vertical: small ? 10 : 12),
           decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(20),
-            color: selected ? _accent.withOpacity(0.15) : Colors.white.withOpacity(0.05),
-            border: Border.all(
-              color: selected ? _accent.withOpacity(0.4) : Colors.white.withOpacity(0.05),
-              width: 1.5,
-            ),
+            borderRadius: BorderRadius.circular(16),
+            color: selected ? _accent : Colors.white.withOpacity(0.05),
+            boxShadow: selected ? [
+              BoxShadow(color: _accent.withOpacity(0.4), blurRadius: 12, offset: const Offset(0, 4)),
+            ] : null,
           ),
-          child: Text(
-            label,
-            style: TextStyle(
-              color: selected ? _accent : Colors.white60,
-              fontSize: small ? 12 : 14,
-              fontWeight: selected ? FontWeight.bold : FontWeight.normal,
-            ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              if (icon != null) ...[
+                Icon(icon, size: 18, color: selected ? Colors.black : Colors.white54),
+                const SizedBox(width: 8),
+              ],
+              Text(
+                label,
+                style: TextStyle(
+                  color: selected ? Colors.black : Colors.white,
+                  fontSize: small ? 13 : 15,
+                  fontWeight: selected ? FontWeight.w900 : FontWeight.w500,
+                ),
+              ),
+            ],
           ),
         ),
       ),
