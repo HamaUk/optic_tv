@@ -26,7 +26,7 @@ import '../player/movie_player_page.dart';
 import '../settings/settings_screen.dart';
 import 'movie_details_screen.dart';
 import '../settings/settings_screen.dart';
-import '../sport/sport_scores_screen.dart';
+
 import '../../services/tmdb_service.dart';
 import '../../widgets/dynamic_background.dart';
 import '../../widgets/tv_focus_wrapper.dart';
@@ -135,6 +135,23 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     return isTaggedName || g.contains('movie') || g.contains('film');
   }
 
+  bool _isSportChannel(Channel c) {
+    // Priority 1: Admin set type
+    if (c.type == 'sport') return true;
+
+    final g = c.group.toLowerCase();
+    final n = c.name.toLowerCase();
+
+    // Common sports category keywords
+    final sportKeywords = [
+      'sport', 'bein', 'ad sports', 'ssc', 'eurospot', 'espn', 
+      'arena', 'bt sport', 'sky sport', 'alkass', 'starzplay sports'
+    ];
+
+    return sportKeywords.any((kw) => g.contains(kw)) || 
+           sportKeywords.any((kw) => n.contains(kw));
+  }
+
   List<Channel> _channelsForNav(List<Channel> all, List<Channel> favorites, List<Channel> recent) {
     switch (_navIndex) {
       case 1:
@@ -147,8 +164,8 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
         }
         return movies;
       case 2:
-        // Sport tab now shows the dedicated score screen; return empty.
-        return [];
+        // Sport tab: show only channels that are identified as Sport
+        return all.where(_isSportChannel).toList();
       case 3:
         // About tab: return empty, content is built in _AboutTab widget.
         return [];
@@ -473,11 +490,9 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
             return a.key.toLowerCase().compareTo(b.key.toLowerCase());
           });
 
-        // Sport or About tab: show dedicated screen instead of channel grid.
-        if (_navIndex == 2 || _navIndex == 3) {
-          final screen = _navIndex == 2 
-              ? const SportScoresScreen() 
-              : _AboutTab(settings: settings);
+        // About tab: show dedicated screen instead of channel grid.
+        if (_navIndex == 3) {
+          final screen = _AboutTab(settings: settings);
 
           return Scaffold(
             backgroundColor: AppTheme.backgroundBlack,
@@ -949,6 +964,11 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
           SliverToBoxAdapter(
             child: _buildMovieCinematicHeader(s, groups.keys.toList(), pad),
           ),
+        
+        if (_navIndex == 2) // Sport Tab Header
+          SliverToBoxAdapter(
+            child: _buildSportHeader(s, pad),
+          ),
 
         if (!isTv && (_navIndex == 0 || _navIndex == 3) &&
             _searchController.text.trim().isEmpty &&
@@ -989,6 +1009,37 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
         }),
         const SliverToBoxAdapter(child: SizedBox(height: 120)),
       ],
+    );
+  }
+
+  Widget _buildSportHeader(AppStrings s, double pad) {
+    return Container(
+      width: double.infinity,
+      padding: EdgeInsets.fromLTRB(pad, 20, pad, 16),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [
+            _accent.withOpacity(0.05),
+            Colors.transparent,
+          ],
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            s.navSport.toUpperCase(),
+            style: const TextStyle(fontSize: 28, fontWeight: FontWeight.w900, letterSpacing: 1.5, color: Colors.white),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'Live Sports Channels',
+            style: TextStyle(color: Colors.white.withOpacity(0.4), fontSize: 13, fontWeight: FontWeight.w500),
+          ),
+        ],
+      ),
     );
   }
 
