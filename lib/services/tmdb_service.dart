@@ -22,61 +22,82 @@ class TmdbService {
   bool get isConfigured => _apiKey != 'API_KEY_HERE' && _apiKey.isNotEmpty;
 
   /// Search for a movie by name and return details of the best match.
-  Future<TmdbMovie?> findMovie(String title) async {
+  Future<TmdbMovie?> findMovie(String title, {bool fast = true}) async {
     if (!isConfigured) return null;
-    try {
-      // 1. Extract year if it exists in format (2024) or [2024]
-      String? year;
-      final yearMatch = RegExp(r'(\d{4})').firstMatch(title);
-      if (yearMatch != null) {
-        year = yearMatch.group(1);
+    
+    // Retry logic for rate limiting
+    int retries = 0;
+    while (retries < 3) {
+      try {
+        // 1. Extract year if it exists in format (2024) or [2024]
+        String? year;
+        final yearMatch = RegExp(r'(\d{4})').firstMatch(title);
+        if (yearMatch != null) {
+          year = yearMatch.group(1);
+        }
+
+        // 2. Clean title of technical tags, extensions, and trailing years
+        String cleanTitle = title
+            .replaceAll(RegExp(r'\.(mp4|mkv|avi|ts|mov|m3u8)$', caseSensitive: false), '')
+            .replaceAll(RegExp(r'\[.*?\]'), '')
+            .replaceAll(RegExp(r'\(.*?\)'), '')
+            .replaceAll(RegExp(r'(1080p|720p|4k|uhd|bluray|h264|h265|web-dl|x264|x265)', caseSensitive: false), ' ')
+            .replaceAll('_', ' ')
+            .replaceAll('.', ' ');
+        
+        // Specifically remove " - 2026" or " 2026" from the query if we extracted a year
+        if (year != null) {
+          cleanTitle = cleanTitle.replaceAll(year, '').replaceAll(' - ', ' ');
+        }
+        
+        cleanTitle = cleanTitle.replaceAll(RegExp(r'\s+'), ' ').trim();
+
+        // 3. Search TMDB
+        final res = await _dio.get('/search/movie', queryParameters: {
+          'query': cleanTitle,
+          if (year != null) 'primary_release_year': year,
+        });
+
+        final resultsList = res.data['results'] as List?;
+        if (resultsList == null || resultsList.isEmpty) return null;
+
+        // 4. Find the BEST match
+        List<Map<String, dynamic>> candidates = resultsList.cast<Map<String, dynamic>>();
+        candidates.sort((a, b) {
+          final aTitle = (a['title'] as String? ?? '').toLowerCase();
+          final bTitle = (b['title'] as String? ?? '').toLowerCase();
+          final target = cleanTitle.toLowerCase();
+
+          final aExact = aTitle == target ? 1 : 0;
+          final bExact = bTitle == target ? 1 : 0;
+          if (aExact != bExact) return bExact.compareTo(aExact);
+
+          final aPop = (a['popularity'] as num? ?? 0.0).toDouble();
+          final bPop = (b['popularity'] as num? ?? 0.0).toDouble();
+          return bPop.compareTo(aPop);
+        });
+
+        final best = candidates.first;
+        final movie = TmdbMovie.fromJson(best, _imageBaseUrl);
+        
+        // Only fetch IMDb ID if not in "fast" mode (bulk import uses fast mode)
+        if (!fast) {
+          final imdbId = await fetchImdbId(movie.id);
+          return movie.copyWith(imdbId: imdbId);
+        }
+        
+        return movie;
+      } catch (e) {
+        if (e is DioException && e.response?.statusCode == 429) {
+          // Rate limited - wait and retry
+          retries++;
+          await Future.delayed(Duration(seconds: retries));
+          continue;
+        }
+        return null;
       }
-
-      // 2. Clean title of technical tags
-      final cleanTitle = title
-          .replaceAll(RegExp(r'\[.*?\]'), '')
-          .replaceAll(RegExp(r'\(.*?\)'), '')
-          .replaceAll('_', ' ')
-          .replaceAll(RegExp(r'\s+'), ' ')
-          .trim();
-
-      // 3. Search TMDB with precision parameters
-      final res = await _dio.get('/search/movie', queryParameters: {
-        'query': cleanTitle,
-        if (year != null) 'primary_release_year': year,
-      });
-
-      final resultsList = res.data['results'] as List?;
-      if (resultsList == null || resultsList.isEmpty) return null;
-
-      // 4. Precision Scoring: Find the BEST match, not just the first.
-      // We prioritize exact title matches first, then popularity.
-      List<Map<String, dynamic>> candidates = resultsList.cast<Map<String, dynamic>>();
-      
-      candidates.sort((a, b) {
-        final aTitle = (a['title'] as String).toLowerCase();
-        final bTitle = (b['title'] as String).toLowerCase();
-        final target = cleanTitle.toLowerCase();
-
-        // Bonus if the title is an exact match
-        final aExact = aTitle == target ? 1 : 0;
-        final bExact = bTitle == target ? 1 : 0;
-        if (aExact != bExact) return bExact.compareTo(aExact);
-
-        // Otherwise fallback to popularity
-        final aPop = (a['popularity'] as num? ?? 0.0).toDouble();
-        final bPop = (b['popularity'] as num? ?? 0.0).toDouble();
-        return bPop.compareTo(aPop);
-      });
-
-      final best = candidates.first;
-      final movie = TmdbMovie.fromJson(best, _imageBaseUrl);
-      
-      final imdbId = await fetchImdbId(movie.id);
-      return movie.copyWith(imdbId: imdbId);
-    } catch (_) {
-      return null;
     }
+    return null;
   }
 
   /// Get the IMDb ID for a given TMDB movie ID.

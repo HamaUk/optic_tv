@@ -1186,7 +1186,7 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
         await _playlistRef.push().set({
           'name': name,
           'url': url,
-          'group': 'Movies',
+          'group': ch['group'] ?? 'Movies', // Use M3U group or default to Movies
           'type': 'movie',
           // Use TMDB poster if found, otherwise fallback to M3U logo
           'logo': movie?.posterUrl ?? ch['logo'],
@@ -1212,6 +1212,39 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
         _importMoviesStatus = '';
         _importMoviesCurrentTitle = '';
       });
+    }
+  }
+
+  Future<void> _bulkDeleteSelected() async {
+    if (_selectedKeys.isEmpty) return;
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: AppTheme.surfaceElevated,
+        title: const Text('Bulk Delete'),
+        content: Text('Are you sure you want to delete ${_selectedKeys.length} items?'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancel')),
+          FilledButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: FilledButton.styleFrom(backgroundColor: Colors.redAccent),
+            child: const Text('Delete All'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true) {
+      final keys = List<String>.from(_selectedKeys);
+      setState(() => _selectedKeys.clear());
+      try {
+        for (final k in keys) {
+          await _playlistRef.child(k).remove();
+        }
+        _snack('Bulk delete successful');
+      } catch (e) {
+        _snack('Error during bulk delete: $e', error: true);
+      }
     }
   }
 
@@ -3577,38 +3610,53 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
 
         return Column(
           children: [
+            Padding(
+              padding: const EdgeInsets.all(16),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: FilledButton.icon(
+                      onPressed: _showAddMovieDialog,
+                      icon: const Icon(Icons.movie_rounded),
+                      label: const Text('Add New'),
+                      style: FilledButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                        backgroundColor: AppTheme.primaryGold,
+                        foregroundColor: Colors.black,
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: FilledButton.icon(
+                      onPressed: _importMoviesBusy ? null : _importMoviesBulk,
+                      icon: const Icon(Icons.auto_awesome_rounded),
+                      label: const Text('Bulk Import'),
+                      style: FilledButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                        backgroundColor: AppTheme.accentTeal,
+                        foregroundColor: Colors.black,
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            if (_selectedKeys.isNotEmpty)
               Padding(
-                padding: const EdgeInsets.all(16),
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: FilledButton.icon(
-                        onPressed: _showAddMovieDialog,
-                        icon: const Icon(Icons.movie_rounded),
-                        label: const Text('Add New'),
-                        style: FilledButton.styleFrom(
-                          padding: const EdgeInsets.symmetric(vertical: 16),
-                          backgroundColor: AppTheme.primaryGold,
-                          foregroundColor: Colors.black,
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: FilledButton.icon(
-                        onPressed: _importMoviesBusy ? null : _importMoviesBulk,
-                        icon: const Icon(Icons.auto_awesome_rounded),
-                        label: const Text('Bulk Import M3U'),
-                        style: FilledButton.styleFrom(
-                          padding: const EdgeInsets.symmetric(vertical: 16),
-                          backgroundColor: AppTheme.accentTeal,
-                          foregroundColor: Colors.black,
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                        ),
-                      ),
-                    ),
-                  ],
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                child: FilledButton.icon(
+                  onPressed: _bulkDeleteSelected,
+                  icon: const Icon(Icons.delete_sweep_rounded),
+                  label: Text('Delete Selected (${_selectedKeys.length})'),
+                  style: FilledButton.styleFrom(
+                    backgroundColor: Colors.redAccent,
+                    foregroundColor: Colors.white,
+                    minimumSize: const Size(double.infinity, 50),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  ),
                 ),
               ),
             if (items.isEmpty)
