@@ -21,7 +21,7 @@ class AppSettingsData {
     this.autoHidePlayerControls = true,
     this.showOnScreenClock = false,
     this.reduceMotion = false,
-    this.gradientPreset = AppGradientPreset.classic,
+    this.gradientPreset = AppGradientPreset.ocean,
     this.subtitleFontSize = 20.0,
     this.subtitleColor = 0xFFFFFFFF, // White
     this.subtitleBgColor = 0x73000000, // 45% Black
@@ -105,11 +105,7 @@ class AppSettingsData {
   }
 
   static AppGradientPreset _decodeGradientPreset(String? raw) {
-    if (raw == null || raw.isEmpty) return AppGradientPreset.classic;
-    for (final v in AppGradientPreset.values) {
-      if (v.name == raw) return v;
-    }
-    return AppGradientPreset.classic;
+    return AppGradientPreset.ocean;
   }
 
   static String labelForFit(BoxFit fit) {
