@@ -57,6 +57,8 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
   Channel? _focusedChannel;
   bool _sidebarFocused = false;
   String? _selectedTvGroup;
+  String? _movieCategoryFilter;
+  String? _movieYearFilter;
 
   // Professional TV State
   final GlobalKey<ScaffoldState> _tvScaffoldKey = GlobalKey<ScaffoldState>();
@@ -136,7 +138,14 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
   List<Channel> _channelsForNav(List<Channel> all, List<Channel> favorites, List<Channel> recent) {
     switch (_navIndex) {
       case 1:
-        return all.where(_isMovieChannel).toList();
+        var movies = all.where(_isMovieChannel).toList();
+        if (_movieCategoryFilter != null) {
+          movies = movies.where((c) => c.group == _movieCategoryFilter).toList();
+        }
+        if (_movieYearFilter != null) {
+          movies = movies.where((c) => c.name.contains(_movieYearFilter!)).toList();
+        }
+        return movies;
       case 2:
         // Sport tab now shows the dedicated score screen; return empty.
         return [];
@@ -913,6 +922,10 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     return CustomScrollView(
       physics: const BouncingScrollPhysics(),
       slivers: [
+        if (_navIndex == 1) // Movies Tab Cinematic Header
+          SliverToBoxAdapter(
+            child: _buildMovieCinematicHeader(s, groups.keys.toList(), pad),
+          ),
 
         if (!isTv && (_navIndex == 0 || _navIndex == 3) &&
             _searchController.text.trim().isEmpty &&
@@ -953,6 +966,92 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
         }),
         const SliverToBoxAdapter(child: SizedBox(height: 120)),
       ],
+    );
+  }
+
+  Widget _buildMovieCinematicHeader(AppStrings s, List<String> categories, double pad) {
+    final years = ['2026', '2025', '2024', '2023'];
+    final sortedCats = categories.toList()..sort();
+    
+    return Container(
+      padding: EdgeInsets.fromLTRB(pad, 24, pad, 12),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Text(
+                s.navMovies.toUpperCase(),
+                style: const TextStyle(fontSize: 32, fontWeight: FontWeight.w900, letterSpacing: 1.5, color: Colors.white),
+              ),
+              const Spacer(),
+              if (_movieCategoryFilter != null || _movieYearFilter != null)
+                TextButton.icon(
+                  onPressed: () => setState(() { _movieCategoryFilter = null; _movieYearFilter = null; }),
+                  icon: const Icon(Icons.refresh_rounded, size: 16),
+                  label: const Text('Reset', style: TextStyle(fontSize: 12)),
+                  style: TextButton.styleFrom(foregroundColor: Colors.white38),
+                ),
+            ],
+          ),
+          const SizedBox(height: 24),
+          
+          // Categories
+          SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: Row(
+              children: [
+                _buildFilterChip('All', _movieCategoryFilter == null, () => setState(() => _movieCategoryFilter = null)),
+                for (final cat in sortedCats)
+                  _buildFilterChip(cat, _movieCategoryFilter == cat, () => setState(() => _movieCategoryFilter = cat)),
+              ],
+            ),
+          ),
+          const SizedBox(height: 12),
+          
+          // Years
+          SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: Row(
+              children: [
+                _buildFilterChip('Any Year', _movieYearFilter == null, () => setState(() => _movieYearFilter = null), small: true),
+                for (final y in years)
+                  _buildFilterChip(y, _movieYearFilter == y, () => setState(() => _movieYearFilter = y), small: true),
+              ],
+            ),
+          ),
+          const SizedBox(height: 12),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildFilterChip(String label, bool selected, VoidCallback onTap, {bool small = false}) {
+    return Padding(
+      padding: const EdgeInsets.only(right: 8),
+      child: GestureDetector(
+        onTap: onTap,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 200),
+          padding: EdgeInsets.symmetric(horizontal: small ? 14 : 18, vertical: small ? 8 : 10),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(20),
+            color: selected ? _accent.withOpacity(0.15) : Colors.white.withOpacity(0.05),
+            border: Border.all(
+              color: selected ? _accent.withOpacity(0.4) : Colors.white.withOpacity(0.05),
+              width: 1.5,
+            ),
+          ),
+          child: Text(
+            label,
+            style: TextStyle(
+              color: selected ? _accent : Colors.white60,
+              fontSize: small ? 12 : 14,
+              fontWeight: selected ? FontWeight.bold : FontWeight.normal,
+            ),
+          ),
+        ),
+      ),
     );
   }
 
