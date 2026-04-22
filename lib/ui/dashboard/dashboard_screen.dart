@@ -543,6 +543,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
         return Scaffold(
           backgroundColor: AppTheme.backgroundBlack,
           body: DynamicBackground(
+            preset: settings.gradientPreset,
             imageUrl: heroImage,
             child: SafeArea(
               bottom: false,

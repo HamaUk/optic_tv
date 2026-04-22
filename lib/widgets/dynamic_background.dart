@@ -5,11 +5,13 @@ import '../core/theme.dart';
 
 class DynamicBackground extends StatefulWidget {
   final Widget child;
+  final AppGradientPreset preset;
 
   const DynamicBackground({
     super.key,
     required this.child,
-    String? imageUrl, // Kept for signature compatibility but unused
+    required this.preset,
+    String? imageUrl, // Unused
   });
 
   @override
@@ -37,28 +39,19 @@ class _DynamicBackgroundState extends State<DynamicBackground> with TickerProvid
   @override
   Widget build(BuildContext context) {
     final size = MediaQuery.of(context).size;
-    // Strictly use Ocean colors for the base
-    const color1 = Color(0xFF00D2FF); // Ocean Cyan
-    const color2 = Color(0xFF003366); // Deep Ocean Blue
+    final color1 = AppTheme.accentColor(widget.preset);
+    final color2 = AppTheme.accentColorDim(widget.preset);
     
     return Stack(
       children: [
         // 1. Static Base Gradient
         Container(
-          decoration: const BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: [
-                Color(0xFF080C12), // Primary Bg
-                Color(0xFF05080C),
-                Colors.black,
-              ],
-            ),
+          decoration: BoxDecoration(
+            gradient: AppTheme.shellGradient(widget.preset),
           ),
         ),
 
-        // 2. Animated Aurora Blobs (Ocean Theme)
+        // 2. Animated Aurora Blobs
         AnimatedBuilder(
           animation: _auroraController,
           builder: (context, child) {
