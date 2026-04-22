@@ -40,50 +40,68 @@ class _SubtitleStudioModalState extends ConsumerState<SubtitleStudioModal> with 
   @override
   Widget build(BuildContext context) {
     final settingsAsync = ref.watch(appUiSettingsProvider);
+    final size = MediaQuery.of(context).size;
+    final landscape = size.width > size.height;
 
-    return Container(
-      height: MediaQuery.of(context).size.height * 0.75,
-      decoration: BoxDecoration(
-        color: Colors.black.withOpacity(0.95),
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(32)),
-        border: Border.all(color: Colors.white10),
-      ),
-      child: Column(
-        children: [
-          // 1. Header & Live Preview
-          _buildHeader(context),
-          _buildLivePreview(settingsAsync.asData?.value ?? const AppSettingsData()),
-          
-          // 2. Tabs
-          TabBar(
-            controller: _tabController,
-            indicatorColor: AppTheme.accentTeal,
-            dividerColor: Colors.white10,
-            labelStyle: const TextStyle(fontWeight: FontWeight.w900, letterSpacing: 1),
-            tabs: const [
-              Tab(text: 'TRACKS & LANGUAGES'),
-              Tab(text: 'APPEARANCE & STYLE'),
-            ],
-          ),
-          
-          // 3. Tab Content
-          Expanded(
-            child: TabBarView(
+    return Center(
+      child: Container(
+        height: landscape ? size.height * 0.8 : size.height * 0.65,
+        width: landscape ? 540 : double.infinity,
+        margin: EdgeInsets.symmetric(horizontal: landscape ? 0 : 16, vertical: 24),
+        decoration: BoxDecoration(
+          color: const Color(0xFF0F1116).withOpacity(0.9),
+          borderRadius: BorderRadius.circular(32),
+          border: Border.all(color: Colors.white.withOpacity(0.08)),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.5),
+              blurRadius: 40,
+              spreadRadius: 10,
+            ),
+          ],
+        ),
+        clipBehavior: Clip.antiAlias,
+        child: Column(
+          children: [
+            // 1. Header & Live Preview
+            _buildHeader(context),
+            _buildLivePreview(settingsAsync.asData?.value ?? const AppSettingsData()),
+            
+            // 2. Tabs
+            TabBar(
               controller: _tabController,
-              children: [
-                _buildTrackList(),
-                _buildAppearanceSettings(settingsAsync.asData?.value ?? const AppSettingsData()),
+              indicatorColor: AppTheme.accentTeal,
+              indicatorWeight: 3,
+              indicatorSize: TabBarIndicatorSize.label,
+              dividerColor: Colors.transparent,
+              labelColor: Colors.white,
+              unselectedLabelColor: Colors.white38,
+              labelStyle: const TextStyle(fontSize: 12, fontWeight: FontWeight.w900, letterSpacing: 1.2),
+              tabs: const [
+                Tab(text: 'TRACKS & LANGUAGES'),
+                Tab(text: 'APPEARANCE & STYLE'),
               ],
             ),
-          ),
-        ],
+            
+            // 3. Tab Content
+            Expanded(
+              child: TabBarView(
+                controller: _tabController,
+                children: [
+                  _buildTrackList(),
+                  _buildAppearanceSettings(settingsAsync.asData?.value ?? const AppSettingsData()),
+                ],
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
 
   Widget _buildHeader(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(24, 24, 24, 0),
+      padding: const EdgeInsets.fromLTRB(24, 24, 24, 12),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
@@ -92,11 +110,11 @@ class _SubtitleStudioModalState extends ConsumerState<SubtitleStudioModal> with 
             children: [
               Text(
                 'SUBTITLE STUDIO',
-                style: TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.w900, letterSpacing: 1),
+                style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.w900, letterSpacing: 1),
               ),
               Text(
-                'Customize your cinematic experience',
-                style: TextStyle(color: Colors.white38, fontSize: 13),
+                'Cinematic customization',
+                style: TextStyle(color: Colors.white38, fontSize: 11),
               ),
             ],
           ),
@@ -111,20 +129,19 @@ class _SubtitleStudioModalState extends ConsumerState<SubtitleStudioModal> with 
 
   Widget _buildLivePreview(AppSettingsData settings) {
     return Container(
-      margin: const EdgeInsets.all(24),
-      height: 80,
+      margin: const EdgeInsets.fromLTRB(24, 0, 24, 24),
+      height: 70,
       width: double.infinity,
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.03),
+        color: Colors.black.withOpacity(0.3),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.white10),
+        border: Border.all(color: Colors.white.withOpacity(0.05)),
       ),
       child: Stack(
         alignment: Alignment.center,
         children: [
-          const Text('Video Preview Background', style: TextStyle(color: Colors.white10, fontSize: 10)),
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
             decoration: BoxDecoration(
               color: Color(settings.subtitleBgColor),
               borderRadius: BorderRadius.circular(4),
@@ -133,7 +150,7 @@ class _SubtitleStudioModalState extends ConsumerState<SubtitleStudioModal> with 
               'Sample Subtitle Preview Text',
               style: TextStyle(
                 color: Color(settings.subtitleColor),
-                fontSize: settings.subtitleFontSize,
+                fontSize: settings.subtitleFontSize * 0.8, // Scale down for preview
                 fontWeight: FontWeight.bold,
               ),
             ),
