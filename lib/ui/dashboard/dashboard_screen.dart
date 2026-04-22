@@ -159,47 +159,69 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
   }
 
   Widget _buildMovieLibraryContent(BuildContext context, AppStrings s, List<Channel> all, AppSettingsData settings) {
-    final movies = all.where(_isMovieChannel).toList();
+    var movies = all.where(_isMovieChannel).toList();
+    
+    // Apply Filters
+    if (_movieCategoryFilter != null) {
+      movies = movies.where((m) => m.group == _movieCategoryFilter).toList();
+    }
+    if (_movieYearFilter != null) {
+      movies = movies.where((m) => m.name.contains(_movieYearFilter!)).toList();
+    }
+    if (_searchController.text.isNotEmpty) {
+      final query = _searchController.text.toLowerCase();
+      movies = movies.where((m) => m.name.toLowerCase().contains(query)).toList();
+    }
+
     final groups = _groupMap(movies);
     final sortedCategories = groups.keys.toList()..sort();
 
-    return ListView.builder(
-      padding: const EdgeInsets.only(top: 16, bottom: 40),
-      itemCount: sortedCategories.length,
-      itemBuilder: (context, i) {
-        final cat = sortedCategories[i];
-        final catMovies = groups[cat] ?? [];
-        return Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-              child: Text(
-                cat.toUpperCase(),
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 14,
-                  fontWeight: FontWeight.w900,
-                  letterSpacing: 1.2,
-                ),
-              ),
-            ),
-            SizedBox(
-              height: 200,
-              child: ListView.builder(
-                scrollDirection: Axis.horizontal,
-                padding: const EdgeInsets.symmetric(horizontal: 12),
-                itemCount: catMovies.length,
-                itemBuilder: (context, idx) {
-                  final m = catMovies[idx];
-                  return _buildVerticalMovieCard(m);
+    return Column(
+      children: [
+        _buildMovieCinematicHeader(s, _groupMap(all.where(_isMovieChannel).toList()).keys.toList(), 16.0),
+        Expanded(
+          child: movies.isEmpty 
+            ? _buildEmptyState(s, title: 'No movies found', subtitle: 'Try a different filter or search term')
+            : ListView.builder(
+                padding: const EdgeInsets.only(bottom: 40),
+                itemCount: sortedCategories.length,
+                itemBuilder: (context, i) {
+                  final cat = sortedCategories[i];
+                  final catMovies = groups[cat] ?? [];
+                  return Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                        child: Text(
+                          cat.toUpperCase(),
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 14,
+                            fontWeight: FontWeight.w900,
+                            letterSpacing: 1.2,
+                          ),
+                        ),
+                      ),
+                      SizedBox(
+                        height: 200,
+                        child: ListView.builder(
+                          scrollDirection: Axis.horizontal,
+                          padding: const EdgeInsets.symmetric(horizontal: 12),
+                          itemCount: catMovies.length,
+                          itemBuilder: (context, idx) {
+                            final m = catMovies[idx];
+                            return _buildVerticalMovieCard(m);
+                          },
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                    ],
+                  );
                 },
               ),
-            ),
-            const SizedBox(height: 12),
-          ],
-        );
-      },
+        ),
+      ],
     );
   }
 
