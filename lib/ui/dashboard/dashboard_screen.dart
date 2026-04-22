@@ -998,7 +998,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     
     return Container(
       width: double.infinity,
-      padding: EdgeInsets.fromLTRB(pad, 30, pad, 20),
+      padding: EdgeInsets.fromLTRB(pad, 20, pad, 16),
       decoration: BoxDecoration(
         gradient: LinearGradient(
           begin: Alignment.topCenter,
@@ -1016,7 +1016,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
             children: [
               Text(
                 s.navMovies.toUpperCase(),
-                style: const TextStyle(fontSize: 40, fontWeight: FontWeight.w900, letterSpacing: 2, color: Colors.white),
+                style: const TextStyle(fontSize: 28, fontWeight: FontWeight.w900, letterSpacing: 1.5, color: Colors.white),
               ),
               const Spacer(),
               if (_movieCategoryFilter != null || _movieYearFilter != null || _searchController.text.isNotEmpty)
@@ -1038,110 +1038,144 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
           ),
           const SizedBox(height: 24),
           
-          // Dedicated Search Field inside Header
-          Container(
-            height: 54,
-            decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.06),
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: Colors.white.withOpacity(0.1)),
-            ),
-            child: Row(
-              children: [
-                const SizedBox(width: 16),
-                Icon(Icons.search_rounded, color: _accent.withOpacity(0.6)),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: TextField(
-                    controller: _searchController,
-                    onChanged: (v) => setState(() {}),
-                    style: const TextStyle(color: Colors.white, fontSize: 16),
-                    decoration: InputDecoration(
-                      hintText: 'Search by movie name...',
-                      hintStyle: TextStyle(color: Colors.white.withOpacity(0.3)),
-                      border: InputBorder.none,
-                      contentPadding: const EdgeInsets.symmetric(vertical: 12),
-                    ),
+          // Filters and Search Row
+          Row(
+            children: [
+              _buildFilterDropdown(
+                label: _movieYearFilter ?? 'Year',
+                icon: Icons.calendar_today_rounded,
+                onTap: () => _showFilterSheet('Release Year', ['Any Year', ...years], _movieYearFilter ?? 'Any Year', (v) {
+                  setState(() => _movieYearFilter = v == 'Any Year' ? null : v);
+                }),
+              ),
+              const SizedBox(width: 8),
+              _buildFilterDropdown(
+                label: _movieCategoryFilter ?? 'Category',
+                icon: Icons.movie_filter_rounded,
+                onTap: () => _showFilterSheet('Categories', ['All Movies', ...sortedCats], _movieCategoryFilter ?? 'All Movies', (v) {
+                  setState(() => _movieCategoryFilter = v == 'All Movies' ? null : v);
+                }),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Container(
+                  height: 48,
+                  decoration: BoxDecoration(
+                    color: Colors.white.withOpacity(0.06),
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(color: Colors.white.withOpacity(0.1)),
+                  ),
+                  child: Row(
+                    children: [
+                      const SizedBox(width: 12),
+                      Icon(Icons.search_rounded, color: _accent.withOpacity(0.6), size: 20),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: TextField(
+                          controller: _searchController,
+                          onChanged: (v) => setState(() {}),
+                          style: const TextStyle(color: Colors.white, fontSize: 14),
+                          decoration: InputDecoration(
+                            hintText: 'Search...',
+                            hintStyle: TextStyle(color: Colors.white.withOpacity(0.3)),
+                            border: InputBorder.none,
+                            contentPadding: const EdgeInsets.symmetric(vertical: 14),
+                            isDense: true,
+                          ),
+                        ),
+                      ),
+                      if (_searchController.text.isNotEmpty)
+                        IconButton(
+                          icon: const Icon(Icons.close_rounded, color: Colors.white38, size: 20),
+                          onPressed: () => setState(() => _searchController.clear()),
+                        ),
+                    ],
                   ),
                 ),
-                if (_searchController.text.isNotEmpty)
-                  IconButton(
-                    icon: const Icon(Icons.close_rounded, color: Colors.white38),
-                    onPressed: () => setState(() => _searchController.clear()),
-                  ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 24),
-
-          // Categories Row
-          const Text('CATEGORIES', style: TextStyle(color: Colors.white38, fontSize: 11, fontWeight: FontWeight.w800, letterSpacing: 1.2)),
-          const SizedBox(height: 12),
-          SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
-            physics: const BouncingScrollPhysics(),
-            child: Row(
-              children: [
-                _buildFilterChip('All Movies', _movieCategoryFilter == null, () => setState(() => _movieCategoryFilter = null), icon: Icons.movie_filter_rounded),
-                for (final cat in sortedCats)
-                  _buildFilterChip(cat, _movieCategoryFilter == cat, () => setState(() => _movieCategoryFilter = cat)),
-              ],
-            ),
-          ),
-          const SizedBox(height: 24),
-          
-          // Year Selection Row
-          const Text('RELEASE YEAR', style: TextStyle(color: Colors.white38, fontSize: 11, fontWeight: FontWeight.w800, letterSpacing: 1.2)),
-          const SizedBox(height: 12),
-          SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
-            physics: const BouncingScrollPhysics(),
-            child: Row(
-              children: [
-                _buildFilterChip('Any Year', _movieYearFilter == null, () => setState(() => _movieYearFilter = null), small: true),
-                for (final y in years)
-                  _buildFilterChip(y, _movieYearFilter == y, () => setState(() => _movieYearFilter = y), small: true),
-              ],
-            ),
+              ),
+            ],
           ),
         ],
       ),
     );
   }
 
-  Widget _buildFilterChip(String label, bool selected, VoidCallback onTap, {bool small = false, IconData? icon}) {
-    return Padding(
-      padding: const EdgeInsets.only(right: 10),
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(16),
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 250),
-          padding: EdgeInsets.symmetric(horizontal: small ? 16 : 20, vertical: small ? 10 : 12),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(16),
-            color: selected ? _accent : Colors.white.withOpacity(0.05),
-            boxShadow: selected ? [
-              BoxShadow(color: _accent.withOpacity(0.4), blurRadius: 12, offset: const Offset(0, 4)),
-            ] : null,
-          ),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              if (icon != null) ...[
-                Icon(icon, size: 18, color: selected ? Colors.black : Colors.white54),
-                const SizedBox(width: 8),
-              ],
-              Text(
-                label,
-                style: TextStyle(
-                  color: selected ? Colors.black : Colors.white,
-                  fontSize: small ? 13 : 15,
-                  fontWeight: selected ? FontWeight.w900 : FontWeight.w500,
-                ),
+  void _showFilterSheet(String title, List<String> items, String selected, ValueChanged<String> onSelected) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: const Color(0xFF141A22),
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
+      isScrollControlled: true,
+      builder: (context) {
+        return DraggableScrollableSheet(
+          expand: false,
+          initialChildSize: 0.5,
+          maxChildSize: 0.8,
+          minChildSize: 0.3,
+          builder: (context, scrollController) {
+            return SafeArea(
+              child: Column(
+                children: [
+                  const SizedBox(height: 12),
+                  Container(width: 40, height: 4, decoration: BoxDecoration(color: Colors.white24, borderRadius: BorderRadius.circular(2))),
+                  const SizedBox(height: 16),
+                  Text(title, style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
+                  const SizedBox(height: 16),
+                  Expanded(
+                    child: ListView.builder(
+                      controller: scrollController,
+                      itemCount: items.length,
+                      itemBuilder: (context, index) {
+                        final item = items[index];
+                        final isSelected = item == selected;
+                        return ListTile(
+                          title: Text(item, style: TextStyle(color: isSelected ? _accent : Colors.white)),
+                          trailing: isSelected ? Icon(Icons.check_rounded, color: _accent) : null,
+                          onTap: () {
+                            Navigator.pop(context);
+                            onSelected(item);
+                          },
+                        );
+                      },
+                    ),
+                  ),
+                ],
               ),
-            ],
-          ),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  Widget _buildFilterDropdown({required String label, required IconData icon, required VoidCallback onTap}) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(16),
+      child: Container(
+        height: 48,
+        padding: const EdgeInsets.symmetric(horizontal: 10),
+        decoration: BoxDecoration(
+          color: Colors.white.withOpacity(0.06),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: Colors.white.withOpacity(0.1)),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, color: Colors.white54, size: 16),
+            const SizedBox(width: 6),
+            ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 60),
+              child: Text(
+                label,
+                style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold),
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+            const SizedBox(width: 2),
+            const Icon(Icons.arrow_drop_down_rounded, color: Colors.white38, size: 18),
+          ],
         ),
       ),
     );
