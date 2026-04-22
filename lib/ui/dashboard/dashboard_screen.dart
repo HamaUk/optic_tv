@@ -170,8 +170,8 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
         // About tab: return empty, content is built in _AboutTab widget.
         return [];
       default:
-        // Home: ONLY show live tv, strictly exclude movies.
-        return all.where((c) => !_isMovieChannel(c) && c.type != 'movie').toList();
+        // Home: ONLY show live tv, strictly exclude movies and sports.
+        return all.where((c) => !_isMovieChannel(c) && c.type != 'movie' && !_isSportChannel(c)).toList();
     }
   }
 
