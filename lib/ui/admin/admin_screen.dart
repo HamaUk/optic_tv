@@ -1025,6 +1025,7 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
       final dio = Dio(BaseOptions(
         connectTimeout: const Duration(seconds: 15),
         receiveTimeout: const Duration(seconds: 30),
+        headers: {'User-Agent': 'SmartIPTV'},
       ));
       final res = await dio.get<String>(url);
       final parsed = _parseM3u(res.data ?? '');
@@ -1058,6 +1059,7 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
       final dio = Dio(BaseOptions(
         connectTimeout: const Duration(seconds: 15),
         receiveTimeout: const Duration(seconds: 30),
+        headers: {'User-Agent': 'SmartIPTV'},
       ));
       final baseUrl = server.endsWith('/') ? server.substring(0, server.length - 1) : server;
       final res = await dio.get('$baseUrl/player_api.php', queryParameters: {
@@ -1275,6 +1277,7 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
         receiveTimeout: const Duration(seconds: 8),
         followRedirects: true,
         maxRedirects: 5,
+        headers: {'User-Agent': 'SmartIPTV'},
       ));
 
       for (var i = 0; i < items.length; i++) {

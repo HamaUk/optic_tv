@@ -202,7 +202,7 @@ class _MoviePlayerPageState extends ConsumerState<MoviePlayerPage> {
       set('cache-secs', '30');               // Maintain 30s cache
       set('tcp-fastopen', 'yes');
       set('network-timeout', '15');
-      set('user-agent', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36');
+      set('user-agent', 'SmartIPTV');
     }
   }
 

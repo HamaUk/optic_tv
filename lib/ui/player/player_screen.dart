@@ -217,7 +217,7 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
       set('network-timeout', '10');              // Faster failover on bad links
       set('tcp-fastopen', 'yes');                // Faster TCP handshake
       set('stream-buffer-size', '4096KiB');      // Larger initial stream buffer
-      set('user-agent', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'); // Better compatibility
+      set('user-agent', 'SmartIPTV'); // Highly compatible IPTV agent
       
       // High Quality Fallbacks
       set('ytdl-format', 'bestvideo+bestaudio/best');
