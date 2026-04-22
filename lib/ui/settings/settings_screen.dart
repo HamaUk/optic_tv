@@ -477,7 +477,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
 String _gradientPresetTitle(AppStrings s, AppGradientPreset p) {
   return switch (p) {
     AppGradientPreset.classic => s.gradientClassic,
-    AppGradientPreset.oceanAbyss => s.gradientOcean,
+    AppGradientPreset.ocean => s.gradientOcean,
     AppGradientPreset.goldSunset => s.gradientGold,
     AppGradientPreset.violetHaze => s.gradientViolet,
     AppGradientPreset.emberGlow => s.gradientEmber,

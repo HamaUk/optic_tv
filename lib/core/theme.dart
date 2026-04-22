@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 /// Backdrop style for dashboard shell, featured hero, and settings (persisted).
-enum AppGradientPreset { classic, oceanAbyss, goldSunset, violetHaze, emberGlow }
+enum AppGradientPreset { classic, ocean, goldSunset, violetHaze, emberGlow }
 
 /// Premium dark theme — gold accent.
 /// When `uiLocale` is Kurdish (`ckb`), **Rabar** is applied across [TextTheme] (KRD-style full UI
@@ -27,7 +27,7 @@ class AppTheme {
   static Color accentColor(AppGradientPreset p) {
     return switch (p) {
       AppGradientPreset.classic => const Color(0xFFFFB100),
-      AppGradientPreset.oceanAbyss => const Color(0xFF0EA5E9),
+      AppGradientPreset.ocean => const Color(0xFF0EA5E9),
       AppGradientPreset.goldSunset => const Color(0xFFF97316),
       AppGradientPreset.violetHaze => const Color(0xFFA855F7),
       AppGradientPreset.emberGlow => const Color(0xFFF43F5E),
@@ -125,7 +125,7 @@ class AppTheme {
           end: Alignment.bottomRight,
           colors: [Color(0xFF0B0F14), Color(0xFF121820), Color(0xFF0B0F14)],
         ),
-      AppGradientPreset.oceanAbyss => const LinearGradient(
+      AppGradientPreset.ocean => const LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
           colors: [Color(0xFF050F18), Color(0xFF0C2434), Color(0xFF061A22)],
@@ -160,7 +160,7 @@ class AppTheme {
             primaryGold.withOpacity(0.22),
           ],
         ),
-      AppGradientPreset.oceanAbyss => LinearGradient(
+      AppGradientPreset.ocean => LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
           colors: [
@@ -211,7 +211,7 @@ class AppTheme {
             backgroundBlack,
           ],
         ),
-      AppGradientPreset.oceanAbyss => LinearGradient(
+      AppGradientPreset.ocean => LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
           colors: [
