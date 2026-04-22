@@ -2011,6 +2011,38 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
                 Row(
                   children: [
                     Expanded(
+                      child: FilledButton.icon(
+                        onPressed: () => _tabController.animateTo(3), // Publish tab
+                        icon: const Icon(Icons.add_rounded),
+                        label: const Text('Add Channel'),
+                        style: FilledButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(vertical: 16),
+                          backgroundColor: AppTheme.primaryGold,
+                          foregroundColor: Colors.black,
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: FilledButton.icon(
+                        onPressed: () => _tabController.animateTo(4), // Import tab
+                        icon: const Icon(Icons.file_upload_rounded),
+                        label: const Text('Bulk Upload M3U'),
+                        style: FilledButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(vertical: 16),
+                          backgroundColor: AppTheme.accentTeal,
+                          foregroundColor: Colors.black,
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+                Row(
+                  children: [
+                    Expanded(
                       child: TextField(
                         controller: _channelSearchController,
                         style: const TextStyle(color: Colors.white),
