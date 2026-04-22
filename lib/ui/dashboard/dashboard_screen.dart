@@ -2154,7 +2154,7 @@ class _FeaturedCarouselState extends State<_FeaturedCarousel> {
   Widget build(BuildContext context) {
     final s = widget.s;
     return Container(
-      height: 320,
+      height: 210,
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(24),
         color: const Color(0xFF0D1118),
@@ -2185,45 +2185,16 @@ class _FeaturedCarouselState extends State<_FeaturedCarousel> {
                   final scale = (1.0 - (diff.abs() * 0.18)).clamp(0.75, 1.0);
                   final opacity = (1.0 - (diff.abs() * 0.5)).clamp(0.0, 1.0);
                   
-                  // Prism 3D transformation
+                  // Clean Flat Transformation
                   final matrix = Matrix4.identity()
-                    ..setEntry(3, 2, 0.0015) // Stronger 3D depth
-                    ..translate(diff * MediaQuery.of(context).size.width * 0.9) // Counter-slide
-                    ..rotateY(diff * -0.4) // Prism rotation
-                    ..scale(scale)
-                    ..translate(0.0, diff.abs() * -20); // Elevation
+                    ..scale(scale);
                   
                   return Transform(
                     transform: matrix,
                     alignment: Alignment.center,
                     child: Opacity(
                       opacity: opacity,
-                      child: Stack(
-                        children: [
-                          child!,
-                          Positioned.fill(
-                            child: IgnorePointer(
-                              child: Container(
-                                decoration: BoxDecoration(
-                                  borderRadius: BorderRadius.circular(24),
-                                  gradient: LinearGradient(
-                                    begin: Alignment(diff * 2 - 1, -1),
-                                    end: Alignment(diff * 2 + 1, 1),
-                                    colors: [
-                                      Colors.white.withOpacity(0.0),
-                                      Colors.white.withOpacity(0.05),
-                                      Colors.white.withOpacity(0.15),
-                                      Colors.white.withOpacity(0.05),
-                                      Colors.white.withOpacity(0.0),
-                                    ],
-                                    stops: const [0.0, 0.2, 0.5, 0.8, 1.0],
-                                  ),
-                                ),
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
+                      child: child,
                     ),
                   );
                 },
