@@ -1043,6 +1043,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                 animMs,
                 pad,
                 isTv,
+                settings,
               ),
             ),
           );
@@ -1182,16 +1183,6 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                   ),
                 ),
               ),
-            ],
-          ),
-                          icon: const Icon(Icons.close_rounded, color: Colors.white38, size: 20),
-                          onPressed: () => setState(() => _searchController.clear()),
-                        ),
-                    ],
-                  ),
-                ),
-              ),
-            ],
           ),
         ],
       ),
@@ -1393,6 +1384,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     int animMs,
     double pad,
     bool isTv,
+    AppSettingsData settings,
   ) {
     final isMovie = _navIndex == 1;
     final titleSize = isTv ? 22.0 : 16.0;
