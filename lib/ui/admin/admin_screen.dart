@@ -149,133 +149,209 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
   }
 
   Widget _buildLoginShield() {
-    return Container(
-      color: Colors.black.withOpacity(0.95),
-      child: Center(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(32),
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 400),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                const Icon(Icons.shield_rounded, color: AppTheme.primaryGold, size: 64),
-                const SizedBox(height: 24),
-                const Text(
-                  'ADMIN SECURITY SHIELD',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 22,
-                    fontWeight: FontWeight.w900,
-                    letterSpacing: 1.5,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  'Please authorize to modify infrastructure',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(color: Colors.white.withOpacity(0.5), fontSize: 13),
-                ),
-                const SizedBox(height: 40),
-                TextField(
-                  controller: _emailController,
-                  decoration: InputDecoration(
-                    labelText: 'Admin Email',
-                    prefixIcon: const Icon(Icons.email_outlined),
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                  ),
-                ),
-                const SizedBox(height: 16),
-                TextField(
-                  controller: _passwordController,
-                  obscureText: true,
-                  decoration: InputDecoration(
-                    labelText: 'Password',
-                    prefixIcon: const Icon(Icons.lock_outline_rounded),
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                  ),
-                ),
-                if (_authError != null) ...[
-                  const SizedBox(height: 16),
-                  Text(
-                    _authError!,
-                    style: const TextStyle(color: Colors.redAccent, fontSize: 12),
-                    textAlign: TextAlign.center,
-                  ),
-                ],
-                const SizedBox(height: 32),
-                SizedBox(
-                  height: 52,
-                  child: FilledButton(
-                    onPressed: _isAuthenticating ? null : _performAuth,
-                    style: FilledButton.styleFrom(
-                      backgroundColor: AppTheme.primaryGold,
-                      foregroundColor: Colors.black,
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                    ),
-                    child: _isAuthenticating
-                        ? const SizedBox(width: 24, height: 24, child: CircularProgressIndicator(strokeWidth: 2.5, color: Colors.black))
-                        : const Text('Access Portal', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-                  ),
-                ),
-                const SizedBox(height: 16),
-                Row(
-                  children: [
-                    const Expanded(child: Divider(color: Colors.white10)),
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 16),
-                      child: Text('OR', style: TextStyle(color: Colors.white.withOpacity(0.2), fontSize: 10, fontWeight: FontWeight.bold)),
-                    ),
-                    const Expanded(child: Divider(color: Colors.white10)),
-                  ],
-                ),
-                const SizedBox(height: 16),
-                SizedBox(
-                  height: 52,
-                  child: OutlinedButton(
-                    onPressed: _isAuthenticating ? null : _performGoogleAuth,
-                    style: OutlinedButton.styleFrom(
-                      side: BorderSide(color: Colors.white.withOpacity(0.1)),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                      foregroundColor: Colors.white,
-                    ),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
+    return Scaffold(
+      backgroundColor: Colors.transparent,
+      body: Stack(
+        children: [
+          // Background Blur
+          Positioned.fill(
+            child: BackdropFilter(
+              filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
+              child: Container(color: Colors.black.withOpacity(0.6)),
+            ),
+          ),
+          Center(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.all(32),
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 420),
+                child: _glassContainer(
+                  borderRadius: BorderRadius.circular(32),
+                  blur: 30,
+                  child: Padding(
+                    padding: const EdgeInsets.all(40),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
-                        // Custom Google icon representation
-                        Container(
-                          width: 20,
-                          height: 20,
-                          decoration: const BoxDecoration(
+                        const Center(
+                          child: Icon(Icons.shield_rounded, color: AppTheme.primaryGold, size: 72),
+                        ),
+                        const SizedBox(height: 24),
+                        const Text(
+                          'ADMIN PORTAL',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
                             color: Colors.white,
-                            shape: BoxShape.circle,
-                          ),
-                          alignment: Alignment.center,
-                          child: const Text(
-                            'G',
-                            style: TextStyle(
-                              color: Colors.black,
-                              fontSize: 14,
-                              fontWeight: FontWeight.w900,
-                            ),
+                            fontSize: 24,
+                            fontWeight: FontWeight.w900,
+                            letterSpacing: 3.0,
                           ),
                         ),
-                        const SizedBox(width: 12),
-                        const Text('Sign in with Google', style: TextStyle(fontWeight: FontWeight.w600)),
+                        const SizedBox(height: 8),
+                        Text(
+                          'RESTRICTED INFRASTRUCTURE ACCESS',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            color: AppTheme.primaryGold.withOpacity(0.7), 
+                            fontSize: 11, 
+                            fontWeight: FontWeight.w900,
+                            letterSpacing: 1.2,
+                          ),
+                        ),
+                        const SizedBox(height: 40),
+                        _buildGlassTextField(
+                          controller: _emailController,
+                          label: 'Admin Email',
+                          icon: Icons.alternate_email_rounded,
+                        ),
+                        const SizedBox(height: 16),
+                        _buildGlassTextField(
+                          controller: _passwordController,
+                          label: 'Password',
+                          icon: Icons.lock_outline_rounded,
+                          obscure: true,
+                        ),
+                        if (_authError != null) ...[
+                          const SizedBox(height: 16),
+                          Container(
+                            padding: const EdgeInsets.all(12),
+                            decoration: BoxDecoration(
+                              color: Colors.redAccent.withOpacity(0.1),
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(color: Colors.redAccent.withOpacity(0.3)),
+                            ),
+                            child: Text(
+                              _authError!,
+                              style: const TextStyle(color: Colors.redAccent, fontSize: 12, fontWeight: FontWeight.w600),
+                              textAlign: TextAlign.center,
+                            ),
+                          ),
+                        ],
+                        const SizedBox(height: 32),
+                        _buildAdminButton(
+                          onPressed: _isAuthenticating ? null : _performAuth,
+                          label: 'AUTHORIZE ACCESS',
+                          isLoading: _isAuthenticating,
+                        ),
+                        const SizedBox(height: 24),
+                        Row(
+                          children: [
+                            const Expanded(child: Divider(color: Colors.white10)),
+                            Padding(
+                              padding: const EdgeInsets.symmetric(horizontal: 16),
+                              child: Text('OR', style: TextStyle(color: Colors.white.withOpacity(0.3), fontSize: 10, fontWeight: FontWeight.bold)),
+                            ),
+                            const Expanded(child: Divider(color: Colors.white10)),
+                          ],
+                        ),
+                        const SizedBox(height: 24),
+                        _buildGoogleButton(),
+                        const SizedBox(height: 24),
+                        TextButton(
+                          onPressed: () => Navigator.pop(context),
+                          child: Text(
+                            'CANCEL & EXIT', 
+                            style: TextStyle(color: Colors.white.withOpacity(0.4), letterSpacing: 1, fontSize: 11, fontWeight: FontWeight.bold),
+                          ),
+                        ),
                       ],
                     ),
                   ),
                 ),
-                const SizedBox(height: 16),
-                TextButton(
-                  onPressed: () => Navigator.pop(context),
-                  child: const Text('Back to App', style: TextStyle(color: Colors.white54)),
-                ),
-              ],
+              ),
             ),
           ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildGlassTextField({
+    required TextEditingController controller,
+    required String label,
+    required IconData icon,
+    bool obscure = false,
+  }) {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white.withOpacity(0.05),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.white.withOpacity(0.1)),
+      ),
+      child: TextField(
+        controller: controller,
+        obscureText: obscure,
+        style: const TextStyle(color: Colors.white, fontSize: 15),
+        decoration: InputDecoration(
+          labelText: label,
+          labelStyle: TextStyle(color: Colors.white.withOpacity(0.4), fontSize: 14),
+          prefixIcon: Icon(icon, color: AppTheme.primaryGold.withOpacity(0.6), size: 20),
+          border: InputBorder.none,
+          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildAdminButton({required VoidCallback? onPressed, required String label, bool isLoading = false}) {
+    return Container(
+      height: 56,
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(16),
+        gradient: LinearGradient(
+          colors: [AppTheme.primaryGold, AppTheme.primaryGold.withOpacity(0.8)],
+        ),
+        boxShadow: [
+          BoxShadow(color: AppTheme.primaryGold.withOpacity(0.3), blurRadius: 15, offset: const Offset(0, 4)),
+        ],
+      ),
+      child: ElevatedButton(
+        onPressed: onPressed,
+        style: ElevatedButton.styleFrom(
+          backgroundColor: Colors.transparent,
+          shadowColor: Colors.transparent,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        ),
+        child: isLoading
+            ? const SizedBox(width: 24, height: 24, child: CircularProgressIndicator(strokeWidth: 2.5, color: Colors.black))
+            : Text(label, style: const TextStyle(color: Colors.black, fontWeight: FontWeight.w900, fontSize: 14, letterSpacing: 1.2)),
+      ),
+    );
+  }
+
+  Widget _buildGoogleButton() {
+    return OutlinedButton(
+      onPressed: _isAuthenticating ? null : _performGoogleAuth,
+      style: OutlinedButton.styleFrom(
+        side: BorderSide(color: Colors.white.withOpacity(0.1)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        padding: const EdgeInsets.symmetric(vertical: 16),
+        foregroundColor: Colors.white,
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          const Icon(Icons.g_mobiledata_rounded, color: Colors.white, size: 28),
+          const SizedBox(width: 8),
+          const Text('SIGN IN WITH GOOGLE', style: TextStyle(fontWeight: FontWeight.w700, letterSpacing: 0.5, fontSize: 13)),
+        ],
+      ),
+    );
+  }
+
+  Widget _glassContainer({required Widget child, required BorderRadius borderRadius, double blur = 12}) {
+    return ClipRRect(
+      borderRadius: borderRadius,
+      child: BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: blur, sigmaY: blur),
+        child: Container(
+          decoration: BoxDecoration(
+            color: Colors.white.withOpacity(0.06),
+            borderRadius: borderRadius,
+            border: Border.all(color: Colors.white.withOpacity(0.12), width: 1),
+          ),
+          child: child,
         ),
       ),
     );
@@ -1558,61 +1634,67 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
   }
 
   Widget _buildAdminHeader(BuildContext context) {
-    return Container(
-      width: double.infinity,
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [
-            AppTheme.backgroundBlack,
-            AppTheme.surfaceGray,
-            AppTheme.primaryGold.withOpacity(0.06),
-          ],
-        ),
-      ),
-      padding: const EdgeInsets.fromLTRB(4, 4, 16, 14),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          IconButton(
-            icon: const Icon(Icons.arrow_back_rounded, color: Colors.white),
-            onPressed: () => Navigator.pop(context),
-          ),
-          Expanded(
-            child: Row(
+    return _glassContainer(
+      borderRadius: const BorderRadius.vertical(bottom: Radius.circular(24)),
+      blur: 20,
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(8, 8, 16, 8),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Row(
               children: [
-                Container(
-                  padding: const EdgeInsets.all(10),
-                  decoration: BoxDecoration(
-                    color: AppTheme.primaryGold.withOpacity(0.15),
-                    borderRadius: BorderRadius.circular(14),
-                  ),
-                  child: Icon(Icons.admin_panel_settings_rounded, color: AppTheme.primaryGold, size: 26),
+                IconButton(
+                  icon: const Icon(Icons.arrow_back_rounded, color: Colors.white),
+                  onPressed: () => Navigator.pop(context),
                 ),
-                const SizedBox(width: 14),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Control center',
-                        style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                              fontWeight: FontWeight.w800,
-                              color: Colors.white,
-                            ),
-                      ),
-                      Text(
-                        'Firebase Realtime Database',
-                        style: TextStyle(color: Colors.white.withOpacity(0.45), fontSize: 12),
-                      ),
-                    ],
+                const SizedBox(width: 8),
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: AppTheme.primaryGold.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: const Icon(Icons.admin_panel_settings_rounded, color: AppTheme.primaryGold, size: 20),
+                ),
+                const SizedBox(width: 12),
+                const Expanded(
+                  child: Text(
+                    'CONTROL CENTER',
+                    style: TextStyle(
+                      fontWeight: FontWeight.w900,
+                      color: Colors.white,
+                      fontSize: 18,
+                      letterSpacing: 1.5,
+                    ),
                   ),
                 ),
               ],
             ),
-          ),
-        ],
+            const SizedBox(height: 8),
+            TabBar(
+              controller: _tabController,
+              isScrollable: true,
+              dividerColor: Colors.transparent,
+              indicatorColor: AppTheme.primaryGold,
+              indicatorWeight: 4,
+              indicatorSize: TabBarIndicatorSize.label,
+              labelColor: AppTheme.primaryGold,
+              unselectedLabelColor: Colors.white38,
+              labelStyle: const TextStyle(fontWeight: FontWeight.w900, fontSize: 12, letterSpacing: 1),
+              tabs: const [
+                Tab(text: 'OVERVIEW'),
+                Tab(text: 'CHANNELS'),
+                Tab(text: 'MOVIES'),
+                Tab(text: 'PUBLISH'),
+                Tab(text: 'IMPORT'),
+                Tab(text: 'HEALTH'),
+                Tab(text: 'ACCESS'),
+                Tab(text: 'BROADCAST'),
+              ],
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -1623,36 +1705,11 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
       Scaffold(
         backgroundColor: AppTheme.backgroundBlack,
         body: SafeArea(
-          child: Stack(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
               _buildAdminHeader(context),
-              Material(
-                color: AppTheme.backgroundBlack,
-                child: TabBar(
-                controller: _tabController,
-                isScrollable: true,
-                indicatorColor: AppTheme.primaryGold,
-                indicatorWeight: 3,
-                labelColor: AppTheme.primaryGold,
-                unselectedLabelColor: Colors.white54,
-                  tabs: const [
-                    Tab(icon: Icon(Icons.space_dashboard_rounded, size: 20), text: 'Overview'),
-                    Tab(icon: Icon(Icons.live_tv_rounded, size: 20), text: 'Channels'),
-                    Tab(icon: Icon(Icons.movie_rounded, size: 20), text: 'Movies'),
-                    Tab(icon: Icon(Icons.add_circle_outline_rounded, size: 20), text: 'Publish'),
-                    Tab(icon: Icon(Icons.file_download_rounded, size: 20), text: 'Import'),
-                    Tab(icon: Icon(Icons.health_and_safety_rounded, size: 20), text: 'Health'),
-                    Tab(icon: Icon(Icons.key_rounded, size: 20), text: 'Access'),
-                    Tab(icon: Icon(Icons.campaign_rounded, size: 20), text: 'Broadcast'),
-                  ],
-              ),
-            ),
-            Expanded(
-              child: Material(
-                color: AppTheme.backgroundBlack,
+              Expanded(
                 child: TabBarView(
                   controller: _tabController,
                   physics: const ClampingScrollPhysics(),
@@ -1691,17 +1748,13 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
                     ),
                   ],
                 ),
-                ),
               ),
             ],
           ),
-          if (_importMoviesBusy) _buildBulkImportOverlay(),
-        ],
+        ),
       ),
-    ),
-  ),
-);
-}
+    );
+  }
 
   // ═══════════════════════════════════════════════════════════════
   //  Tab: Overview
@@ -1950,15 +2003,13 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
   }
 
   Widget _card({required Widget child}) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(22),
-        color: AppTheme.surfaceElevated,
-        border: Border.all(color: Colors.white.withOpacity(0.06)),
+    return _glassContainer(
+      borderRadius: BorderRadius.circular(22),
+      blur: 15,
+      child: Padding(
+        padding: const EdgeInsets.all(20),
+        child: child,
       ),
-      child: child,
     );
   }
 

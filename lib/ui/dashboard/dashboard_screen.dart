@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:ui';
 import 'dart:math' as math;
 import 'package:firebase_database/firebase_database.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -33,6 +34,7 @@ import '../../widgets/tv_focus_wrapper.dart';
 import './movie_details_screen.dart';
 import '../../widgets/tv_fluid_focusable.dart';
 import 'package:lottie/lottie.dart';
+import 'package:flutter_staggered_animations/flutter_staggered_animations.dart';
 
  // Admin portal is handled via AdminScreen with Firebase Auth.
 
@@ -222,15 +224,36 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                       ),
                       SizedBox(
                         height: 200,
-                        child: ListView.builder(
-                          scrollDirection: Axis.horizontal,
-                          padding: const EdgeInsets.symmetric(horizontal: 12),
-                          itemCount: catMovies.length,
-                          itemBuilder: (context, idx) {
-                            final m = catMovies[idx];
-                            return _buildVerticalMovieCard(m);
-                          },
-                        ),
+                        child: settings.reduceMotion 
+                          ? ListView.builder(
+                              scrollDirection: Axis.horizontal,
+                              padding: const EdgeInsets.symmetric(horizontal: 12),
+                              itemCount: catMovies.length,
+                              itemBuilder: (context, idx) => _buildVerticalMovieCard(catMovies[idx]),
+                            )
+                          : AnimationLimiter(
+                              child: ListView.builder(
+                                scrollDirection: Axis.horizontal,
+                                padding: const EdgeInsets.symmetric(horizontal: 12),
+                                itemCount: catMovies.length,
+                                itemBuilder: (context, idx) {
+                                  final m = catMovies[idx];
+                                  return AnimationConfiguration.staggeredList(
+                                    position: idx,
+                                    duration: const Duration(milliseconds: 375),
+                                    child: SlideAnimation(
+                                      horizontalOffset: 80.0,
+                                      child: ScaleAnimation(
+                                        scale: 0.9,
+                                        child: FadeInAnimation(
+                                          child: _buildVerticalMovieCard(m),
+                                        ),
+                                      ),
+                                    ),
+                                  );
+                                },
+                              ),
+                            ),
                       ),
                       const SizedBox(height: 12),
                     ],
@@ -702,34 +725,32 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
 
   Widget _buildSideRail(AppStrings s, bool isTv, AppSettingsData settings) {
     final bottom = MediaQuery.paddingOf(context).bottom;
-    final railWidth = 96.0;
+    final railWidth = 100.0;
     
     return Container(
       width: railWidth,
-      decoration: BoxDecoration(
-        color: const Color(0xFF080C12),
-        border: Border(
-           right: BorderSide(color: Colors.white.withOpacity(0.04)),
+      margin: const EdgeInsets.fromLTRB(12, 12, 0, 12),
+      child: _glassContainer(
+        borderRadius: BorderRadius.circular(28),
+        blur: 20,
+        child: Padding(
+          padding: EdgeInsets.fromLTRB(6, 30, 6, math.max(bottom, 20)),
+          child: Column(
+            children: [
+              const OpticWordmark(height: 24),
+              const SizedBox(height: 60),
+               _railItem(s, 0, Icons.grid_view_rounded, s.navHome, _navIndex == 0),
+               const SizedBox(height: 16),
+               _railItem(s, 1, Icons.movie_creation_rounded, s.navMovies, _navIndex == 1),
+               const SizedBox(height: 16),
+               _railItem(s, 2, Icons.sports_basketball_rounded, s.navSport, _navIndex == 2),
+               const SizedBox(height: 16),
+               _railItem(s, 3, Icons.person_pin_rounded, s.sectionAbout, _navIndex == 3),
+               const Spacer(),
+               _railItem(s, -1, Icons.settings_suggest_rounded, s.settingsTooltip, false, onTap: _openSettings),
+            ],
+          ),
         ),
-        boxShadow: [
-          BoxShadow(color: Colors.black.withOpacity(0.3), blurRadius: 40, spreadRadius: -10),
-        ],
-      ),
-      padding: EdgeInsets.fromLTRB(6, 20, 6, math.max(bottom, 10)),
-      child: Column(
-        children: [
-          const OpticWordmark(height: 24),
-          const SizedBox(height: 60),
-          _railItem(s, 0, Icons.home_rounded, s.navHome, _navIndex == 0),
-          const SizedBox(height: 12),
-          _railItem(s, 1, Icons.movie_filter_rounded, s.navMovies, _navIndex == 1),
-          const SizedBox(height: 12),
-          _railItem(s, 2, Icons.sports_kabaddi_rounded, s.navSport, _navIndex == 2),
-          const SizedBox(height: 12),
-          _railItem(s, 3, Icons.info_outline_rounded, s.sectionAbout, _navIndex == 3),
-          const Spacer(),
-          _railItem(s, -1, Icons.settings_rounded, s.settingsTooltip, false, onTap: _openSettings),
-        ],
       ),
     );
   }
@@ -744,25 +765,30 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
         padding: const EdgeInsets.symmetric(vertical: 12),
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(18),
-          color: selected ? _accent.withOpacity(0.1) : Colors.transparent,
+          color: selected ? _accent.withOpacity(0.15) : Colors.transparent,
           border: Border.all(
-            color: selected ? _accent.withOpacity(0.3) : Colors.transparent,
+            color: selected ? _accent : Colors.transparent,
             width: 1.5,
           ),
           boxShadow: selected ? [
-            BoxShadow(color: _accent.withOpacity(0.15), blurRadius: 15, spreadRadius: -2),
+            BoxShadow(color: _accent.withOpacity(0.4), blurRadius: 20, spreadRadius: -2),
           ] : [],
         ),
         child: Column(
           children: [
-            Icon(icon, color: selected ? _accent : Colors.white54, size: 26),
+            Icon(
+              icon, 
+              color: selected ? _accent : Colors.white.withOpacity(0.4), 
+              size: 28,
+            ),
             const SizedBox(height: 6),
             Text(
-              label,
+              label.toUpperCase(),
               style: TextStyle(
-                color: selected ? Colors.white : Colors.white38,
-                fontSize: 10,
-                fontWeight: selected ? FontWeight.w900 : FontWeight.w500,
+                color: selected ? Colors.white : Colors.white.withOpacity(0.3),
+                fontSize: 9,
+                fontWeight: selected ? FontWeight.w900 : FontWeight.w600,
+                letterSpacing: 0.8,
               ),
               maxLines: 1,
             ),
@@ -782,25 +808,23 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
       padding: EdgeInsets.fromLTRB(pad * 0.5, pad * 0.75, pad * 0.5, 8),
       child: Row(
         children: [
-          Material(
-            color: Colors.white.withOpacity(0.06),
-            borderRadius: BorderRadius.circular(12),
-            clipBehavior: Clip.antiAlias,
+          // Glass Menu Button
+          _glassContainer(
+            borderRadius: BorderRadius.circular(14),
             child: IconButton(
               tooltip: s.settingsTooltip,
-              icon: const Icon(Icons.menu_rounded, color: Colors.white),
+              icon: const Icon(Icons.settings_suggest_rounded, color: Colors.white, size: 22),
               onPressed: _openSettings,
             ),
           ),
           const SizedBox(width: 8),
+          // Glass Logo Container
           Expanded(
-            child: Material(
-              color: Colors.white.withOpacity(0.06),
-              borderRadius: BorderRadius.circular(12),
-              clipBehavior: Clip.antiAlias,
+            child: _glassContainer(
+              borderRadius: BorderRadius.circular(14),
               child: InkWell(
                 onTap: _onLogoTapForAdminPortal,
-                borderRadius: BorderRadius.circular(12),
+                borderRadius: BorderRadius.circular(14),
                 child: SizedBox(
                   width: double.infinity,
                   height: tv ? 48 : 44,
@@ -812,10 +836,9 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
             ),
           ),
           const SizedBox(width: 8),
-          Material(
-            color: Colors.white.withOpacity(0.06),
-            borderRadius: BorderRadius.circular(12),
-            clipBehavior: Clip.antiAlias,
+          // Glass Search Toggle
+          _glassContainer(
+            borderRadius: BorderRadius.circular(14),
             child: IconButton(
               icon: Icon(
                 _searchOpen ? Icons.close_rounded : Icons.search_rounded,
@@ -834,6 +857,24 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     );
   }
 
+  /// Utility for consistent glassmorphism
+  Widget _glassContainer({required Widget child, required BorderRadius borderRadius, double blur = 12}) {
+    return ClipRRect(
+      borderRadius: borderRadius,
+      child: BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: blur, sigmaY: blur),
+        child: Container(
+          decoration: BoxDecoration(
+            color: Colors.black.withOpacity(0.25),
+            borderRadius: borderRadius,
+            border: Border.all(color: Colors.white.withOpacity(0.08), width: 1),
+          ),
+          child: child,
+        ),
+      ),
+    );
+  }
+
   TextStyle _searchFieldStyle(BuildContext context, {required double opacity}) {
     final isAndroid = Theme.of(context).platform == TargetPlatform.android;
     return TextStyle(
@@ -846,20 +887,19 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
   Widget _buildSearchField(AppStrings s, double pad) {
     return Padding(
       padding: EdgeInsets.fromLTRB(pad * 0.5, 0, pad * 0.5, 8),
-      child: Material(
-        color: Colors.white.withOpacity(0.06),
-        borderRadius: BorderRadius.circular(14),
-        clipBehavior: Clip.antiAlias,
+      child: _glassContainer(
+        borderRadius: BorderRadius.circular(16),
+        blur: 15,
         child: Padding(
-          padding: const EdgeInsetsDirectional.only(start: 8, end: 4),
+          padding: const EdgeInsetsDirectional.only(start: 12, end: 4),
           child: Row(
             children: [
-              const Icon(Icons.search_rounded, color: Colors.white54, size: 22),
+              Icon(Icons.search_rounded, color: _accent.withOpacity(0.7), size: 22),
               Expanded(
                 child: CupertinoTextField(
                   controller: _searchController,
                   autofocus: true,
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 12),
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 14),
                   style: _searchFieldStyle(context, opacity: 1),
                   placeholder: s.searchHint,
                   placeholderStyle: _searchFieldStyle(context, opacity: 0.4),
@@ -871,7 +911,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
               ),
               if (_searchController.text.isNotEmpty)
                 IconButton(
-                  icon: const Icon(Icons.clear_rounded, color: Colors.white54),
+                  icon: const Icon(Icons.clear_rounded, color: Colors.white54, size: 20),
                   onPressed: () {
                     _searchController.clear();
                     setState(() {});
@@ -1102,41 +1142,48 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
               const SizedBox(width: 8),
               _buildFilterDropdown(
                 label: _movieCategoryFilter ?? 'Category',
-                icon: Icons.movie_filter_rounded,
+                icon: Icons.movie_creation_rounded,
                 onTap: () => _showFilterSheet('Categories', ['All Movies', ...sortedCats], _movieCategoryFilter ?? 'All Movies', (v) {
                   setState(() => _movieCategoryFilter = v == 'All Movies' ? null : v);
                 }),
               ),
               const SizedBox(width: 8),
               Expanded(
-                child: Container(
-                  height: 48,
-                  decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.06),
-                    borderRadius: BorderRadius.circular(16),
-                    border: Border.all(color: Colors.white.withOpacity(0.1)),
-                  ),
-                  child: Row(
-                    children: [
-                      const SizedBox(width: 12),
-                      Icon(Icons.search_rounded, color: _accent.withOpacity(0.6), size: 20),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: TextField(
-                          controller: _searchController,
-                          onChanged: (v) => setState(() {}),
-                          style: const TextStyle(color: Colors.white, fontSize: 14),
-                          decoration: InputDecoration(
-                            hintText: 'Search...',
-                            hintStyle: TextStyle(color: Colors.white.withOpacity(0.3)),
-                            border: InputBorder.none,
-                            contentPadding: const EdgeInsets.symmetric(vertical: 14),
-                            isDense: true,
+                child: _glassContainer(
+                  borderRadius: BorderRadius.circular(16),
+                  child: Container(
+                    height: 44,
+                    child: Row(
+                      children: [
+                        const SizedBox(width: 12),
+                        Icon(Icons.search_rounded, color: AppTheme.primaryGold, size: 18),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: TextField(
+                            controller: _searchController,
+                            onChanged: (v) => setState(() {}),
+                            style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold),
+                            decoration: InputDecoration(
+                              hintText: 'SEARCH MOVIES...',
+                              hintStyle: TextStyle(color: Colors.white.withOpacity(0.2), fontSize: 11, letterSpacing: 1),
+                              border: InputBorder.none,
+                              contentPadding: const EdgeInsets.symmetric(vertical: 12),
+                              isDense: true,
+                            ),
                           ),
                         ),
-                      ),
-                      if (_searchController.text.isNotEmpty)
-                        IconButton(
+                        if (_searchController.text.isNotEmpty)
+                          IconButton(
+                            icon: const Icon(Icons.close_rounded, size: 16, color: Colors.white38),
+                            onPressed: () => setState(() => _searchController.clear()),
+                          ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
                           icon: const Icon(Icons.close_rounded, color: Colors.white38, size: 20),
                           onPressed: () => setState(() => _searchController.clear()),
                         ),
@@ -1373,21 +1420,51 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
             ),
             SizedBox(
               height: isMovie ? 320 : 180,
-              child: ListView.builder(
-                scrollDirection: Axis.horizontal,
-                padding: EdgeInsets.only(left: pad),
-                itemCount: sectionChannels.length,
-                itemBuilder: (context, index) {
-                  final ch = sectionChannels[index];
-                  return Container(
-                    width: isMovie ? 220 : 150,
-                    margin: const EdgeInsets.only(right: 20),
-                    child: isMovie
-                        ? _buildMovieTile(context, s, allChannels, ch, animMs)
-                        : _buildGridChannelTile(context, s, allChannels, ch, animMs),
-                  );
-                },
-              ),
+              child: settings.reduceMotion
+                ? ListView.builder(
+                    scrollDirection: Axis.horizontal,
+                    padding: EdgeInsets.only(left: pad),
+                    itemCount: sectionChannels.length,
+                    itemBuilder: (context, index) {
+                      final ch = sectionChannels[index];
+                      return Container(
+                        width: isMovie ? 220 : 150,
+                        margin: const EdgeInsets.only(right: 20),
+                        child: isMovie
+                            ? _buildMovieTile(context, s, allChannels, ch, animMs)
+                            : _buildGridChannelTile(context, s, allChannels, ch, animMs),
+                      );
+                    },
+                  )
+                : AnimationLimiter(
+                    child: ListView.builder(
+                      scrollDirection: Axis.horizontal,
+                      padding: EdgeInsets.only(left: pad),
+                      itemCount: sectionChannels.length,
+                      itemBuilder: (context, index) {
+                        final ch = sectionChannels[index];
+                        return AnimationConfiguration.staggeredList(
+                          position: index,
+                          duration: const Duration(milliseconds: 375),
+                          child: SlideAnimation(
+                            horizontalOffset: 80.0,
+                            child: ScaleAnimation(
+                              scale: 0.9,
+                              child: FadeInAnimation(
+                              child: Container(
+                                width: isMovie ? 220 : 150,
+                                margin: const EdgeInsets.only(right: 20),
+                                child: isMovie
+                                    ? _buildMovieTile(context, s, allChannels, ch, animMs)
+                                    : _buildGridChannelTile(context, s, allChannels, ch, animMs),
+                              ),
+                            ),
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+                ),
             ),
           ],
         ),
@@ -1657,23 +1734,48 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
 
   Widget _buildBottomNav(AppStrings s, double bottomInset, AppSettingsData settings) {
     final accent = AppTheme.accentColor(settings.gradientPreset);
-    return Container(
-      decoration: BoxDecoration(
-        color: const Color(0xFF0A0E14),
-        border: Border(top: BorderSide(color: accent.withOpacity(0.08))),
-        boxShadow: [
-          BoxShadow(color: Colors.black.withOpacity(0.51), blurRadius: 20, offset: const Offset(0, -6)),
-        ],
-      ),
-      padding: EdgeInsets.only(bottom: bottomInset > 0 ? bottomInset : 8, top: 4),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-        children: [
-          _navItem(s, settings, iconActive: Icons.home_rounded, iconInactive: Icons.home_outlined, label: s.navHome, index: 0),
-          _navItem(s, settings, iconActive: Icons.movie_rounded, iconInactive: Icons.movie_outlined, label: s.navMovies, index: 1),
-          _navItem(s, settings, iconActive: Icons.sports_soccer_rounded, iconInactive: Icons.sports_soccer_outlined, label: s.navSport, index: 2),
-          _navItem(s, settings, iconActive: Icons.info_rounded, iconInactive: Icons.info_outline_rounded, label: 'About', index: 3),
-        ],
+    final isKurdish = s.locale.languageCode == 'ckb';
+
+    return Padding(
+      padding: EdgeInsets.fromLTRB(16, 0, 16, bottomInset > 0 ? bottomInset : 16),
+      child: Container(
+        height: 72,
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(35),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.5),
+              blurRadius: 25,
+              spreadRadius: -5,
+              offset: const Offset(0, 10),
+            ),
+          ],
+        ),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(35),
+          child: BackdropFilter(
+            filter: ImageFilter.blur(sigmaX: 15, sigmaY: 15),
+            child: Container(
+              decoration: BoxDecoration(
+                color: const Color(0xFF0A0E14).withOpacity(0.75),
+                borderRadius: BorderRadius.circular(35),
+                border: Border.all(
+                  color: Colors.white.withOpacity(0.08),
+                  width: 1.5,
+                ),
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                children: [
+                  _navItem(s, settings, iconActive: Icons.grid_view_rounded, iconInactive: Icons.grid_view_outlined, label: s.navHome, index: 0),
+                  _navItem(s, settings, iconActive: Icons.movie_creation_rounded, iconInactive: Icons.movie_creation_outlined, label: s.navMovies, index: 1),
+                  _navItem(s, settings, iconActive: Icons.sports_basketball_rounded, iconInactive: Icons.sports_basketball_outlined, label: s.navSport, index: 2),
+                  _navItem(s, settings, iconActive: Icons.person_pin_rounded, iconInactive: Icons.person_pin_outlined, label: 'Profile', index: 3),
+                ],
+              ),
+            ),
+          ),
+        ),
       ),
     );
   }
@@ -1708,8 +1810,11 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
           width: 80,
           padding: const EdgeInsets.symmetric(vertical: 12),
           decoration: BoxDecoration(
-            color: selected ? accent.withOpacity(0.15) : Colors.transparent,
+            color: selected ? accent.withOpacity(0.2) : Colors.transparent,
             borderRadius: BorderRadius.circular(14),
+            boxShadow: selected ? [
+              BoxShadow(color: accent.withOpacity(0.3), blurRadius: 15),
+            ] : [],
           ),
           child: Column(
             mainAxisSize: MainAxisSize.min,
@@ -1740,42 +1845,51 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
         width: 72,
         child: Column(
           mainAxisSize: MainAxisSize.min,
+          mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            // Indicator
+            // Animated Icon with Scale & Color
             AnimatedContainer(
               duration: const Duration(milliseconds: 300),
-              curve: Curves.easeOutCubic,
-              width: selected ? 18 : 0,
-              height: 3,
-              margin: const EdgeInsets.only(bottom: 6),
-              decoration: BoxDecoration(
-                color: accent,
-                borderRadius: BorderRadius.circular(2),
-                boxShadow: selected ? [BoxShadow(color: accent.withOpacity(0.5), blurRadius: 8)] : [],
-              ),
-            ),
-            // Scaled Icon
-            TweenAnimationBuilder<double>(
-              tween: Tween(begin: 1.0, end: selected ? 1.15 : 1.0),
-              duration: const Duration(milliseconds: 250),
               curve: Curves.easeOutBack,
-              builder: (context, scale, child) => Transform.scale(
-                scale: scale,
-                child: Icon(icon, color: color, size: sideRail ? 28 : 24),
+              transform: Matrix4.identity()..scale(selected ? 1.2 : 1.0),
+              transformAlignment: Alignment.center,
+              child: Icon(
+                icon,
+                color: color,
+                size: sideRail ? 28 : 26,
+                shadows: selected ? [
+                  Shadow(color: accent.withOpacity(0.5), blurRadius: 15),
+                ] : [],
               ),
             ),
             const SizedBox(height: 4),
-            Text(
-              label,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
+            // Animated Label
+            AnimatedDefaultTextStyle(
+              duration: const Duration(milliseconds: 200),
               style: AppTheme.withRabarIfKurdish(
                 s.locale,
                 TextStyle(
                   color: color,
                   fontSize: selected ? 11 : 10,
-                  fontWeight: selected ? FontWeight.w800 : FontWeight.w500,
+                  fontWeight: selected ? FontWeight.w900 : FontWeight.w500,
+                  letterSpacing: selected ? 0.5 : 0,
                 ),
+              ),
+              child: Text(label, maxLines: 1, overflow: TextOverflow.ellipsis),
+            ),
+            const SizedBox(height: 4),
+            // Mova-style indicator dot
+            AnimatedContainer(
+              duration: const Duration(milliseconds: 300),
+              curve: Curves.elasticOut,
+              width: selected ? 6 : 0,
+              height: 6,
+              decoration: BoxDecoration(
+                color: accent,
+                shape: BoxShape.circle,
+                boxShadow: [
+                  BoxShadow(color: accent.withOpacity(0.6), blurRadius: 8, spreadRadius: 1),
+                ],
               ),
             ),
           ],
@@ -1906,22 +2020,47 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
             flex: 3,
             child: displayChannels.isEmpty
                 ? _buildEmptyState(s)
-                : ScrollConfiguration(
-                    behavior: ScrollConfiguration.of(context),
-                    child: GridView.builder(
-                      padding: const EdgeInsets.only(left: 8, right: 48, top: 80, bottom: 60),
-                      gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
-                        maxCrossAxisExtent: 198,
-                        mainAxisSpacing: 16,
-                        crossAxisSpacing: 16,
+                : settings.reduceMotion
+                  ? ScrollConfiguration(
+                      behavior: ScrollConfiguration.of(context),
+                      child: GridView.builder(
+                        padding: const EdgeInsets.only(left: 8, right: 48, top: 80, bottom: 60),
+                        gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
+                          maxCrossAxisExtent: 198,
+                          mainAxisSpacing: 16,
+                          crossAxisSpacing: 16,
+                        ),
+                        itemCount: displayChannels.length,
+                        itemBuilder: (context, idx) => _tvGhostenChannelCard(channels, displayChannels[idx]),
                       ),
-                      itemCount: displayChannels.length,
-                      itemBuilder: (context, idx) {
-                        final ch = displayChannels[idx];
-                        return _tvGhostenChannelCard(channels, ch);
-                      },
+                    )
+                  : AnimationLimiter(
+                      child: ScrollConfiguration(
+                        behavior: ScrollConfiguration.of(context),
+                        child: GridView.builder(
+                          padding: const EdgeInsets.only(left: 8, right: 48, top: 80, bottom: 60),
+                          gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
+                            maxCrossAxisExtent: 198,
+                            mainAxisSpacing: 16,
+                            crossAxisSpacing: 16,
+                          ),
+                          itemCount: displayChannels.length,
+                          itemBuilder: (context, idx) {
+                            final ch = displayChannels[idx];
+                            return AnimationConfiguration.staggeredGrid(
+                              position: idx,
+                              duration: const Duration(milliseconds: 375),
+                              columnCount: 4, // Estimate or dynamic
+                              child: ScaleAnimation(
+                                child: FadeInAnimation(
+                                  child: _tvGhostenChannelCard(channels, ch),
+                                ),
+                              ),
+                            );
+                          },
+                        ),
+                      ),
                     ),
-                  ),
           ),
       ],
     );
@@ -2020,40 +2159,56 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
   }
 
   Widget _buildTvSettingsDrawer(AppStrings s) {
-    return Container(
-      width: 360,
-      color: Theme.of(context).colorScheme.surfaceContainerLow,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Padding(
-            padding: const EdgeInsets.fromLTRB(36, 80, 36, 32),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const OpticWordmark(height: 28),
-                const SizedBox(height: 24),
-                Text(
-                  'Settings',
-                  style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                    fontWeight: FontWeight.bold,
-                  ),
+    return ClipRRect(
+      child: BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
+        child: Container(
+          width: 400,
+          decoration: BoxDecoration(
+            color: Colors.black.withOpacity(0.7),
+            border: Border(left: BorderSide(color: Colors.white.withOpacity(0.1))),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Padding(
+                padding: const EdgeInsets.fromLTRB(48, 80, 48, 40),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const OpticWordmark(height: 32),
+                    const SizedBox(height: 40),
+                    Text(
+                      'SETTINGS',
+                      style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                        fontWeight: FontWeight.w900,
+                        color: Colors.white,
+                        letterSpacing: 2,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      'CONFIGURE YOUR EXPERIENCE',
+                      style: TextStyle(color: Colors.white.withOpacity(0.3), fontSize: 10, fontWeight: FontWeight.w900, letterSpacing: 1.5),
+                    ),
+                  ],
                 ),
-              ],
-            ),
+              ),
+              Expanded(
+                child: ListView(
+                  padding: const EdgeInsets.symmetric(horizontal: 24),
+                  children: [
+                    _tvGhostenSettingsItem(Icons.palette_rounded, 'APPEARANCE', 'Theme & Gradients', _openSettings),
+                    _tvGhostenSettingsItem(Icons.tune_rounded, 'VIDEO ENGINE', 'Codec & Buffering', () {}),
+                    _tvGhostenSettingsItem(Icons.dns_rounded, 'SERVER STATUS', 'Database Connection', () {}),
+                    _tvGhostenSettingsItem(Icons.shield_rounded, 'PRIVACY', 'Security & Access', () {}),
+                    _tvGhostenSettingsItem(Icons.info_rounded, 'ABOUT', 'Version 2.0.4 Premium', () {}),
+                  ],
+                ),
+              ),
+            ],
           ),
-          Expanded(
-            child: ListView(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              children: [
-                _tvGhostenSettingsItem(Icons.palette_outlined, 'Appearance', 'Colors & theme', _openSettings),
-                _tvGhostenSettingsItem(Icons.settings_input_component_rounded, 'Video Engine', 'Codec & hardware', () {}),
-                _tvGhostenSettingsItem(Icons.dns_outlined, 'Server Status', 'Connection check', () {}),
-                _tvGhostenSettingsItem(Icons.info_outline_rounded, 'About', 'Version info', () {}),
-              ],
-            ),
-          ),
-        ],
+        ),
       ),
     );
   }

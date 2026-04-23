@@ -15,22 +15,22 @@ class AppTheme {
     return style.merge(const TextStyle(fontFamily: rabarFontFamily));
   }
 
-  static const Color primaryGold = Color(0xFFFFB100); // Premium Amber Gold
-  static const Color primaryGoldDim = Color(0xFFB8860B);
-  static const Color accentTeal = Color(0xFFFFB100); 
-  static const Color primaryBlue = Color(0xFFFFB100); 
-  static const Color primaryPurple = Color(0xFFFFB100); 
-  static const Color backgroundBlack = Color(0xFF000000); // Pure black
-  static const Color surfaceGray = Color(0xFF101419);
-  static const Color surfaceElevated = Color(0xFF161B22);
+  static const Color primaryGold = Color(0xFFD32F2F); // Deep Premium Red
+  static const Color primaryGoldDim = Color(0xFF8B0000); // Dark Blood Red
+  static const Color accentTeal = Color(0xFFB71C1C); 
+  static const Color primaryBlue = Color(0xFFD32F2F); 
+  static const Color primaryPurple = Color(0xFFB71C1C); 
+  static const Color backgroundBlack = Color(0xFF121212); // Matte Black
+  static const Color surfaceGray = Color(0xFF1E1E1E);
+  static const Color surfaceElevated = Color(0xFF242424);
 
   static Color accentColor(AppGradientPreset p) {
     return switch (p) {
-      AppGradientPreset.classic => const Color(0xFFFFB100),
-      AppGradientPreset.ocean => const Color(0xFF0EA5E9),
-      AppGradientPreset.goldSunset => const Color(0xFFF97316),
-      AppGradientPreset.violetHaze => const Color(0xFFA855F7),
-      AppGradientPreset.emberGlow => const Color(0xFFF43F5E),
+      AppGradientPreset.classic => const Color(0xFFD32F2F),
+      AppGradientPreset.ocean => const Color(0xFFB71C1C),
+      AppGradientPreset.goldSunset => const Color(0xFF8B0000),
+      AppGradientPreset.violetHaze => const Color(0xFFFF5252),
+      AppGradientPreset.emberGlow => const Color(0xFF7F0000),
     };
   }
 
@@ -45,7 +45,6 @@ class AppTheme {
     final rabar = useRabar ? const TextStyle(fontFamily: rabarFontFamily) : const TextStyle();
     
     return ThemeData(
-      // Explicit icon colors so AppBar/leading icons stay visible with custom text font.
       iconTheme: IconThemeData(color: accent),
       brightness: Brightness.dark,
       primaryColor: accent,
@@ -55,7 +54,7 @@ class AppTheme {
         secondary: accent,
         tertiary: accent,
         surface: surfaceGray,
-        onPrimary: const Color(0xFF000000),
+        onPrimary: Colors.white,
         onSurface: Colors.white,
       ),
       textTheme: TextTheme(
@@ -74,19 +73,23 @@ class AppTheme {
       elevatedButtonTheme: ElevatedButtonThemeData(
         style: ElevatedButton.styleFrom(
           backgroundColor: accent,
-          foregroundColor: Colors.black,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+          foregroundColor: Colors.white,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+          elevation: 8,
+          shadowColor: accent.withOpacity(0.5),
         ),
       ),
       filledButtonTheme: FilledButtonThemeData(
         style: FilledButton.styleFrom(
           backgroundColor: accent,
-          foregroundColor: Colors.black,
+          foregroundColor: Colors.white,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+          elevation: 4,
         ),
       ),
       appBarTheme: AppBarTheme(
-        backgroundColor: Colors.black,
+        backgroundColor: Colors.transparent,
         foregroundColor: Colors.white,
         elevation: 0,
         centerTitle: true,
@@ -94,22 +97,29 @@ class AppTheme {
         titleTextStyle: TextStyle(
           color: Colors.white,
           fontSize: 18,
-          fontWeight: FontWeight.w600,
-          fontFamily: useRabar ? rabarFontFamily : null,
-        ),
-        toolbarTextStyle: TextStyle(
-          color: Colors.white,
-          fontSize: 15,
+          fontWeight: FontWeight.w900,
+          letterSpacing: 1.2,
           fontFamily: useRabar ? rabarFontFamily : null,
         ),
       ),
-      // Avoid default filled inputs (grey blocks) on screens that only set border/hint.
       inputDecorationTheme: InputDecorationTheme(
-        filled: false,
-        fillColor: Colors.transparent,
-        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-        enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-        focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+        filled: true,
+        fillColor: Colors.white,
+        hintStyle: const TextStyle(color: Colors.black38, fontSize: 14),
+        labelStyle: const TextStyle(color: Colors.black, fontWeight: FontWeight.bold),
+        contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(16),
+          borderSide: BorderSide.none,
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(16),
+          borderSide: BorderSide.none,
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(16),
+          borderSide: const BorderSide(color: Color(0xFFD32F2F), width: 2),
+        ),
       ),
     );
   }
@@ -123,130 +133,53 @@ class AppTheme {
       AppGradientPreset.classic => const LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: [Color(0xFF0B0F14), Color(0xFF121820), Color(0xFF0B0F14)],
+          colors: [Color(0xFF000000), Color(0xFF1A0000), Color(0xFF000000)],
         ),
       AppGradientPreset.ocean => const LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: [Color(0xFF050F18), Color(0xFF0C2434), Color(0xFF061A22)],
+          colors: [Color(0xFF000000), Color(0xFF2B0000), Color(0xFF050000)],
         ),
       AppGradientPreset.goldSunset => const LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: [Color(0xFF120C08), Color(0xFF1C140C), Color(0xFF0F0A06)],
+          colors: [Color(0xFF000000), Color(0xFF3D0000), Color(0xFF000000)],
         ),
       AppGradientPreset.violetHaze => const LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: [Color(0xFF0E0816), Color(0xFF181028), Color(0xFF0C0612)],
+          colors: [Color(0xFF000000), Color(0xFF1A0000), Color(0xFF000000)],
         ),
       AppGradientPreset.emberGlow => const LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: [Color(0xFF120608), Color(0xFF1C0C0C), Color(0xFF0E0606)],
+          colors: [Color(0xFF000000), Color(0xFF4A0000), Color(0xFF000000)],
         ),
     };
   }
 
   /// Featured spotlight card on the dashboard.
   static LinearGradient featuredHeroGradient(AppGradientPreset p) {
-    return switch (p) {
-      AppGradientPreset.classic => LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [
-            accentTeal.withOpacity(0.38),
-            const Color(0xFF1C2430),
-            primaryGold.withOpacity(0.22),
-          ],
-        ),
-      AppGradientPreset.ocean => LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [
-            const Color(0xFF0EA5E9).withOpacity(0.35),
-            const Color(0xFF102030),
-            accentTeal.withOpacity(0.28),
-          ],
-        ),
-      AppGradientPreset.goldSunset => LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [
-            primaryGold.withOpacity(0.42),
-            const Color(0xFF241A12),
-            const Color(0xFFF97316).withOpacity(0.18),
-          ],
-        ),
-      AppGradientPreset.violetHaze => LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [
-            primaryPurple.withOpacity(0.4),
-            const Color(0xFF1A1428),
-            primaryBlue.withOpacity(0.2),
-          ],
-        ),
-      AppGradientPreset.emberGlow => LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [
-            const Color(0xFFF43F5E).withOpacity(0.32),
-            const Color(0xFF1C1010),
-            primaryGold.withOpacity(0.2),
-          ],
-        ),
-    };
+    return LinearGradient(
+      begin: Alignment.topLeft,
+      end: Alignment.bottomRight,
+      colors: [
+        accentColor(p).withOpacity(0.5),
+        const Color(0xFF000000),
+        accentColor(p).withOpacity(0.1),
+      ],
+    );
   }
 
-  /// Soft wash behind settings lists.
   static LinearGradient settingsBackdropGradient(AppGradientPreset p) {
-    return switch (p) {
-      AppGradientPreset.classic => LinearGradient(
-          begin: Alignment.topCenter,
-          end: Alignment.bottomCenter,
-          colors: [
-            backgroundBlack,
-            const Color(0xFF101620).withOpacity(0.92),
-            backgroundBlack,
-          ],
-        ),
-      AppGradientPreset.ocean => LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [
-            const Color(0xFF060F18),
-            const Color(0xFF0C1C2A).withOpacity(0.95),
-            backgroundBlack,
-          ],
-        ),
-      AppGradientPreset.goldSunset => LinearGradient(
-          begin: Alignment.topRight,
-          end: Alignment.bottomLeft,
-          colors: [
-            const Color(0xFF140E0A),
-            const Color(0xFF1A120C).withOpacity(0.96),
-            backgroundBlack,
-          ],
-        ),
-      AppGradientPreset.violetHaze => LinearGradient(
-          begin: Alignment.topCenter,
-          end: Alignment.bottomCenter,
-          colors: [
-            const Color(0xFF100818),
-            const Color(0xFF160C22).withOpacity(0.94),
-            backgroundBlack,
-          ],
-        ),
-      AppGradientPreset.emberGlow => LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [
-            const Color(0xFF120608),
-            const Color(0xFF180A0C).withOpacity(0.95),
-            backgroundBlack,
-          ],
-        ),
-    };
+    return LinearGradient(
+      begin: Alignment.topCenter,
+      end: Alignment.bottomCenter,
+      colors: [
+        const Color(0xFF000000),
+        const Color(0xFF2A0000).withOpacity(0.9),
+        const Color(0xFF000000),
+      ],
+    );
   }
 }

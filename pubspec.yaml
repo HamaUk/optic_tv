@@ -56,6 +56,7 @@ dependencies:
   lottie: ^3.2.0
   simple_pip_mode: ^1.1.0
   dio_cache_interceptor: ^3.5.0
+  flutter_staggered_animations: ^1.1.1
 
   # Native TV Engine & Detection
   video_player: ^2.9.1

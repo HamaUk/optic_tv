@@ -1,3 +1,4 @@
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -78,11 +79,15 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               ],
             ),
             actions: [
-              TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text(s.cancel)),
+              TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text(s.cancel, style: const TextStyle(color: Colors.white54))),
               FilledButton(
-                style: FilledButton.styleFrom(backgroundColor: Colors.orange.shade800),
+                style: FilledButton.styleFrom(
+                  backgroundColor: AppTheme.primaryGold,
+                  foregroundColor: Colors.white,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                ),
                 onPressed: () => Navigator.pop(ctx, true),
-                child: Text(s.clearButton),
+                child: Text(s.clearButton.toUpperCase(), style: const TextStyle(fontWeight: FontWeight.w900)),
               ),
             ],
           ),
@@ -162,12 +167,23 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     final s = AppStrings(uiLocale);
     return Scaffold(
       backgroundColor: AppTheme.backgroundBlack,
-      appBar: AppBar(
-        title: Text(s.settingsTitle),
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back_rounded),
-          tooltip: MaterialLocalizations.of(context).backButtonTooltip,
-          onPressed: () => Navigator.maybePop(context),
+      extendBodyBehindAppBar: true,
+      appBar: PreferredSize(
+        preferredSize: const Size.fromHeight(64),
+        child: ClipRRect(
+          child: BackdropFilter(
+            filter: ImageFilter.blur(sigmaX: 15, sigmaY: 15),
+            child: AppBar(
+              backgroundColor: Colors.black.withOpacity(0.5),
+              elevation: 0,
+              title: Text(s.settingsTitle, style: const TextStyle(fontWeight: FontWeight.w900, letterSpacing: 1.2)),
+              leading: IconButton(
+                icon: const Icon(Icons.arrow_back_rounded),
+                tooltip: MaterialLocalizations.of(context).backButtonTooltip,
+                onPressed: () => Navigator.maybePop(context),
+              ),
+            ),
+          ),
         ),
       ),
       body: _loading
@@ -201,9 +217,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                   style: TextStyle(color: Colors.white.withOpacity(0.5), fontSize: 13),
                 ),
                 const SizedBox(height: 12),
-                Card(
-                  color: AppTheme.surfaceGray.withOpacity(0.92),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                _glassCard(
                   child: Column(
                     children: [
                       for (final preset in AppGradientPreset.values)
@@ -229,9 +243,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                       ),
                 ),
                 const SizedBox(height: 12),
-                Card(
-                  color: AppTheme.surfaceGray,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                _glassCard(
                   child: Column(
                     children: [
                       RadioListTile<String>(
@@ -252,9 +264,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                   ),
                 ),
                 const SizedBox(height: 24),
-                Card(
-                  color: AppTheme.surfaceGray,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                _glassCard(
                   child: SwitchListTile(
                     title: Text(s.reduceMotionTitle),
                     subtitle: Text(s.reduceMotionSub),
@@ -273,9 +283,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                       ),
                 ),
                 const SizedBox(height: 12),
-                Card(
-                  color: AppTheme.surfaceGray,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                _glassCard(
                   child: SwitchListTile(
                     title: Text(s.keepScreenOnTitle),
                     subtitle: Text(s.keepScreenOnSub),
@@ -286,9 +294,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                   ),
                 ),
                 const SizedBox(height: 8),
-                Card(
-                  color: AppTheme.surfaceGray,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                _glassCard(
                   child: SwitchListTile(
                     title: Text(s.autoHideTitle),
                     subtitle: Text(s.autoHideSub),
@@ -299,9 +305,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                   ),
                 ),
                 const SizedBox(height: 8),
-                Card(
-                  color: AppTheme.surfaceGray,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                _glassCard(
                   child: SwitchListTile(
                     title: Text(s.clockTitle),
                     subtitle: Text(s.clockSub),
@@ -322,9 +326,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 const SizedBox(height: 8),
                 Text(s.videoFitCaption, style: TextStyle(color: Colors.white.withOpacity(0.45), fontSize: 13)),
                 const SizedBox(height: 12),
-                Card(
-                  color: AppTheme.surfaceGray,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                _glassCard(
                   child: Column(
                     children: [
                       for (final fit in _fitChoices)
@@ -349,9 +351,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                       ),
                 ),
                 const SizedBox(height: 12),
-                Card(
-                  color: AppTheme.surfaceGray,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                _glassCard(
                   child: ListTile(
                     leading: Icon(Icons.star_outline_rounded, color: AppTheme.accentColor(_data.gradientPreset)),
                     title: Text(s.clearFavoritesTitle),
@@ -365,9 +365,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                   ),
                 ),
                 const SizedBox(height: 8),
-                Card(
-                  color: AppTheme.surfaceGray,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                _glassCard(
                   child: ListTile(
                     leading: Icon(Icons.history_rounded, color: Colors.white.withOpacity(0.85)),
                     title: Text(s.clearRecentTitle),
@@ -389,9 +387,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                       ),
                 ),
                 const SizedBox(height: 12),
-                Card(
-                  color: AppTheme.surfaceGray,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                _glassCard(
                   child: ListTile(
                     leading: const Icon(Icons.logout_rounded, color: Colors.orangeAccent),
                     title: Text(s.logoutTitle),
@@ -408,9 +404,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                       ),
                 ),
                 const SizedBox(height: 12),
-                Card(
-                  color: AppTheme.surfaceGray,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                _glassCard(
                   child: Column(
                     children: [
                       ListTile(
@@ -458,9 +452,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                       ),
                 ),
                 const SizedBox(height: 12),
-                Card(
-                  color: AppTheme.surfaceGray,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                _glassCard(
                   child: ListTile(
                     leading: Icon(Icons.info_outline, color: Colors.white.withOpacity(0.7)),
                     title: Text(s.aboutTitle),
@@ -468,8 +460,25 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                   ),
                 ),
               ],
+              ),
             ),
-            ),
+    );
+  }
+
+  Widget _glassCard({required Widget child}) {
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(24),
+      child: BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 15, sigmaY: 15),
+        child: Container(
+          decoration: BoxDecoration(
+            color: Colors.black.withOpacity(0.3),
+            borderRadius: BorderRadius.circular(24),
+            border: Border.all(color: Colors.white.withOpacity(0.06), width: 1),
+          ),
+          child: child,
+        ),
+      ),
     );
   }
 }
