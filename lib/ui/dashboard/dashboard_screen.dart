@@ -19,6 +19,7 @@ import '../../l10n/app_strings.dart';
 import '../../providers/app_locale_provider.dart';
 import '../../providers/channel_library_provider.dart';
 import '../../providers/ui_settings_provider.dart';
+import '../../services/palette_service.dart';
 import '../../services/playlist_service.dart';
 import '../../services/settings_service.dart';
 import '../admin/admin_screen.dart';
@@ -26,12 +27,10 @@ import '../player/player_screen.dart';
 import '../player/movie_player_page.dart';
 import '../settings/settings_screen.dart';
 import 'movie_details_screen.dart';
-import '../settings/settings_screen.dart';
 
 import '../../services/tmdb_service.dart';
 import '../../widgets/dynamic_background.dart';
 import '../../widgets/tv_focus_wrapper.dart';
-import './movie_details_screen.dart';
 import '../../widgets/tv_fluid_focusable.dart';
 import 'package:lottie/lottie.dart';
 import 'package:flutter_staggered_animations/flutter_staggered_animations.dart';
@@ -45,7 +44,8 @@ class DashboardScreen extends ConsumerStatefulWidget {
   ConsumerState<DashboardScreen> createState() => _DashboardScreenState();
 }
 
-class _DashboardScreenState extends ConsumerState<DashboardScreen> {
+class _DashboardScreenState extends ConsumerState<DashboardScreen>
+    with SingleTickerProviderStateMixin {
   final TmdbService _tmdb = TmdbService();
   int _adminLogoTaps = 0;
   Timer? _adminTapResetTimer;
@@ -67,12 +67,35 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
   int _tvTabIndex = 0;
   bool _tvTabReverse = false;
 
+  // Dynamic palette state — updated whenever the focused channel changes
+  ImagePalette _dynamicPalette = ImagePalette.fallback;
+  // Sidebar shimmer animation
+  late AnimationController _sidebarShimmerCtrl;
+  late Animation<double> _sidebarShimmerAnim;
+
   Color get _accent {
+    // If we have a meaningful dynamic palette accent, use it blended with the
+    // static preset so the sidebar glow adapts to the focused content.
     final settings = ref.read(appUiSettingsProvider);
-    return settings.when(
+    final staticAccent = settings.when(
       data: (data) => AppTheme.accentColor(data.gradientPreset),
       loading: () => AppTheme.accentColor(AppGradientPreset.classic),
       error: (_, __) => AppTheme.accentColor(AppGradientPreset.classic),
+    );
+    // Blend: 50 % static + 50 % dynamic to keep the brand colour present
+    return Color.lerp(staticAccent, _dynamicPalette.accent, 0.45) ?? staticAccent;
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    _sidebarShimmerCtrl = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 2000),
+    )..repeat(reverse: true);
+    _sidebarShimmerAnim = CurvedAnimation(
+      parent: _sidebarShimmerCtrl,
+      curve: Curves.easeInOut,
     );
   }
 
@@ -80,7 +103,15 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
   void dispose() {
     _adminTapResetTimer?.cancel();
     _searchController.dispose();
+    _sidebarShimmerCtrl.dispose();
     super.dispose();
+  }
+
+  /// Extract the palette for [imageUrl] and update [_dynamicPalette].
+  Future<void> _extractPalette(String? imageUrl) async {
+    if (imageUrl == null || imageUrl.isEmpty) return;
+    final palette = await PaletteService.instance.generate(imageUrl);
+    if (mounted) setState(() => _dynamicPalette = palette);
   }
 
   void _onLogoTapForAdminPortal() {
@@ -584,32 +615,38 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
             preset: settings.gradientPreset,
             imageUrl: heroImage,
             child: SafeArea(
+              // In landscape, respect left/right notch insets.
+              // In portrait, don't add bottom since the nav bar handles it.
               bottom: false,
-                child: _buildDashboardShell(
-                  context,
-                  s,
-                  16.0,
-                  false,
-                  _navIndex == 1
-                      ? _buildMovieLibraryContent(context, s, channels, settings)
-                      : filtered.isEmpty
-                          ? _buildEmptyState(s)
-                          : _buildScrollableContent(
-                              context,
-                              s,
-                              channels,
-                              filtered,
-                              groups,
-                              settings,
-                              settings.reduceMotion ? 100 : 220,
-                              16.0,
-                              managedGroups,
-                            ),
-                  settings,
-                ),
+              left: portrait ? true : true,
+              right: portrait ? true : true,
+              child: _buildDashboardShell(
+                context,
+                s,
+                16.0,
+                false,
+                _navIndex == 1
+                    ? _buildMovieLibraryContent(context, s, channels, settings)
+                    : filtered.isEmpty
+                        ? _buildEmptyState(s)
+                        : _buildScrollableContent(
+                            context,
+                            s,
+                            channels,
+                            filtered,
+                            groups,
+                            settings,
+                            settings.reduceMotion ? 100 : 220,
+                            16.0,
+                            managedGroups,
+                          ),
+                settings,
+              ),
             ),
           ),
-          bottomNavigationBar: portrait ? _buildBottomNav(s, MediaQuery.paddingOf(context).bottom, settings) : null,
+          bottomNavigationBar: portrait
+              ? _buildBottomNav(s, MediaQuery.paddingOf(context).bottom, settings)
+              : null,
         );
       },
       loading: () => Scaffold(
@@ -696,8 +733,11 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
       );
     }
 
+    // Landscape: side rail + content column.
+    // Wrap content in SafeArea to guard against right-side notch/camera.
     final isTv = landscape && MediaQuery.sizeOf(context).width > 900;
     final contentDir = s.locale.languageCode == 'ckb' ? TextDirection.rtl : TextDirection.ltr;
+    final insets = MediaQuery.paddingOf(context);
     final bodyColumn = Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -714,9 +754,13 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
       children: [
         _buildSideRail(s, false, settings),
         Expanded(
-          child: Directionality(
-            textDirection: contentDir,
-            child: bodyColumn,
+          // Pad right side for potential notch/cutout in landscape
+          child: Padding(
+            padding: EdgeInsets.only(right: insets.right),
+            child: Directionality(
+              textDirection: contentDir,
+              child: bodyColumn,
+            ),
           ),
         ),
       ],
@@ -725,39 +769,119 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
 
   Widget _buildSideRail(AppStrings s, bool isTv, AppSettingsData settings) {
     final bottom = MediaQuery.paddingOf(context).bottom;
-    final railWidth = 100.0;
-    
-    return Container(
-      width: railWidth,
-      margin: const EdgeInsets.fromLTRB(12, 12, 0, 12),
-      child: _glassContainer(
-        borderRadius: BorderRadius.circular(28),
-        blur: 20,
-        child: Padding(
-          padding: EdgeInsets.fromLTRB(6, 30, 6, math.max(bottom, 20)),
-          child: Column(
-            children: [
-              const OpticWordmark(height: 24),
-              const SizedBox(height: 60),
-               _railItem(s, 0, Icons.grid_view_rounded, s.navHome, _navIndex == 0),
-               const SizedBox(height: 16),
-               _railItem(s, 1, Icons.movie_creation_rounded, s.navMovies, _navIndex == 1),
-               const SizedBox(height: 16),
-               _railItem(s, 2, Icons.sports_basketball_rounded, s.navSport, _navIndex == 2),
-               const SizedBox(height: 16),
-               _railItem(s, 3, Icons.person_pin_rounded, s.sectionAbout, _navIndex == 3),
-               const Spacer(),
-               _railItem(s, -1, Icons.settings_suggest_rounded, s.settingsTooltip, false, onTap: _openSettings),
-            ],
+    const railWidth = 100.0;
+    final accent = _accent;
+
+    return AnimatedBuilder(
+      animation: _sidebarShimmerAnim,
+      builder: (context, child) {
+        return Container(
+          width: railWidth,
+          margin: const EdgeInsets.fromLTRB(12, 12, 0, 12),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(28),
+            child: BackdropFilter(
+              filter: ImageFilter.blur(sigmaX: 22, sigmaY: 22),
+              child: Stack(
+                children: [
+                  // ── Frosty base container ─────────────────────────────────
+                  Container(
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(28),
+                      color: Colors.black.withOpacity(0.30),
+                      border: Border.all(
+                        color: Colors.white.withOpacity(0.09),
+                        width: 1,
+                      ),
+                    ),
+                  ),
+                  // ── Palette ambient glow on left edge ─────────────────────
+                  Positioned(
+                    left: -20,
+                    top: 0,
+                    bottom: 0,
+                    child: Opacity(
+                      opacity: 0.12 + (_sidebarShimmerAnim.value * 0.08),
+                      child: Container(
+                        width: 60,
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            begin: Alignment.centerLeft,
+                            end: Alignment.centerRight,
+                            colors: [
+                              accent.withOpacity(0.8),
+                              Colors.transparent,
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                  // ── Shimmer sweep ─────────────────────────────────────────
+                  Positioned.fill(
+                    child: Opacity(
+                      opacity: 0.04 + (_sidebarShimmerAnim.value * 0.04),
+                      child: DecoratedBox(
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(28),
+                          gradient: LinearGradient(
+                            begin: Alignment(
+                              -1.2 + (_sidebarShimmerAnim.value * 2.4),
+                              -1.2,
+                            ),
+                            end: Alignment(
+                              -1.2 + (_sidebarShimmerAnim.value * 2.4) + 0.6,
+                              1.2,
+                            ),
+                            colors: [
+                              Colors.white.withOpacity(0),
+                              Colors.white.withOpacity(0.8),
+                              Colors.white.withOpacity(0),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                  // ── Rail items ────────────────────────────────────────────
+                  Padding(
+                    padding: EdgeInsets.fromLTRB(6, 30, 6, math.max(bottom, 20)),
+                    child: Column(
+                      children: [
+                        const OpticWordmark(height: 24),
+                        const SizedBox(height: 60),
+                        _railItem(s, 0, Icons.grid_view_rounded, s.navHome, _navIndex == 0),
+                        const SizedBox(height: 16),
+                        _railItem(s, 1, Icons.movie_creation_rounded, s.navMovies, _navIndex == 1),
+                        const SizedBox(height: 16),
+                        _railItem(s, 2, Icons.sports_basketball_rounded, s.navSport, _navIndex == 2),
+                        const SizedBox(height: 16),
+                        _railItem(s, 3, Icons.person_pin_rounded, s.sectionAbout, _navIndex == 3),
+                        const Spacer(),
+                        _railItem(s, -1, Icons.settings_suggest_rounded, s.settingsTooltip, false, onTap: _openSettings),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
           ),
-        ),
-      ),
+        );
+      },
     );
   }
 
   Widget _railItem(AppStrings s, int index, IconData icon, String label, bool selected, {VoidCallback? onTap}) {
+    final accent = _accent;
     return GestureDetector(
-      onTap: onTap ?? () => setState(() => _navIndex = index),
+      onTap: () {
+        HapticFeedback.selectionClick();
+        if (onTap != null) {
+          onTap();
+        } else {
+          setState(() => _navIndex = index);
+        }
+      },
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 300),
         curve: Curves.easeOutBack,
@@ -765,21 +889,24 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
         padding: const EdgeInsets.symmetric(vertical: 12),
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(18),
-          color: selected ? _accent.withOpacity(0.15) : Colors.transparent,
+          color: selected ? accent.withOpacity(0.15) : Colors.transparent,
           border: Border.all(
-            color: selected ? _accent : Colors.transparent,
+            color: selected ? accent : Colors.transparent,
             width: 1.5,
           ),
           boxShadow: selected ? [
-            BoxShadow(color: _accent.withOpacity(0.4), blurRadius: 20, spreadRadius: -2),
+            BoxShadow(color: accent.withOpacity(0.45), blurRadius: 22, spreadRadius: -2),
           ] : [],
         ),
         child: Column(
           children: [
             Icon(
-              icon, 
-              color: selected ? _accent : Colors.white.withOpacity(0.4), 
+              icon,
+              color: selected ? accent : Colors.white.withOpacity(0.4),
               size: 28,
+              shadows: selected ? [
+                Shadow(color: accent.withOpacity(0.6), blurRadius: 12),
+              ] : [],
             ),
             const SizedBox(height: 6),
             Text(
@@ -1048,7 +1175,14 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
             ),
           );
         }),
-        const SliverToBoxAdapter(child: SizedBox(height: 120)),
+        // Extra bottom padding: portrait = behind bottom nav, landscape = safe area bottom inset
+        SliverToBoxAdapter(
+          child: Builder(builder: (ctx) {
+            final isLandscape = MediaQuery.orientationOf(ctx) == Orientation.landscape;
+            final insets = MediaQuery.paddingOf(ctx);
+            return SizedBox(height: isLandscape ? math.max(insets.bottom + 20, 40) : 120);
+          }),
+        ),
       ],
     );
   }
@@ -1528,7 +1662,10 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
       borderRadius: kTileRadius,
       child: Focus(
         onFocusChange: (f) {
-           if (f && mounted) setState(() => _focusedChannel = channel);
+           if (f && mounted) {
+             setState(() => _focusedChannel = channel);
+             _extractPalette(channel.logo);
+           }
         },
         child: AnimatedContainer(
           duration: Duration(milliseconds: animMs),
@@ -1632,7 +1769,10 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
       borderRadius: kTileRadius,
       child: Focus(
         onFocusChange: (f) {
-          if (f && mounted) setState(() => _focusedChannel = channel);
+          if (f && mounted) {
+            setState(() => _focusedChannel = channel);
+            _extractPalette(channel.logo);
+          }
         },
         child: Stack(
           fit: StackFit.expand,
@@ -1726,35 +1866,39 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
   }
 
   Widget _buildBottomNav(AppStrings s, double bottomInset, AppSettingsData settings) {
-    final accent = AppTheme.accentColor(settings.gradientPreset);
-    final isKurdish = s.locale.languageCode == 'ckb';
+    final accent = _accent;
 
     return Padding(
-      padding: EdgeInsets.fromLTRB(16, 0, 16, bottomInset > 0 ? bottomInset : 16),
+      padding: EdgeInsets.fromLTRB(12, 0, 12, bottomInset > 0 ? bottomInset : 12),
       child: Container(
-        height: 72,
+        height: 70,
         decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(35),
+          borderRadius: BorderRadius.circular(36),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.5),
-              blurRadius: 25,
-              spreadRadius: -5,
-              offset: const Offset(0, 10),
+              color: Colors.black.withOpacity(0.55),
+              blurRadius: 30,
+              spreadRadius: -6,
+              offset: const Offset(0, 12),
+            ),
+            BoxShadow(
+              color: accent.withOpacity(0.12),
+              blurRadius: 20,
+              spreadRadius: -4,
             ),
           ],
         ),
         child: ClipRRect(
-          borderRadius: BorderRadius.circular(35),
+          borderRadius: BorderRadius.circular(36),
           child: BackdropFilter(
-            filter: ImageFilter.blur(sigmaX: 15, sigmaY: 15),
+            filter: ImageFilter.blur(sigmaX: 18, sigmaY: 18),
             child: Container(
               decoration: BoxDecoration(
-                color: const Color(0xFF0A0E14).withOpacity(0.75),
-                borderRadius: BorderRadius.circular(35),
+                color: const Color(0xFF080C12).withOpacity(0.82),
+                borderRadius: BorderRadius.circular(36),
                 border: Border.all(
-                  color: Colors.white.withOpacity(0.08),
-                  width: 1.5,
+                  color: Colors.white.withOpacity(0.09),
+                  width: 1,
                 ),
               ),
               child: Row(
@@ -1763,7 +1907,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                   _navItem(s, settings, iconActive: Icons.grid_view_rounded, iconInactive: Icons.grid_view_outlined, label: s.navHome, index: 0),
                   _navItem(s, settings, iconActive: Icons.movie_creation_rounded, iconInactive: Icons.movie_creation_outlined, label: s.navMovies, index: 1),
                   _navItem(s, settings, iconActive: Icons.sports_basketball_rounded, iconInactive: Icons.sports_basketball_outlined, label: s.navSport, index: 2),
-                  _navItem(s, settings, iconActive: Icons.person_pin_rounded, iconInactive: Icons.person_pin_outlined, label: 'Profile', index: 3),
+                  _navItem(s, settings, iconActive: Icons.person_rounded, iconInactive: Icons.person_outline_rounded, label: s.navProfile, index: 3),
                 ],
               ),
             ),
@@ -1784,7 +1928,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     bool isTv = false,
   }) {
     final selected = _navIndex == index;
-    final accent = AppTheme.accentColor(settings.gradientPreset);
+    final accent = _accent; // Uses dynamic palette blend
     final color = selected ? accent : (sideRail ? Colors.white.withOpacity(0.52) : Colors.white38);
     final icon = selected ? iconActive : iconInactive;
 
@@ -1794,6 +1938,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
           if (index == -1) {
             _openSettings();
           } else {
+            HapticFeedback.selectionClick();
             setState(() => _navIndex = index);
           }
         },
@@ -1832,7 +1977,10 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     }
 
     return GestureDetector(
-      onTap: () => setState(() => _navIndex = index),
+      onTap: () {
+        HapticFeedback.selectionClick();
+        setState(() => _navIndex = index);
+      },
       behavior: HitTestBehavior.opaque,
       child: SizedBox(
         width: 72,
@@ -1840,49 +1988,55 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
           mainAxisSize: MainAxisSize.min,
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            // Animated Icon with Scale & Color
+            // ── Icon pill with glow background ──────────────────────────
             AnimatedContainer(
-              duration: const Duration(milliseconds: 300),
-              curve: Curves.easeOutBack,
-              transform: Matrix4.identity()..scale(selected ? 1.2 : 1.0),
-              transformAlignment: Alignment.center,
+              duration: const Duration(milliseconds: 320),
+              curve: Curves.easeOutCubic,
+              padding: EdgeInsets.symmetric(horizontal: selected ? 14 : 10, vertical: 6),
+              decoration: BoxDecoration(
+                color: selected ? accent.withOpacity(0.18) : Colors.transparent,
+                borderRadius: BorderRadius.circular(16),
+                boxShadow: selected ? [
+                  BoxShadow(color: accent.withOpacity(0.35), blurRadius: 16, spreadRadius: -2),
+                ] : [],
+              ),
               child: Icon(
                 icon,
                 color: color,
-                size: sideRail ? 28 : 26,
+                size: sideRail ? 28 : 25,
                 shadows: selected ? [
-                  Shadow(color: accent.withOpacity(0.5), blurRadius: 15),
+                  Shadow(color: accent.withOpacity(0.6), blurRadius: 12),
                 ] : [],
               ),
             ),
-            const SizedBox(height: 4),
-            // Animated Label
+            const SizedBox(height: 3),
+            // ── Label ────────────────────────────────────────────────────
             AnimatedDefaultTextStyle(
               duration: const Duration(milliseconds: 200),
               style: AppTheme.withRabarIfKurdish(
                 s.locale,
                 TextStyle(
-                  color: color,
-                  fontSize: selected ? 11 : 10,
-                  fontWeight: selected ? FontWeight.w900 : FontWeight.w500,
-                  letterSpacing: selected ? 0.5 : 0,
+                  color: selected ? Colors.white : Colors.white38,
+                  fontSize: selected ? 10.5 : 9.5,
+                  fontWeight: selected ? FontWeight.w800 : FontWeight.w500,
+                  letterSpacing: selected ? 0.4 : 0,
                 ),
               ),
               child: Text(label, maxLines: 1, overflow: TextOverflow.ellipsis),
             ),
-            const SizedBox(height: 4),
-            // Mova-style indicator dot
+            const SizedBox(height: 3),
+            // ── Active pill indicator ────────────────────────────────────
             AnimatedContainer(
-              duration: const Duration(milliseconds: 300),
+              duration: const Duration(milliseconds: 350),
               curve: Curves.elasticOut,
-              width: selected ? 6 : 0,
-              height: 6,
+              width: selected ? 20 : 0,
+              height: 3,
               decoration: BoxDecoration(
-                color: accent,
-                shape: BoxShape.circle,
-                boxShadow: [
-                  BoxShadow(color: accent.withOpacity(0.6), blurRadius: 8, spreadRadius: 1),
-                ],
+                color: selected ? accent : Colors.transparent,
+                borderRadius: BorderRadius.circular(3),
+                boxShadow: selected ? [
+                  BoxShadow(color: accent.withOpacity(0.7), blurRadius: 6, spreadRadius: 1),
+                ] : [],
               ),
             ),
           ],
@@ -2478,26 +2632,23 @@ class _FeaturedCarouselState extends State<_FeaturedCarousel> {
   @override
   Widget build(BuildContext context) {
     final s = widget.s;
-    return Container(
-      height: 210,
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(24),
-        color: const Color(0xFF0D1118),
-        boxShadow: [
-          BoxShadow(color: Colors.black.withValues(alpha: 0.4), blurRadius: 20, offset: const Offset(0, 10)),
-        ],
-      ),
-      clipBehavior: Clip.antiAlias,
+    final accent = AppTheme.accentColor(widget.gradientPreset);
+
+    return SizedBox(
+      height: 215,
       child: Stack(
+        clipBehavior: Clip.none,
         children: [
+          // ── Slide pages ────────────────────────────────────────────────
           PageView.builder(
             controller: _pageController,
             onPageChanged: _onPageChanged,
             itemCount: widget.slides.length,
+            physics: const BouncingScrollPhysics(),
             itemBuilder: (context, i) {
               final ch = widget.slides[i];
               final hasBackdrop = ch.backdrop != null && ch.backdrop!.isNotEmpty;
-              
+
               return AnimatedBuilder(
                 animation: _pageController,
                 builder: (context, child) {
@@ -2505,18 +2656,12 @@ class _FeaturedCarouselState extends State<_FeaturedCarousel> {
                   if (_pageController.position.haveDimensions) {
                     page = _pageController.page ?? 0.0;
                   }
-                  
-                  final diff = i - page;
-                  final scale = (1.0 - (diff.abs() * 0.18)).clamp(0.75, 1.0);
-                  final opacity = (1.0 - (diff.abs() * 0.5)).clamp(0.0, 1.0);
-                  
-                  // Clean Flat Transformation
-                  final matrix = Matrix4.identity()
-                    ..scale(scale);
-                  
-                  return Transform(
-                    transform: matrix,
-                    alignment: Alignment.center,
+                  final diff = (i - page).abs();
+                  final scale = (1.0 - diff * 0.10).clamp(0.88, 1.0);
+                  final opacity = (1.0 - diff * 0.45).clamp(0.0, 1.0);
+
+                  return Transform.scale(
+                    scale: scale,
                     child: Opacity(
                       opacity: opacity,
                       child: child,
@@ -2524,15 +2669,21 @@ class _FeaturedCarouselState extends State<_FeaturedCarousel> {
                   );
                 },
                 child: Container(
-                  margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                   decoration: BoxDecoration(
                     borderRadius: BorderRadius.circular(24),
                     boxShadow: [
                       BoxShadow(
-                        color: AppTheme.accentColor(widget.gradientPreset).withOpacity(0.15),
-                        blurRadius: 25,
-                        spreadRadius: -5,
-                        offset: const Offset(0, 10),
+                        color: accent.withOpacity(0.18),
+                        blurRadius: 28,
+                        spreadRadius: -6,
+                        offset: const Offset(0, 12),
+                      ),
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.5),
+                        blurRadius: 18,
+                        spreadRadius: -4,
+                        offset: const Offset(0, 8),
                       ),
                     ],
                   ),
@@ -2540,6 +2691,7 @@ class _FeaturedCarouselState extends State<_FeaturedCarousel> {
                   child: Stack(
                     fit: StackFit.expand,
                     children: [
+                      // ── Backdrop image ─────────────────────────────────
                       if (hasBackdrop)
                         ChannelLogoImage(
                           logo: ch.backdrop,
@@ -2551,32 +2703,27 @@ class _FeaturedCarouselState extends State<_FeaturedCarousel> {
                       else
                         _heroFallback(),
 
-                      // Border & Gradient Overlay
+                      // ── Vignette gradient ──────────────────────────────
                       Positioned.fill(
                         child: DecoratedBox(
                           decoration: BoxDecoration(
-                            border: Border.all(
-                              color: Colors.white.withOpacity(0.12),
-                              width: 1.5,
-                            ),
-                            borderRadius: BorderRadius.circular(24),
                             gradient: LinearGradient(
                               begin: Alignment.bottomCenter,
                               end: Alignment.topCenter,
                               colors: [
-                                Colors.black.withOpacity(0.95),
-                                Colors.black.withOpacity(0.4),
-                                Colors.transparent,
+                                Colors.black.withOpacity(0.92),
                                 Colors.black.withOpacity(0.3),
+                                Colors.transparent,
                               ],
-                              stops: const [0.0, 0.45, 0.75, 1.0],
+                              stops: const [0, 0.5, 1.0],
                             ),
                           ),
                         ),
                       ),
-                      
+
+                      // ── Content ────────────────────────────────────────
                       Padding(
-                        padding: const EdgeInsets.fromLTRB(20, 20, 20, 16),
+                        padding: const EdgeInsets.fromLTRB(18, 14, 18, 14),
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
@@ -2597,50 +2744,40 @@ class _FeaturedCarouselState extends State<_FeaturedCarousel> {
                                 ),
                               ),
                             ),
-                            const SizedBox(height: 16),
-                            Align(
-                              alignment: s.locale.languageCode == 'ckb' ? Alignment.centerLeft : Alignment.centerRight,
-                              child: Material(
-                                color: Colors.transparent,
-                                child: InkWell(
-                                  onTap: () => widget.onWatch(ch),
-                                  borderRadius: BorderRadius.circular(16),
-                                  child: Container(
-                                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-                                    decoration: BoxDecoration(
-                                      gradient: LinearGradient(
-                                        colors: [
-                                          Colors.white.withOpacity(0.15),
-                                          Colors.white.withOpacity(0.05),
-                                        ],
-                                      ),
-                                      borderRadius: BorderRadius.circular(16),
-                                      border: Border.all(color: Colors.white.withOpacity(0.2)),
-                                      boxShadow: [
-                                        BoxShadow(
-                                          color: Colors.black.withOpacity(0.2),
-                                          blurRadius: 8,
-                                          offset: const Offset(0, 4),
-                                        ),
-                                      ],
-                                    ),
-                                    child: Row(
-                                      mainAxisSize: MainAxisSize.min,
-                                      children: [
-                                        const Icon(Icons.play_circle_fill_rounded, color: Colors.white, size: 22),
-                                        const SizedBox(width: 10),
-                                        Text(
-                                          s.watchNow, 
-                                          style: const TextStyle(
-                                            color: Colors.white, 
-                                            fontSize: 15, 
-                                            fontWeight: FontWeight.w800,
-                                            letterSpacing: 0.2,
-                                          ),
-                                        ),
-                                      ],
-                                    ),
+                            const SizedBox(height: 12),
+                            GestureDetector(
+                              onTap: () => widget.onWatch(ch),
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                                decoration: BoxDecoration(
+                                  gradient: LinearGradient(
+                                    colors: [accent, accent.withOpacity(0.75)],
                                   ),
+                                  borderRadius: BorderRadius.circular(14),
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: accent.withOpacity(0.45),
+                                      blurRadius: 16,
+                                      spreadRadius: -2,
+                                      offset: const Offset(0, 4),
+                                    ),
+                                  ],
+                                ),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    const Icon(Icons.play_arrow_rounded, color: Colors.white, size: 20),
+                                    const SizedBox(width: 6),
+                                    Text(
+                                      s.watchNow,
+                                      style: const TextStyle(
+                                        color: Colors.white,
+                                        fontSize: 14,
+                                        fontWeight: FontWeight.w900,
+                                        letterSpacing: 0.2,
+                                      ),
+                                    ),
+                                  ],
                                 ),
                               ),
                             ),
@@ -2653,21 +2790,29 @@ class _FeaturedCarouselState extends State<_FeaturedCarousel> {
               );
             },
           ),
+
+          // ── Pill indicator dots ────────────────────────────────────────
           if (widget.slides.length > 1)
             Positioned(
-              bottom: 12, left: 0, right: 0,
+              bottom: 0,
+              left: 0,
+              right: 0,
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: List.generate(
                   widget.slides.length,
                   (i) => AnimatedContainer(
-                    duration: const Duration(milliseconds: 300),
-                    width: _index == i ? 24 : 8,
+                    duration: const Duration(milliseconds: 350),
+                    curve: Curves.easeOutCubic,
+                    width: _index == i ? 22 : 6,
                     height: 4,
-                    margin: const EdgeInsets.symmetric(horizontal: 3),
+                    margin: const EdgeInsets.symmetric(horizontal: 2.5),
                     decoration: BoxDecoration(
-                      color: _index == i ? AppTheme.accentColor(widget.gradientPreset) : Colors.white24,
+                      color: _index == i ? accent : Colors.white24,
                       borderRadius: BorderRadius.circular(4),
+                      boxShadow: _index == i ? [
+                        BoxShadow(color: accent.withOpacity(0.6), blurRadius: 6),
+                      ] : [],
                     ),
                   ),
                 ),

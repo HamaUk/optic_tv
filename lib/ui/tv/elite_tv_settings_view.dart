@@ -48,7 +48,7 @@ class EliteTvSettingsView extends ConsumerWidget {
                       final current = settings.gradientPreset;
                       final next = AppGradientPreset.values[(current.index + 1) % AppGradientPreset.values.length];
                       final newSettings = settings.copyWith(gradientPreset: next);
-                      newSettings.persist().then((_) => ref.invalidate(appUiSettingsProvider));
+                      ref.read(appUiSettingsProvider.notifier).apply(newSettings);
                     },
                   ),
                 ],

@@ -138,7 +138,28 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
     return Directionality(
       textDirection: TextDirection.ltr,
       child: Theme(
-        data: AppTheme.darkTheme,
+        data: AppTheme.darkTheme.copyWith(
+          // Override the global white fillColor for inputs inside admin portal
+          inputDecorationTheme: InputDecorationTheme(
+            filled: true,
+            fillColor: Colors.white.withOpacity(0.06),
+            hintStyle: TextStyle(color: Colors.white.withOpacity(0.35), fontSize: 14),
+            labelStyle: TextStyle(color: Colors.white.withOpacity(0.5), fontSize: 13),
+            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(14),
+              borderSide: BorderSide(color: Colors.white.withOpacity(0.12)),
+            ),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(14),
+              borderSide: BorderSide(color: Colors.white.withOpacity(0.12)),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(14),
+              borderSide: BorderSide(color: AppTheme.primaryGold.withOpacity(0.7), width: 1.5),
+            ),
+          ),
+        ),
         child: Stack(
           children: [
             child,
@@ -1611,12 +1632,26 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
       controller: controller,
       maxLines: maxLines,
       focusNode: focusNode,
+      style: const TextStyle(color: Colors.white, fontSize: 14),
       decoration: InputDecoration(
         labelText: label,
-        prefixIcon: Icon(icon, color: AppTheme.primaryGold.withOpacity(0.8)),
-        border: OutlineInputBorder(borderRadius: BorderRadius.circular(14)),
+        labelStyle: TextStyle(color: Colors.white.withOpacity(0.5), fontSize: 13),
+        prefixIcon: Icon(icon, color: AppTheme.primaryGold.withOpacity(0.8), size: 20),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(14),
+          borderSide: BorderSide(color: Colors.white.withOpacity(0.12)),
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(14),
+          borderSide: BorderSide(color: Colors.white.withOpacity(0.12)),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(14),
+          borderSide: BorderSide(color: AppTheme.primaryGold.withOpacity(0.7), width: 1.5),
+        ),
         filled: true,
-        fillColor: Colors.black.withOpacity(0.2),
+        fillColor: Colors.white.withOpacity(0.06),
+        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
       ),
     );
   }
@@ -1625,11 +1660,26 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
     return TextField(
       controller: c,
       maxLines: maxLines,
-      style: const TextStyle(color: Colors.white),
+      style: const TextStyle(color: Colors.white, fontSize: 14),
       decoration: InputDecoration(
         labelText: label,
-        prefixIcon: Icon(icon, color: AppTheme.primaryGold.withOpacity(0.85)),
-        border: OutlineInputBorder(borderRadius: BorderRadius.circular(14)),
+        labelStyle: TextStyle(color: Colors.white.withOpacity(0.5), fontSize: 13),
+        prefixIcon: Icon(icon, color: AppTheme.primaryGold.withOpacity(0.85), size: 20),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(14),
+          borderSide: BorderSide(color: Colors.white.withOpacity(0.12)),
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(14),
+          borderSide: BorderSide(color: Colors.white.withOpacity(0.12)),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(14),
+          borderSide: BorderSide(color: AppTheme.primaryGold.withOpacity(0.7), width: 1.5),
+        ),
+        filled: true,
+        fillColor: Colors.white.withOpacity(0.06),
+        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
       ),
     );
   }

@@ -54,8 +54,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
 
   Future<void> _apply(AppSettingsData next) async {
     setState(() => _data = next);
-    await next.persist();
-    ref.invalidate(appUiSettingsProvider);
+    await ref.read(appUiSettingsProvider.notifier).apply(next);
   }
 
   Future<void> _confirmClearLibrary(

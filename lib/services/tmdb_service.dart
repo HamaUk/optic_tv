@@ -142,6 +142,38 @@ class TmdbService {
       return [];
     }
   }
+
+  /// Fetch the official YouTube trailer key for a movie.
+  /// Returns the YouTube video key (e.g. "dQw4w9WgXcQ") or null.
+  Future<TmdbVideo?> fetchTrailer(int movieId) async {
+    if (!isConfigured) return null;
+    try {
+      final res = await _dio.get('/movie/$movieId/videos');
+      final results = res.data['results'] as List?;
+      if (results == null || results.isEmpty) return null;
+
+      // Prefer official trailers first, then teasers
+      final videos = results.cast<Map<String, dynamic>>();
+      final trailers = videos.where((v) =>
+          v['site'] == 'YouTube' &&
+          (v['type'] == 'Trailer' || v['type'] == 'Teaser') &&
+          v['official'] == true,
+      ).toList();
+
+      // Fall back to any YouTube video if no official trailer
+      final candidate = trailers.isNotEmpty
+          ? trailers.first
+          : videos.firstWhere(
+              (v) => v['site'] == 'YouTube',
+              orElse: () => {},
+            );
+
+      if (candidate.isEmpty) return null;
+      return TmdbVideo.fromJson(candidate);
+    } catch (_) {
+      return null;
+    }
+  }
 }
 
 class TmdbMovie {
@@ -222,3 +254,31 @@ class TmdbCast {
     );
   }
 }
+
+/// Represents a YouTube video (trailer / teaser) linked to a TMDB movie.
+class TmdbVideo {
+  final String key;
+  final String name;
+  final String type;
+
+  /// Full YouTube embed URL: https://www.youtube.com/embed/{key}
+  String get youtubeUrl => 'https://www.youtube.com/embed/$key?autoplay=1&mute=1&loop=1&playlist=$key&controls=0&showinfo=0&rel=0&modestbranding=1';
+
+  /// Thumbnail image URL for the video.
+  String get thumbnailUrl => 'https://img.youtube.com/vi/$key/maxresdefault.jpg';
+
+  const TmdbVideo({
+    required this.key,
+    required this.name,
+    required this.type,
+  });
+
+  factory TmdbVideo.fromJson(Map<String, dynamic> json) {
+    return TmdbVideo(
+      key: json['key'] as String? ?? '',
+      name: json['name'] as String? ?? '',
+      type: json['type'] as String? ?? '',
+    );
+  }
+}
+
