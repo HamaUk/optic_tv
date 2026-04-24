@@ -3003,9 +3003,11 @@ class _AboutTab extends StatelessWidget {
         // High-visibility snackbar with theme accent
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: const Text(
-              'You are on the latest version',
-              style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+            content: Text(
+              settings.locale.languageCode == 'ckb' 
+                  ? 'تۆ نوێترین وەشانت لایە' 
+                  : 'You are on the latest version',
+              style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
             ),
             backgroundColor: AppTheme.accentColor(settings.gradientPreset),
             duration: const Duration(seconds: 4),
@@ -3046,16 +3048,6 @@ class _AboutTab extends StatelessWidget {
                   ),
                   textAlign: TextAlign.center,
                 ),
-                const SizedBox(height: 20),
-                Text(
-                  "If you encounter any issues or require assistance, please reach out to me directly on Telegram. I am here to help!",
-                  style: const TextStyle(
-                    color: Colors.white70,
-                    fontSize: 14,
-                    height: 1.5,
-                  ),
-                  textAlign: TextAlign.center,
-                ),
                 const SizedBox(height: 24),
                 SizedBox(
                   width: double.infinity,
@@ -3067,9 +3059,9 @@ class _AboutTab extends StatelessWidget {
                     ),
                     onPressed: () => _launchUrl('https://t.me/Opt1c_gh0st'),
                     icon: const Icon(Icons.send_rounded, color: Colors.black),
-                    label: const Text(
-                      'OPT1C TELEGRAM',
-                      style: TextStyle(color: Colors.black, fontWeight: FontWeight.w900, letterSpacing: 1.2),
+                    label: Text(
+                      settings.locale.languageCode == 'ckb' ? 'تێلیگرامی ئۆپتیک' : 'OPT1C TELEGRAM',
+                      style: const TextStyle(color: Colors.black, fontWeight: FontWeight.w900, letterSpacing: 1.2),
                     ),
                   ),
                 ),
@@ -3088,9 +3080,9 @@ class _AboutTab extends StatelessWidget {
               ),
               onPressed: () => _checkUpdate(context),
               icon: const Icon(Icons.system_update_rounded),
-              label: const Text(
-                'CHECK LATEST UPDATE',
-                style: TextStyle(fontWeight: FontWeight.w800, letterSpacing: 1),
+              label: Text(
+                settings.locale.languageCode == 'ckb' ? 'پشکنین بۆ وەشانە نوێکان' : 'CHECK LATEST UPDATE',
+                style: const TextStyle(fontWeight: FontWeight.w800, letterSpacing: 1),
               ),
             ),
           ),

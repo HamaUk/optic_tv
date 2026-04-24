@@ -20,17 +20,17 @@ class AppTheme {
   static const Color accentTeal = Color(0xFFB71C1C); 
   static const Color primaryBlue = Color(0xFFD32F2F); 
   static const Color primaryPurple = Color(0xFFB71C1C); 
-  static const Color backgroundBlack = Color(0xFF121212); // Matte Black
+  static const Color backgroundBlack = Color(0xFF000000); // Pure Matte Black
   static const Color surfaceGray = Color(0xFF1E1E1E);
   static const Color surfaceElevated = Color(0xFF242424);
 
   static Color accentColor(AppGradientPreset p) {
     return switch (p) {
-      AppGradientPreset.classic => const Color(0xFFD32F2F),
-      AppGradientPreset.ocean => const Color(0xFFB71C1C),
-      AppGradientPreset.goldSunset => const Color(0xFF8B0000),
-      AppGradientPreset.violetHaze => const Color(0xFFFF5252),
-      AppGradientPreset.emberGlow => const Color(0xFF7F0000),
+      AppGradientPreset.classic => const Color(0xFFE0E0E0), // Platinum / Silver
+      AppGradientPreset.ocean => const Color(0xFF00D2FF),   // Electric Blue
+      AppGradientPreset.goldSunset => const Color(0xFFFFD700), // Pure Gold
+      AppGradientPreset.violetHaze => const Color(0xFFBF5AF2), // Neon Purple
+      AppGradientPreset.emberGlow => const Color(0xFFFF3B30),  // Vivid Red
     };
   }
 
@@ -104,21 +104,21 @@ class AppTheme {
       ),
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
-        fillColor: Colors.white,
-        hintStyle: const TextStyle(color: Colors.black38, fontSize: 14),
-        labelStyle: const TextStyle(color: Colors.black, fontWeight: FontWeight.bold),
+        fillColor: Colors.white.withOpacity(0.05),
+        hintStyle: TextStyle(color: Colors.white.withOpacity(0.3), fontSize: 14),
+        labelStyle: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
         contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(16),
-          borderSide: BorderSide.none,
+          borderSide: BorderSide(color: Colors.white.withOpacity(0.1)),
         ),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(16),
-          borderSide: BorderSide.none,
+          borderSide: BorderSide(color: Colors.white.withOpacity(0.1)),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(16),
-          borderSide: const BorderSide(color: Color(0xFFD32F2F), width: 2),
+          borderSide: BorderSide(color: accent.withOpacity(0.5), width: 1.5),
         ),
       ),
     );
@@ -129,33 +129,11 @@ class AppTheme {
 
   /// Main dashboard / app shell behind content.
   static LinearGradient shellGradient(AppGradientPreset p) {
-    return switch (p) {
-      AppGradientPreset.classic => const LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [Color(0xFF000000), Color(0xFF1A0000), Color(0xFF000000)],
-        ),
-      AppGradientPreset.ocean => const LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [Color(0xFF000000), Color(0xFF2B0000), Color(0xFF050000)],
-        ),
-      AppGradientPreset.goldSunset => const LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [Color(0xFF000000), Color(0xFF3D0000), Color(0xFF000000)],
-        ),
-      AppGradientPreset.violetHaze => const LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [Color(0xFF000000), Color(0xFF1A0000), Color(0xFF000000)],
-        ),
-      AppGradientPreset.emberGlow => const LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [Color(0xFF000000), Color(0xFF4A0000), Color(0xFF000000)],
-        ),
-    };
+    return const LinearGradient(
+      begin: Alignment.topLeft,
+      end: Alignment.bottomRight,
+      colors: [Color(0xFF000000), Color(0xFF000000), Color(0xFF000000)],
+    );
   }
 
   /// Featured spotlight card on the dashboard.
@@ -172,12 +150,13 @@ class AppTheme {
   }
 
   static LinearGradient settingsBackdropGradient(AppGradientPreset p) {
+    final accent = accentColor(p);
     return LinearGradient(
       begin: Alignment.topCenter,
       end: Alignment.bottomCenter,
       colors: [
         const Color(0xFF000000),
-        const Color(0xFF2A0000).withOpacity(0.9),
+        accent.withOpacity(0.15),
         const Color(0xFF000000),
       ],
     );

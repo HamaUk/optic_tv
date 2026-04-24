@@ -83,7 +83,7 @@ class AppStrings {
   String get navHome => isEnglish ? 'Home' : 'سەرەکی';
   String get navMovies => isEnglish ? 'Movies' : 'فیلمەکان';
   String get navSport => isEnglish ? 'Sport' : 'وەرزش';
-  String get navProfile => isEnglish ? 'Profile' : 'پرۆفایل';
+  String get navProfile => isEnglish ? 'About' : 'دەربارە';
   String get navFavorites => isEnglish ? 'Favorites' : 'دڵخوازەکانم';
   String get navRecent => isEnglish ? 'Recent' : 'بینراوەکانی دوایی';
   String get searchHint => isEnglish ? 'Search channels…' : 'گەڕان بەدوای کەناڵ...';
