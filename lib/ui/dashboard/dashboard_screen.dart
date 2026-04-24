@@ -546,7 +546,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
 
         // About tab: show dedicated screen instead of channel grid.
         if (_navIndex == 3) {
-          final screen = _AboutTab(settings: settings);
+          final screen = _AboutTab(settings: settings, s: s);
 
           return Scaffold(
             backgroundColor: AppTheme.backgroundBlack,
@@ -2980,7 +2980,8 @@ class _MarqueeTextState extends State<_MarqueeText> with SingleTickerProviderSta
 
 class _AboutTab extends StatelessWidget {
   final AppSettingsData settings;
-  const _AboutTab({required this.settings});
+  final AppStrings s;
+  const _AboutTab({required this.settings, required this.s});
 
   Future<void> _launchUrl(String url) async {
     try {
@@ -3004,7 +3005,7 @@ class _AboutTab extends StatelessWidget {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
-              settings.locale.languageCode == 'ckb' 
+              s.locale.languageCode == 'ckb' 
                   ? 'تۆ نوێترین وەشانت لایە' 
                   : 'You are on the latest version',
               style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
@@ -3060,7 +3061,7 @@ class _AboutTab extends StatelessWidget {
                     onPressed: () => _launchUrl('https://t.me/Opt1c_gh0st'),
                     icon: const Icon(Icons.send_rounded, color: Colors.black),
                     label: Text(
-                      settings.locale.languageCode == 'ckb' ? 'تێلیگرامی ئۆپتیک' : 'OPT1C TELEGRAM',
+                      s.locale.languageCode == 'ckb' ? 'تێلیگرامی ئۆپتیک' : 'OPT1C TELEGRAM',
                       style: const TextStyle(color: Colors.black, fontWeight: FontWeight.w900, letterSpacing: 1.2),
                     ),
                   ),
@@ -3081,7 +3082,7 @@ class _AboutTab extends StatelessWidget {
               onPressed: () => _checkUpdate(context),
               icon: const Icon(Icons.system_update_rounded),
               label: Text(
-                settings.locale.languageCode == 'ckb' ? 'پشکنین بۆ وەشانە نوێکان' : 'CHECK LATEST UPDATE',
+                s.locale.languageCode == 'ckb' ? 'پشکنین بۆ وەشانە نوێکان' : 'CHECK LATEST UPDATE',
                 style: const TextStyle(fontWeight: FontWeight.w800, letterSpacing: 1),
               ),
             ),
