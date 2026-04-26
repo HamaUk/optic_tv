@@ -9,6 +9,8 @@ import '../player/fullscreen_player_page.dart';
 import 'widgets/tv_sidebar.dart';
 import 'elite_tv_movies_view.dart';
 import 'elite_tv_settings_view.dart';
+import '../../providers/ui_settings_provider.dart';
+import '../../services/settings_service.dart';
 
 /// The high-performance TV Dashboard using the Grid structure from your reference image.
 /// Isolated for TV use only—never called by the Phone app.
@@ -43,7 +45,7 @@ class _EliteTvDashboardState extends ConsumerState<EliteTvDashboard> {
 
   @override
   Widget build(BuildContext context) {
-    final settings = ref.watch(appUiSettingsProvider).asData?.value ?? const AppSettingsData();
+    final settings = ref.watch(appUiSettingsProvider).asData?.value ?? AppSettingsData();
     final accent = AppTheme.accentColor(settings.gradientPreset);
     final channelsAsync = ref.watch(channelsProvider);
 

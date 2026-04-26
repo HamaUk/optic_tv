@@ -14,6 +14,8 @@ import '../../widgets/channel_logo_image.dart';
 import '../../core/theme.dart';
 import '../../l10n/app_strings.dart';
 import '../../providers/app_locale_provider.dart';
+import '../../providers/ui_settings_provider.dart';
+import '../../services/settings_service.dart';
 
 /// Professional Universal Player Page with isolated Platform HUDs.
 /// - TV: Premium Koya HUD + D-pad Zapping + Quick Zap Sidebar.
@@ -155,7 +157,7 @@ class _FullscreenPlayerPageState extends ConsumerState<FullscreenPlayerPage> {
 
   @override
   Widget build(BuildContext context) {
-    final settings = ref.watch(appUiSettingsProvider).asData?.value ?? const AppSettingsData();
+    final settings = ref.watch(appUiSettingsProvider).asData?.value ?? AppSettingsData();
     final accent = AppTheme.accentColor(settings.gradientPreset);
     final deviceType = ref.watch(deviceTypeProvider).value ?? DeviceType.phone;
     final isTv = deviceType == DeviceType.tv;
@@ -436,7 +438,7 @@ class _FullscreenPlayerPageState extends ConsumerState<FullscreenPlayerPage> {
             ],
           ),
           const Spacer(),
-          const Row(
+          Row(
             children: [
               Icon(Icons.unfold_more, color: accent, size: 20),
               SizedBox(width: 10),

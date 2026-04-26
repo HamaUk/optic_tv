@@ -34,7 +34,7 @@ class TVSidebar extends ConsumerStatefulWidget {
 class _TVSidebarState extends ConsumerState<TVSidebar> {
   @override
   Widget build(BuildContext context) {
-    final settings = ref.watch(appUiSettingsProvider).asData?.value ?? const AppSettingsData();
+    final settings = ref.watch(appUiSettingsProvider).asData?.value ?? AppSettingsData();
     final accent = AppTheme.accentColor(settings.gradientPreset);
     final channelsAsync = ref.watch(channelsProvider);
     
@@ -58,10 +58,10 @@ class _TVSidebarState extends ConsumerState<TVSidebar> {
                     child: Image.asset('assets/images/optic_logo.png', width: 32, height: 32),
                   ),
                   const SizedBox(height: 40),
-                  _buildNavIcon(0, Icons.live_tv, TvNavDestination.live),
-                  _buildNavIcon(1, Icons.movie_filter, TvNavDestination.movies),
-                  _buildNavIcon(2, Icons.search, TvNavDestination.search),
-                  _buildNavIcon(3, Icons.settings, TvNavDestination.settings),
+                  _buildNavIcon(0, Icons.live_tv, TvNavDestination.live, accent),
+                  _buildNavIcon(1, Icons.movie_filter, TvNavDestination.movies, accent),
+                  _buildNavIcon(2, Icons.search, TvNavDestination.search, accent),
+                  _buildNavIcon(3, Icons.settings, TvNavDestination.settings, accent),
                 ],
               ),
             ),
@@ -85,7 +85,7 @@ class _TVSidebarState extends ConsumerState<TVSidebar> {
                   ),
                   Expanded(
                     child: channelsAsync.when(
-                      data: (channels) => _buildCategoryList(channels),
+                      data: (channels) => _buildCategoryList(channels, accent),
                       loading: () => Center(child: CircularProgressIndicator(color: accent)),
                       error: (_, __) => const SizedBox(),
                     ),
@@ -107,7 +107,7 @@ class _TVSidebarState extends ConsumerState<TVSidebar> {
     );
   }
 
-  Widget _buildNavIcon(int index, IconData icon, TvNavDestination dest) {
+  Widget _buildNavIcon(int index, IconData icon, TvNavDestination dest, Color accent) {
     final isSelected = widget.selectedDestination == dest;
     return TVFocusable(
       onSelect: () => widget.onDestinationSelected(dest),
@@ -131,7 +131,7 @@ class _TVSidebarState extends ConsumerState<TVSidebar> {
     );
   }
 
-  Widget _buildCategoryList(List<Channel> channels) {
+  Widget _buildCategoryList(List<Channel> channels, Color accent) {
     final counts = <String, int>{};
     for (var c in channels) {
       if (widget.selectedDestination == TvNavDestination.movies && c.type != 'movie') continue;
@@ -145,15 +145,15 @@ class _TVSidebarState extends ConsumerState<TVSidebar> {
     return ListView(
       padding: const EdgeInsets.symmetric(horizontal: 12),
       children: [
-        _buildCategoryItem('All Channels', allCount, isAll: true),
+        _buildCategoryItem('All Channels', allCount, accent, isAll: true),
         const Divider(color: Colors.white10, height: 20),
         for (var cat in sortedCategories)
-          _buildCategoryItem(cat, counts[cat]!),
+          _buildCategoryItem(cat, counts[cat]!, accent),
       ],
     );
   }
 
-  Widget _buildCategoryItem(String name, int count, {bool isAll = false}) {
+  Widget _buildCategoryItem(String name, int count, Color accent, {bool isAll = false}) {
     final isSelected = (isAll && widget.selectedCategory == null) || (widget.selectedCategory == name);
     
     return Padding(
