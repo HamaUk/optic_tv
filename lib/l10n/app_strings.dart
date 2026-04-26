@@ -11,7 +11,7 @@ class AppStrings {
 
   bool get isEnglish => locale.languageCode == 'en';
 
-  String get loginTitle => isEnglish ? 'Welcome back' : 'بەخێربێیتەوە';
+  String get loginTitle => isEnglish ? 'Welcome' : 'بەخێربێیت';
   String get loginSubtitle =>
       isEnglish ? 'Enter your access code to continue' : 'تکایە کۆدی چوونەژوورەوە بنووسە بۆ بەردەوامبوون';
   String get loginHint => '☆☆☆☆☆☆';
@@ -41,11 +41,11 @@ class AppStrings {
   String get sectionGradientTheme => isEnglish ? 'Theme & backdrop' : 'شێوازی ڕەنگ و پاشبنە';
   String get gradientThemeCaption =>
       isEnglish ? 'Gradient look for dashboard and this screen' : 'شێوازی ڕەنگیزە بۆ داشبۆرد و ئەم شاشەیە';
-  String get gradientClassic => isEnglish ? 'Midnight (default)' : 'نیوەشەو (بنەڕەتی)';
+  String get gradientClassic => isEnglish ? 'Midnight' : 'نیوەشەو';
   String get gradientOcean => isEnglish ? 'Ocean abyss' : 'قووڵایی ئۆقیانوس';
   String get gradientGold => isEnglish ? 'Gold sunset' : 'ئاسۆیی زێڕین';
   String get gradientViolet => isEnglish ? 'Violet haze' : 'تەمومژی مۆر';
-  String get gradientEmber => isEnglish ? 'Ember glow' : 'گەشیی پۆلێتی';
+  String get gradientEmber => isEnglish ? 'Ember glow (default)' : 'گەشیی پۆلێتی (بنەڕەتی)';
   String get sectionLanguage => isEnglish ? 'Language' : 'زمانەکان';
   String get sectionAccount => isEnglish ? 'Account' : 'هەژمار';
   String get sectionAbout => isEnglish ? 'About' : 'دەربارە';

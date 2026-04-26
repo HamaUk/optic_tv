@@ -34,6 +34,8 @@ class TVSidebar extends ConsumerStatefulWidget {
 class _TVSidebarState extends ConsumerState<TVSidebar> {
   @override
   Widget build(BuildContext context) {
+    final settings = ref.watch(appUiSettingsProvider).asData?.value ?? const AppSettingsData();
+    final accent = AppTheme.accentColor(settings.gradientPreset);
     final channelsAsync = ref.watch(channelsProvider);
     
     const navWidth = 64.0;
@@ -78,13 +80,13 @@ class _TVSidebarState extends ConsumerState<TVSidebar> {
                     padding: const EdgeInsets.fromLTRB(24, 40, 24, 20),
                     child: Text(
                       widget.selectedDestination.name.toUpperCase(),
-                      style: const TextStyle(color: AppTheme.primaryGold, letterSpacing: 2, fontWeight: FontWeight.bold, fontSize: 14),
+                      style: TextStyle(color: accent, letterSpacing: 2, fontWeight: FontWeight.bold, fontSize: 14),
                     ),
                   ),
                   Expanded(
                     child: channelsAsync.when(
                       data: (channels) => _buildCategoryList(channels),
-                      loading: () => const Center(child: CircularProgressIndicator(color: AppTheme.primaryGold)),
+                      loading: () => Center(child: CircularProgressIndicator(color: accent)),
                       error: (_, __) => const SizedBox(),
                     ),
                   ),
@@ -115,12 +117,12 @@ class _TVSidebarState extends ConsumerState<TVSidebar> {
           height: 64,
           width: 64,
           decoration: BoxDecoration(
-            border: isFocused ? const Border(left: BorderSide(color: AppTheme.primaryGold, width: 4)) : null,
+            border: isFocused ? Border(left: BorderSide(color: accent, width: 4)) : null,
             color: isFocused ? Colors.white10 : Colors.transparent,
           ),
           child: Icon(
             icon,
-            color: isFocused || isSelected ? AppTheme.primaryGold : Colors.white24,
+            color: isFocused || isSelected ? accent : Colors.white24,
             size: 28,
           ),
         );
@@ -164,9 +166,9 @@ class _TVSidebarState extends ConsumerState<TVSidebar> {
           return Container(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
             decoration: BoxDecoration(
-              color: isFocused ? AppTheme.primaryGold.withOpacity(0.1) : (isSelected ? Colors.white10 : Colors.transparent),
+              color: isFocused ? accent.withOpacity(0.1) : (isSelected ? Colors.white10 : Colors.transparent),
               borderRadius: BorderRadius.circular(8),
-              border: isFocused ? Border.all(color: AppTheme.primaryGold, width: 2) : null,
+              border: isFocused ? Border.all(color: accent, width: 2) : null,
             ),
             child: Row(
               children: [
@@ -183,12 +185,12 @@ class _TVSidebarState extends ConsumerState<TVSidebar> {
                   ),
                 ),
                 if (isSelected && !isFocused)
-                  const Icon(Icons.arrow_forward_ios, color: AppTheme.primaryGold, size: 10),
+                  Icon(Icons.arrow_forward_ios, color: accent, size: 10),
                 const SizedBox(width: 8),
                 Text(
                   count.toString(),
                   style: TextStyle(
-                    color: active ? AppTheme.primaryGold : Colors.white24,
+                    color: active ? accent : Colors.white24,
                     fontSize: 12,
                   ),
                 ),

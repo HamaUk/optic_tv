@@ -74,15 +74,8 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
   late Animation<double> _sidebarShimmerAnim;
 
   Color get _accent {
-    // If we have a meaningful dynamic palette accent, use it blended with the
-    // static preset so the sidebar glow adapts to the focused content.
-    final settings = ref.read(appUiSettingsProvider);
-    final staticAccent = settings.when(
-      data: (data) => AppTheme.accentColor(data.gradientPreset),
-      loading: () => AppTheme.accentColor(AppGradientPreset.classic),
-      error: (_, __) => AppTheme.accentColor(AppGradientPreset.classic),
-    );
-    // Blend: 50 % static + 50 % dynamic to keep the brand colour present
+    final settings = ref.watch(appUiSettingsProvider).asData?.value ?? const AppSettingsData();
+    final staticAccent = AppTheme.accentColor(settings.gradientPreset);
     return Color.lerp(staticAccent, _dynamicPalette.accent, 0.45) ?? staticAccent;
   }
 
@@ -595,7 +588,8 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
                     child: switch (_tvTabIndex) {
                       0 => _buildTvLiveTvTab(s, all, favorites, settings),
                       1 => _buildTvMoviesTab(s, all, favorites, settings),
-                      2 => _buildTvFavoritesTab(s, favorites, settings),
+                      2 => _buildTvSportTab(s, all, favorites, settings),
+                      3 => _buildTvFavoritesTab(s, favorites, settings),
                       _ => const SizedBox(),
                     },
                   ),
@@ -1470,7 +1464,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
                         child: Container(
                           padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
                           decoration: BoxDecoration(
-                            color: AppTheme.primaryGold,
+                            color: _accent,
                             borderRadius: BorderRadius.circular(14),
                           ),
                           child: Row(
@@ -1859,7 +1853,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
         child: Icon(
           Icons.movie_rounded,
           size: 40,
-          color: AppTheme.primaryGold.withOpacity(0.2),
+          color: _accent.withOpacity(0.2),
         ),
       ),
     );
@@ -2090,7 +2084,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
   PreferredSizeWidget _buildTvTopAppbar(AppStrings s, AppSettingsData settings) {
     return _GhostenTvAppBar(
       activeIndex: _tvTabIndex,
-      tabs: const ['Live TV', 'Movies', 'Favorites'],
+      tabs: [s.navHome, s.navMovies, s.navSport, s.navFavorites],
       onTabChange: (i) {
         setState(() {
           _tvTabReverse = i < _tvTabIndex;
@@ -2106,12 +2100,18 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
   }
 
   Widget _buildTvLiveTvTab(AppStrings s, List<Channel> all, List<Channel> favs, AppSettingsData settings) {
-    final live = all.where((c) => !_isMovieChannel(c)).toList();
+    // Exclude both Movies and Sports from the general Live TV tab to keep categories clean
+    final live = all.where((c) => !_isMovieChannel(c) && !_isSportChannel(c)).toList();
     return _buildTvDualPaneView(s, live, settings);
   }
 
   Widget _buildTvMoviesTab(AppStrings s, List<Channel> all, List<Channel> favs, AppSettingsData settings) {
     return _buildMovieLibraryContent(context, s, all, settings);
+  }
+
+  Widget _buildTvSportTab(AppStrings s, List<Channel> all, List<Channel> favs, AppSettingsData settings) {
+    final sport = all.where(_isSportChannel).toList();
+    return _buildTvDualPaneView(s, sport, settings);
   }
 
   Widget _buildTvFavoritesTab(AppStrings s, List<Channel> favs, AppSettingsData settings) {

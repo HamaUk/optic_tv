@@ -319,13 +319,13 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
       child: TextField(
         controller: controller,
         obscureText: obscure,
-        style: const TextStyle(color: Colors.black, fontSize: 18, fontWeight: FontWeight.w900, letterSpacing: 1),
+        style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.w900, letterSpacing: 1),
         decoration: InputDecoration(
           hintText: hint.toUpperCase(),
-          hintStyle: const TextStyle(color: Colors.black26, letterSpacing: 1, fontSize: 12, fontWeight: FontWeight.w900),
+          hintStyle: const TextStyle(color: Colors.white38, letterSpacing: 1, fontSize: 12, fontWeight: FontWeight.w900),
           prefixIcon: Icon(icon, color: AppTheme.primaryGold),
           filled: true,
-          fillColor: Colors.white,
+          fillColor: Colors.black.withOpacity(0.3),
           border: OutlineInputBorder(
             borderRadius: BorderRadius.circular(24),
             borderSide: BorderSide.none,
@@ -421,7 +421,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
           height: 120,
           width: double.infinity,
           decoration: BoxDecoration(
-            color: Colors.white,
+            color: Colors.black.withOpacity(0.3),
             borderRadius: BorderRadius.circular(30),
             boxShadow: [
               BoxShadow(
@@ -435,7 +435,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
             child: value.text.isEmpty
                 ? Text(
                     s.loginHint.toUpperCase(),
-                    style: TextStyle(color: Colors.black.withOpacity(0.1), fontSize: 24, fontWeight: FontWeight.w900, letterSpacing: 8),
+                    style: TextStyle(color: Colors.white.withOpacity(0.15), fontSize: 24, fontWeight: FontWeight.w900, letterSpacing: 8),
                   )
                 : Row(
                     mainAxisAlignment: MainAxisAlignment.center,
@@ -446,7 +446,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
                         width: 24,
                         height: 24,
                         decoration: const BoxDecoration(
-                          color: Colors.black,
+                          color: Colors.white,
                           shape: BoxShape.circle,
                         ),
                       ),

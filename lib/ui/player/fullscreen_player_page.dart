@@ -155,6 +155,8 @@ class _FullscreenPlayerPageState extends ConsumerState<FullscreenPlayerPage> {
 
   @override
   Widget build(BuildContext context) {
+    final settings = ref.watch(appUiSettingsProvider).asData?.value ?? const AppSettingsData();
+    final accent = AppTheme.accentColor(settings.gradientPreset);
     final deviceType = ref.watch(deviceTypeProvider).value ?? DeviceType.phone;
     final isTv = deviceType == DeviceType.tv;
 
@@ -238,7 +240,7 @@ class _FullscreenPlayerPageState extends ConsumerState<FullscreenPlayerPage> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(_currentChannel.group.toUpperCase(), style: const TextStyle(color: AppTheme.primaryGold, fontWeight: FontWeight.w900, fontSize: 13, letterSpacing: 3)),
+        Text(_currentChannel.group.toUpperCase(), style: TextStyle(color: accent, fontWeight: FontWeight.w900, fontSize: 13, letterSpacing: 3)),
         Text(_currentChannel.name.toUpperCase(), style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 24, letterSpacing: 1)),
       ],
     );
@@ -271,7 +273,7 @@ class _FullscreenPlayerPageState extends ConsumerState<FullscreenPlayerPage> {
                 child: Container(
                   height: 54,
                   alignment: Alignment.center,
-                  color: selected ? AppTheme.primaryGold.withOpacity(0.15) : Colors.transparent,
+                  color: selected ? accent.withOpacity(0.15) : Colors.transparent,
                   child: Text(
                     g.toUpperCase(),
                     style: TextStyle(
@@ -310,7 +312,7 @@ class _FullscreenPlayerPageState extends ConsumerState<FullscreenPlayerPage> {
                   decoration: BoxDecoration(
                     color: active ? Colors.white.withOpacity(0.08) : Colors.transparent,
                     borderRadius: BorderRadius.circular(14),
-                    border: Border.all(color: active ? AppTheme.primaryGold.withOpacity(0.3) : Colors.transparent),
+                    border: Border.all(color: active ? accent.withOpacity(0.3) : Colors.transparent),
                   ),
                   child: Row(
                     children: [
@@ -322,7 +324,7 @@ class _FullscreenPlayerPageState extends ConsumerState<FullscreenPlayerPage> {
                           style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13),
                         ),
                       ),
-                      if (active) const Icon(Icons.graphic_eq_rounded, color: AppTheme.primaryGold, size: 16),
+                      if (active) Icon(Icons.graphic_eq_rounded, color: accent, size: 16),
                     ],
                   ),
                 ),
@@ -427,7 +429,7 @@ class _FullscreenPlayerPageState extends ConsumerState<FullscreenPlayerPage> {
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(_currentChannel.group.toUpperCase(), style: const TextStyle(color: AppTheme.primaryGold, letterSpacing: 2, fontSize: 12)),
+                  Text(_currentChannel.group.toUpperCase(), style: TextStyle(color: accent, letterSpacing: 2, fontSize: 12)),
                   Text(_currentChannel.name, style: const TextStyle(color: Colors.white, fontSize: 32, fontWeight: FontWeight.bold)),
                 ],
               ),
@@ -436,11 +438,11 @@ class _FullscreenPlayerPageState extends ConsumerState<FullscreenPlayerPage> {
           const Spacer(),
           const Row(
             children: [
-              Icon(Icons.unfold_more, color: AppTheme.primaryGold, size: 20),
+              Icon(Icons.unfold_more, color: accent, size: 20),
               SizedBox(width: 10),
               Text('ZAP: UP/DOWN', style: TextStyle(color: Colors.white54, fontSize: 14)),
               SizedBox(width: 40),
-              Icon(Icons.list, color: AppTheme.primaryGold, size: 20),
+              Icon(Icons.list, color: accent, size: 20),
               SizedBox(width: 10),
               Text('CHANNELS: OK', style: TextStyle(color: Colors.white54, fontSize: 14)),
             ],
@@ -483,15 +485,15 @@ class _FullscreenPlayerPageState extends ConsumerState<FullscreenPlayerPage> {
                       return Container(
                         padding: const EdgeInsets.all(15),
                         decoration: BoxDecoration(
-                          color: isFocused ? AppTheme.primaryGold.withOpacity(0.1) : Colors.transparent,
-                          border: isCurrent ? const Border(left: BorderSide(color: AppTheme.primaryGold, width: 4)) : null,
+                          color: isFocused ? accent.withOpacity(0.1) : Colors.transparent,
+                          border: isCurrent ? Border(left: BorderSide(color: accent, width: 4)) : null,
                         ),
                         child: Row(
                           children: [
                             Text('${index + 1}', style: const TextStyle(color: Colors.white24, fontSize: 12)),
                             const SizedBox(width: 15),
                             Expanded(child: Text(ch.name, style: TextStyle(color: isFocused ? Colors.white : Colors.white70))),
-                            if (isCurrent) const Icon(Icons.play_arrow, color: AppTheme.primaryGold, size: 16),
+                            if (isCurrent) Icon(Icons.play_arrow, color: accent, size: 16),
                           ],
                         ),
                       );

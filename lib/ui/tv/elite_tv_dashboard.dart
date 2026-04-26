@@ -43,6 +43,8 @@ class _EliteTvDashboardState extends ConsumerState<EliteTvDashboard> {
 
   @override
   Widget build(BuildContext context) {
+    final settings = ref.watch(appUiSettingsProvider).asData?.value ?? const AppSettingsData();
+    final accent = AppTheme.accentColor(settings.gradientPreset);
     final channelsAsync = ref.watch(channelsProvider);
 
     return Scaffold(
@@ -56,7 +58,7 @@ class _EliteTvDashboardState extends ConsumerState<EliteTvDashboard> {
         selectedCategory: _selectedCategory,
         onCategorySelected: (cat) => setState(() => _selectedCategory = cat),
         child: channelsAsync.when(
-          loading: () => const Center(child: CircularProgressIndicator(color: AppTheme.primaryGold)),
+          loading: () => Center(child: CircularProgressIndicator(color: accent)),
           error: (err, stack) => Center(child: Text('Error: $err', style: const TextStyle(color: Colors.white))),
           data: (channels) {
             switch (_selectedDest) {
