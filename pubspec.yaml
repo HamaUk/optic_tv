@@ -73,15 +73,16 @@ dev_dependencies:
 flutter_launcher_icons:
   android: true
   ios: true
-  image_path: assets/images/optic_logo.png
+  image_path: assets/images/newiconapp.jpg
   adaptive_icon_background: "#000000"
-  adaptive_icon_foreground: assets/images/optic_logo.png
+  adaptive_icon_foreground: assets/images/newiconapp.jpg
   remove_alpha_ios: true
 
 flutter:
   uses-material-design: true
   assets:
     - assets/images/optic_logo.png
+    - assets/images/newiconapp.jpg
   fonts:
     - family: Rabar
       fonts:
