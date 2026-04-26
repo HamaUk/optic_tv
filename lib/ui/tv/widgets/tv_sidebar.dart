@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../services/playlist_service.dart';
 import '../../../widgets/tv/tv_focusable.dart';
 import '../../../core/theme.dart';
+import '../../../services/settings_service.dart';
 import '../../../../providers/app_locale_provider.dart';
 import '../../../../providers/ui_settings_provider.dart';
 

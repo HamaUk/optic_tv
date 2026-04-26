@@ -189,11 +189,11 @@ class _FullscreenPlayerPageState extends ConsumerState<FullscreenPlayerPage> {
                 AnimatedOpacity(
                   opacity: _overlayVisible ? 1.0 : 0.0,
                   duration: const Duration(milliseconds: 300),
-                  child: isTv ? _buildTvHud() : _buildNanoOverlay(),
+                  child: isTv ? _buildTvHud(accent) : _buildNanoOverlay(accent),
                 ),
 
               // QUICK ZAP OVERLAY (TV Only)
-              if (isTv && _zapListVisible) _buildQuickZap(),
+              if (isTv && _zapListVisible) _buildQuickZap(accent),
 
               // GESTURE OSD (Mobile Only)
               if (!isTv && _osdLabel != null) Center(child: _buildOSDIndicator()),
@@ -208,7 +208,7 @@ class _FullscreenPlayerPageState extends ConsumerState<FullscreenPlayerPage> {
   // RESTORED NANO BANANA MOBILE HUD
   // ==========================================
 
-  Widget _buildNanoOverlay() {
+  Widget _buildNanoOverlay(Color accent) {
     return Container(
       decoration: BoxDecoration(
         gradient: LinearGradient(
@@ -220,9 +220,9 @@ class _FullscreenPlayerPageState extends ConsumerState<FullscreenPlayerPage> {
       child: Stack(
         children: [
           Positioned(top: 40, right: 40, child: _buildAmbientClock()),
-          Positioned(top: 40, left: 160, child: _buildCurrentInfo()),
+          Positioned(top: 40, left: 160, child: _buildCurrentInfo(accent)),
 
-          _buildProZapArea(),
+          _buildProZapArea(accent),
 
           Positioned(
             right: 40,
@@ -238,7 +238,7 @@ class _FullscreenPlayerPageState extends ConsumerState<FullscreenPlayerPage> {
     );
   }
 
-  Widget _buildCurrentInfo() {
+  Widget _buildCurrentInfo(Color accent) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -248,7 +248,7 @@ class _FullscreenPlayerPageState extends ConsumerState<FullscreenPlayerPage> {
     );
   }
 
-  Widget _buildProZapArea() {
+  Widget _buildProZapArea(Color accent) {
     final groups = widget.channels.map((e) => e.group).toSet().toList()..sort();
     final channelsInGroup = widget.channels.where((c) => c.group == _selectedGroup).toList();
 
@@ -397,7 +397,7 @@ class _FullscreenPlayerPageState extends ConsumerState<FullscreenPlayerPage> {
   // PREMIUM KOYA TV HUD
   // ==========================================
 
-  Widget _buildTvHud() {
+  Widget _buildTvHud(Color accent) {
     return Container(
       decoration: BoxDecoration(
         gradient: LinearGradient(
@@ -454,7 +454,7 @@ class _FullscreenPlayerPageState extends ConsumerState<FullscreenPlayerPage> {
     );
   }
 
-  Widget _buildQuickZap() {
+  Widget _buildQuickZap(Color accent) {
     return Positioned(
       left: 0,
       top: 0,
@@ -468,9 +468,9 @@ class _FullscreenPlayerPageState extends ConsumerState<FullscreenPlayerPage> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Padding(
+            Padding(
               padding: EdgeInsets.fromLTRB(30, 50, 30, 20),
-              child: Text('QUICK ZAP', style: TextStyle(color: AppTheme.primaryGold, letterSpacing: 4, fontWeight: FontWeight.bold)),
+              child: Text('QUICK ZAP', style: TextStyle(color: accent, letterSpacing: 4, fontWeight: FontWeight.bold)),
             ),
             Expanded(
               child: ListView.builder(
