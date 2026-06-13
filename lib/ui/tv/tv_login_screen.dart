@@ -86,7 +86,7 @@ class _TvLoginScreenState extends ConsumerState<TvLoginScreen> {
             child: Opacity(
               opacity: 0.3,
               child: Image.asset(
-                'assets/images/optic_logo.png',
+                'assets/images/kobani4k_icon.png',
                 fit: BoxFit.cover,
                 color: Colors.black.withOpacity(0.9),
                 colorBlendMode: BlendMode.darken,

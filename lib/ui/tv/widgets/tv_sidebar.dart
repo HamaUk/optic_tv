@@ -56,7 +56,7 @@ class _TVSidebarState extends ConsumerState<TVSidebar> {
                   const SizedBox(height: 32),
                   ClipRRect(
                     borderRadius: BorderRadius.circular(8),
-                    child: Image.asset('assets/images/optic_logo.png', width: 32, height: 32),
+                    child: Image.asset('assets/images/kobani4k_icon.png', width: 32, height: 32),
                   ),
                   const SizedBox(height: 40),
                   _buildNavIcon(0, Icons.live_tv, TvNavDestination.live, accent),
