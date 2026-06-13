@@ -73,9 +73,9 @@ dev_dependencies:
 flutter_launcher_icons:
   android: true
   ios: true
-  image_path: assets/images/newiconapp.jpg
+  image_path: assets/images/kobani4k_icon.png
   adaptive_icon_background: "#000000"
-  adaptive_icon_foreground: assets/images/newiconapp.jpg
+  adaptive_icon_foreground: assets/images/kobani4k_icon.png
   remove_alpha_ios: true
 
 flutter:
@@ -83,6 +83,7 @@ flutter:
   assets:
     - assets/images/optic_logo.png
     - assets/images/newiconapp.jpg
+    - assets/images/kobani4k_icon.png
   fonts:
     - family: Rabar
       fonts:
