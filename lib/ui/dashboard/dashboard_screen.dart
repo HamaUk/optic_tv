@@ -643,48 +643,8 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
               : null,
         );
       },
-      loading: () => Scaffold(
+      loading: () => const Scaffold(
         backgroundColor: AppTheme.backgroundBlack,
-        body: Center(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              OpticWordmark(height: 46),
-              const SizedBox(height: 40),
-              Container(
-                width: 220,
-                height: 5,
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(5),
-                  boxShadow: [
-                    BoxShadow(
-                      color: AppTheme.accentTeal.withOpacity(0.6),
-                      blurRadius: 12,
-                      offset: const Offset(0, 0),
-                    ),
-                  ],
-                ),
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(5),
-                  child: const LinearProgressIndicator(
-                    backgroundColor: Colors.white10,
-                    valueColor: AlwaysStoppedAnimation<Color>(AppTheme.accentTeal),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 28),
-              Text(
-                'Loading your entertainment...',
-                style: TextStyle(
-                  color: Colors.white.withOpacity(0.6),
-                  fontWeight: FontWeight.w500,
-                  letterSpacing: 1.5,
-                  fontSize: 14,
-                ),
-              ),
-            ],
-          ),
-        ),
       ),
       error: (e, _) => Scaffold(
         backgroundColor: AppTheme.backgroundBlack,
@@ -3094,7 +3054,7 @@ class _AboutTab extends StatelessWidget {
           ),
           const SizedBox(height: 8),
           Text(
-            '© 2026 Optic TV. All rights reserved.',
+            '© 2026 KOBANI 4K. All rights reserved.',
             style: TextStyle(color: Colors.white10, fontSize: 10),
           ),
         ],

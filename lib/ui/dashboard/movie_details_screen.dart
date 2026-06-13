@@ -109,7 +109,7 @@ class _MovieDetailsScreenState extends ConsumerState<MovieDetailsScreen>
       context,
       MaterialPageRoute(
         builder: (_) {
-          final p = Player(configuration: const PlayerConfiguration(title: 'Optic TV Movie'));
+          final p = Player(configuration: const PlayerConfiguration(title: 'KOBANI 4K Movie'));
           final vc = VideoController(p, configuration: const VideoControllerConfiguration(enableHardwareAcceleration: true));
           p.open(Media(widget.channel.url));
           return MoviePlayerPage(

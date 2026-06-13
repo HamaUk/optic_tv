@@ -25,7 +25,7 @@ class OpticWordmark extends StatelessWidget {
         stops: [0.0, 0.5, 1.0],
       ).createShader(bounds),
       child: Text(
-        'OPTIC',
+        'KOBANI 4K',
         textAlign: TextAlign.center,
         style: GoogleFonts.orbitron(
           fontSize: fontSize,

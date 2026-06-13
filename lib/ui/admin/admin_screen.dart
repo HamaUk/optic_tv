@@ -465,7 +465,7 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
       await file.writeAsString(jsonStr);
       await Share.shareXFiles(
         [XFile(file.path, mimeType: 'application/json', name: 'optic_tv_library_$day.json')],
-        subject: 'Optic TV library backup',
+        subject: 'KOBANI 4K library backup',
         text: 'Channels, groups & movies (all playlist data). Keep this file safe.',
       );
       if (mounted) _snack('Share sheet opened — save to Downloads, Drive, or Files.');

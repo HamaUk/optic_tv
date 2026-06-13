@@ -21,7 +21,7 @@ class AppStrings {
   String get loginErrorNetwork =>
       isEnglish ? 'Check connection and try again' : 'پەیوەندی ئینتەرنێت بپشکنە و دووبارە هەوڵبدەوە';
 
-  String get appBrand => 'OPTIC TV';
+  String get appBrand => 'KOBANI 4K';
   String get appTagline => isEnglish ? 'Premium entertainment' : 'جیهانێک لە کاتبەسەربردن';
   String get noChannels => isEnglish ? 'No channels yet' : 'هیچ کەناڵێک بەردەست نییە';
   String get noChannelsHint =>
@@ -68,7 +68,7 @@ class AppStrings {
       isEnglish ? 'Clear login on this device' : 'سڕینەوەی هەژمار لەسەر ئەم ئامێرە';
   String get logoutButton => isEnglish ? 'Sign out' : 'چوونەدەرەوە';
 
-  String get aboutTitle => isEnglish ? 'Optic TV' : 'Optic TV';
+  String get aboutTitle => isEnglish ? 'KOBANI 4K' : 'KOBANI 4K';
   String get aboutSub => isEnglish ? 'Version 1.0.0 · IPTV' : 'وەشانی ١.٠.٠ · IPTV';
 
   String get langEnglish => 'English';

@@ -248,7 +248,7 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
     await old?.dispose();
 
     final p = Player(configuration: const PlayerConfiguration(
-      title: 'Optic TV',
+      title: 'KOBANI 4K',
     ));
     _player = p;
 

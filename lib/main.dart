@@ -111,7 +111,7 @@ class _OpticTvAppState extends ConsumerState<OpticTvApp> {
     final deviceType = deviceTypeAsync.asData?.value ?? DeviceType.phone;
 
     return MaterialApp(
-      title: 'Optic TV',
+      title: 'KOBANI 4K',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.darkThemeForUi(uiLocale, settings.gradientPreset),
       locale: const Locale('en'),

@@ -13,7 +13,7 @@
     <uses-feature android:name="android.hardware.type.television" android:required="false" />
 
     <application
-        android:label="Optic TV"
+        android:label="KOBANI 4K"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher"
         android:banner="@mipmap/ic_launcher"
