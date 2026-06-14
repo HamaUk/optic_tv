@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:math' as math;
+import '../../services/viewer_service.dart';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
@@ -146,6 +147,7 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
       _activePanel.addListener(_onPanelChanged);
       _configureNativePlayer();
       _startTechInfoTicker();
+      ref.read(viewerServiceProvider).joinChannel(_current.url);
     });
   }
 
@@ -196,8 +198,9 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
 
   void _configureNativePlayer() {
     // Advanced Media Engine Optimization for Fast Start & High Stability
+    if (kIsWeb) return;
     if (_player?.platform is NativePlayer) {
-      final native = _player!.platform as NativePlayer;
+      final native = _player!.platform as dynamic;
       Future<void> set(String k, String v) async {
         try { await native.setProperty(k, v); } catch (_) {}
       }
@@ -296,6 +299,7 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
 
   @override
   void dispose() {
+    ref.read(viewerServiceProvider).leaveChannel(_current.url);
     _clockTimer?.cancel();
     _bufferingOverlayTimer?.cancel();
     _fullscreenOverlayTimer?.cancel();
@@ -322,11 +326,17 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
 
   void _selectChannelByIndex(int fullListIndex) {
     if (fullListIndex < 0 || fullListIndex >= widget.channels.length) return;
+    final oldUrl = _current.url;
     setState(() {
       _index = fullListIndex;
       _selectedGroup = widget.channels[_index].group;
       _retryCount = 0; // Reset retry count for manual selection
     });
+    final newUrl = _current.url;
+    if (oldUrl != newUrl) {
+      ref.read(viewerServiceProvider).leaveChannel(oldUrl);
+      ref.read(viewerServiceProvider).joinChannel(newUrl);
+    }
     ref.read(recentChannelsProvider.notifier).record(_current);
     unawaited(_reopenCurrentStream());
   }
@@ -499,26 +509,101 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
                   )
                 : const Center(child: CircularProgressIndicator(color: Colors.white24)),
           ),
-          // Fullscreen Toggle Icon (Bottom Right)
+          // Viewers Count (Top Left)
+          Positioned(
+            top: 12,
+            left: 12,
+            child: Consumer(
+              builder: (context, ref, child) {
+                final viewersAsync = ref.watch(channelViewersProvider(_current.url));
+                final viewersCount = viewersAsync.value ?? 1;
+                return Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: Colors.redAccent.withOpacity(0.8),
+                    borderRadius: BorderRadius.circular(6),
+                  ),
+                  child: Row(
+                    children: [
+                      const Icon(Icons.remove_red_eye_rounded, color: Colors.white, size: 14),
+                      const SizedBox(width: 4),
+                      Text(
+                        '$viewersCount',
+                        style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold),
+                      ),
+                    ],
+                  ),
+                );
+              },
+            ),
+          ),
+          // Quality and Fullscreen (Bottom Right)
           if (!_isFullscreen)
             Positioned(
               bottom: 8,
               right: 8,
-              child: Material(
-                color: Colors.black.withOpacity(0.5),
-                borderRadius: BorderRadius.circular(8),
-                child: InkWell(
-                  onTap: _toggleFullscreen,
-                  borderRadius: BorderRadius.circular(8),
-                  child: const Padding(
-                    padding: EdgeInsets.all(8.0),
-                    child: Icon(
-                      Icons.fullscreen_rounded,
-                      color: Colors.white,
-                      size: 26,
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Material(
+                    color: Colors.black.withOpacity(0.5),
+                    borderRadius: BorderRadius.circular(8),
+                    child: InkWell(
+                      onTap: () {
+                        if (_player == null) return;
+                        final tracks = _player!.state.tracks.video;
+                        showDialog(
+                          context: context,
+                          builder: (context) => AlertDialog(
+                            backgroundColor: const Color(0xFF141A22),
+                            title: const Text('Select Quality', style: TextStyle(color: Colors.white)),
+                            content: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              children: tracks.isEmpty 
+                                  ? [const Text('No multiple qualities available for this live stream.', style: TextStyle(color: Colors.white70))]
+                                  : tracks.map((track) {
+                                      final isAuto = track.id == 'auto' || track.id == 'no';
+                                      final title = isAuto ? 'Auto' : '${track.h ?? track.id}p';
+                                      final isCurrent = _player!.state.track.video == track;
+                                      return ListTile(
+                                        title: Text(title, style: TextStyle(color: isCurrent ? Colors.redAccent : Colors.white70, fontWeight: isCurrent ? FontWeight.bold : FontWeight.normal)),
+                                        trailing: isCurrent ? const Icon(Icons.check, color: Colors.redAccent) : null,
+                                        onTap: () {
+                                          Navigator.pop(context);
+                                          _player!.setVideoTrack(track);
+                                          ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Quality changed to $title')));
+                                        },
+                                      );
+                              }).toList(),
+                            ),
+                          ),
+                        );
+                      },
+                      borderRadius: BorderRadius.circular(8),
+                      child: const Padding(
+                        padding: EdgeInsets.symmetric(horizontal: 12.0, vertical: 8.0),
+                        child: Text('Quality', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13)),
+                      ),
                     ),
                   ),
-                ),
+                  const SizedBox(width: 8),
+                  Material(
+                    color: Colors.black.withOpacity(0.5),
+                    borderRadius: BorderRadius.circular(8),
+                    child: InkWell(
+                      onTap: _toggleFullscreen,
+                      borderRadius: BorderRadius.circular(8),
+                      child: const Padding(
+                        padding: EdgeInsets.all(8.0),
+                        child: Icon(
+                          Icons.fullscreen_rounded,
+                          color: Colors.white,
+                          size: 26,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
               ),
             ),
         ],

@@ -1,4 +1,6 @@
 import 'dart:async';
+import 'dart:math' as math;
+import '../../services/viewer_service.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -85,10 +87,17 @@ class _FullscreenPlayerPageState extends ConsumerState<FullscreenPlayerPage> {
     ]);
 
     _resetHideTimer();
+    
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        ref.read(viewerServiceProvider).joinChannel(_currentChannel.url);
+      }
+    });
   }
 
   @override
   void dispose() {
+    ref.read(viewerServiceProvider).leaveChannel(_currentChannel.url);
     for (var s in _subscriptions) {
       s.cancel();
     }
@@ -111,6 +120,8 @@ class _FullscreenPlayerPageState extends ConsumerState<FullscreenPlayerPage> {
   void _zapTo(int index) {
     if (index < 0 || index >= widget.channels.length) return;
     
+    final oldUrl = _currentChannel.url;
+
     setState(() {
       _currentIndex = index;
       _currentChannel = widget.channels[_currentIndex];
@@ -118,6 +129,12 @@ class _FullscreenPlayerPageState extends ConsumerState<FullscreenPlayerPage> {
       _overlayVisible = true;
       _zapListVisible = false;
     });
+
+    final newUrl = _currentChannel.url;
+    if (oldUrl != newUrl) {
+      ref.read(viewerServiceProvider).leaveChannel(oldUrl);
+      ref.read(viewerServiceProvider).joinChannel(newUrl);
+    }
 
     widget.player.open(Media(_currentChannel.url));
     _resetHideTimer();
@@ -225,12 +242,78 @@ class _FullscreenPlayerPageState extends ConsumerState<FullscreenPlayerPage> {
           _buildProZapArea(accent),
 
           Positioned(
+            top: 40,
+            left: 40,
+            child: Consumer(
+              builder: (context, ref, child) {
+                final viewersAsync = ref.watch(channelViewersProvider(_currentChannel.url));
+                final viewersCount = viewersAsync.value ?? 1;
+                return Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: Colors.redAccent.withOpacity(0.8),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Row(
+                    children: [
+                      const Icon(Icons.remove_red_eye_rounded, color: Colors.white, size: 16),
+                      const SizedBox(width: 6),
+                      Text(
+                        '$viewersCount',
+                        style: const TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.bold),
+                      ),
+                    ],
+                  ),
+                );
+              },
+            ),
+          ),
+
+          Positioned(
             right: 40,
             bottom: 40,
-            child: _buildHUDAction(
-              const Icon(Icons.fullscreen_exit_rounded, color: Colors.white, size: 24), 
-              'EXIT', 
-              () => Navigator.pop(context)
+            child: Row(
+              children: [
+                _buildHUDAction(
+                  const Icon(Icons.high_quality_rounded, color: Colors.white, size: 24), 
+                  'QUALITY', 
+                  () {
+                    final tracks = widget.player.state.tracks.video;
+                    showDialog(
+                      context: context,
+                      builder: (context) => AlertDialog(
+                        backgroundColor: const Color(0xFF141A22),
+                        title: const Text('Select Quality', style: TextStyle(color: Colors.white)),
+                        content: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: tracks.isEmpty 
+                              ? [const Text('No multiple qualities available for this live stream.', style: TextStyle(color: Colors.white70))]
+                              : tracks.map((track) {
+                                  final isAuto = track.id == 'auto' || track.id == 'no';
+                                  final title = isAuto ? 'Auto' : '${track.h ?? track.id}p';
+                                  final isCurrent = widget.player.state.track.video == track;
+                                  return ListTile(
+                                    title: Text(title, style: TextStyle(color: isCurrent ? Colors.redAccent : Colors.white70, fontWeight: isCurrent ? FontWeight.bold : FontWeight.normal)),
+                                    trailing: isCurrent ? const Icon(Icons.check, color: Colors.redAccent) : null,
+                                    onTap: () {
+                                      Navigator.pop(context);
+                                      widget.player.setVideoTrack(track);
+                                      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Quality changed to $title')));
+                                    },
+                                  );
+                          }).toList(),
+                        ),
+                      ),
+                    );
+                  }
+                ),
+                const SizedBox(width: 16),
+                _buildHUDAction(
+                  const Icon(Icons.fullscreen_exit_rounded, color: Colors.white, size: 24), 
+                  'EXIT', 
+                  () => Navigator.pop(context)
+                ),
+              ],
             ),
           ),
         ],

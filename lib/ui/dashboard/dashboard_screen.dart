@@ -857,7 +857,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
             Icon(
               icon,
               color: selected ? accent : Colors.white.withOpacity(0.4),
-              size: 28,
+              size: 34,
               shadows: selected ? [
                 Shadow(color: accent.withOpacity(0.6), blurRadius: 12),
               ] : [],
@@ -1957,7 +1957,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
               child: Icon(
                 icon,
                 color: color,
-                size: sideRail ? 28 : 25,
+                size: sideRail ? 34 : 30,
                 shadows: selected ? [
                   Shadow(color: accent.withOpacity(0.6), blurRadius: 12),
                 ] : [],
@@ -3018,10 +3018,10 @@ class _AboutTab extends StatelessWidget {
                       padding: const EdgeInsets.symmetric(vertical: 16),
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                     ),
-                    onPressed: () => _launchUrl('https://t.me/Opt1c_gh0st'),
+                    onPressed: () => _launchUrl('https://t.me/KOBANI_4K'),
                     icon: const Icon(Icons.send_rounded, color: Colors.black),
                     label: Text(
-                      s.locale.languageCode == 'ckb' ? 'تێلیگرامی ئۆپتیک' : 'OPT1C TELEGRAM',
+                      s.locale.languageCode == 'ckb' ? 'تێلیگرامی کۆبانی' : 'KOBANI 4K TELEGRAM',
                       style: const TextStyle(color: Colors.black, fontWeight: FontWeight.w900, letterSpacing: 1.2),
                     ),
                   ),

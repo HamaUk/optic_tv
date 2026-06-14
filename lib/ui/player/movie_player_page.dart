@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter/foundation.dart';
 import 'package:media_kit/media_kit.dart';
 import 'package:media_kit_video/media_kit_video.dart';
 import 'package:intl/intl.dart' hide TextDirection;
@@ -189,8 +190,9 @@ class _MoviePlayerPageState extends ConsumerState<MoviePlayerPage> {
   }
 
   void _configureEngine() {
+    if (kIsWeb) return;
     if (widget.player.platform is NativePlayer) {
-      final native = widget.player.platform as NativePlayer;
+      final native = widget.player.platform as dynamic;
       Future<void> set(String k, String v) async {
         try { await native.setProperty(k, v); } catch (_) {}
       }
