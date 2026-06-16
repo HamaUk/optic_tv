@@ -9,7 +9,7 @@ class ChannelLogoImage extends StatelessWidget {
     required this.logo,
     this.width,
     this.height,
-    this.fit = BoxFit.cover,
+    this.fit = BoxFit.contain,
     this.borderRadius,
     this.fallback,
     this.httpHeaders,
