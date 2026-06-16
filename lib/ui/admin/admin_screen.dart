@@ -48,6 +48,10 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
   final _channelBackdropController = TextEditingController();
   final _channelSubtitleUrlController = TextEditingController();
   final _channelUserAgentController = TextEditingController(text: 'SmartIPTV');
+  final _channelUrl2Controller = TextEditingController();
+  final _channelUrl2NameController = TextEditingController();
+  final _channelUrl3Controller = TextEditingController();
+  final _channelUrl3NameController = TextEditingController();
   final _newGroupController = TextEditingController();
   final _newLoginCodeController = TextEditingController();
   final _channelSearchController = TextEditingController();
@@ -125,6 +129,10 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
     _channelBackdropController.dispose();
     _channelSubtitleUrlController.dispose();
     _channelUserAgentController.dispose();
+    _channelUrl2Controller.dispose();
+    _channelUrl2NameController.dispose();
+    _channelUrl3Controller.dispose();
+    _channelUrl3NameController.dispose();
     _newGroupController.dispose();
     _newLoginCodeController.dispose();
     _channelSearchController.dispose();
@@ -618,6 +626,10 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
     if (featured == true) map['featured'] = true;
     if (order != null) map['order'] = order;
     if (userAgent != null && userAgent.isNotEmpty) map['userAgent'] = userAgent;
+    if (url2 != null && url2.isNotEmpty) map['url2'] = url2;
+    if (url2Name != null && url2Name.isNotEmpty) map['url2Name'] = url2Name;
+    if (url3 != null && url3.isNotEmpty) map['url3'] = url3;
+    if (url3Name != null && url3Name.isNotEmpty) map['url3Name'] = url3Name;
     return map;
   }
 
@@ -757,9 +769,17 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
             type: _channelType,
             featured: _isFeaturedAdmin,
             userAgent: userAgent,
+            url2: _channelUrl2Controller.text.trim(),
+            url2Name: _channelUrl2NameController.text.trim(),
+            url3: _channelUrl3Controller.text.trim(),
+            url3Name: _channelUrl3NameController.text.trim(),
           ));
       _channelNameController.clear();
       _channelUrlController.clear();
+      _channelUrl2Controller.clear();
+      _channelUrl2NameController.clear();
+      _channelUrl3Controller.clear();
+      _channelUrl3NameController.clear();
       _channelLogoController.clear();
       _channelBackdropController.clear();
       _channelSubtitleUrlController.clear();
@@ -779,6 +799,10 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
   void _prefillAddFromChannel(Map<dynamic, dynamic> val) {
     _channelNameController.text = '${val['name'] ?? ''} (copy)';
     _channelUrlController.text = '${val['url'] ?? ''}';
+    _channelUrl2Controller.text = '${val['url2'] ?? ''}';
+    _channelUrl2NameController.text = '${val['url2Name'] ?? ''}';
+    _channelUrl3Controller.text = '${val['url3'] ?? ''}';
+    _channelUrl3NameController.text = '${val['url3Name'] ?? ''}';
     _channelUserAgentController.text = '${val['userAgent'] ?? val['user_agent'] ?? 'SmartIPTV'}';
     final grpRaw = '${val['group'] ?? val['category'] ?? 'General'}';
     _channelLogoController.text = '${val['logo'] ?? val['icon_url'] ?? ''}';
@@ -826,6 +850,10 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
     String? type,
     required bool featured,
     String? userAgent,
+    String? url2,
+    String? url2Name,
+    String? url3,
+    String? url3Name,
   }) async {
     try {
       final ref = _playlistRef.child(key);
@@ -850,6 +878,11 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
       } else {
         await ref.child('backdrop').remove();
       }
+
+      if (url2 != null && url2.trim().isNotEmpty) updates['url2'] = url2.trim(); else await ref.child('url2').remove();
+      if (url2Name != null && url2Name.trim().isNotEmpty) updates['url2Name'] = url2Name.trim(); else await ref.child('url2Name').remove();
+      if (url3 != null && url3.trim().isNotEmpty) updates['url3'] = url3.trim(); else await ref.child('url3').remove();
+      if (url3Name != null && url3Name.trim().isNotEmpty) updates['url3Name'] = url3Name.trim(); else await ref.child('url3Name').remove();
 
       await ref.update(updates);
       final logoTrim = logo.trim();
@@ -1478,6 +1511,10 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
   void _showEditChannelDialog(String key, Map<dynamic, dynamic> raw) {
     final nameCtrl = TextEditingController(text: '${raw['name'] ?? ''}');
     final urlCtrl = TextEditingController(text: '${raw['url'] ?? ''}');
+    final url2Ctrl = TextEditingController(text: '${raw['url2'] ?? ''}');
+    final url2NameCtrl = TextEditingController(text: '${raw['url2Name'] ?? ''}');
+    final url3Ctrl = TextEditingController(text: '${raw['url3'] ?? ''}');
+    final url3NameCtrl = TextEditingController(text: '${raw['url3Name'] ?? ''}');
     final groupCtrl = TextEditingController(text: '${raw['group'] ?? raw['category'] ?? 'General'}');
     final logoCtrl = TextEditingController(text: '${raw['logo'] ?? raw['icon_url'] ?? ''}');
     final backdropCtrl = TextEditingController(text: '${raw['backdrop'] ?? ''}');
@@ -1521,7 +1558,23 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
                       const SizedBox(height: 20),
                       _sheetField(nameCtrl, 'Name', Icons.live_tv_rounded),
                       const SizedBox(height: 12),
-                      _sheetField(urlCtrl, 'Stream URL', Icons.link_rounded, maxLines: 3),
+                      _sheetField(urlCtrl, 'Server 1 URL (Primary)', Icons.link_rounded, maxLines: 3),
+                      const SizedBox(height: 12),
+                      Row(
+                        children: [
+                          Expanded(child: _sheetField(url2NameCtrl, 'Server 2 Name', Icons.label_outline_rounded)),
+                          const SizedBox(width: 8),
+                          Expanded(flex: 2, child: _sheetField(url2Ctrl, 'Server 2 URL', Icons.link_rounded)),
+                        ],
+                      ),
+                      const SizedBox(height: 12),
+                      Row(
+                        children: [
+                          Expanded(child: _sheetField(url3NameCtrl, 'Server 3 Name', Icons.label_outline_rounded)),
+                          const SizedBox(width: 8),
+                          Expanded(flex: 2, child: _sheetField(url3Ctrl, 'Server 3 URL', Icons.link_rounded)),
+                        ],
+                      ),
                       const SizedBox(height: 12),
                       _sheetField(userAgentCtrl, 'User Agent (Optional)', Icons.language_rounded),
                       const SizedBox(height: 12),
@@ -1597,7 +1650,8 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
                             child: OutlinedButton(
                               onPressed: () {
                                 Navigator.pop(ctx);
-                                for (final c in [nameCtrl, urlCtrl, groupCtrl, logoCtrl, backdropCtrl, userAgentCtrl]) {
+                                final toDispose = [nameCtrl, urlCtrl, url2Ctrl, url2NameCtrl, url3Ctrl, url3NameCtrl, groupCtrl, logoCtrl, backdropCtrl, userAgentCtrl];
+                                for (final c in toDispose) {
                                   Future.microtask(c.dispose);
                                 }
                               },
@@ -1612,14 +1666,15 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
                                 Navigator.pop(ctx);
                                 final name = nameCtrl.text.trim();
                                 final url = urlCtrl.text.trim();
+                                final toDispose = [nameCtrl, urlCtrl, url2Ctrl, url2NameCtrl, url3Ctrl, url3NameCtrl, groupCtrl, logoCtrl, backdropCtrl, userAgentCtrl];
                                 if (name.isEmpty || url.isEmpty) {
-                                  for (final c in [nameCtrl, urlCtrl, groupCtrl, logoCtrl, backdropCtrl, userAgentCtrl]) {
+                                  for (final c in toDispose) {
                                     Future.microtask(c.dispose);
                                   }
                                   _snack('Name and URL are required', error: true);
                                   return;
                                 }
-                                  for (final c in [nameCtrl, urlCtrl, groupCtrl, logoCtrl, backdropCtrl, userAgentCtrl]) {
+                                  for (final c in toDispose) {
                                     Future.microtask(c.dispose);
                                   }
                                     _updateChannel(
@@ -1632,6 +1687,10 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
                                       type: contentType,
                                       featured: isFeatured,
                                       userAgent: userAgentCtrl.text.trim(),
+                                      url2: url2Ctrl.text.trim(),
+                                      url2Name: url2NameCtrl.text.trim(),
+                                      url3: url3Ctrl.text.trim(),
+                                      url3Name: url3NameCtrl.text.trim(),
                                     );
                               },
                               child: const Text('Save changes'),
@@ -2801,7 +2860,23 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
               children: [
                 _field(_channelNameController, 'Channel name', Icons.label_outline_rounded),
                 const SizedBox(height: 14),
-                _field(_channelUrlController, 'Stream URL (M3U8 / HLS / MP4)', Icons.link_rounded, maxLines: 3),
+                _field(_channelUrlController, 'Server 1 URL (Primary)', Icons.link_rounded, maxLines: 3),
+                const SizedBox(height: 14),
+                Row(
+                  children: [
+                    Expanded(child: _field(_channelUrl2NameController, 'Server 2 Name', Icons.label_outline_rounded)),
+                    const SizedBox(width: 8),
+                    Expanded(flex: 2, child: _field(_channelUrl2Controller, 'Server 2 URL', Icons.link_rounded)),
+                  ],
+                ),
+                const SizedBox(height: 14),
+                Row(
+                  children: [
+                    Expanded(child: _field(_channelUrl3NameController, 'Server 3 Name', Icons.label_outline_rounded)),
+                    const SizedBox(width: 8),
+                    Expanded(flex: 2, child: _field(_channelUrl3Controller, 'Server 3 URL', Icons.link_rounded)),
+                  ],
+                ),
                 const SizedBox(height: 14),
                 _field(_channelUserAgentController, 'User Agent (Optional)', Icons.language_rounded),
                 const SizedBox(height: 14),

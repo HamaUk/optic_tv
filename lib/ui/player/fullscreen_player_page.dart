@@ -27,8 +27,10 @@ class FullscreenPlayerPage extends ConsumerStatefulWidget {
   final VideoController controller;
   final List<Channel> channels;
   final int initialIndex;
+  final int activeServerIndex;
   final Locale uiLocale;
   final dynamic strings; // Using dynamic for compatibility with original calls
+  final void Function(int serverIndex)? onServerChanged;
 
   const FullscreenPlayerPage({
     super.key, 
@@ -36,8 +38,10 @@ class FullscreenPlayerPage extends ConsumerStatefulWidget {
     required this.controller,
     required this.channels,
     required this.initialIndex,
+    required this.activeServerIndex,
     required this.uiLocale,
     this.strings,
+    this.onServerChanged,
   });
 
   @override
@@ -61,14 +65,14 @@ class _FullscreenPlayerPageState extends ConsumerState<FullscreenPlayerPage> {
   String? _osdLabel;
   Timer? _osdTimer;
   double? _brightnessValue;
-  String? _selectedGroup;
+  late int _currentServerIndex;
 
   @override
   void initState() {
     super.initState();
     _currentIndex = widget.initialIndex;
+    _currentServerIndex = widget.activeServerIndex;
     _currentChannel = widget.channels[_currentIndex];
-    _selectedGroup = _currentChannel.group;
     
     _subscriptions.add(widget.player.stream.position.listen((p) {
       if (mounted) setState(() {}); // Refresh for progress if needed
@@ -125,7 +129,8 @@ class _FullscreenPlayerPageState extends ConsumerState<FullscreenPlayerPage> {
     setState(() {
       _currentIndex = index;
       _currentChannel = widget.channels[_currentIndex];
-      _selectedGroup = _currentChannel.group;
+      _currentServerIndex = 0;
+      widget.onServerChanged?.call(0);
       _overlayVisible = true;
       _zapListVisible = false;
     });
@@ -138,6 +143,20 @@ class _FullscreenPlayerPageState extends ConsumerState<FullscreenPlayerPage> {
 
     widget.player.open(Media(
       _currentChannel.url,
+      httpHeaders: {'User-Agent': _currentChannel.userAgent ?? 'SmartIPTV'},
+    ));
+    _resetHideTimer();
+  }
+
+  void _switchServer(int serverIndex, String url) {
+    if (_currentServerIndex == serverIndex) return;
+    setState(() {
+      _currentServerIndex = serverIndex;
+      _overlayVisible = true;
+    });
+    widget.onServerChanged?.call(serverIndex);
+    widget.player.open(Media(
+      url,
       httpHeaders: {'User-Agent': _currentChannel.userAgent ?? 'SmartIPTV'},
     ));
     _resetHideTimer();
@@ -242,7 +261,7 @@ class _FullscreenPlayerPageState extends ConsumerState<FullscreenPlayerPage> {
           Positioned(top: 40, right: 40, child: _buildAmbientClock()),
           Positioned(top: 40, left: 160, child: _buildCurrentInfo(accent)),
 
-          _buildProZapArea(accent),
+          _buildServerSelectionArea(accent),
 
           Positioned(
             top: 40,
@@ -334,93 +353,73 @@ class _FullscreenPlayerPageState extends ConsumerState<FullscreenPlayerPage> {
     );
   }
 
-  Widget _buildProZapArea(Color accent) {
-    final groups = widget.channels.map((e) => e.group).toSet().toList()..sort();
-    final channelsInGroup = widget.channels.where((c) => c.group == _selectedGroup).toList();
+  Widget _buildServerSelectionArea(Color accent) {
+    List<Map<String, dynamic>> servers = [
+      {'index': 0, 'name': 'Server 1', 'url': _currentChannel.url},
+    ];
 
-    return Row(
-      children: [
-        // Categories
-        GlassmorphicContainer(
-          width: 120,
-          height: double.infinity,
-          borderRadius: 0,
-          blur: 25,
-          alignment: Alignment.center,
-          border: 0,
-          linearGradient: LinearGradient(colors: [Colors.black.withOpacity(0.85), Colors.black.withOpacity(0.6)]),
-          borderGradient: const LinearGradient(colors: [Colors.white10, Colors.white10]),
-          child: ListView.builder(
-            padding: const EdgeInsets.symmetric(vertical: 60),
-            itemCount: groups.length,
-            itemBuilder: (context, i) {
-              final g = groups[i];
-              final selected = g == _selectedGroup;
-              return GestureDetector(
-                onTap: () => setState(() => _selectedGroup = g),
-                child: Container(
-                  height: 54,
-                  alignment: Alignment.center,
-                  color: selected ? accent.withOpacity(0.15) : Colors.transparent,
-                  child: Text(
-                    g.toUpperCase(),
-                    style: TextStyle(
-                      color: selected ? Colors.white : Colors.white38,
-                      fontWeight: selected ? FontWeight.w900 : FontWeight.bold,
-                      fontSize: 10,
-                      letterSpacing: 2,
-                    ),
-                  ),
+    if (_currentChannel.url2 != null && _currentChannel.url2!.trim().isNotEmpty) {
+      final n = (_currentChannel.url2Name != null && _currentChannel.url2Name!.trim().isNotEmpty) ? _currentChannel.url2Name! : 'Server 2';
+      servers.add({'index': 1, 'name': n, 'url': _currentChannel.url2!});
+    }
+    if (_currentChannel.url3 != null && _currentChannel.url3!.trim().isNotEmpty) {
+      final n = (_currentChannel.url3Name != null && _currentChannel.url3Name!.trim().isNotEmpty) ? _currentChannel.url3Name! : 'Server 3';
+      servers.add({'index': 2, 'name': n, 'url': _currentChannel.url3!});
+    }
+
+    // Only show server list if there's more than 1 server
+    if (servers.length <= 1) return const SizedBox.shrink();
+
+    return Align(
+      alignment: Alignment.centerLeft,
+      child: GlassmorphicContainer(
+        width: 320,
+        height: double.infinity,
+        borderRadius: 0,
+        blur: 15,
+        alignment: Alignment.center,
+        border: 0,
+        linearGradient: LinearGradient(colors: [Colors.black.withOpacity(0.5), Colors.black.withOpacity(0.2)]),
+        borderGradient: const LinearGradient(colors: [Colors.white10, Colors.white10]),
+        child: ListView.builder(
+          padding: const EdgeInsets.symmetric(vertical: 40, horizontal: 12),
+          itemCount: servers.length,
+          itemBuilder: (context, i) {
+            final s = servers[i];
+            final active = _currentServerIndex == s['index'];
+            return GestureDetector(
+              onTap: () => _switchServer(s['index'], s['url']),
+              child: Container(
+                margin: const EdgeInsets.only(bottom: 8),
+                padding: const EdgeInsets.symmetric(vertical: 18, horizontal: 20),
+                decoration: BoxDecoration(
+                  color: active ? Colors.white.withOpacity(0.08) : Colors.black.withOpacity(0.3),
+                  borderRadius: BorderRadius.circular(14),
+                  border: Border.all(color: active ? accent.withOpacity(0.5) : Colors.white10),
                 ),
-              );
-            },
-          ),
-        ),
-        // Channels
-        GlassmorphicContainer(
-          width: 320,
-          height: double.infinity,
-          borderRadius: 0,
-          blur: 15,
-          alignment: Alignment.center,
-          border: 0,
-          linearGradient: LinearGradient(colors: [Colors.black.withOpacity(0.5), Colors.black.withOpacity(0.2)]),
-          borderGradient: const LinearGradient(colors: [Colors.white10, Colors.white10]),
-          child: ListView.builder(
-            padding: const EdgeInsets.symmetric(vertical: 40, horizontal: 12),
-            itemCount: channelsInGroup.length,
-            itemBuilder: (context, i) {
-              final ch = channelsInGroup[i];
-              final active = ch.url == _currentChannel.url;
-              return GestureDetector(
-                onTap: () => _zapTo(widget.channels.indexOf(ch)),
-                child: Container(
-                  margin: const EdgeInsets.only(bottom: 4),
-                  padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 20),
-                  decoration: BoxDecoration(
-                    color: active ? Colors.white.withOpacity(0.08) : Colors.transparent,
-                    borderRadius: BorderRadius.circular(14),
-                    border: Border.all(color: active ? accent.withOpacity(0.3) : Colors.transparent),
-                  ),
-                  child: Row(
-                    children: [
-                      ChannelLogoImage(logo: ch.logo, height: 32, width: 32),
-                      const SizedBox(width: 16),
-                      Expanded(
-                        child: Text(
-                          ch.name,
-                          style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13),
+                child: Row(
+                  children: [
+                    Icon(Icons.dns_rounded, color: active ? accent : Colors.white54, size: 28),
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: Text(
+                        s['name'].toUpperCase(),
+                        style: TextStyle(
+                          color: active ? Colors.white : Colors.white70, 
+                          fontWeight: active ? FontWeight.w900 : FontWeight.bold, 
+                          fontSize: 16,
+                          letterSpacing: 1.5,
                         ),
                       ),
-                      if (active) Icon(Icons.graphic_eq_rounded, color: accent, size: 16),
-                    ],
-                  ),
+                    ),
+                    if (active) Icon(Icons.graphic_eq_rounded, color: accent, size: 20),
+                  ],
                 ),
-              );
-            },
-          ),
+              ),
+            );
+          },
         ),
-      ],
+      ),
     );
   }
 

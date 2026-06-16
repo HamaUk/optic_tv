@@ -56,6 +56,7 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
   
   late int _index;
   late String _selectedGroup;
+  int _activeServerIndex = 0;
   AppSettingsData _settings = const AppSettingsData();
   Timer? _clockTimer;
   bool _muted = false;
@@ -281,8 +282,17 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
 
     _viewFit = _settings.videoFit;
     _configureNativePlayer(); // Apply stable properties
+
+    List<String> validUrls = [_current.url];
+    if (_current.url2 != null && _current.url2!.trim().isNotEmpty) validUrls.add(_current.url2!);
+    if (_current.url3 != null && _current.url3!.trim().isNotEmpty) validUrls.add(_current.url3!);
+
+    if (_activeServerIndex >= validUrls.length) {
+      _activeServerIndex = 0;
+    }
+
     await p.open(Media(
-      _current.url,
+      validUrls[_activeServerIndex],
       httpHeaders: {'User-Agent': _current.userAgent ?? 'SmartIPTV'},
     ));
     
@@ -343,6 +353,7 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
     setState(() {
       _index = fullListIndex;
       _selectedGroup = widget.channels[_index].group;
+      _activeServerIndex = 0;
       _retryCount = 0; // Reset retry count for manual selection
     });
     final newUrl = _current.url;
@@ -356,6 +367,22 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
 
   void _handlePlayerError(dynamic err) {
     if (!mounted) return;
+
+    List<String> validUrls = [_current.url];
+    if (_current.url2 != null && _current.url2!.trim().isNotEmpty) validUrls.add(_current.url2!);
+    if (_current.url3 != null && _current.url3!.trim().isNotEmpty) validUrls.add(_current.url3!);
+
+    if (_activeServerIndex + 1 < validUrls.length) {
+      _activeServerIndex++;
+      _retryCount = 0;
+      debugPrint('Stream error: $err. Failing over to Server ${_activeServerIndex + 1}');
+      _snack('Switching to Server ${_activeServerIndex + 1}...');
+      Future.delayed(const Duration(milliseconds: 500), () {
+        if (mounted) _reopenCurrentStream();
+      });
+      return;
+    }
+
     if (_retryCount < 2) {
       _retryCount++;
       debugPrint('Stream error, retrying ($_retryCount / 2): $err');
@@ -363,7 +390,7 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
         if (mounted) _reopenCurrentStream();
       });
     } else {
-      _snack('Stream connection timed out. Please try again.', error: true);
+      _snack('All servers failed. Stream connection timed out.', error: true);
     }
   }
 
@@ -381,12 +408,23 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
   Future<void> _reopenCurrentStream() async {
     final p = _player;
     if (p == null) return;
-    if (_retryCount == 0) {
+    if (_retryCount == 0 && _activeServerIndex == 0) {
       // Manual/New channel join resets retry count
       _retryCount = 0; 
     }
+
+    List<String> validUrls = [_current.url];
+    if (_current.url2 != null && _current.url2!.trim().isNotEmpty) validUrls.add(_current.url2!);
+    if (_current.url3 != null && _current.url3!.trim().isNotEmpty) validUrls.add(_current.url3!);
+
+    if (_activeServerIndex >= validUrls.length) {
+      _activeServerIndex = 0;
+    }
+
+    final targetUrl = validUrls[_activeServerIndex];
+
     await p.open(Media(
-      _current.url,
+      targetUrl,
       httpHeaders: {'User-Agent': _current.userAgent ?? 'SmartIPTV'},
     ));
   }
@@ -405,8 +443,17 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
           controller: _controller!,
           channels: widget.channels,
           initialIndex: _index,
+          activeServerIndex: _activeServerIndex,
           uiLocale: ref.read(appLocaleProvider),
           strings: AppStrings(ref.read(appLocaleProvider)),
+          onServerChanged: (newServerIndex) {
+            if (mounted) {
+              setState(() {
+                _activeServerIndex = newServerIndex;
+                _retryCount = 0;
+              });
+            }
+          },
         ),
       ),
     );

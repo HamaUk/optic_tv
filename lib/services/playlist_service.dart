@@ -22,6 +22,10 @@ class Channel {
   final int order;
   final int featuredOrder;
   final String? userAgent;
+  final String? url2;
+  final String? url2Name;
+  final String? url3;
+  final String? url3Name;
 
   Channel({
     required this.name,
@@ -36,6 +40,10 @@ class Channel {
     this.order = 999999,
     this.featuredOrder = 999999,
     this.userAgent,
+    this.url2,
+    this.url2Name,
+    this.url3,
+    this.url3Name,
   });
 
   factory Channel.fromMap(Map<dynamic, dynamic> map) {
@@ -52,6 +60,10 @@ class Channel {
       order: map['order'] is int ? map['order'] as int : 999999,
       featuredOrder: map['featured_order'] is int ? map['featured_order'] as int : 999999,
       userAgent: map['userAgent'] as String? ?? map['user_agent'] as String?,
+      url2: map['url2'] as String?,
+      url2Name: map['url2Name'] as String?,
+      url3: map['url3'] as String?,
+      url3Name: map['url3Name'] as String?,
     );
   }
 
@@ -68,6 +80,10 @@ class Channel {
     'order': order,
     'featured_order': featuredOrder,
     'userAgent': userAgent,
+    'url2': url2,
+    'url2Name': url2Name,
+    'url3': url3,
+    'url3Name': url3Name,
   };
 
   @override
