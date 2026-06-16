@@ -1645,12 +1645,15 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
                   child: Stack(
                     fit: StackFit.expand,
                     children: [
-                      ChannelLogoImage(
-                        logo: channel.logo,
-                        width: double.infinity,
-                        height: double.infinity,
-                        fit: BoxFit.cover,
-                        fallback: Icon(Icons.tv_rounded, color: Colors.white24, size: isTv ? 40 : 28),
+                      Padding(
+                        padding: const EdgeInsets.all(12),
+                        child: ChannelLogoImage(
+                          logo: channel.logo,
+                          width: double.infinity,
+                          height: double.infinity,
+                          fit: BoxFit.contain,
+                          fallback: Icon(Icons.tv_rounded, color: Colors.white24, size: isTv ? 40 : 28),
+                        ),
                       ),
                       if (focused)
                         Positioned.fill(
