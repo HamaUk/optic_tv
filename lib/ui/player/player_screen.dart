@@ -147,8 +147,28 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
       _activePanel.addListener(_onPanelChanged);
       _configureNativePlayer();
       _startTechInfoTicker();
-      ref.read(viewerServiceProvider).joinChannel(_current.url);
+      ref.read(viewerServiceProvider).joinChannel(_current.url, channelName: _current.name);
     });
+  }
+
+  @override
+  void dispose() {
+    ref.read(viewerServiceProvider).leaveChannel(_current.url);
+    for (final s in _subscriptions) {
+      s.cancel();
+    }
+    _subscriptions.clear();
+    _techInfoSubscription?.cancel();
+    _clockTimer?.cancel();
+    _bufferingOverlayTimer?.cancel();
+    _hideTimer?.cancel();
+    _fullscreenOverlayTimer?.cancel();
+    _panelTimer?.cancel();
+    _mediaInfoTimer?.cancel();
+    _activePanel.dispose();
+    _playerFocus.dispose();
+    _player?.dispose();
+    super.dispose();
   }
 
   void _onPanelChanged() {
@@ -281,12 +301,13 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
 
     _viewFit = _settings.videoFit;
     _configureNativePlayer(); // Apply stable properties
-    await p.open(Media(_current.url));
+    await p.open(Media(
+      _current.url,
+      httpHeaders: {'User-Agent': _current.userAgent ?? 'SmartIPTV'},
+    ));
     
-    // Hide engine splash only after video attempts to start
-    Timer(const Duration(seconds: 4), () {
-      if (mounted) setState(() => _showEngineSplash = false);
-    });
+    // Hide engine splash immediately since it plays fast now
+    if (mounted) setState(() => _showEngineSplash = false);
   }
 
   void _ensureClockTimer() {
@@ -344,7 +365,7 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
     final newUrl = _current.url;
     if (oldUrl != newUrl) {
       ref.read(viewerServiceProvider).leaveChannel(oldUrl);
-      ref.read(viewerServiceProvider).joinChannel(newUrl);
+      ref.read(viewerServiceProvider).joinChannel(newUrl, channelName: widget.channels[fullListIndex].name);
     }
     ref.read(recentChannelsProvider.notifier).record(_current);
     unawaited(_reopenCurrentStream());
@@ -381,7 +402,10 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
       // Manual/New channel join resets retry count
       _retryCount = 0; 
     }
-    await p.open(Media(_current.url));
+    await p.open(Media(
+      _current.url,
+      httpHeaders: {'User-Agent': _current.userAgent ?? 'SmartIPTV'},
+    ));
   }
 
   // Subtitle search and VOD logic removed (Moved to MoviePlayerPage)

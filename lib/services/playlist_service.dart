@@ -21,6 +21,7 @@ class Channel {
   final bool featured;
   final int order;
   final int featuredOrder;
+  final String? userAgent;
 
   Channel({
     required this.name,
@@ -34,6 +35,7 @@ class Channel {
     this.featured = false,
     this.order = 999999,
     this.featuredOrder = 999999,
+    this.userAgent,
   });
 
   factory Channel.fromMap(Map<dynamic, dynamic> map) {
@@ -49,6 +51,7 @@ class Channel {
       featured: map['featured'] == true,
       order: map['order'] is int ? map['order'] as int : 999999,
       featuredOrder: map['featured_order'] is int ? map['featured_order'] as int : 999999,
+      userAgent: map['userAgent'] as String? ?? map['user_agent'] as String?,
     );
   }
 
@@ -64,6 +67,7 @@ class Channel {
     'featured': featured,
     'order': order,
     'featured_order': featuredOrder,
+    'userAgent': userAgent,
   };
 
   @override

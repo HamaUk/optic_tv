@@ -90,7 +90,7 @@ class _FullscreenPlayerPageState extends ConsumerState<FullscreenPlayerPage> {
     
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) {
-        ref.read(viewerServiceProvider).joinChannel(_currentChannel.url);
+        ref.read(viewerServiceProvider).joinChannel(_currentChannel.url, channelName: _currentChannel.name);
       }
     });
   }
@@ -133,10 +133,13 @@ class _FullscreenPlayerPageState extends ConsumerState<FullscreenPlayerPage> {
     final newUrl = _currentChannel.url;
     if (oldUrl != newUrl) {
       ref.read(viewerServiceProvider).leaveChannel(oldUrl);
-      ref.read(viewerServiceProvider).joinChannel(newUrl);
+      ref.read(viewerServiceProvider).joinChannel(newUrl, channelName: _channels[i].name);
     }
 
-    widget.player.open(Media(_currentChannel.url));
+    widget.player.open(Media(
+      _currentChannel.url,
+      httpHeaders: {'User-Agent': _currentChannel.userAgent ?? 'SmartIPTV'},
+    ));
     _resetHideTimer();
   }
 

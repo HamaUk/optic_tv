@@ -17,6 +17,10 @@ import '../../core/theme.dart';
 import '../../services/auth_service.dart';
 import '../../widgets/channel_logo_image.dart';
 import '../../services/tmdb_service.dart';
+import '../../services/analytics_service.dart';
+import 'package:fl_chart/fl_chart.dart';
+import 'package:intl/intl.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 enum _PublishShelf { liveTv, movies, custom }
 enum _LoginDuration { day, week, month, year, never }
@@ -43,6 +47,7 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
   final _channelLogoController = TextEditingController();
   final _channelBackdropController = TextEditingController();
   final _channelSubtitleUrlController = TextEditingController();
+  final _channelUserAgentController = TextEditingController(text: 'SmartIPTV');
   final _newGroupController = TextEditingController();
   final _newLoginCodeController = TextEditingController();
   final _channelSearchController = TextEditingController();
@@ -103,7 +108,7 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
   void initState() {
     super.initState();
     _isAuthenticated = FirebaseAuth.instance.currentUser != null;
-    _tabController = TabController(length: 8, vsync: this);
+    _tabController = TabController(length: 9, vsync: this);
     _channelGroupController.text = 'Live TV';
     _channelSearchController.addListener(() {
       setState(() => _channelSearchQuery = _channelSearchController.text.trim().toLowerCase());
@@ -119,6 +124,7 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
     _channelLogoController.dispose();
     _channelBackdropController.dispose();
     _channelSubtitleUrlController.dispose();
+    _channelUserAgentController.dispose();
     _newGroupController.dispose();
     _newLoginCodeController.dispose();
     _channelSearchController.dispose();
@@ -598,6 +604,7 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
     String? type,
     bool? featured,
     int? order,
+    String? userAgent,
   }) {
     final map = <String, dynamic>{
       'name': name,
@@ -610,6 +617,7 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
     if (type != null) map['type'] = type;
     if (featured == true) map['featured'] = true;
     if (order != null) map['order'] = order;
+    if (userAgent != null && userAgent.isNotEmpty) map['userAgent'] = userAgent;
     return map;
   }
 
@@ -738,6 +746,7 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
       final logo = _channelLogoController.text.trim();
       final backdrop = _channelBackdropController.text.trim();
       final subUrl = _channelSubtitleUrlController.text.trim();
+      final userAgent = _channelUserAgentController.text.trim();
       await _playlistRef.push().set(_channelPayload(
             name: name,
             url: url,
@@ -747,12 +756,14 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
             subtitleUrl: subUrl,
             type: _channelType,
             featured: _isFeaturedAdmin,
+            userAgent: userAgent,
           ));
       _channelNameController.clear();
       _channelUrlController.clear();
       _channelLogoController.clear();
       _channelBackdropController.clear();
       _channelSubtitleUrlController.clear();
+      _channelUserAgentController.text = 'SmartIPTV';
       setState(() {
         _isFeaturedAdmin = false;
         _channelType = 'live';
@@ -768,6 +779,7 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
   void _prefillAddFromChannel(Map<dynamic, dynamic> val) {
     _channelNameController.text = '${val['name'] ?? ''} (copy)';
     _channelUrlController.text = '${val['url'] ?? ''}';
+    _channelUserAgentController.text = '${val['userAgent'] ?? val['user_agent'] ?? 'SmartIPTV'}';
     final grpRaw = '${val['group'] ?? val['category'] ?? 'General'}';
     _channelLogoController.text = '${val['logo'] ?? val['icon_url'] ?? ''}';
     final gl = grpRaw.toLowerCase();
@@ -780,7 +792,7 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
       _publishShelf = shelf;
       _channelGroupController.text = grpRaw;
     });
-    _tabController.animateTo(2);
+    _tabController.animateTo(4);
     _snack('Form filled — adjust name and tap Publish');
   }
 
@@ -813,6 +825,7 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
     String? backdrop,
     String? type,
     required bool featured,
+    String? userAgent,
   }) async {
     try {
       final ref = _playlistRef.child(key);
@@ -824,6 +837,13 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
         'type': type ?? 'live',
         'featured': featured,
       };
+
+      if (userAgent != null && userAgent.trim().isNotEmpty) {
+        updates['userAgent'] = userAgent.trim();
+      } else {
+        await ref.child('userAgent').remove();
+        await ref.child('user_agent').remove();
+      }
 
       if (backdrop != null && backdrop.trim().isNotEmpty) {
         updates['backdrop'] = backdrop.trim();
@@ -1461,6 +1481,7 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
     final groupCtrl = TextEditingController(text: '${raw['group'] ?? raw['category'] ?? 'General'}');
     final logoCtrl = TextEditingController(text: '${raw['logo'] ?? raw['icon_url'] ?? ''}');
     final backdropCtrl = TextEditingController(text: '${raw['backdrop'] ?? ''}');
+    final userAgentCtrl = TextEditingController(text: '${raw['userAgent'] ?? raw['user_agent'] ?? ''}');
     String contentType = raw['type'] ?? 'live';
     bool isFeatured = raw['featured'] == true;
 
@@ -1501,6 +1522,8 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
                       _sheetField(nameCtrl, 'Name', Icons.live_tv_rounded),
                       const SizedBox(height: 12),
                       _sheetField(urlCtrl, 'Stream URL', Icons.link_rounded, maxLines: 3),
+                      const SizedBox(height: 12),
+                      _sheetField(userAgentCtrl, 'User Agent (Optional)', Icons.language_rounded),
                       const SizedBox(height: 12),
                       _sheetField(groupCtrl, 'Group', Icons.folder_outlined),
                       const SizedBox(height: 12),
@@ -1574,7 +1597,7 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
                             child: OutlinedButton(
                               onPressed: () {
                                 Navigator.pop(ctx);
-                                for (final c in [nameCtrl, urlCtrl, groupCtrl, logoCtrl]) {
+                                for (final c in [nameCtrl, urlCtrl, groupCtrl, logoCtrl, backdropCtrl, userAgentCtrl]) {
                                   Future.microtask(c.dispose);
                                 }
                               },
@@ -1590,25 +1613,26 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
                                 final name = nameCtrl.text.trim();
                                 final url = urlCtrl.text.trim();
                                 if (name.isEmpty || url.isEmpty) {
-                                  for (final c in [nameCtrl, urlCtrl, groupCtrl, logoCtrl]) {
+                                  for (final c in [nameCtrl, urlCtrl, groupCtrl, logoCtrl, backdropCtrl, userAgentCtrl]) {
                                     Future.microtask(c.dispose);
                                   }
                                   _snack('Name and URL are required', error: true);
                                   return;
                                 }
-                                for (final c in [nameCtrl, urlCtrl, groupCtrl, logoCtrl]) {
-                                  Future.microtask(c.dispose);
-                                }
-                                  _updateChannel(
-                                    key,
-                                    name: name,
-                                    url: url,
-                                    group: groupCtrl.text.trim(),
-                                    logo: logoCtrl.text.trim(),
-                                    backdrop: backdropCtrl.text.trim(),
-                                    type: contentType,
-                                    featured: isFeatured,
-                                  );
+                                  for (final c in [nameCtrl, urlCtrl, groupCtrl, logoCtrl, backdropCtrl, userAgentCtrl]) {
+                                    Future.microtask(c.dispose);
+                                  }
+                                    _updateChannel(
+                                      key,
+                                      name: name,
+                                      url: url,
+                                      group: groupCtrl.text.trim(),
+                                      logo: logoCtrl.text.trim(),
+                                      backdrop: backdropCtrl.text.trim(),
+                                      type: contentType,
+                                      featured: isFeatured,
+                                      userAgent: userAgentCtrl.text.trim(),
+                                    );
                               },
                               child: const Text('Save changes'),
                             ),
@@ -1735,6 +1759,7 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
               labelStyle: const TextStyle(fontWeight: FontWeight.w900, fontSize: 12, letterSpacing: 1),
               tabs: const [
                 Tab(text: 'OVERVIEW'),
+                Tab(text: 'ANALYTICS'),
                 Tab(text: 'CHANNELS'),
                 Tab(text: 'MOVIES'),
                 Tab(text: 'PUBLISH'),
@@ -1768,6 +1793,10 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
                     KeyedSubtree(
                       key: const PageStorageKey<String>('admin_overview'),
                       child: _KeepAliveTab(child: _buildOverviewTab()),
+                    ),
+                    KeyedSubtree(
+                      key: const PageStorageKey<String>('admin_analytics'),
+                      child: _KeepAliveTab(child: _buildAnalyticsTab()),
                     ),
                     KeyedSubtree(
                       key: const PageStorageKey<String>('admin_channels'),
@@ -1804,6 +1833,225 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
           ),
         ),
       ),
+    );
+  }
+
+  // ═══════════════════════════════════════════════════════════════
+  //  Tab: Analytics
+  // ═══════════════════════════════════════════════════════════════
+
+  Widget _buildAnalyticsTab() {
+    return Consumer(
+      builder: (context, ref, child) {
+        final analyticsService = ref.watch(analyticsServiceProvider);
+        
+        return Container(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              colors: [AppTheme.backgroundBlack, AppTheme.surfaceGray.withOpacity(0.35)],
+            ),
+          ),
+          child: ListView(
+            padding: const EdgeInsets.all(20),
+            children: [
+              Text(
+                'Analytics Dashboard',
+                style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800),
+              ),
+              const SizedBox(height: 6),
+              Text(
+                'Monitor your viewers, trends, and channel performance.',
+                style: TextStyle(color: Colors.white.withOpacity(0.45), fontSize: 13),
+              ),
+              const SizedBox(height: 24),
+              
+              // Key Metrics Row
+              StreamBuilder<int>(
+                stream: analyticsService.getLiveUsersStream(),
+                builder: (context, snapshot) {
+                  final liveUsers = snapshot.data ?? 0;
+                  return FutureBuilder<int>(
+                    future: analyticsService.getTotalViews(),
+                    builder: (context, totalSnap) {
+                      final totalViews = totalSnap.data ?? 0;
+                      return Row(
+                        children: [
+                          Expanded(
+                            child: _statTile(
+                              icon: Icons.visibility_rounded,
+                              label: 'Total Views',
+                              value: NumberFormat.compact().format(totalViews),
+                              color: AppTheme.primaryGold,
+                            ),
+                          ),
+                          const SizedBox(width: 16),
+                          Expanded(
+                            child: _statTile(
+                              icon: Icons.people_alt_rounded,
+                              label: 'Live Active Users',
+                              value: '$liveUsers',
+                              color: AppTheme.accentTeal,
+                            ),
+                          ),
+                        ],
+                      );
+                    },
+                  );
+                },
+              ),
+              const SizedBox(height: 24),
+
+              // Viewership Trends Chart
+              Text(
+                'Viewership Trends (Last 7 Days)',
+                style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600),
+              ),
+              const SizedBox(height: 12),
+              _card(
+                child: SizedBox(
+                  height: 300,
+                  child: FutureBuilder<Map<String, int>>(
+                    future: analyticsService.getDailyViews(),
+                    builder: (context, snapshot) {
+                      if (!snapshot.hasData) {
+                        return const Center(child: CircularProgressIndicator(color: AppTheme.primaryGold));
+                      }
+                      final dailyData = snapshot.data!;
+                      if (dailyData.isEmpty) {
+                        return const Center(child: Text('No data yet', style: TextStyle(color: Colors.white54)));
+                      }
+
+                      // Prepare chart data
+                      final spots = <FlSpot>[];
+                      final today = DateTime.now();
+                      int maxY = 0;
+                      for (int i = 6; i >= 0; i--) {
+                        final d = today.subtract(Duration(days: i));
+                        final key = DateFormat('yyyy-MM-dd').format(d);
+                        final val = dailyData[key] ?? 0;
+                        if (val > maxY) maxY = val;
+                        spots.add(FlSpot(6.0 - i, val.toDouble()));
+                      }
+                      
+                      if (maxY == 0) maxY = 10; // default scale
+                      
+                      return LineChart(
+                        LineChartData(
+                          gridData: FlGridData(
+                            show: true, 
+                            drawVerticalLine: false,
+                            getDrawingHorizontalLine: (value) => FlLine(color: Colors.white10, strokeWidth: 1),
+                          ),
+                          titlesData: FlTitlesData(
+                            show: true,
+                            rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                            topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                            bottomTitles: AxisTitles(
+                              sideTitles: SideTitles(
+                                showTitles: true,
+                                getTitlesWidget: (value, meta) {
+                                  final d = today.subtract(Duration(days: 6 - value.toInt()));
+                                  return Padding(
+                                    padding: const EdgeInsets.only(top: 8),
+                                    child: Text(DateFormat('E').format(d), style: const TextStyle(color: Colors.white54, fontSize: 10)),
+                                  );
+                                },
+                                reservedSize: 22,
+                              ),
+                            ),
+                            leftTitles: AxisTitles(
+                              sideTitles: SideTitles(
+                                showTitles: true,
+                                reservedSize: 40,
+                                getTitlesWidget: (value, meta) {
+                                  return Text(NumberFormat.compact().format(value), style: const TextStyle(color: Colors.white54, fontSize: 10));
+                                },
+                              ),
+                            ),
+                          ),
+                          borderData: FlBorderData(show: false),
+                          minX: 0,
+                          maxX: 6,
+                          minY: 0,
+                          maxY: maxY.toDouble() * 1.2,
+                          lineBarsData: [
+                            LineChartBarData(
+                              spots: spots,
+                              isCurved: true,
+                              color: AppTheme.primaryGold,
+                              barWidth: 4,
+                              isStrokeCapRound: true,
+                              dotData: const FlDotData(show: true),
+                              belowBarData: BarAreaData(
+                                show: true,
+                                color: AppTheme.primaryGold.withOpacity(0.15),
+                              ),
+                            ),
+                          ],
+                        ),
+                      );
+                    },
+                  ),
+                ),
+              ),
+              const SizedBox(height: 24),
+
+              // Top Channels
+              Text(
+                'Top Channels',
+                style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600),
+              ),
+              const SizedBox(height: 12),
+              _card(
+                child: FutureBuilder<List<Map<String, dynamic>>>(
+                  future: analyticsService.getTopChannels(),
+                  builder: (context, snapshot) {
+                    if (!snapshot.hasData) {
+                      return const Center(child: CircularProgressIndicator(color: AppTheme.primaryGold));
+                    }
+                    final topChannels = snapshot.data!;
+                    if (topChannels.isEmpty) {
+                      return const Padding(
+                        padding: EdgeInsets.all(20),
+                        child: Center(child: Text('No channel data yet', style: TextStyle(color: Colors.white54))),
+                      );
+                    }
+                    
+                    return Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: topChannels.map((ch) {
+                        return Padding(
+                          padding: const EdgeInsets.only(bottom: 12),
+                          child: Row(
+                            children: [
+                              Container(
+                                width: 40,
+                                height: 40,
+                                decoration: BoxDecoration(
+                                  color: AppTheme.accentTeal.withOpacity(0.2),
+                                  borderRadius: BorderRadius.circular(10),
+                                ),
+                                child: const Icon(Icons.tv_rounded, color: AppTheme.accentTeal),
+                              ),
+                              const SizedBox(width: 16),
+                              Expanded(
+                                child: Text(ch['name'] as String, style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.white)),
+                              ),
+                              Text(NumberFormat.compact().format(ch['total']), style: const TextStyle(color: AppTheme.primaryGold, fontWeight: FontWeight.bold)),
+                              const SizedBox(width: 4),
+                              const Text('views', style: TextStyle(color: Colors.white54, fontSize: 12)),
+                            ],
+                          ),
+                        );
+                      }).toList(),
+                    );
+                  },
+                ),
+              ),
+            ],
+          ),
+        );
+      },
     );
   }
 
@@ -1918,31 +2166,31 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
                                 Text('Shortcuts', style: Theme.of(context).textTheme.titleMedium),
                                 const SizedBox(height: 16),
                                 FilledButton.icon(
-                                  onPressed: () => _tabController.animateTo(3),
+                                  onPressed: () => _tabController.animateTo(4),
                                   icon: const Icon(Icons.publish_rounded),
                                   label: const Text('Add new content'),
                                 ),
                                 const SizedBox(height: 10),
                                 OutlinedButton.icon(
-                                  onPressed: () => _tabController.animateTo(1),
+                                  onPressed: () => _tabController.animateTo(2),
                                   icon: const Icon(Icons.manage_search_rounded),
                                   label: const Text('Browse & search channels'),
                                 ),
                                 const SizedBox(height: 10),
                                 OutlinedButton.icon(
-                                  onPressed: () => _tabController.animateTo(4),
+                                  onPressed: () => _tabController.animateTo(5),
                                   icon: const Icon(Icons.file_download_rounded),
                                   label: const Text('Import M3U / Xtream'),
                                 ),
                                 const SizedBox(height: 10),
                                 OutlinedButton.icon(
-                                  onPressed: () => _tabController.animateTo(5),
+                                  onPressed: () => _tabController.animateTo(6),
                                   icon: const Icon(Icons.health_and_safety_rounded),
                                   label: const Text('Check channel health'),
                                 ),
                                 const SizedBox(height: 10),
                                 OutlinedButton.icon(
-                                  onPressed: () => _tabController.animateTo(6),
+                                  onPressed: () => _tabController.animateTo(7),
                                   icon: const Icon(Icons.key_rounded),
                                   label: const Text('Groups & login codes'),
                                 ),
@@ -2117,7 +2365,7 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
                   children: [
                     Expanded(
                       child: FilledButton.icon(
-                        onPressed: () => _tabController.animateTo(3), // Publish tab
+                        onPressed: () => _tabController.animateTo(4), // Publish tab
                         icon: const Icon(Icons.add_rounded),
                         label: const Text('Add Channel'),
                         style: FilledButton.styleFrom(
@@ -2131,7 +2379,7 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
                     const SizedBox(width: 12),
                     Expanded(
                       child: FilledButton.icon(
-                        onPressed: () => _tabController.animateTo(4), // Import tab
+                        onPressed: () => _tabController.animateTo(5), // Import tab
                         icon: const Icon(Icons.file_upload_rounded),
                         label: const Text('Bulk Upload M3U'),
                         style: FilledButton.styleFrom(
@@ -2554,6 +2802,8 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
                 _field(_channelNameController, 'Channel name', Icons.label_outline_rounded),
                 const SizedBox(height: 14),
                 _field(_channelUrlController, 'Stream URL (M3U8 / HLS / MP4)', Icons.link_rounded, maxLines: 3),
+                const SizedBox(height: 14),
+                _field(_channelUserAgentController, 'User Agent (Optional)', Icons.language_rounded),
                 const SizedBox(height: 14),
                 // Content Type Toggle
                 Container(
