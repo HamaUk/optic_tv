@@ -127,9 +127,70 @@ class _OpticTvAppState extends ConsumerState<OpticTvApp> {
         GlobalCupertinoLocalizations.delegate,
       ],
       supportedLocales: const [Locale('en')],
-      home: deviceType == DeviceType.tv 
-        ? (session.loggedIn ? const EliteTvDashboard() : const TvLoginScreen())
-        : (session.loggedIn ? const DashboardScreen() : const LoginScreen()),
+      home: Consumer(
+        builder: (context, ref, child) {
+          final securityCheckAsync = ref.watch(securityCheckProvider);
+          
+          return securityCheckAsync.when(
+            data: (maliciousApps) {
+              if (maliciousApps.isNotEmpty) {
+                return _buildSecurityWarning(maliciousApps);
+              }
+              
+              return deviceType == DeviceType.tv 
+                ? (session.loggedIn ? const EliteTvDashboard() : const TvLoginScreen())
+                : (session.loggedIn ? const DashboardScreen() : const LoginScreen());
+            },
+            loading: () => const Scaffold(backgroundColor: Colors.black, body: Center(child: CircularProgressIndicator())),
+            error: (_, __) => deviceType == DeviceType.tv 
+                ? (session.loggedIn ? const EliteTvDashboard() : const TvLoginScreen())
+                : (session.loggedIn ? const DashboardScreen() : const LoginScreen()),
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _buildSecurityWarning(List<String> apps) {
+    return Scaffold(
+      backgroundColor: Colors.black,
+      body: Center(
+        child: Padding(
+          padding: const EdgeInsets.all(32.0),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(Icons.security_rounded, color: Colors.redAccent, size: 80),
+              const SizedBox(height: 24),
+              const Text(
+                'Security Warning',
+                style: TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 16),
+              const Text(
+                'We have detected an active VPN/Proxy or a network analysis application installed on your device. To protect our servers and your privacy, please disconnect your VPN and remove any sniffing tools to continue using KOBANI 4K:',
+                style: TextStyle(color: Colors.white70, fontSize: 16),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 24),
+              ...apps.map((a) => Padding(
+                padding: const EdgeInsets.only(bottom: 8.0),
+                child: Text(a, style: const TextStyle(color: Colors.redAccent, fontWeight: FontWeight.bold, fontSize: 16)),
+              )),
+              const SizedBox(height: 32),
+              ElevatedButton(
+                style: ElevatedButton.styleFrom(backgroundColor: Colors.redAccent),
+                onPressed: () {
+                  // Usually user would go uninstall, but we can't easily launch uninstall intent without more native code.
+                  // Just tell them to restart the app.
+                  ref.refresh(securityCheckProvider);
+                },
+                child: const Text('I have resolved the issue, Retry', style: TextStyle(color: Colors.white)),
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 }

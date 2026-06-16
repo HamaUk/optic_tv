@@ -5,6 +5,8 @@ import 'package:firebase_database/firebase_database.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:media_kit/media_kit.dart';
 import 'package:media_kit_video/media_kit_video.dart';
+import 'package:flutter/foundation.dart';
+import 'package:flutter_cache_manager/flutter_cache_manager.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 const _kChannelCache = 'channels_cache_v1';
@@ -114,7 +116,46 @@ Future<void> _saveChannelCache(List<Channel> channels) async {
       _kChannelCache,
       jsonEncode(channels.map((c) => c.toMap()).toList()),
     );
+    _prefetchLogos(channels); // Kick off silent aggressive prefetching
   } catch (_) {}
+}
+
+bool _isPrefetching = false;
+Future<void> _prefetchLogos(List<Channel> channels) async {
+  if (_isPrefetching) return;
+  _isPrefetching = true;
+  
+  try {
+    final cacheManager = DefaultCacheManager();
+    final urlsToFetch = channels
+        .map((c) => c.logo)
+        .where((logo) => logo != null && logo.isNotEmpty)
+        .cast<String>()
+        .take(500) // Limit to top 500 to save bandwidth
+        .toList();
+
+    int concurrency = 0;
+    for (final url in urlsToFetch) {
+      // Throttle concurrency to avoid choking the network
+      while (concurrency >= 5) {
+        await Future.delayed(const Duration(milliseconds: 100));
+      }
+      
+      final fileInfo = await cacheManager.getFileFromMemory(url);
+      if (fileInfo == null) {
+        concurrency++;
+        cacheManager.downloadFile(url).then((_) {
+          concurrency--;
+        }).catchError((_) {
+          concurrency--;
+        });
+      }
+    }
+  } catch (e) {
+    debugPrint('Logo prefetch error: $e');
+  } finally {
+    _isPrefetching = false;
+  }
 }
 
 // ─────────────────────────────────────────────────────────────────────────────

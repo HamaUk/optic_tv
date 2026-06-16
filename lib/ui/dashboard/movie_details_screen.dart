@@ -41,6 +41,11 @@ class _MovieDetailsScreenState extends ConsumerState<MovieDetailsScreen>
   TmdbVideo? _trailer;
   bool _loading = true;
 
+  // Background Preview Player
+  Player? _bgPlayer;
+  VideoController? _bgController;
+  bool _bgPlaying = false;
+
   // Dynamic palette state
   ImagePalette _palette = ImagePalette.fallback;
 
@@ -62,7 +67,23 @@ class _MovieDetailsScreenState extends ConsumerState<MovieDetailsScreen>
     )..repeat(reverse: true);
     _shimmerAnim = CurvedAnimation(parent: _shimmerController, curve: Curves.easeInOut);
 
+    _shimmerAnim = CurvedAnimation(parent: _shimmerController, curve: Curves.easeInOut);
+
+    _initBackgroundPlayer();
     _initData();
+  }
+
+  void _initBackgroundPlayer() {
+    _bgPlayer = Player();
+    _bgController = VideoController(_bgPlayer!);
+    _bgPlayer!.setVolume(0); // Silent preview
+    _bgPlayer!.stream.playing.listen((pl) {
+      if (mounted && pl && !_bgPlaying) {
+        setState(() => _bgPlaying = true);
+      }
+    });
+    // Autoplay the movie silently in the background
+    _bgPlayer!.open(Media(widget.channel.url), play: true);
   }
 
   Future<void> _initData() async {
@@ -121,7 +142,13 @@ class _MovieDetailsScreenState extends ConsumerState<MovieDetailsScreen>
           );
         },
       ),
-    );
+    ).then((_) {
+      // Resume background preview when returning
+      _bgPlayer?.play();
+    });
+    
+    // Pause background preview while full-screen player is active
+    _bgPlayer?.pause();
   }
 
   Future<void> _openTrailer() async {
@@ -136,6 +163,7 @@ class _MovieDetailsScreenState extends ConsumerState<MovieDetailsScreen>
 
   @override
   void dispose() {
+    _bgPlayer?.dispose();
     _shimmerController.dispose();
     super.dispose();
   }
@@ -158,6 +186,21 @@ class _MovieDetailsScreenState extends ConsumerState<MovieDetailsScreen>
                 imageUrl: _movie?.backdropUrl ?? widget.channel.backdrop!,
                 fit: BoxFit.cover,
                 errorWidget: (_, __, ___) => const SizedBox(),
+              ),
+            ),
+
+          // ── Auto-playing Video Preview ─────────────────────────────────────
+          if (_bgController != null)
+            Positioned.fill(
+              child: AnimatedOpacity(
+                duration: const Duration(seconds: 2),
+                opacity: _bgPlaying ? 0.75 : 0.0,
+                child: Video(
+                  controller: _bgController!,
+                  controls: NoVideoControls,
+                  fit: BoxFit.cover,
+                  fill: Colors.transparent,
+                ),
               ),
             ),
 

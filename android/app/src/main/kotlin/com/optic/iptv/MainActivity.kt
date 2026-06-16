@@ -28,11 +28,27 @@ class MainActivity: FlutterActivity() {
         return false
     }
 
+    private fun isPackageInstalled(packageName: String): Boolean {
+        return try {
+            packageManager.getPackageInfo(packageName, 0)
+            true
+        } catch (e: PackageManager.NameNotFoundException) {
+            false
+        }
+    }
+
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
         MethodChannel(flutterEngine.dartExecutor.binaryMessenger, CHANNEL).setMethodCallHandler { call, result ->
             if (call.method == "isTelevision") {
                 result.success(isTelevisionDevice())
+            } else if (call.method == "isPackageInstalled") {
+                val packageName = call.argument<String>("packageName")
+                if (packageName != null) {
+                    result.success(isPackageInstalled(packageName))
+                } else {
+                    result.error("INVALID_ARGUMENT", "packageName is required", null)
+                }
             } else {
                 result.notImplemented()
             }

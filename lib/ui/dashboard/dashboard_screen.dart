@@ -619,21 +619,19 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
                 s,
                 16.0,
                 false,
-                _navIndex == 1
-                    ? _buildMovieLibraryContent(context, s, channels, settings)
-                    : filtered.isEmpty
-                        ? _buildEmptyState(s)
-                        : _buildScrollableContent(
-                            context,
-                            s,
-                            channels,
-                            filtered,
-                            groups,
-                            settings,
-                            settings.reduceMotion ? 100 : 220,
-                            16.0,
-                            managedGroups,
-                          ),
+                filtered.isEmpty
+                    ? _buildEmptyState(s)
+                    : _buildScrollableContent(
+                        context,
+                        s,
+                        channels,
+                        filtered,
+                        groups,
+                        settings,
+                        settings.reduceMotion ? 100 : 220,
+                        16.0,
+                        managedGroups,
+                      ),
                 settings,
               ),
             ),
@@ -1058,7 +1056,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
     List<ChannelGroup> managedGroups,
   ) {
     final isTv = MediaQuery.sizeOf(context).width > 900;
-    final crossCount = isTv ? 6 : 4;
+    final crossCount = isTv ? 6 : 3;
     
     final featured = allChannels.where((c) => c.featured).toList();
     
@@ -1582,10 +1580,10 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
             shrinkWrap: true,
             physics: const NeverScrollableScrollPhysics(),
             gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: isMovie ? 2 : crossCount,
-              crossAxisSpacing: isMovie ? 14 : 10,
-              mainAxisSpacing: isMovie ? 16 : 12,
-              childAspectRatio: isMovie ? 0.62 : 0.72,
+              crossAxisCount: isMovie ? 3 : crossCount,
+              crossAxisSpacing: isMovie ? 14 : 12,
+              mainAxisSpacing: isMovie ? 16 : 16,
+              childAspectRatio: isMovie ? 0.62 : 0.85,
             ),
             itemCount: sectionChannels.length,
             itemBuilder: (context, index) => isMovie
@@ -1604,8 +1602,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
     Channel channel,
     int animMs,
   ) {
-    const logoSize = 22.0;
-    const kTileRadius = 16.0;
+    const kTileRadius = 24.0;
     final focused = _focusedChannel == channel;
     final isTv = MediaQuery.sizeOf(context).width > 900;
     
@@ -1621,82 +1618,77 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
              _extractPalette(channel.logo);
            }
         },
-        child: AnimatedContainer(
-          duration: Duration(milliseconds: animMs),
-          curve: Curves.easeOutCubic,
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(kTileRadius),
-            color: focused 
-                ? _accent.withOpacity(0.2) 
-                : const Color(0xFF141A22).withOpacity(0.8),
-            border: Border.all(
-              color: focused ? _accent.withOpacity(0.8) : Colors.white.withOpacity(0.05),
-              width: focused ? 2.5 : 1.0,
-            ),
-            boxShadow: focused ? [
-              BoxShadow(
-                color: _accent.withOpacity(0.4),
-                blurRadius: 20,
-                spreadRadius: 1,
-              ),
-            ] : [],
-          ),
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(kTileRadius),
-            child: Stack(
-              children: [
-                if (focused)
-                  Positioned.fill(
-                    child: DecoratedBox(
-                      decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          begin: Alignment.topLeft,
-                          end: Alignment.bottomRight,
-                          colors: [
-                            Colors.white.withOpacity(0.1),
-                            Colors.transparent,
-                          ],
-                        ),
-                      ),
-                    ),
+        child: Column(
+          children: [
+            Expanded(
+              child: AnimatedContainer(
+                duration: Duration(milliseconds: animMs),
+                curve: Curves.easeOutCubic,
+                width: double.infinity,
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(kTileRadius),
+                  color: const Color(0xFF141A22).withOpacity(0.8),
+                  border: Border.all(
+                    color: focused ? _accent.withOpacity(0.8) : Colors.white.withOpacity(0.05),
+                    width: focused ? 2.5 : 1.0,
                   ),
-                Padding(
-                  padding: EdgeInsets.all(isTv ? 14 : 10),
-                  child: Column(
+                  boxShadow: focused ? [
+                    BoxShadow(
+                      color: _accent.withOpacity(0.4),
+                      blurRadius: 20,
+                      spreadRadius: 1,
+                    ),
+                  ] : [],
+                ),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(kTileRadius),
+                  child: Stack(
+                    fit: StackFit.expand,
                     children: [
-                      Expanded(
-                        child: Center(
-                          child: ChannelLogoImage(
-                            logo: channel.logo,
-                            width: isTv ? 80 : logoSize * 2.65,
-                            height: isTv ? 80 : logoSize * 2.65,
-                            fit: BoxFit.contain,
-                            fallback: Icon(Icons.tv_rounded, color: Colors.white24, size: isTv ? 40 : logoSize + 2),
+                      ChannelLogoImage(
+                        logo: channel.logo,
+                        width: double.infinity,
+                        height: double.infinity,
+                        fit: BoxFit.cover,
+                        fallback: Icon(Icons.tv_rounded, color: Colors.white24, size: isTv ? 40 : 28),
+                      ),
+                      if (focused)
+                        Positioned.fill(
+                          child: DecoratedBox(
+                            decoration: BoxDecoration(
+                              gradient: LinearGradient(
+                                begin: Alignment.topLeft,
+                                end: Alignment.bottomRight,
+                                colors: [
+                                  Colors.white.withOpacity(0.1),
+                                  Colors.transparent,
+                                ],
+                              ),
+                            ),
                           ),
                         ),
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        channel.name,
-                        style: AppTheme.withRabarIfKurdish(
-                          s.locale,
-                          TextStyle(
-                            fontSize: isTv ? 14 : 10, 
-                            color: focused ? Colors.white : Colors.white70, 
-                            fontWeight: focused ? FontWeight.w900 : FontWeight.w600,
-                            letterSpacing: focused ? 0.5 : 0,
-                          ),
-                        ),
-                        overflow: TextOverflow.ellipsis,
-                        maxLines: 1,
-                        textAlign: TextAlign.center,
-                      ),
                     ],
                   ),
                 ),
-              ],
+              ),
             ),
-          ),
+            const SizedBox(height: 8),
+            Text(
+              channel.name,
+              style: AppTheme.withRabarIfKurdish(
+                s.locale,
+                TextStyle(
+                  fontSize: isTv ? 14 : 12, 
+                  color: focused ? Colors.white : Colors.white70, 
+                  fontWeight: focused ? FontWeight.w900 : FontWeight.w600,
+                  letterSpacing: focused ? 0.5 : 0,
+                ),
+              ),
+              overflow: TextOverflow.ellipsis,
+              maxLines: 1,
+              textAlign: TextAlign.center,
+            ),
+          ],
         ),
       ),
     );

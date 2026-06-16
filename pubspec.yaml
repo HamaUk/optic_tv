@@ -13,6 +13,7 @@ dependencies:
   media_kit: ^1.1.0
   media_kit_video: ^2.0.1
   media_kit_libs_video: ^1.0.7
+  flutter_cast_video: any
   url_launcher: ^6.3.0
   animations: ^2.0.11
   rxdart: ^0.27.7

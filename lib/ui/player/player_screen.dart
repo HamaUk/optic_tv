@@ -9,6 +9,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart' hide TextDirection;
 import 'package:media_kit/media_kit.dart';
 import 'package:media_kit_video/media_kit_video.dart';
+import 'package:flutter_cast_video/flutter_cast_video.dart';
 import 'package:simple_pip_mode/simple_pip.dart';
 import 'dart:ui' show ImageFilter;
 import 'package:animations/animations.dart';
@@ -209,12 +210,12 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
       set('hwdec', 'auto-safe');          // Secure hardware acceleration
       set('vd-lavc-threads', '0');        // CPU thread optimization
       
-      // Aggressive Buffering & Low Internet Stability
+      // Balanced Buffering: Faster start but still handles minor drops
       set('cache', 'yes');
-      set('demuxer-max-bytes', '536870912');     // 512MB max buffer for stability
-      set('demuxer-max-back-bytes', '134217728'); // 128MB back-buffer
-      set('demuxer-readahead-secs', '10');       // 10 seconds readahead
-      set('cache-secs', '20');                   // Maintain 20s of cache
+      set('demuxer-max-bytes', '67108864');      // 64MB max buffer for faster start
+      set('demuxer-max-back-bytes', '33554432'); // 32MB back-buffer
+      set('demuxer-readahead-secs', '3');        // 3 seconds readahead
+      set('cache-secs', '5');                    // Maintain 5s of cache
       
       // Fast Start & Network Tweaks
       set('network-timeout', '10');              // Faster failover on bad links
@@ -583,6 +584,18 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
                       child: const Padding(
                         padding: EdgeInsets.symmetric(horizontal: 12.0, vertical: 8.0),
                         child: Text('Quality', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13)),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Material(
+                    color: Colors.black.withOpacity(0.5),
+                    borderRadius: BorderRadius.circular(8),
+                    child: const Padding(
+                      padding: EdgeInsets.all(8.0),
+                      child: ChromeCastButton(
+                        size: 26,
+                        color: Colors.white,
                       ),
                     ),
                   ),
