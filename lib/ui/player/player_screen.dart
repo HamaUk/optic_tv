@@ -209,18 +209,19 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
       set('hwdec', 'auto-safe');          // Secure hardware acceleration
       set('vd-lavc-threads', '0');        // CPU thread optimization
       
-      // Balanced Buffering: Faster start but still handles minor drops
+      // Ultra-Fast Start: Minimal buffering for instant playback
       set('cache', 'yes');
-      set('demuxer-max-bytes', '67108864');      // 64MB max buffer for faster start
-      set('demuxer-max-back-bytes', '33554432'); // 32MB back-buffer
-      set('demuxer-readahead-secs', '3');        // 3 seconds readahead
-      set('cache-secs', '5');                    // Maintain 5s of cache
+      set('demuxer-max-bytes', '16777216');      // 16MB (down from 64MB)
+      set('demuxer-max-back-bytes', '8388608');  // 8MB back-buffer
+      set('demuxer-readahead-secs', '1');         // 1 second readahead only
+      set('cache-secs', '2');                     // 2s cache — just enough
       
-      // Fast Start & Network Tweaks
-      set('network-timeout', '10');              // Faster failover on bad links
-      set('tcp-fastopen', 'yes');                // Faster TCP handshake
-      set('stream-buffer-size', '4096KiB');      // Larger initial stream buffer
-      set('user-agent', 'SmartIPTV'); // Highly compatible IPTV agent
+      // Instant Start & Network
+      set('network-timeout', '8');                // Fast failover
+      set('tcp-fastopen', 'yes');                 // Faster TCP handshake
+      set('stream-buffer-size', '2048KiB');       // Smaller initial buffer
+      set('user-agent', 'SmartIPTV');             // Highly compatible IPTV agent
+      set('untimed', 'yes');                      // Don't wait for timestamps — play ASAP
       
       // High Quality Fallbacks
       set('ytdl-format', 'bestvideo+bestaudio/best');
@@ -298,6 +299,13 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
   }
 
   @override
+  void deactivate() {
+    // Immediately stop playback when navigating away (prevents audio leak)
+    _player?.stop();
+    super.deactivate();
+  }
+
+  @override
   void dispose() {
     ref.read(viewerServiceProvider).leaveChannel(_current.url);
     _clockTimer?.cancel();
@@ -310,6 +318,7 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
     _activePanel.dispose();
     _panelTimer?.cancel();
     _techInfoSubscription?.cancel();
+    _player?.stop();
     _player?.dispose();
     super.dispose();
   }
