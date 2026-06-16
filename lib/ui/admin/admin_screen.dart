@@ -1914,9 +1914,11 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
               colors: [AppTheme.backgroundBlack, AppTheme.surfaceGray.withOpacity(0.35)],
             ),
           ),
-          child: ListView(
+          child: SingleChildScrollView(
             padding: const EdgeInsets.all(20),
-            children: [
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
               Text(
                 'Analytics Dashboard',
                 style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800),
@@ -2111,7 +2113,8 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
                   },
                 ),
               ),
-            ],
+              ],
+            ),
           ),
         );
       },

@@ -251,109 +251,175 @@ class _FullscreenPlayerPageState extends ConsumerState<FullscreenPlayerPage> {
     return Container(
       decoration: BoxDecoration(
         gradient: LinearGradient(
-          colors: [Colors.black54, Colors.transparent, Colors.black87],
+          colors: [Colors.black87, Colors.transparent, Colors.black87],
           begin: Alignment.topCenter,
           end: Alignment.bottomCenter,
         ),
       ),
-      child: Stack(
-        children: [
-          Positioned(top: 40, right: 40, child: _buildAmbientClock()),
-          Positioned(top: 40, left: 160, child: _buildCurrentInfo(accent)),
-
-          _buildServerSelectionArea(accent),
-
-          Positioned(
-            top: 40,
-            left: 40,
-            child: Consumer(
-              builder: (context, ref, child) {
-                final viewersAsync = ref.watch(channelViewersProvider(_currentChannel.url));
-                final viewersCount = viewersAsync.value ?? 1;
-                return Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                  decoration: BoxDecoration(
-                    color: Colors.redAccent.withOpacity(0.8),
-                    borderRadius: BorderRadius.circular(8),
+      child: SafeArea(
+        child: Column(
+          children: [
+            // Top Bar
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+              child: Row(
+                children: [
+                  IconButton(
+                    icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.white),
+                    onPressed: () => Navigator.pop(context),
                   ),
-                  child: Row(
-                    children: [
-                      const Icon(Icons.remove_red_eye_rounded, color: Colors.white, size: 16),
-                      const SizedBox(width: 6),
-                      Text(
-                        '$viewersCount',
-                        style: const TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.bold),
-                      ),
-                    ],
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: Text(
+                      _currentChannel.name.toUpperCase(),
+                      style: const TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
                   ),
-                );
-              },
-            ),
-          ),
-
-          Positioned(
-            right: 40,
-            bottom: 40,
-            child: Row(
-              children: [
-                _buildHUDAction(
-                  const Icon(Icons.high_quality_rounded, color: Colors.white, size: 24), 
-                  'QUALITY', 
-                  () {
-                    final tracks = widget.player.state.tracks.video;
-                    showDialog(
-                      context: context,
-                      builder: (context) => AlertDialog(
-                        backgroundColor: const Color(0xFF141A22),
-                        title: const Text('Select Quality', style: TextStyle(color: Colors.white)),
-                        content: Column(
-                          mainAxisSize: MainAxisSize.min,
-                          children: tracks.isEmpty 
-                              ? [const Text('No multiple qualities available for this live stream.', style: TextStyle(color: Colors.white70))]
-                              : tracks.map((track) {
-                                  final isAuto = track.id == 'auto' || track.id == 'no';
-                                  final title = isAuto ? 'Auto' : '${track.h ?? track.id}p';
-                                  final isCurrent = widget.player.state.track.video == track;
-                                  return ListTile(
-                                    title: Text(title, style: TextStyle(color: isCurrent ? Colors.redAccent : Colors.white70, fontWeight: isCurrent ? FontWeight.bold : FontWeight.normal)),
-                                    trailing: isCurrent ? const Icon(Icons.check, color: Colors.redAccent) : null,
-                                    onTap: () {
-                                      Navigator.pop(context);
-                                      widget.player.setVideoTrack(track);
-                                      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Quality changed to $title')));
-                                    },
-                                  );
-                          }).toList(),
+                  IconButton(icon: const Icon(Icons.lock_outline_rounded, color: Colors.white), onPressed: () {}),
+                  IconButton(icon: const Icon(Icons.picture_in_picture_alt_rounded, color: Colors.white), onPressed: () {}),
+                  IconButton(icon: const Icon(Icons.aspect_ratio_rounded, color: Colors.white), onPressed: () {}),
+                  IconButton(
+                    icon: const Icon(Icons.settings_outlined, color: Colors.white), 
+                    onPressed: () {
+                      final tracks = widget.player.state.tracks.video;
+                      showDialog(
+                        context: context,
+                        builder: (context) => AlertDialog(
+                          backgroundColor: const Color(0xFF141A22),
+                          title: const Text('Select Quality', style: TextStyle(color: Colors.white)),
+                          content: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: tracks.isEmpty 
+                                ? [const Text('No multiple qualities available for this stream.', style: TextStyle(color: Colors.white70))]
+                                : tracks.map((track) {
+                                    final isAuto = track.id == 'auto' || track.id == 'no';
+                                    final title = isAuto ? 'Auto' : '${track.h ?? track.id}p';
+                                    final isCurrent = widget.player.state.track.video == track;
+                                    return ListTile(
+                                      title: Text(title, style: TextStyle(color: isCurrent ? Colors.redAccent : Colors.white70, fontWeight: isCurrent ? FontWeight.bold : FontWeight.normal)),
+                                      trailing: isCurrent ? const Icon(Icons.check, color: Colors.redAccent) : null,
+                                      onTap: () {
+                                        Navigator.pop(context);
+                                        widget.player.setVideoTrack(track);
+                                        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Quality changed to $title')));
+                                      },
+                                    );
+                            }).toList(),
+                          ),
                         ),
-                      ),
-                    );
-                  }
-                ),
-                const SizedBox(width: 16),
-                _buildHUDAction(
-                  const Icon(Icons.fullscreen_exit_rounded, color: Colors.white, size: 24), 
-                  'EXIT', 
-                  () => Navigator.pop(context)
-                ),
-              ],
+                      );
+                    }
+                  ),
+                ],
+              ),
             ),
-          ),
-        ],
+            
+            // Horizontal Server List
+            _buildHorizontalServerSelection(accent),
+            
+            // Center Play/Pause Control
+            const Spacer(),
+            Center(
+              child: StreamBuilder<bool>(
+                stream: widget.player.stream.playing,
+                builder: (context, snapshot) {
+                  final isPlaying = snapshot.data ?? true;
+                  return GestureDetector(
+                    onTap: () {
+                      if (isPlaying) {
+                        widget.player.pause();
+                      } else {
+                        widget.player.play();
+                      }
+                    },
+                    child: Container(
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: Colors.black.withOpacity(0.5),
+                        shape: BoxShape.circle,
+                        border: Border.all(color: Colors.white24),
+                      ),
+                      child: Icon(
+                        isPlaying ? Icons.pause_rounded : Icons.play_arrow_rounded,
+                        color: Colors.white,
+                        size: 48,
+                      ),
+                    ),
+                  );
+                },
+              ),
+            ),
+            const Spacer(),
+            
+            // Bottom Progress Bar
+            Padding(
+              padding: const EdgeInsets.fromLTRB(32, 16, 32, 32),
+              child: Row(
+                children: [
+                  StreamBuilder<Duration>(
+                    stream: widget.player.stream.position,
+                    builder: (context, snap) {
+                      final pos = snap.data ?? Duration.zero;
+                      return Text(_formatDuration(pos), style: const TextStyle(color: Colors.white));
+                    },
+                  ),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: StreamBuilder<Duration>(
+                      stream: widget.player.stream.position,
+                      builder: (context, posSnap) {
+                        return StreamBuilder<Duration>(
+                          stream: widget.player.stream.duration,
+                          builder: (context, durSnap) {
+                            final pos = posSnap.data ?? Duration.zero;
+                            final dur = durSnap.data ?? Duration.zero;
+                            double progress = 0;
+                            if (dur.inMilliseconds > 0) {
+                              progress = pos.inMilliseconds / dur.inMilliseconds;
+                            }
+                            return SliderTheme(
+                              data: SliderThemeData(
+                                trackHeight: 4,
+                                thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 6),
+                                overlayShape: const RoundSliderOverlayShape(overlayRadius: 14),
+                                activeTrackColor: accent,
+                                inactiveTrackColor: Colors.white24,
+                                thumbColor: accent,
+                              ),
+                              child: Slider(
+                                value: progress.clamp(0.0, 1.0),
+                                onChanged: (val) {
+                                  if (dur.inMilliseconds > 0) {
+                                    widget.player.seek(Duration(milliseconds: (val * dur.inMilliseconds).round()));
+                                  }
+                                },
+                              ),
+                            );
+                          },
+                        );
+                      },
+                    ),
+                  ),
+                  const SizedBox(width: 16),
+                  StreamBuilder<Duration>(
+                    stream: widget.player.stream.duration,
+                    builder: (context, snap) {
+                      final dur = snap.data ?? Duration.zero;
+                      return Text(_formatDuration(dur), style: const TextStyle(color: Colors.white));
+                    },
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
 
-  Widget _buildCurrentInfo(Color accent) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(_currentChannel.group.toUpperCase(), style: TextStyle(color: accent, fontWeight: FontWeight.w900, fontSize: 13, letterSpacing: 3)),
-        Text(_currentChannel.name.toUpperCase(), style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 24, letterSpacing: 1)),
-      ],
-    );
-  }
-
-  Widget _buildServerSelectionArea(Color accent) {
+  Widget _buildHorizontalServerSelection(Color accent) {
     List<Map<String, dynamic>> servers = [
       {'index': 0, 'name': 'Server 1', 'url': _currentChannel.url},
     ];
@@ -367,95 +433,50 @@ class _FullscreenPlayerPageState extends ConsumerState<FullscreenPlayerPage> {
       servers.add({'index': 2, 'name': n, 'url': _currentChannel.url3!});
     }
 
-    // Only show server list if there's more than 1 server
     if (servers.length <= 1) return const SizedBox.shrink();
 
-    return Align(
-      alignment: Alignment.centerLeft,
-      child: GlassmorphicContainer(
-        width: 320,
-        height: double.infinity,
-        borderRadius: 0,
-        blur: 15,
-        alignment: Alignment.center,
-        border: 0,
-        linearGradient: LinearGradient(colors: [Colors.black.withOpacity(0.5), Colors.black.withOpacity(0.2)]),
-        borderGradient: const LinearGradient(colors: [Colors.white10, Colors.white10]),
-        child: ListView.builder(
-          padding: const EdgeInsets.symmetric(vertical: 40, horizontal: 12),
-          itemCount: servers.length,
-          itemBuilder: (context, i) {
-            final s = servers[i];
-            final active = _currentServerIndex == s['index'];
-            return GestureDetector(
-              onTap: () => _switchServer(s['index'], s['url']),
-              child: Container(
-                margin: const EdgeInsets.only(bottom: 8),
-                padding: const EdgeInsets.symmetric(vertical: 18, horizontal: 20),
-                decoration: BoxDecoration(
-                  color: active ? Colors.white.withOpacity(0.08) : Colors.black.withOpacity(0.3),
-                  borderRadius: BorderRadius.circular(14),
-                  border: Border.all(color: active ? accent.withOpacity(0.5) : Colors.white10),
-                ),
-                child: Row(
-                  children: [
-                    Icon(Icons.dns_rounded, color: active ? accent : Colors.white54, size: 28),
-                    const SizedBox(width: 16),
-                    Expanded(
-                      child: Text(
-                        s['name'].toUpperCase(),
-                        style: TextStyle(
-                          color: active ? Colors.white : Colors.white70, 
-                          fontWeight: active ? FontWeight.w900 : FontWeight.bold, 
-                          fontSize: 16,
-                          letterSpacing: 1.5,
-                        ),
-                      ),
-                    ),
-                    if (active) Icon(Icons.graphic_eq_rounded, color: accent, size: 20),
-                  ],
+    return SizedBox(
+      height: 40,
+      child: ListView.builder(
+        scrollDirection: Axis.horizontal,
+        padding: const EdgeInsets.symmetric(horizontal: 24),
+        itemCount: servers.length,
+        itemBuilder: (context, i) {
+          final s = servers[i];
+          final active = _currentServerIndex == s['index'];
+          return GestureDetector(
+            onTap: () => _switchServer(s['index'], s['url']),
+            child: Container(
+              margin: const EdgeInsets.only(right: 12),
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              alignment: Alignment.center,
+              decoration: BoxDecoration(
+                color: active ? accent : Colors.black.withOpacity(0.5),
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: active ? accent : Colors.white24),
+              ),
+              child: Text(
+                s['name'].toUpperCase(),
+                style: TextStyle(
+                  color: active ? Colors.white : Colors.white70,
+                  fontWeight: active ? FontWeight.bold : FontWeight.w500,
+                  fontSize: 14,
                 ),
               ),
-            );
-          },
-        ),
+            ),
+          );
+        },
       ),
     );
   }
 
-  Widget _buildHUDAction(Widget icon, String label, VoidCallback onTap) {
-    return GestureDetector(
-      onTap: onTap,
-      child: GlassmorphicContainer(
-        width: 130,
-        height: 52,
-        borderRadius: 16,
-        blur: 10,
-        alignment: Alignment.center,
-        border: 1,
-        linearGradient: LinearGradient(colors: [Colors.black.withOpacity(0.6), Colors.black.withOpacity(0.4)]),
-        borderGradient: const LinearGradient(colors: [Colors.white10, Colors.white10]),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            icon,
-            const SizedBox(width: 12),
-            Text(label, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 11, letterSpacing: 2)),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildAmbientClock() {
-    final timeStr = DateFormat('HH:mm').format(_now);
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.end,
-      children: [
-        Text(timeStr, style: const TextStyle(color: Colors.white, fontSize: 44, fontWeight: FontWeight.w900, letterSpacing: -1)),
-        Text(DateFormat('yyyy/MM/dd').format(_now), style: TextStyle(color: Colors.white.withOpacity(0.4), fontSize: 13, fontWeight: FontWeight.w900, letterSpacing: 2)),
-      ],
-    );
+  String _formatDuration(Duration d) {
+    final minutes = d.inMinutes.remainder(60).toString().padLeft(2, '0');
+    final seconds = d.inSeconds.remainder(60).toString().padLeft(2, '0');
+    if (d.inHours > 0) {
+      return '${d.inHours}:$minutes:$seconds';
+    }
+    return '$minutes:$seconds';
   }
 
   void _handleVerticalDrag(DragUpdateDetails details) {
