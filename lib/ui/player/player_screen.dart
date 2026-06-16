@@ -9,7 +9,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart' hide TextDirection;
 import 'package:media_kit/media_kit.dart';
 import 'package:media_kit_video/media_kit_video.dart';
-import 'package:flutter_cast_video/flutter_cast_video.dart';
 import 'package:simple_pip_mode/simple_pip.dart';
 import 'dart:ui' show ImageFilter;
 import 'package:animations/animations.dart';
@@ -584,18 +583,6 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
                       child: const Padding(
                         padding: EdgeInsets.symmetric(horizontal: 12.0, vertical: 8.0),
                         child: Text('Quality', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13)),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  Material(
-                    color: Colors.black.withOpacity(0.5),
-                    borderRadius: BorderRadius.circular(8),
-                    child: Padding(
-                      padding: const EdgeInsets.all(8.0),
-                      child: ChromeCastButton(
-                        size: 26,
-                        color: Colors.white,
                       ),
                     ),
                   ),

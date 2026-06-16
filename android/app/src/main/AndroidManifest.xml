@@ -45,13 +45,6 @@
         <meta-data
             android:name="flutterEmbedding"
             android:value="2" />
-        <!-- Default Google Cast Receiver Application ID -->
-        <meta-data
-            android:name="com.google.android.gms.cast.framework.OPTIONS_PROVIDER_CLASS_NAME"
-            android:value="com.cast.CastOptionsProvider" />
-        <meta-data
-            android:name="CAST_APP_ID"
-            android:value="CC1AD845" />
     </application>
     <queries>
         <package android:name="com.guoshi.httpcanary.premium" />
