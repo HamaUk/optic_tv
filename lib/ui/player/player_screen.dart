@@ -151,26 +151,6 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
     });
   }
 
-  @override
-  void dispose() {
-    ref.read(viewerServiceProvider).leaveChannel(_current.url);
-    for (final s in _subscriptions) {
-      s.cancel();
-    }
-    _subscriptions.clear();
-    _techInfoSubscription?.cancel();
-    _clockTimer?.cancel();
-    _bufferingOverlayTimer?.cancel();
-    _hideTimer?.cancel();
-    _fullscreenOverlayTimer?.cancel();
-    _panelTimer?.cancel();
-    _mediaInfoTimer?.cancel();
-    _activePanel.dispose();
-    _playerFocus.dispose();
-    _player?.dispose();
-    super.dispose();
-  }
-
   void _onPanelChanged() {
     _panelTimer?.cancel();
     if (_activePanel.value != _TvPanelType.none) {
@@ -339,6 +319,9 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
     _activePanel.dispose();
     _panelTimer?.cancel();
     _techInfoSubscription?.cancel();
+    _mediaInfoTimer?.cancel();
+    _hideTimer?.cancel();
+    _playerFocus.dispose();
     _player?.stop();
     _player?.dispose();
     super.dispose();

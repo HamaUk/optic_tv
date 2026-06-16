@@ -133,7 +133,7 @@ class _FullscreenPlayerPageState extends ConsumerState<FullscreenPlayerPage> {
     final newUrl = _currentChannel.url;
     if (oldUrl != newUrl) {
       ref.read(viewerServiceProvider).leaveChannel(oldUrl);
-      ref.read(viewerServiceProvider).joinChannel(newUrl, channelName: _channels[i].name);
+      ref.read(viewerServiceProvider).joinChannel(newUrl, channelName: _currentChannel.name);
     }
 
     widget.player.open(Media(

@@ -19,7 +19,7 @@ import '../../widgets/channel_logo_image.dart';
 import '../../services/tmdb_service.dart';
 import '../../services/analytics_service.dart';
 import 'package:fl_chart/fl_chart.dart';
-import 'package:intl/intl.dart';
+import 'package:intl/intl.dart' hide TextDirection;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 enum _PublishShelf { liveTv, movies, custom }
