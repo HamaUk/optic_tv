@@ -591,8 +591,8 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
                   Material(
                     color: Colors.black.withOpacity(0.5),
                     borderRadius: BorderRadius.circular(8),
-                    child: const Padding(
-                      padding: EdgeInsets.all(8.0),
+                    child: Padding(
+                      padding: const EdgeInsets.all(8.0),
                       child: ChromeCastButton(
                         size: 26,
                         color: Colors.white,
