@@ -12,6 +12,7 @@ class ChannelLogoImage extends StatelessWidget {
     this.fit = BoxFit.cover,
     this.borderRadius,
     this.fallback,
+    this.httpHeaders,
   });
 
   final String? logo;
@@ -20,6 +21,7 @@ class ChannelLogoImage extends StatelessWidget {
   final BoxFit fit;
   final BorderRadius? borderRadius;
   final Widget? fallback;
+  final Map<String, String>? httpHeaders;
 
   @override
   Widget build(BuildContext context) {
@@ -57,6 +59,7 @@ class ChannelLogoImage extends StatelessWidget {
       }
     }
 
+    final Map<String, String> headers = httpHeaders ?? {'User-Agent': 'SmartIPTV'};
     final net = CachedNetworkImage(
       imageUrl: s,
       width: w,
@@ -64,6 +67,7 @@ class ChannelLogoImage extends StatelessWidget {
       fit: fit,
       placeholder: (_, __) => fb,
       errorWidget: (_, __, ___) => fb,
+      httpHeaders: headers,
       fadeInDuration: Duration.zero,
       fadeOutDuration: Duration.zero,
     );
