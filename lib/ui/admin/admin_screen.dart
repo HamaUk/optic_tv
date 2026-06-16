@@ -613,6 +613,10 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
     bool? featured,
     int? order,
     String? userAgent,
+    String? url2,
+    String? url2Name,
+    String? url3,
+    String? url3Name,
   }) {
     final map = <String, dynamic>{
       'name': name,

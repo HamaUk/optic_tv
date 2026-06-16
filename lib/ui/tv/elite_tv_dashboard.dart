@@ -37,6 +37,7 @@ class _EliteTvDashboardState extends ConsumerState<EliteTvDashboard> {
           controller: ref.read(videoControllerProvider), 
           channels: contextChannels,
           initialIndex: contextChannels.indexOf(channel),
+          activeServerIndex: 0,
           uiLocale: ref.read(appLocaleProvider),
         ),
       ),

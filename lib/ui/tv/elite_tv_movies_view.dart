@@ -23,6 +23,7 @@ class EliteTvMoviesView extends ConsumerWidget {
           controller: ref.read(videoControllerProvider),
           channels: list,
           initialIndex: list.indexOf(movie),
+          activeServerIndex: 0,
           uiLocale: ref.read(appLocaleProvider),
         ),
       ),
