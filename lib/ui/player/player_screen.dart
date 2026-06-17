@@ -3,6 +3,7 @@ import 'dart:math' as math;
 import '../../services/viewer_service.dart';
 
 import 'package:flutter/material.dart';
+import 'package:glassmorphism/glassmorphism.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart' hide TextDirection;
@@ -82,6 +83,8 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
   
   // Ghosten Panel Architecture
   final ValueNotifier<_TvPanelType> _activePanel = ValueNotifier(_TvPanelType.none);
+  bool _tvOverlayVisible = false;
+  Timer? _tvHideTimer;
   bool _reversePanelTransition = false;
   Timer? _panelTimer;
   
@@ -562,285 +565,257 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
     );
   }
 
+
   Widget _buildTvArchitectureOverhaul(AppStrings s) {
     return Focus(
       autofocus: true,
       onKeyEvent: _onTvRootKeyEvent,
       child: Stack(
+        fit: StackFit.expand,
         children: [
-          // 1. Centered Status Indicators (Pause/Buffering)
-          _buildTvPlaybackStatus(),
-
-          // 2. The Sliding Panels (Progressbar / Playlist)
-          Align(
-            alignment: Alignment.bottomCenter,
-            child: ValueListenableBuilder<_TvPanelType>(
-              valueListenable: _activePanel,
-              builder: (context, panel, _) => PageTransitionSwitcher(
-                reverse: _reversePanelTransition,
-                duration: const Duration(milliseconds: 500),
-                layoutBuilder: (entries) => Stack(alignment: Alignment.bottomCenter, children: entries),
-                transitionBuilder: (child, anim, secAnim) => SharedAxisTransition(
-                  animation: anim,
-                  secondaryAnimation: secAnim,
-                  transitionType: SharedAxisTransitionType.vertical,
-                  fillColor: Colors.transparent,
-                  child: child,
+          // If overlay is visible, dim the background slightly
+          if (_tvOverlayVisible)
+            Container(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [
+                    Colors.black.withOpacity(0.8),
+                    Colors.transparent,
+                    Colors.black.withOpacity(0.85),
+                  ],
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
                 ),
-                child: panel == _TvPanelType.none
-                    ? _buildTvLiteProgressbar()
-                    : panel == _TvPanelType.progressbar
-                        ? _buildTvProgressPanel(s)
-                        : _buildTvPlaylistPanel(s),
               ),
             ),
-          ),
           
-          // 3. Ghosten-Style Channel Info (Top Left)
-          if (_activePanel.value != _TvPanelType.none)
-            Positioned(
-              top: 54,
-              left: 72,
-              child: _GhostenPlayerInfoView(channel: _current),
-            ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildTvPlaybackStatus() {
-    final p = _player;
-    if (p == null) return const SizedBox.shrink();
-    return Center(
-      child: ValueListenableBuilder<bool>(
-        valueListenable: p.buffering,
-        builder: (context, buffering, _) {
-          if (buffering) {
-            return Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                CircularProgressIndicator(color: _accent, strokeWidth: 4),
-                const SizedBox(height: 16),
-                const Text('Buffering...', style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
-              ],
-            );
-          }
-          return ValueListenableBuilder<bool>(
-            valueListenable: p.playing,
-            builder: (context, playing, _) {
-              if (!playing) {
-                return Container(
-                  padding: const EdgeInsets.all(28),
-                  decoration: BoxDecoration(
-                    color: Colors.black.withOpacity(0.4),
-                    shape: BoxShape.circle,
-                    border: Border.all(color: Colors.white10),
-                  ),
-                  child: const Icon(Icons.pause, size: 72, color: Colors.white),
-                );
-              }
-              return const SizedBox.shrink();
-            },
-          );
-        },
-      ),
-    );
-  }
-
-  Widget _buildTvLiteProgressbar() {
-    final progress = _duration.inSeconds > 0 ? (_position.inSeconds / _duration.inSeconds).clamp(0.0, 1.0) : 0.0;
-    return Container(
-      width: double.infinity,
-      height: 4,
-      alignment: Alignment.bottomLeft,
-      color: Colors.black26,
-      child: FractionallySizedBox(
-        widthFactor: progress,
-        child: Container(
-          decoration: BoxDecoration(
-            color: _accent,
-            boxShadow: [BoxShadow(color: _accent.withOpacity(0.5), blurRadius: 4)],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildTvProgressPanel(AppStrings s) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.fromLTRB(72, 40, 72, 54),
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topCenter,
-          end: Alignment.bottomCenter,
-          colors: [
-            Colors.transparent,
-            Colors.black.withOpacity(0.7),
-            Colors.black,
-          ],
-        ),
-      ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          _buildTvTimeline(),
-          const SizedBox(height: 40),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              _tvGhostenPlayerAction(Icons.skip_previous_rounded, () => _handlePrevious()),
-              const SizedBox(width: 32),
-              _tvGhostenPlayerAction(
-                _isPlaying ? Icons.pause_rounded : Icons.play_arrow_rounded,
-                () => _isPlaying ? _player!.pause() : _player!.play(),
-                isLarge: true,
-                autofocus: true,
-              ),
-              const SizedBox(width: 32),
-              _tvGhostenPlayerAction(Icons.skip_next_rounded, () => _handleNext()),
-              const Spacer(),
-              _tvGhostenPlayerAction(Icons.format_list_bulleted_rounded, () {
-                setState(() {
-                  _reversePanelTransition = false;
-                  _activePanel.value = _TvPanelType.playlist;
-                });
-              }),
-              const SizedBox(width: 20),
-              _tvGhostenPlayerAction(Icons.settings_outlined, () => _scaffoldKey.currentState?.openEndDrawer()),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildTvTimeline() {
-    final pos = _position;
-    final dur = _duration;
-    final progress = dur.inSeconds > 0 ? (pos.inSeconds / dur.inSeconds).clamp(0.0, 1.0) : 0.0;
-    
-    return Column(
-      children: [
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Text(_formatDuration(pos), style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.w900, fontFamily: 'monospace')),
-            Text(_formatDuration(dur), style: const TextStyle(color: Colors.white38, fontSize: 18, fontFamily: 'monospace')),
-          ],
-        ),
-        const SizedBox(height: 16),
-        Stack(
-          children: [
-            Container(height: 8, decoration: BoxDecoration(color: Colors.white10, borderRadius: BorderRadius.circular(4))),
-            FractionallySizedBox(
-              widthFactor: progress,
-              child: Container(
-                height: 8,
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(colors: [_accent.withOpacity(0.6), _accent]),
-                  borderRadius: BorderRadius.circular(4),
-                  boxShadow: [BoxShadow(color: _accent.withOpacity(0.4), blurRadius: 10)],
-                ),
-              ),
-            ),
-          ],
-        ),
-      ],
-    );
-  }
-
-  Widget _buildTvPlaylistPanel(AppStrings s) {
-    final groupChannels = _channelsInSelectedGroup;
-    return Container(
-      height: 240,
-      width: double.infinity,
-      decoration: BoxDecoration(
-        color: Colors.black.withOpacity(0.95),
-        border: const Border(top: BorderSide(color: Colors.white10, width: 1)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Padding(
-            padding: const EdgeInsets.fromLTRB(28, 20, 28, 12),
-            child: Text(
-              _selectedGroup.toUpperCase(),
-              style: TextStyle(color: _accent, fontSize: 14, fontWeight: FontWeight.w900, letterSpacing: 2),
-            ),
-          ),
-          Expanded(
-            child: ListView.separated(
-              padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 8),
-              scrollDirection: Axis.horizontal,
-              itemCount: groupChannels.length,
-              separatorBuilder: (_, __) => const SizedBox(width: 20),
-              itemBuilder: (context, i) {
-                final ch = groupChannels[i];
-                final active = ch.url == _current.url;
-                return GhostenFocusable(
-                  autofocus: active,
-                  onTap: () {
-                    final idx = widget.channels.indexOf(ch);
-                    _selectChannelByIndex(idx);
-                  },
-                  backgroundColor: active ? _accent.withOpacity(0.15) : Colors.white.withOpacity(0.04),
-                  child: Container(
-                    width: 200,
-                    padding: const EdgeInsets.all(16),
-                    child: Column(
+          if (_tvOverlayVisible)
+            SafeArea(
+              child: Column(
+                children: [
+                  // Top Bar
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 48, vertical: 24),
+                    child: Row(
                       children: [
-                        Expanded(
-                          child: Center(
-                            child: ChannelLogoImage(
-                              logo: ch.logo,
-                              channelName: ch.name,
-                              height: 72,
-                              width: 72,
+                        if (_current.logo != null && _current.logo!.isNotEmpty) ...[
+                          Container(
+                            width: 48,
+                            height: 48,
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(12),
+                              color: Colors.white10,
+                            ),
+                            child: ClipRRect(
+                              borderRadius: BorderRadius.circular(12),
+                              child: ChannelLogoImage(
+                                logo: _current.logo,
+                                channelName: _current.name,
+                                width: 48,
+                                height: 48,
+                              ),
                             ),
                           ),
-                        ),
-                        const SizedBox(height: 12),
-                        Text(
-                          ch.name,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: TextStyle(
-                            color: active ? Colors.white : Colors.white70,
-                            fontSize: 16,
-                            fontWeight: active ? FontWeight.w900 : FontWeight.normal,
+                          const SizedBox(width: 16),
+                        ],
+                        Expanded(
+                          child: Text(
+                            _current.name.toUpperCase(),
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 24,
+                              fontWeight: FontWeight.bold,
+                              letterSpacing: 1.2,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
                           ),
                         ),
                       ],
                     ),
                   ),
-                );
-              },
+
+                  const Spacer(),
+
+                  // Glassmorphism Banana HUD
+                  GlassmorphicContainer(
+                    width: 500,
+                    height: 80,
+                    borderRadius: 40,
+                    blur: 20,
+                    alignment: Alignment.center,
+                    border: 1,
+                    linearGradient: LinearGradient(
+                      colors: [Colors.white.withOpacity(0.1), Colors.white.withOpacity(0.05)],
+                    ),
+                    borderGradient: LinearGradient(
+                      colors: [Colors.white.withOpacity(0.2), Colors.white.withOpacity(0.05)],
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        _buildTvFocusIcon(Icons.fast_rewind_rounded, () {
+                          _handlePrevious();
+                          _resetTvHideTimer();
+                        }),
+                        const SizedBox(width: 24),
+                        _buildTvFocusIcon(
+                          _muted ? Icons.volume_off_rounded : Icons.volume_up_rounded, 
+                          () {
+                            setState(() => _muted = !_muted);
+                            _player?.setVolume(_muted ? 0.0 : 100.0);
+                            _resetTvHideTimer();
+                          }
+                        ),
+                        const SizedBox(width: 24),
+                        _buildTvFocusIcon(Icons.settings_rounded, () {
+                          _scaffoldKey.currentState?.openEndDrawer();
+                          _resetTvHideTimer();
+                        }),
+                        const SizedBox(width: 24),
+                        TVFocusable(
+                          showFocusBorder: false,
+                          focusScale: 1.1,
+                          onSelect: () {
+                            _playPause();
+                            _resetTvHideTimer();
+                          },
+                          child: const SizedBox(),
+                          builder: (context, isFocused, child) => Container(
+                            decoration: BoxDecoration(
+                              color: isFocused ? _accent : Colors.white.withOpacity(0.15),
+                              shape: BoxShape.circle,
+                              boxShadow: isFocused ? [BoxShadow(color: _accent.withOpacity(0.5), blurRadius: 10)] : [],
+                            ),
+                            padding: const EdgeInsets.all(12),
+                            child: Icon(
+                              _isPlaying ? Icons.pause_rounded : Icons.play_arrow_rounded,
+                              color: isFocused ? Colors.black : Colors.white,
+                              size: 36,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 24),
+                        _buildTvFocusIcon(Icons.aspect_ratio_rounded, () {
+                          _resetTvHideTimer();
+                        }),
+                        const SizedBox(width: 24),
+                        _buildTvFocusIcon(Icons.fast_forward_rounded, () {
+                          _handleNext();
+                          _resetTvHideTimer();
+                        }),
+                      ],
+                    ),
+                  ),
+
+                  const SizedBox(height: 32),
+
+                  // Channel Carousel
+                  Container(
+                    height: 120,
+                    width: double.infinity,
+                    padding: const EdgeInsets.symmetric(vertical: 8),
+                    child: ListView.builder(
+                      scrollDirection: Axis.horizontal,
+                      padding: const EdgeInsets.symmetric(horizontal: 48),
+                      itemCount: widget.channels.length,
+                      itemBuilder: (context, idx) => _buildTvChannelCarouselItem(idx, _accent),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                ],
+              ),
             ),
-          ),
         ],
       ),
     );
   }
 
-  Widget _tvGhostenPlayerAction(IconData icon, VoidCallback onTap, {bool isLarge = false, bool autofocus = false}) {
+  Widget _buildTvFocusIcon(IconData icon, VoidCallback onSelect) {
     return TVFocusable(
-      autofocus: autofocus,
-      onSelect: onTap,
       showFocusBorder: false,
       focusScale: 1.15,
+      onSelect: onSelect,
       child: const SizedBox(),
-      builder: (context, isFocused, child) {
-        return Container(
-          padding: EdgeInsets.all(isLarge ? 18 : 14),
-          decoration: BoxDecoration(
-            color: isFocused ? _accent : Colors.white.withOpacity(0.06),
-            borderRadius: BorderRadius.circular(12),
-            boxShadow: isFocused ? [BoxShadow(color: _accent.withOpacity(0.6), blurRadius: 12)] : [],
-          ),
-          child: Icon(icon, color: isFocused ? Colors.black : Colors.white, size: isLarge ? 36 : 28),
-        );
+      builder: (context, isFocused, child) => Container(
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          color: isFocused ? Colors.white24 : Colors.transparent,
+        ),
+        padding: const EdgeInsets.all(8),
+        child: Icon(icon, color: Colors.white, size: 28),
+      ),
+    );
+  }
+
+  Widget _buildTvChannelCarouselItem(int index, Color accent) {
+    final channel = widget.channels[index];
+    final isSelected = index == _index;
+
+    return TVFocusable(
+      showFocusBorder: false,
+      focusScale: 1.05,
+      onSelect: () {
+        _selectChannelByIndex(index);
+        _resetTvHideTimer();
       },
+      child: const SizedBox(),
+      builder: (context, isFocused, child) => Container(
+        width: 110,
+        margin: const EdgeInsets.symmetric(horizontal: 8),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            AnimatedContainer(
+              duration: const Duration(milliseconds: 200),
+              width: 100,
+              height: 75,
+              decoration: BoxDecoration(
+                color: isSelected ? Colors.white : Colors.white.withOpacity(0.08),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(
+                  color: isFocused ? accent : (isSelected ? Colors.white : Colors.transparent),
+                  width: 3,
+                ),
+                boxShadow: (isFocused || isSelected)
+                    ? [
+                        BoxShadow(
+                          color: (isFocused ? accent : Colors.white).withOpacity(0.4),
+                          blurRadius: 8,
+                          spreadRadius: 2,
+                        ),
+                      ]
+                    : null,
+              ),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(9),
+                child: Padding(
+                  padding: const EdgeInsets.all(8.0),
+                  child: ChannelLogoImage(
+                    logo: channel.logo,
+                    channelName: channel.name,
+                    width: double.infinity,
+                    height: double.infinity,
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(height: 6),
+            Text(
+              channel.name.toUpperCase(),
+              style: TextStyle(
+                color: isSelected ? Colors.white : Colors.white70,
+                fontSize: 12,
+                fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
+              ),
+              textAlign: TextAlign.center,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ],
+        ),
+      ),
     );
   }
 
@@ -848,12 +823,12 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
     if (event is KeyDownEvent || event is KeyRepeatEvent) {
       final key = event.logicalKey;
 
-      if (_activePanel.value == _TvPanelType.none) {
+      if (!_tvOverlayVisible) {
         if (key == LogicalKeyboardKey.select || key == LogicalKeyboardKey.enter || key == LogicalKeyboardKey.space) {
           setState(() {
-            _reversePanelTransition = false;
-            _activePanel.value = _TvPanelType.progressbar;
+            _tvOverlayVisible = true;
           });
+          _resetTvHideTimer();
           return KeyEventResult.handled;
         }
         if (key == LogicalKeyboardKey.arrowUp) {
@@ -864,36 +839,23 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
           _handleNext();
           return KeyEventResult.handled;
         }
-        if (key == LogicalKeyboardKey.arrowLeft) {
-          _player!.seek(_position - const Duration(seconds: 15));
-          return KeyEventResult.handled;
-        }
-        if (key == LogicalKeyboardKey.arrowRight) {
-          _player!.seek(_position + const Duration(seconds: 15));
+        if (key == LogicalKeyboardKey.arrowLeft || key == LogicalKeyboardKey.arrowRight) {
+           setState(() {
+            _tvOverlayVisible = true;
+          });
+          _resetTvHideTimer();
           return KeyEventResult.handled;
         }
       } else {
         if (key == LogicalKeyboardKey.escape || key == LogicalKeyboardKey.browserBack) {
           setState(() {
-            _reversePanelTransition = true;
-            _activePanel.value = _TvPanelType.none;
+            _tvOverlayVisible = false;
           });
+          _tvHideTimer?.cancel();
           return KeyEventResult.handled;
         }
-        if (key == LogicalKeyboardKey.arrowDown && _activePanel.value == _TvPanelType.progressbar) {
-             setState(() {
-                _reversePanelTransition = false;
-                _activePanel.value = _TvPanelType.playlist;
-             });
-             return KeyEventResult.handled;
-        }
-        if (key == LogicalKeyboardKey.arrowUp && _activePanel.value == _TvPanelType.playlist) {
-             setState(() {
-                _reversePanelTransition = true;
-                _activePanel.value = _TvPanelType.progressbar;
-             });
-             return KeyEventResult.handled;
-        }
+        // Any other key press resets the timer so it doesn't hide while navigating
+        _resetTvHideTimer();
       }
     }
     return KeyEventResult.ignored;
@@ -909,6 +871,16 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
 
   void _handlePrevious() {
     if (_index > 0) _selectChannelByIndex(_index - 1);
+  }
+
+  
+  void _resetTvHideTimer() {
+    _tvHideTimer?.cancel();
+    if (_tvOverlayVisible) {
+      _tvHideTimer = Timer(const Duration(seconds: 8), () {
+        if (mounted) setState(() => _tvOverlayVisible = false);
+      });
+    }
   }
 
   void _handleNext() {
