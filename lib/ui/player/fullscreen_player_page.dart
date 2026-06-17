@@ -12,6 +12,7 @@ import '../../services/optic_player.dart';
 
 import '../../services/playlist_service.dart';
 import '../../services/platform_service.dart';
+import 'package:wakelock_plus/wakelock_plus.dart';
 import '../../widgets/tv/tv_focusable.dart';
 import '../../widgets/channel_logo_image.dart';
 import '../../core/theme.dart';
@@ -97,6 +98,9 @@ class _FullscreenPlayerPageState extends ConsumerState<FullscreenPlayerPage> {
 
     _resetHideTimer();
     
+    // Enable wakelock to prevent screen sleep
+    WakelockPlus.enable();
+
     if (widget.onChannelChanged == null) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (mounted) {
@@ -115,6 +119,7 @@ class _FullscreenPlayerPageState extends ConsumerState<FullscreenPlayerPage> {
 
   @override
   void dispose() {
+    WakelockPlus.disable();
     _scrollController.dispose();
     if (widget.onChannelChanged == null) {
       ref.read(viewerServiceProvider).leaveChannel(_currentChannel.url);

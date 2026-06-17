@@ -8,6 +8,7 @@ import 'package:intl/intl.dart' hide TextDirection;
 import 'package:path_provider/path_provider.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../services/optic_player.dart';
+import 'package:wakelock_plus/wakelock_plus.dart';
 
 import '../../core/theme.dart';
 import '../../l10n/app_strings.dart';
@@ -90,6 +91,9 @@ class _MoviePlayerPageState extends ConsumerState<MoviePlayerPage> {
 
     _resetHideTimer();
     
+    // Enable wakelock to prevent screen sleep
+    WakelockPlus.enable();
+
     _configureEngine();
   }
 
@@ -119,6 +123,7 @@ class _MoviePlayerPageState extends ConsumerState<MoviePlayerPage> {
 
   @override
   void dispose() {
+    WakelockPlus.disable();
     _hideTimer?.cancel();
     _clockTimer?.cancel();
     _osdTimer?.cancel();

@@ -55,6 +55,7 @@ dependencies:
   dio_cache_interceptor: ^3.5.0
   flutter_staggered_animations: ^1.1.1
   fl_chart: ^0.68.0
+  wakelock_plus: ^1.2.8
 
   # Media Engine — ExoPlayer (Android native, zero overhead)
   video_player: ^2.9.1

@@ -12,6 +12,7 @@ import 'dart:ui' show ImageFilter;
 import 'package:animations/animations.dart';
 import 'package:optic_tv/widgets/tv_fluid_focusable.dart';
 import '../../widgets/tv/tv_focusable.dart';
+import 'package:wakelock_plus/wakelock_plus.dart';
 import 'fullscreen_player_page.dart';
 import '../../services/optic_player.dart';
 
@@ -136,6 +137,9 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
     super.initState();
     _index = widget.initialIndex.clamp(0, widget.channels.length - 1);
     _selectedGroup = widget.channels[_index].group;
+
+    // Enable wakelock to prevent screen sleep
+    WakelockPlus.enable();
 
     _initFlow();
     
@@ -276,6 +280,7 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
 
   @override
   void dispose() {
+    WakelockPlus.disable();
     ref.read(viewerServiceProvider).leaveChannel(_current.url);
     _clockTimer?.cancel();
     _bufferingOverlayTimer?.cancel();
