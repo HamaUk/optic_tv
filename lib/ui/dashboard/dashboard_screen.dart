@@ -14,7 +14,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/theme.dart';
 import '../../widgets/channel_logo_image.dart';
-import '../../widgets/optic_wordmark.dart';
+import '../../widgets/kobani_wordmark.dart';
 import '../../l10n/app_strings.dart';
 import '../../providers/app_locale_provider.dart';
 import '../../providers/channel_library_provider.dart';
@@ -770,7 +770,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
                     padding: EdgeInsets.fromLTRB(6, 30, 6, math.max(bottom, 20)),
                     child: Column(
                       children: [
-                        const OpticWordmark(height: 24),
+                        const KobaniWordmark(height: 24),
                         const SizedBox(height: 60),
                         _railItem(s, 0, Icons.grid_view_rounded, s.navHome, _navIndex == 0),
                         const SizedBox(height: 16),
@@ -878,7 +878,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
                   width: double.infinity,
                   height: tv ? 48 : 44,
                   child: Center(
-                    child: OpticWordmark(height: tv ? 30 : 26),
+                    child: KobaniWordmark(height: tv ? 30 : 26),
                   ),
                 ),
               ),
@@ -2253,7 +2253,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const OpticWordmark(height: 32),
+                    const KobaniWordmark(height: 32),
                     const SizedBox(height: 40),
                     Text(
                       'SETTINGS',
@@ -2955,7 +2955,7 @@ class _AboutTab extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
       child: Column(
         children: [
-          const OpticWordmark(height: 60),
+          const KobaniWordmark(height: 60),
           const SizedBox(height: 48),
           Container(
             padding: const EdgeInsets.all(24),

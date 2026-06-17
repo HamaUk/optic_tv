@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/theme.dart';
-import '../../widgets/optic_wordmark.dart';
+import '../../widgets/kobani_wordmark.dart';
 import '../../widgets/tv_fluid_focusable.dart';
 import '../../l10n/app_strings.dart';
 import '../../providers/app_locale_provider.dart';
@@ -154,7 +154,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                const Center(child: OpticWordmark(height: 48, twoLine: true)),
+                const Center(child: KobaniWordmark(height: 48, twoLine: true)),
                 const SizedBox(height: 40),
                 Text(
                   s.loginTitle.toUpperCase(),
@@ -235,7 +235,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
               mainAxisAlignment: MainAxisAlignment.center,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const OpticWordmark(height: 60, twoLine: true),
+                const KobaniWordmark(height: 60, twoLine: true),
                 const SizedBox(height: 60),
                 Text(
                   s.loginTitle.toUpperCase(),

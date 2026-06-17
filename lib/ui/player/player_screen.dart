@@ -18,7 +18,7 @@ import '../../services/optic_player.dart';
 import '../../core/theme.dart';
 import '../../widgets/channel_logo_image.dart';
 import '../../widgets/player_control_button.dart';
-import '../../widgets/optic_wordmark.dart';
+import '../../widgets/kobani_wordmark.dart';
 import '../../l10n/app_strings.dart';
 import '../../providers/app_locale_provider.dart';
 import '../../providers/channel_library_provider.dart';
@@ -943,7 +943,7 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
       ),
       child: Row(
         children: [
-          const OpticWordmark(height: 22),
+          const KobaniWordmark(height: 22),
           const SizedBox(width: 12),
           Expanded(
             child: Text(

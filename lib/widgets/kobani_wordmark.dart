@@ -5,8 +5,8 @@ import 'package:google_fonts/google_fonts.dart';
 import '../core/theme.dart';
 
 /// English-only brand mark — never pass through localization.
-class OpticWordmark extends StatefulWidget {
-  const OpticWordmark({
+class KobaniWordmark extends StatefulWidget {
+  const KobaniWordmark({
     super.key, 
     this.height = 40,
     this.twoLine = false,
@@ -16,10 +16,10 @@ class OpticWordmark extends StatefulWidget {
   final bool twoLine;
 
   @override
-  State<OpticWordmark> createState() => _OpticWordmarkState();
+  State<KobaniWordmark> createState() => _KobaniWordmarkState();
 }
 
-class _OpticWordmarkState extends State<OpticWordmark>
+class _KobaniWordmarkState extends State<KobaniWordmark>
     with SingleTickerProviderStateMixin {
   late AnimationController _controller;
 

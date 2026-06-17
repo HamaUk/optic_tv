@@ -14,7 +14,6 @@ import '../../services/playlist_service.dart';
 import '../../services/settings_service.dart';
 import '../../services/viewer_service.dart';
 import '../../widgets/dynamic_background.dart';
-import '../../widgets/optic_wordmark.dart';
 import '../../widgets/tv/tv_focusable.dart';
 import '../player/player_screen.dart';
 import '../dashboard/movie_details_screen.dart';
