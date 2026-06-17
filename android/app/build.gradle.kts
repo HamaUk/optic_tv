@@ -113,7 +113,7 @@ dependencies {
 
     // Firebase
     implementation(platform("com.google.firebase:firebase-bom:32.7.4"))
-    implementation("com.google.firebase:firebase-database-ktx")
+    implementation("com.google.firebase:firebase-database")
 
     // Premium UI (Lottie)
     implementation("com.airbnb.android:lottie-compose:6.3.0")
