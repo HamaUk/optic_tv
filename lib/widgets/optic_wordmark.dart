@@ -96,34 +96,16 @@ class _OpticWordmarkState extends State<OpticWordmark>
                       ),
                     ],
                   )
-                : Column(
-                    mainAxisSize: MainAxisSize.min,
-                    crossAxisAlignment: CrossAxisAlignment.center,
-                    children: [
-                      Text(
-                        'KOBANI',
-                        textAlign: TextAlign.center,
-                        style: GoogleFonts.orbitron(
-                          fontSize: fontSize,
-                          fontWeight: FontWeight.w800,
-                          color: Colors.white,
-                          letterSpacing: letterSpacing * 1.2,
-                          height: 1.0,
-                        ),
-                      ),
-                      const SizedBox(height: 2),
-                      Text(
-                        '4K',
-                        textAlign: TextAlign.center,
-                        style: GoogleFonts.orbitron(
-                          fontSize: fontSize * 0.65,
-                          fontWeight: FontWeight.w800,
-                          color: Colors.white,
-                          letterSpacing: letterSpacing * 1.8,
-                          height: 1.0,
-                        ),
-                      ),
-                    ],
+                : Text(
+                    'KOBANI 4K',
+                    textAlign: TextAlign.center,
+                    style: GoogleFonts.orbitron(
+                      fontSize: fontSize,
+                      fontWeight: FontWeight.w800,
+                      color: Colors.white,
+                      letterSpacing: widget.height * 0.12,
+                      height: 1.0,
+                    ),
                   ),
           ),
         );
