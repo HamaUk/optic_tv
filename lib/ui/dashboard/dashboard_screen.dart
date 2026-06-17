@@ -520,13 +520,10 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
 
   @override
   Widget build(BuildContext context) {
-    ref.listen<AsyncValue<AppUpdateData>>(updateManagerProvider, (previous, next) {
-      final data = next.asData?.value;
-      if (data != null && data.isActive && data.versionCode > 3) {
-        if (!_hasPromptedUpdate) {
-          _hasPromptedUpdate = true;
-          UpdatePromptDialog.show(context, data);
-        }
+    ref.listen<AppUpdateData?>(updatePromptTriggerProvider, (previous, next) {
+      if (next != null && !_hasPromptedUpdate) {
+        _hasPromptedUpdate = true;
+        UpdatePromptDialog.show(context, next);
       }
     });
 

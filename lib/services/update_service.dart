@@ -1,5 +1,6 @@
 import 'package:firebase_database/firebase_database.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 
 class AppUpdateData {
   final String apkUrl;
@@ -35,4 +36,25 @@ final updateManagerProvider = StreamProvider<AppUpdateData>((ref) {
       .ref('sync/global/updateManager')
       .onValue
       .map((event) => AppUpdateData.fromMap(event.snapshot.value as Map<dynamic, dynamic>?));
+});
+
+final appVersionCodeProvider = FutureProvider<int>((ref) async {
+  try {
+    final packageInfo = await PackageInfo.fromPlatform();
+    return int.tryParse(packageInfo.buildNumber) ?? 0;
+  } catch (e) {
+    return 3; // Fallback to current hardcoded if package_info fails
+  }
+});
+
+final updatePromptTriggerProvider = Provider<AppUpdateData?>((ref) {
+  final updateData = ref.watch(updateManagerProvider).asData?.value;
+  final localVersionCode = ref.watch(appVersionCodeProvider).asData?.value;
+
+  if (updateData != null && localVersionCode != null) {
+    if (updateData.isActive && updateData.versionCode > localVersionCode) {
+      return updateData;
+    }
+  }
+  return null;
 });
