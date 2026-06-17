@@ -117,6 +117,9 @@ dependencies {
 
     // Premium UI (Lottie)
     implementation("com.airbnb.android:lottie-compose:6.3.0")
+
+    // Coil Image Loading
+    implementation("io.coil-kt:coil-compose:2.7.0")
 }
 
 flutter {

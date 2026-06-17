@@ -3,6 +3,14 @@ package com.kobani4k.tv.data
 import com.google.firebase.database.FirebaseDatabase
 import kotlinx.coroutines.tasks.await
 
+data class TvChannel(
+    val name: String = "",
+    val url: String = "",
+    val group: String = "General",
+    val logo: String? = null,
+    val type: String = "live"
+)
+
 class FirebaseRepository {
     private val db = FirebaseDatabase.getInstance().reference
 
@@ -22,19 +30,40 @@ class FirebaseRepository {
 
     /**
      * Fetches the actual channels from Firebase Realtime Database.
-     * In the Flutter app, playlists are parsed from an M3U file, but they might
-     * also be retrieved via `sync/global/playlists`.
-     * This is a mock structure based on typical IPTV Firebase setups.
+     * Maps them to TvChannel structures.
      */
-    suspend fun getChannels(): List<String> {
+    suspend fun getChannels(): List<TvChannel> {
         return try {
-            val snapshot = db.child("sync/global/playlists").get().await()
+            val snapshot = db.child("sync/global/managedPlaylist").get().await()
             if (snapshot.exists()) {
-                val channels = mutableListOf<String>()
+                val channels = mutableListOf<TvChannel>()
                 for (child in snapshot.children) {
-                    val name = child.child("name").getValue(String::class.java)
-                    if (name != null) channels.add(name)
+                    val name = child.child("name").getValue(String::class.java) ?: "Unknown"
+                    val url = child.child("url").getValue(String::class.java) ?: ""
+                    
+                    var group = child.child("group").getValue(String::class.java)
+                    if (group == null) {
+                         group = child.child("category").getValue(String::class.java)
+                    }
+                    if (group == null) {
+                         group = "General"
+                    }
+                    
+                    var logo = child.child("logo").getValue(String::class.java)
+                    if (logo == null) {
+                         logo = child.child("icon_url").getValue(String::class.java)
+                    }
+                    
+                    val type = child.child("type").getValue(String::class.java) ?: "live"
+                    
+                    if (url.isNotEmpty()) {
+                        channels.add(TvChannel(name, url, group, logo, type))
+                    }
                 }
+                
+                // Sort by name case-insensitive by default
+                channels.sortBy { it.name.lowercase() }
+                
                 channels.ifEmpty { defaultMockChannels() }
             } else {
                 defaultMockChannels()
@@ -45,7 +74,16 @@ class FirebaseRepository {
         }
     }
 
-    private fun defaultMockChannels(): List<String> {
-        return List(20) { "Kobani Channel ${it + 1}" }
+    private fun defaultMockChannels(): List<TvChannel> {
+        return List(20) { index ->
+            val isEven = index % 2 == 0
+            TvChannel(
+                name = "Kobani Channel ${index + 1}",
+                url = "https://storage.googleapis.com/exoplayer-test-media-0/BigBuckBunny_320x180.mp4",
+                group = if (isEven) "LIVE" else "MOVIES",
+                logo = null,
+                type = if (isEven) "live" else "movie"
+            )
+        }
     }
 }

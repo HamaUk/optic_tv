@@ -16,6 +16,8 @@ import androidx.tv.material3.darkColorScheme
 import com.kobani4k.tv.ui.DashboardScreen
 import com.kobani4k.tv.ui.LoginScreen
 import com.kobani4k.tv.ui.PlayerScreen
+import java.net.URLDecoder
+import java.net.URLEncoder
 
 class TvMainActivity : ComponentActivity() {
     @OptIn(ExperimentalTvMaterial3Api::class)
@@ -44,14 +46,30 @@ class TvMainActivity : ComponentActivity() {
                         }
                         composable("dashboard") {
                             DashboardScreen(
-                                onChannelSelected = { channelName ->
-                                    navController.navigate("player/$channelName")
+                                onChannelSelected = { channel ->
+                                    val encodedName = URLEncoder.encode(channel.name, "UTF-8")
+                                    val encodedUrl = URLEncoder.encode(channel.url, "UTF-8")
+                                    val encodedLogo = URLEncoder.encode(channel.logo ?: "", "UTF-8")
+                                    navController.navigate("player/$encodedName/$encodedUrl/$encodedLogo")
+                                },
+                                onLogout = {
+                                    navController.navigate("login") {
+                                        popUpTo("dashboard") { inclusive = true }
+                                    }
                                 }
                             )
                         }
-                        composable("player/{channelName}") { backStackEntry ->
-                            val channelName = backStackEntry.arguments?.getString("channelName") ?: "Unknown"
-                            PlayerScreen(channelName = channelName)
+                        composable("player/{channelName}/{streamUrl}/{logoUrl}") { backStackEntry ->
+                            val channelName = URLDecoder.decode(backStackEntry.arguments?.getString("channelName") ?: "Unknown", "UTF-8")
+                            val streamUrl = URLDecoder.decode(backStackEntry.arguments?.getString("streamUrl") ?: "", "UTF-8")
+                            val logoUrl = URLDecoder.decode(backStackEntry.arguments?.getString("logoUrl") ?: "", "UTF-8")
+
+                            PlayerScreen(
+                                channelName = channelName,
+                                streamUrl = streamUrl,
+                                logoUrl = logoUrl.ifEmpty { null },
+                                onBack = { navController.popBackStack() }
+                            )
                         }
                     }
                 }
