@@ -454,6 +454,7 @@ class _FullscreenPlayerPageState extends ConsumerState<FullscreenPlayerPage> {
                     final prevIdx = (_currentIndex - 1 + widget.channels.length) % widget.channels.length;
                     _zapTo(prevIdx);
                   },
+                  child: const SizedBox(),
                   builder: (context, isFocused, child) => Container(
                     decoration: BoxDecoration(shape: BoxShape.circle, color: isFocused ? Colors.white24 : Colors.transparent),
                     child: IconButton(
@@ -477,6 +478,7 @@ class _FullscreenPlayerPageState extends ConsumerState<FullscreenPlayerPage> {
                         widget.player.setVolume(isMuted ? 100.0 : 0.0);
                         _resetHideTimer();
                       },
+                      child: const SizedBox(),
                       builder: (context, isFocused, child) => Container(
                         decoration: BoxDecoration(shape: BoxShape.circle, color: isFocused ? Colors.white24 : Colors.transparent),
                         child: IconButton(
@@ -501,6 +503,7 @@ class _FullscreenPlayerPageState extends ConsumerState<FullscreenPlayerPage> {
                     _showQualityDialog();
                     _resetHideTimer();
                   },
+                  child: const SizedBox(),
                   builder: (context, isFocused, child) => Container(
                     decoration: BoxDecoration(shape: BoxShape.circle, color: isFocused ? Colors.white24 : Colors.transparent),
                     child: IconButton(
@@ -527,6 +530,7 @@ class _FullscreenPlayerPageState extends ConsumerState<FullscreenPlayerPage> {
                         }
                         _resetHideTimer();
                       },
+                      child: const SizedBox(),
                       builder: (context, isFocused, child) => Container(
                         decoration: BoxDecoration(
                           color: isFocused ? Colors.white.withOpacity(0.3) : Colors.white.withOpacity(0.15),
@@ -558,6 +562,7 @@ class _FullscreenPlayerPageState extends ConsumerState<FullscreenPlayerPage> {
                     _toggleAspectFit();
                     _resetHideTimer();
                   },
+                  child: const SizedBox(),
                   builder: (context, isFocused, child) => Container(
                     decoration: BoxDecoration(shape: BoxShape.circle, color: isFocused ? Colors.white24 : Colors.transparent),
                     child: IconButton(
@@ -576,6 +581,7 @@ class _FullscreenPlayerPageState extends ConsumerState<FullscreenPlayerPage> {
                     SimplePip().enterPipMode();
                     _resetHideTimer();
                   },
+                  child: const SizedBox(),
                   builder: (context, isFocused, child) => Container(
                     decoration: BoxDecoration(shape: BoxShape.circle, color: isFocused ? Colors.white24 : Colors.transparent),
                     child: IconButton(
@@ -594,6 +600,7 @@ class _FullscreenPlayerPageState extends ConsumerState<FullscreenPlayerPage> {
                     final nextIdx = (_currentIndex + 1) % widget.channels.length;
                     _zapTo(nextIdx);
                   },
+                  child: const SizedBox(),
                   builder: (context, isFocused, child) => Container(
                     decoration: BoxDecoration(shape: BoxShape.circle, color: isFocused ? Colors.white24 : Colors.transparent),
                     child: IconButton(

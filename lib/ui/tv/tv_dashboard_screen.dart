@@ -89,9 +89,8 @@ class _TvDashboardScreenState extends ConsumerState<TvDashboardScreen> {
     final isSelected = _navIndex == index;
     return TVFocusable(
       onSelect: () => setState(() => _navIndex = index),
-      onFocusChange: (hasFocus) {
-        if (hasFocus) setState(() => _sidebarHasFocus = true);
-      },
+      onFocus: () => setState(() => _sidebarHasFocus = true),
+      child: const SizedBox(),
       builder: (context, isFocused, child) {
         return AnimatedContainer(
           duration: const Duration(milliseconds: 200),
@@ -152,11 +151,11 @@ class _TvDashboardScreenState extends ConsumerState<TvDashboardScreen> {
             ),
           ),
           const SizedBox(height: 50),
-          _buildSidebarItem(Icons.home_rounded, s.home, 0, s),
+          _buildSidebarItem(Icons.home_rounded, 'Home', 0, s),
           _buildSidebarItem(Icons.live_tv_rounded, 'Live TV', 1, s),
           _buildSidebarItem(Icons.movie_creation_rounded, 'Movies', 2, s),
           _buildSidebarItem(Icons.sports_soccer_rounded, 'Sports', 3, s),
-          _buildSidebarItem(Icons.star_rounded, s.favorites, 4, s),
+          _buildSidebarItem(Icons.star_rounded, 'Favorites', 4, s),
           const Spacer(),
           _buildSidebarItem(Icons.settings_rounded, 'Settings', 5, s),
           const SizedBox(height: 20),
@@ -168,14 +167,13 @@ class _TvDashboardScreenState extends ConsumerState<TvDashboardScreen> {
   Widget _buildChannelCard(Channel channel, bool isMovie, AppStrings s) {
     return TVFocusable(
       onSelect: () => _openPlayer(channel),
-      onFocusChange: (hasFocus) {
-        if (hasFocus) {
-          setState(() {
-            _focusedChannel = channel;
-            _sidebarHasFocus = false;
-          });
-        }
+      onFocus: () {
+        setState(() {
+          _focusedChannel = channel;
+          _sidebarHasFocus = false;
+        });
       },
+      child: const SizedBox(),
       builder: (context, isFocused, child) {
         return AnimatedContainer(
           duration: const Duration(milliseconds: 250),
