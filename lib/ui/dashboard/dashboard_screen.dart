@@ -601,6 +601,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
                         settings.reduceMotion ? 100 : 220,
                         16.0,
                         managedGroups,
+                        channels,
                       ),
                 settings,
               ),
@@ -1024,11 +1025,12 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
     int animMs,
     double pad,
     List<ChannelGroup> managedGroups,
+    List<Channel> fullChannels,
   ) {
     final isTv = MediaQuery.sizeOf(context).width > 900;
     final crossCount = isTv ? 6 : 3;
     
-    final featured = allChannels.where((c) => c.featured).toList();
+    final featured = fullChannels.where((c) => c.featured).toList();
     
     // Sort by custom featured order defined in Admin Portal
     featured.sort((a, b) => a.featuredOrder.compareTo(b.featuredOrder));
