@@ -220,13 +220,11 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
       set('stream-buffer-size', '4096');          // 4KB stream buffer (down from 2MB)
       
       // Instant Start & Network
-      set('network-timeout', '5');                // Fast failover
       set('tcp-fastopen', 'yes');                 // Faster TCP handshake
       set('user-agent', 'SmartIPTV');             // Highly compatible IPTV agent
       set('untimed', 'yes');                      // Don't wait for timestamps — play ASAP
       
-      // High Quality Fallbacks
-      set('ytdl-format', 'bestvideo+bestaudio/best');
+      // Removed network-timeout and ytdl-format to prevent 10-15s hang times on M3U8 URLs!
     }
   }
 
@@ -586,33 +584,6 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
                   )
                 : const Center(child: CircularProgressIndicator(color: Colors.white24)),
           ),
-          // Viewers Count (Top Left)
-          Positioned(
-            top: 12,
-            left: 12,
-            child: Consumer(
-              builder: (context, ref, child) {
-                final viewersAsync = ref.watch(channelViewersProvider(_current.url));
-                final viewersCount = viewersAsync.value ?? 1;
-                return Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: Colors.redAccent.withOpacity(0.8),
-                    borderRadius: BorderRadius.circular(6),
-                  ),
-                  child: Row(
-                    children: [
-                      const Icon(Icons.remove_red_eye_rounded, color: Colors.white, size: 14),
-                      const SizedBox(width: 4),
-                      Text(
-                        '$viewersCount',
-                        style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold),
-                      ),
-                    ],
-                  ),
-                );
-              },
-            ),
           ),
           // Quality and Fullscreen (Bottom Right)
           if (!_isFullscreen)

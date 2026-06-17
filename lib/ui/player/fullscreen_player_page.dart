@@ -410,48 +410,6 @@ class _FullscreenPlayerPageState extends ConsumerState<FullscreenPlayerPage> {
                       ],
                     ),
                   ),
-                  // Viewers + FHD Tag
-                  Consumer(
-                    builder: (context, ref, child) {
-                      final viewersAsync = ref.watch(channelViewersProvider(_currentChannel.url));
-                      final viewersCount = viewersAsync.value ?? 1;
-                      return Column(
-                        crossAxisAlignment: CrossAxisAlignment.end,
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Text(
-                                '$viewersCount',
-                                style: const TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 14,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                              const SizedBox(width: 4),
-                              const Icon(
-                                Icons.people_rounded,
-                                color: Colors.white,
-                                size: 16,
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 2),
-                          const Text(
-                            'FHD',
-                            style: TextStyle(
-                              color: Colors.white70,
-                              fontSize: 11,
-                              fontWeight: FontWeight.w600,
-                              letterSpacing: 1.1,
-                            ),
-                          ),
-                        ],
-                      );
-                    },
-                  ),
                 ],
               ),
             ),

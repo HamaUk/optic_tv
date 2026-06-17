@@ -13,7 +13,7 @@ class ViewerService {
   final FirebaseDatabase _db = FirebaseDatabase.instance;
   
   // Track our presence refs so we can remove them manually if needed
-  final Map<String, DatabaseReference> _presenceRefs = {};
+  final Map<String, List<DatabaseReference>> _presenceRefs = {};
 
   /// Join a channel to be counted as a viewer
   Future<void> joinChannel(String channelUrl, {String? channelName}) async {
@@ -23,7 +23,11 @@ class ViewerService {
     try {
       // 1. Live presence
       final ref = _db.ref('live_viewers/$sanitizedKey').push();
-      _presenceRefs[channelUrl] = ref;
+      if (!_presenceRefs.containsKey(channelUrl)) {
+        _presenceRefs[channelUrl] = [];
+      }
+      _presenceRefs[channelUrl]!.add(ref);
+      
       await ref.set(true);
       await ref.onDisconnect().remove();
 
@@ -51,13 +55,15 @@ class ViewerService {
 
   /// Leave a channel
   Future<void> leaveChannel(String channelUrl) async {
-    final ref = _presenceRefs.remove(channelUrl);
-    if (ref != null) {
-      try {
-        await ref.remove();
-        await ref.onDisconnect().cancel();
-      } catch (e) {
-        debugPrint('Error leaving channel: $e');
+    final refs = _presenceRefs.remove(channelUrl);
+    if (refs != null) {
+      for (final ref in refs) {
+        try {
+          await ref.remove();
+          await ref.onDisconnect().cancel();
+        } catch (e) {
+          debugPrint('Error leaving channel reference: $e');
+        }
       }
     }
   }
