@@ -3,17 +3,16 @@ import 'dart:math' as math;
 import '../../services/viewer_service.dart';
 
 import 'package:flutter/material.dart';
-import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart' hide TextDirection;
-import 'package:media_kit/media_kit.dart';
-import 'package:media_kit_video/media_kit_video.dart';
+import 'package:video_player/video_player.dart';
 import 'package:simple_pip_mode/simple_pip.dart';
 import 'dart:ui' show ImageFilter;
 import 'package:animations/animations.dart';
 import 'package:optic_tv/widgets/tv_fluid_focusable.dart';
 import 'fullscreen_player_page.dart';
+import '../../services/optic_player.dart';
 
 import '../../core/theme.dart';
 import '../../widgets/channel_logo_image.dart';
@@ -50,9 +49,8 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
 
   final GlobalKey<VideoState> _videoKey = GlobalKey<VideoState>();
   
-  // Media Kit (mpv)
-  Player? _player;
-  VideoController? _controller;
+  // OpticPlayer (ExoPlayer backend)
+  OpticPlayer? _player;
   
   late int _index;
   late String _selectedGroup;
@@ -198,31 +196,8 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
   }
 
   void _configureNativePlayer() {
-    // Advanced Media Engine Optimization for Fast Start & High Stability
-    if (kIsWeb) return;
-    if (_player?.platform is NativePlayer) {
-      final native = _player!.platform as dynamic;
-      Future<void> set(String k, String v) async {
-        try { await native.setProperty(k, v); } catch (_) {}
-      }
-      
-      // Hardware & Performance
-      set('hwdec', 'auto-safe');          // Secure hardware acceleration
-      
-      // Robust HLS/IPTV streaming configuration
-      set('profile', 'fast');
-      set('cache', 'yes');
-      set('cache-secs', '10');                    // Buffer up to 10s in the background
-      set('cache-pause', 'no');                   // DO NOT wait for the cache to fill before playing
-      set('demuxer-max-bytes', '32000000');       // 32MB buffer for large HLS segments
-      set('demuxer-max-back-bytes', '32000000');
-      
-      // Network
-      set('tcp-fastopen', 'yes');                 // Faster TCP handshake
-      set('user-agent', 'SmartIPTV');             // Highly compatible IPTV agent
-      
-      // Removed network-timeout and ytdl-format to prevent 10-15s hang times on M3U8 URLs!
-    }
+    // ExoPlayer is configured automatically by video_player plugin — no-op.
+    // Hardware decoding, adaptive HLS, and low-latency live TV are built in.
   }
 
   void _onPlayerBuffering(bool buffering) {
@@ -242,21 +217,13 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
   Future<void> _initPlayer() async {
     for (final s in _subscriptions) s.cancel();
     _subscriptions.clear();
-    
+
     final old = _player;
     _player = null;
-    _controller = null;
     await old?.dispose();
 
-    final p = Player(configuration: const PlayerConfiguration(
-      title: 'KOBANI 4K',
-    ));
+    final p = OpticPlayer();
     _player = p;
-
-    _controller = VideoController(
-      p,
-      configuration: const VideoControllerConfiguration(enableHardwareAcceleration: true),
-    );
 
     _subscriptions.add(p.stream.volume.listen((v) {
       if (mounted && v > 0 && _muted) setState(() => _muted = false);
@@ -273,11 +240,10 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
       if (mounted) setState(() => _isPlaying = pl);
     }));
     _subscriptions.add(p.stream.error.listen((err) {
-      _handlePlayerError(err);
+      if (err != null) _handlePlayerError(err);
     }));
 
     _viewFit = _settings.videoFit;
-    _configureNativePlayer(); // Apply stable properties
 
     List<String> validUrls = [_current.url];
     if (_current.url2 != null && _current.url2!.trim().isNotEmpty) validUrls.add(_current.url2!);
@@ -287,12 +253,11 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
       _activeServerIndex = 0;
     }
 
-    await p.open(Media(
+    await p.open(
       validUrls[_activeServerIndex],
-      httpHeaders: {'User-Agent': _current.userAgent ?? 'SmartIPTV'},
-    ));
-    
-    // Hide engine splash immediately since it plays fast now
+      headers: {'User-Agent': _current.userAgent ?? 'SmartIPTV'},
+    );
+
     if (mounted) setState(() => _showEngineSplash = false);
   }
 
@@ -350,7 +315,7 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
       _index = fullListIndex;
       _selectedGroup = widget.channels[_index].group;
       _activeServerIndex = 0;
-      _retryCount = 0; // Reset retry count for manual selection
+      _retryCount = 0;
     });
     final newUrl = _current.url;
     if (oldUrl != newUrl) {
@@ -404,39 +369,29 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
   Future<void> _reopenCurrentStream() async {
     final p = _player;
     if (p == null) return;
-    if (_retryCount == 0 && _activeServerIndex == 0) {
-      // Manual/New channel join resets retry count
-      _retryCount = 0; 
-    }
 
     List<String> validUrls = [_current.url];
     if (_current.url2 != null && _current.url2!.trim().isNotEmpty) validUrls.add(_current.url2!);
     if (_current.url3 != null && _current.url3!.trim().isNotEmpty) validUrls.add(_current.url3!);
 
-    if (_activeServerIndex >= validUrls.length) {
-      _activeServerIndex = 0;
-    }
+    if (_activeServerIndex >= validUrls.length) _activeServerIndex = 0;
 
-    final targetUrl = validUrls[_activeServerIndex];
-
-    await p.open(Media(
-      targetUrl,
-      httpHeaders: {'User-Agent': _current.userAgent ?? 'SmartIPTV'},
-    ));
+    await p.open(
+      validUrls[_activeServerIndex],
+      headers: {'User-Agent': _current.userAgent ?? 'SmartIPTV'},
+    );
   }
 
   // Subtitle search and VOD logic removed (Moved to MoviePlayerPage)
 
   Future<void> _toggleFullscreen() async {
-    if (_isFullscreen) return; // Should not happen in this flow if we navigate away
-
-    if (_player == null || _controller == null) return;
+    if (_isFullscreen) return;
+    if (_player == null) return;
 
     final result = await Navigator.of(context).push(
       MaterialPageRoute(
         builder: (context) => FullscreenPlayerPage(
           player: _player!,
-          controller: _controller!,
           channels: widget.channels,
           initialIndex: _index,
           activeServerIndex: _activeServerIndex,
@@ -467,16 +422,13 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
       ),
     );
 
-    // When returning from fullscreen, we might need to update the local index if it changed
     if (result is int && mounted) {
       setState(() {
         _index = result;
         _selectedGroup = widget.channels[_index].group;
       });
-      // Stream is already opened in the FullscreenPage, but we sync local state here
     }
-    
-    // Smart orientation reset: Only force portrait on return for phones
+
     final isTv = MediaQuery.of(context).size.shortestSide >= 600;
     if (!isTv) {
       await SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
@@ -505,7 +457,7 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
 
   @override
   Widget build(BuildContext context) {
-    if (_player == null || _controller == null) {
+    if (_player == null) {
       return const Scaffold(backgroundColor: Colors.black, body: Center(child: CircularProgressIndicator()));
     }
 
@@ -562,6 +514,7 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
   // Subtitle search and VOD logic removed (Moved to MoviePlayerPage)
 
   Widget _buildVideoView() {
+    final ctrl = _player?.controller;
     return ColoredBox(
       color: Colors.black,
       child: Stack(
@@ -569,15 +522,12 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
         children: [
           GestureDetector(
             onTap: _playPause,
-            child: _controller != null
-                ? Video(
-                    key: _videoKey,
-                    controller: _controller!,
-                    controls: NoVideoControls,
-                    wakelock: _settings!.keepScreenOnWhilePlaying,
-                    fit: _viewFit,
-                    fill: const Color(0xFF000000),
-                    filterQuality: FilterQuality.high,
+            child: ctrl != null
+                ? AspectRatio(
+                    aspectRatio: ctrl.value.isInitialized
+                        ? ctrl.value.aspectRatio
+                        : 16 / 9,
+                    child: VideoPlayer(ctrl),
                   )
                 : const Center(child: CircularProgressIndicator(color: Colors.white24)),
           ),
@@ -589,48 +539,6 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Material(
-                    color: Colors.black.withOpacity(0.5),
-                    borderRadius: BorderRadius.circular(8),
-                    child: InkWell(
-                      onTap: () {
-                        if (_player == null) return;
-                        final tracks = _player!.state.tracks.video;
-                        showDialog(
-                          context: context,
-                          builder: (context) => AlertDialog(
-                            backgroundColor: const Color(0xFF141A22),
-                            title: const Text('Select Quality', style: TextStyle(color: Colors.white)),
-                            content: Column(
-                              mainAxisSize: MainAxisSize.min,
-                              children: tracks.isEmpty 
-                                  ? [const Text('No multiple qualities available for this live stream.', style: TextStyle(color: Colors.white70))]
-                                  : tracks.map((track) {
-                                      final isAuto = track.id == 'auto' || track.id == 'no';
-                                      final title = isAuto ? 'Auto' : '${track.h ?? track.id}p';
-                                      final isCurrent = _player!.state.track.video == track;
-                                      return ListTile(
-                                        title: Text(title, style: TextStyle(color: isCurrent ? Colors.redAccent : Colors.white70, fontWeight: isCurrent ? FontWeight.bold : FontWeight.normal)),
-                                        trailing: isCurrent ? const Icon(Icons.check, color: Colors.redAccent) : null,
-                                        onTap: () {
-                                          Navigator.pop(context);
-                                          _player!.setVideoTrack(track);
-                                          ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Quality changed to $title')));
-                                        },
-                                      );
-                              }).toList(),
-                            ),
-                          ),
-                        );
-                      },
-                      borderRadius: BorderRadius.circular(8),
-                      child: const Padding(
-                        padding: EdgeInsets.symmetric(horizontal: 12.0, vertical: 8.0),
-                        child: Text('Quality', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13)),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 8),
                   Material(
                     color: Colors.black.withOpacity(0.5),
                     borderRadius: BorderRadius.circular(8),
@@ -702,11 +610,12 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
   }
 
   Widget _buildTvPlaybackStatus() {
+    final p = _player;
+    if (p == null) return const SizedBox.shrink();
     return Center(
-      child: StreamBuilder<bool>(
-        stream: _player!.stream.buffering,
-        builder: (context, bufferingSnap) {
-          final buffering = bufferingSnap.data ?? false;
+      child: ValueListenableBuilder<bool>(
+        valueListenable: p.buffering,
+        builder: (context, buffering, _) {
           if (buffering) {
             return Column(
               mainAxisSize: MainAxisSize.min,
@@ -717,10 +626,9 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
               ],
             );
           }
-          return StreamBuilder<bool>(
-            stream: _player!.stream.playing,
-            builder: (context, playingSnap) {
-              final playing = playingSnap.data ?? true;
+          return ValueListenableBuilder<bool>(
+            valueListenable: p.playing,
+            builder: (context, playing, _) {
               if (!playing) {
                 return Container(
                   padding: const EdgeInsets.all(28),
@@ -1068,6 +976,7 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
   // Subtitle modal removed (Logic moved to MoviePlayerPage)
 
   Widget _buildMobileVideoOverlay() {
+    final p = _player;
     return Container(
       decoration: BoxDecoration(
         gradient: LinearGradient(
@@ -1078,14 +987,15 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
       ),
       child: Stack(
         children: [
-          Center(
-            child: StreamBuilder<bool>(
-              stream: _player!.stream.buffering,
-              builder: (context, snap) => (snap.data ?? false)
-                  ? CircularProgressIndicator(color: _accent, strokeWidth: 3)
-                  : const SizedBox(),
+          if (p != null)
+            Center(
+              child: ValueListenableBuilder<bool>(
+                valueListenable: p.buffering,
+                builder: (_, buf, __) => buf
+                    ? CircularProgressIndicator(color: _accent, strokeWidth: 3)
+                    : const SizedBox(),
+              ),
             ),
-          ),
           Positioned(
             right: 8,
             bottom: 8,

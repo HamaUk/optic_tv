@@ -1,15 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:media_kit/media_kit.dart';
+import '../../../services/optic_player.dart';
 import '../../../core/theme.dart';
 import '../../../providers/ui_settings_provider.dart';
 import '../../../services/settings_service.dart';
 
 class SubtitleStudioModal extends ConsumerStatefulWidget {
-  final Player player;
+  final OpticPlayer player;
   const SubtitleStudioModal({super.key, required this.player});
 
-  static Future<void> show(BuildContext context, Player player) async {
+  static Future<void> show(BuildContext context, OpticPlayer player) async {
     await showModalBottomSheet(
       context: context,
       backgroundColor: Colors.transparent,
@@ -161,40 +161,24 @@ class _SubtitleStudioModalState extends ConsumerState<SubtitleStudioModal> with 
   }
 
   Widget _buildTrackList() {
-    final tracks = widget.player.state.tracks.subtitle;
-    final current = widget.player.state.track.subtitle;
-
     return ListView(
       padding: const EdgeInsets.all(24),
       children: [
-        if (tracks.isEmpty)
-          const Center(
-            child: Padding(
-              padding: EdgeInsets.only(top: 40),
-              child: Text('No subtitle tracks found for this content', style: TextStyle(color: Colors.white38)),
+        const Center(
+          child: Padding(
+            padding: EdgeInsets.only(top: 40),
+            child: Column(
+              children: [
+                Icon(Icons.subtitles_outlined, color: Colors.white24, size: 40),
+                SizedBox(height: 12),
+                Text(
+                  'Subtitle tracks are managed\nautomatically by ExoPlayer.',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(color: Colors.white38),
+                ),
+              ],
             ),
           ),
-        ...tracks.map((t) {
-          final active = t == current;
-          return _buildSettingsOption(
-            title: t.title ?? t.language ?? (t.uri != null ? 'Manual File' : 'Track ${t.id}'),
-            icon: Icons.subtitles_rounded,
-            active: active,
-            onTap: () {
-              widget.player.setSubtitleTrack(t);
-              setState(() {});
-            },
-          );
-        }),
-        const SizedBox(height: 12),
-        _buildSettingsOption(
-          title: 'None (Off)',
-          icon: Icons.subtitles_off_rounded,
-          active: current == SubtitleTrack.no(),
-          onTap: () {
-            widget.player.setSubtitleTrack(SubtitleTrack.no());
-            setState(() {});
-          },
         ),
       ],
     );

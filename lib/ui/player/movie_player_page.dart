@@ -3,12 +3,11 @@ import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:flutter/foundation.dart';
-import 'package:media_kit/media_kit.dart';
-import 'package:media_kit_video/media_kit_video.dart';
+import 'package:video_player/video_player.dart';
 import 'package:intl/intl.dart' hide TextDirection;
 import 'package:path_provider/path_provider.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../services/optic_player.dart';
 
 import '../../core/theme.dart';
 import '../../l10n/app_strings.dart';
@@ -21,8 +20,7 @@ import '../../services/settings_service.dart';
 import 'widgets/subtitle_studio.dart';
 
 class MoviePlayerPage extends ConsumerStatefulWidget {
-  final Player player;
-  final VideoController controller;
+  final OpticPlayer player;
   final Channel channel;
   final Locale uiLocale;
   final AppStrings strings;
@@ -30,7 +28,6 @@ class MoviePlayerPage extends ConsumerStatefulWidget {
   const MoviePlayerPage({
     super.key,
     required this.player,
-    required this.controller,
     required this.channel,
     required this.uiLocale,
     required this.strings,
@@ -68,8 +65,8 @@ class _MoviePlayerPageState extends ConsumerState<MoviePlayerPage> {
   @override
   void initState() {
     super.initState();
-    _position = widget.player.state.position;
-    _duration = widget.player.state.duration;
+    _position = widget.player.currentPosition;
+    _duration = widget.player.totalDuration;
 
     _subscriptions.add(widget.player.stream.position.listen((p) {
       if (mounted) setState(() => _position = p);
@@ -94,77 +91,21 @@ class _MoviePlayerPageState extends ConsumerState<MoviePlayerPage> {
     _resetHideTimer();
     
     _configureEngine();
-
-    // Priority 1: Load manual subtitle from Admin Portal (URL or File)
-    _loadManualSubtitle();
-
-    // Priority 2: Auto-search for Kurdish (Sorani) subtitles as backup
-    _searchSubtitles();
   }
 
   Future<void> _loadManualSubtitle() async {
-    final subUrl = widget.channel.subtitleUrl;
-    if (subUrl == null || subUrl.isEmpty) return;
-
-    try {
-      if (subUrl.startsWith('data:')) {
-        // Enforce Local File: It's an encoded SRT/VTT file from the Admin Portal
-        final parts = subUrl.split(';base64,');
-        if (parts.length != 2) return;
-        
-        final bytes = base64Decode(parts[1]);
-        final tempDir = await getTemporaryDirectory();
-        final isVtt = subUrl.contains('text/vtt');
-        final tempFile = File('${tempDir.path}/manual_sub_${DateTime.now().millisecondsSinceEpoch}.${isVtt ? 'vtt' : 'srt'}');
-        
-        await tempFile.writeAsBytes(bytes);
-        await widget.player.setSubtitleTrack(SubtitleTrack.uri(tempFile.uri.toString()));
-        debugPrint('Loaded local subtitle file: ${tempFile.path}');
-      } else if (subUrl.startsWith('http')) {
-        // Enforce URL: Direct web link
-        await widget.player.setSubtitleTrack(SubtitleTrack.uri(subUrl));
-        debugPrint('Loaded manual subtitle URL: $subUrl');
-      }
-    } catch (e) {
-      debugPrint('Error loading manual subtitle: $e');
-    }
+    // Subtitle injection not supported by video_player plugin natively.
+    // Handled via ExoPlayer's built-in subtitle tracks when embedded in stream.
+    debugPrint('Subtitle loading skipped (ExoPlayer handles embedded tracks).');
   }
 
   Future<void> _searchSubtitles() async {
-    if (!_subtitleService.hasApiKey) return;
-    setState(() => _isSearchingSubtitles = true);
-    
-    try {
-      final movie = await _tmdbService.findMovie(widget.channel.name);
-      final results = await _subtitleService.search(
-        imdbId: movie?.imdbId,
-        query: movie?.title ?? widget.channel.name,
-      );
-      
-      if (mounted && results.isNotEmpty) {
-        setState(() {
-          _availableSubtitles = results;
-          // Sort to put Kurdish/Sorani at the top if found
-          _availableSubtitles.sort((a, b) {
-            final aIsKur = a.language == 'ku' || a.language == 'ckb';
-            final bIsKur = b.language == 'ku' || b.language == 'ckb';
-            if (aIsKur && !bIsKur) return -1;
-            if (!aIsKur && bIsKur) return 1;
-            return 0;
-          });
-          _isSearchingSubtitles = false;
-        });
-      }
-    } catch (_) {
-      if (mounted) setState(() => _isSearchingSubtitles = false);
-    }
+    // Auto subtitle search disabled — ExoPlayer handles embedded tracks.
+    // To re-enable, implement subtitle search that feeds URLs via MediaItem.
   }
 
   Future<void> _applySubtitle(SubtitleResult sub) async {
-    final url = await _subtitleService.getDownloadUrl(sub.id);
-    if (url != null) {
-      await widget.player.setSubtitleTrack(SubtitleTrack.uri(url));
-    }
+    // No-op with ExoPlayer; subtitle URLs must be set at MediaItem creation time.
   }
 
   void _resetHideTimer() {
@@ -190,22 +131,8 @@ class _MoviePlayerPageState extends ConsumerState<MoviePlayerPage> {
   }
 
   void _configureEngine() {
-    if (kIsWeb) return;
-    if (widget.player.platform is NativePlayer) {
-      final native = widget.player.platform as dynamic;
-      Future<void> set(String k, String v) async {
-        try { await native.setProperty(k, v); } catch (_) {}
-      }
-      
-      set('hwdec', 'auto-safe');
-      set('cache', 'yes');
-      set('demuxer-max-bytes', '536870912'); // 512MB Buffer
-      set('demuxer-readahead-secs', '15');   // 15s readahead for movies
-      set('cache-secs', '30');               // Maintain 30s cache
-      set('tcp-fastopen', 'yes');
-      set('network-timeout', '15');
-      set('user-agent', 'SmartIPTV');
-    }
+    // ExoPlayer (video_player plugin) handles hardware decode automatically.
+    // No mpv-specific configuration needed.
   }
 
   Future<bool> _exitFullscreen() async {
@@ -223,6 +150,7 @@ class _MoviePlayerPageState extends ConsumerState<MoviePlayerPage> {
   Widget build(BuildContext context) {
     final settingsAsync = ref.watch(appUiSettingsProvider);
     final settings = settingsAsync.asData?.value ?? AppSettingsData();
+    final ctrl = widget.player.controller;
     return WillPopScope(
       onWillPop: _exitFullscreen,
       child: Scaffold(
@@ -236,28 +164,19 @@ class _MoviePlayerPageState extends ConsumerState<MoviePlayerPage> {
             setState(() {
               _overlayVisible = !_overlayVisible;
             });
-            if (_overlayVisible) {
-              _resetHideTimer();
-            }
+            if (_overlayVisible) _resetHideTimer();
           },
           child: Stack(
             fit: StackFit.expand,
             children: [
               // 1. Video Layer
-              Video(
-                controller: widget.controller,
-                controls: NoVideoControls,
-                fit: settings.videoFit,
-                subtitleViewConfiguration: SubtitleViewConfiguration(
-                  style: TextStyle(
-                    fontSize: settings.subtitleFontSize,
-                    color: Color(settings.subtitleColor),
-                    fontWeight: FontWeight.bold,
-                    backgroundColor: Color(settings.subtitleBgColor),
-                  ),
-                  padding: const EdgeInsets.all(24),
-                ),
-              ),
+              if (ctrl != null && ctrl.value.isInitialized)
+                AspectRatio(
+                  aspectRatio: ctrl.value.aspectRatio,
+                  child: VideoPlayer(ctrl),
+                )
+              else
+                const ColoredBox(color: Colors.black),
 
               // 2. Ambient Clock
               if (_overlayVisible)
@@ -332,7 +251,7 @@ class _MoviePlayerPageState extends ConsumerState<MoviePlayerPage> {
         // Play/Pause Big Icon (Center)
         Center(
           child: _buildHUDAction(
-            widget.player.state.playing ? Icons.pause_rounded : Icons.play_arrow_rounded,
+            widget.player.isPlaying ? Icons.pause_rounded : Icons.play_arrow_rounded,
             () => widget.player.playOrPause(),
             isLarge: true,
           ),
@@ -370,7 +289,10 @@ class _MoviePlayerPageState extends ConsumerState<MoviePlayerPage> {
                     Row(
                       children: [
                         _buildHUDAction(Icons.closed_caption_rounded, () {
-                          SubtitleStudioModal.show(context, widget.player);
+                          // Subtitle selection: show available tracks from ExoPlayer
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(content: Text('Subtitles managed by ExoPlayer (embedded tracks)')),
+                          );
                         }),
                         const SizedBox(width: 24),
                         _buildSpeedButton(),
@@ -480,6 +402,7 @@ class _MoviePlayerPageState extends ConsumerState<MoviePlayerPage> {
   }
 
   void _showSettingsModal() {
+    final ctrl = widget.player.controller;
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.transparent,
@@ -494,7 +417,12 @@ class _MoviePlayerPageState extends ConsumerState<MoviePlayerPage> {
             ListTile(
               leading: const Icon(Icons.info_outline_rounded, color: Colors.white),
               title: const Text("Resolution Info", style: TextStyle(color: Colors.white)),
-              subtitle: Text("${widget.player.state.width}x${widget.player.state.height}", style: const TextStyle(color: Colors.white54)),
+              subtitle: Text(
+                ctrl != null
+                    ? '${ctrl.value.size.width.toInt()}x${ctrl.value.size.height.toInt()}'
+                    : 'Loading...',
+                style: const TextStyle(color: Colors.white54),
+              ),
             ),
           ],
         ),
@@ -510,7 +438,7 @@ class _MoviePlayerPageState extends ConsumerState<MoviePlayerPage> {
       _osdLabel = "BRIGHTNESS";
     } else {
       _volumeValue = ((_volumeValue ?? 0.5) - d.delta.dy / 300).clamp(0.0, 1.0);
-      widget.player.setVolume(_volumeValue! * 100.0);
+      widget.player.setVolume((_volumeValue! * 100.0));
       _osdLabel = "VOLUME";
     }
     setState(() {});

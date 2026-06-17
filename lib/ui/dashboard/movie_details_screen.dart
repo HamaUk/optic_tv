@@ -1,12 +1,11 @@
 import 'dart:ui' show ImageFilter;
-
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:cached_network_image/cached_network_image.dart';
-import 'package:media_kit/media_kit.dart';
-import 'package:media_kit_video/media_kit_video.dart';
+import 'package:video_player/video_player.dart';
 import 'package:url_launcher/url_launcher.dart';
+import '../../services/optic_player.dart';
 
 import '../../core/theme.dart';
 import '../../services/palette_service.dart';
@@ -41,9 +40,8 @@ class _MovieDetailsScreenState extends ConsumerState<MovieDetailsScreen>
   TmdbVideo? _trailer;
   bool _loading = true;
 
-  // Background Preview Player
-  Player? _bgPlayer;
-  VideoController? _bgController;
+  // Background Preview Player (video_player / ExoPlayer)
+  VideoPlayerController? _bgController;
   bool _bgPlaying = false;
 
   // Dynamic palette state
@@ -74,16 +72,18 @@ class _MovieDetailsScreenState extends ConsumerState<MovieDetailsScreen>
   }
 
   void _initBackgroundPlayer() {
-    _bgPlayer = Player();
-    _bgController = VideoController(_bgPlayer!);
-    _bgPlayer!.setVolume(0); // Silent preview
-    _bgPlayer!.stream.playing.listen((pl) {
-      if (mounted && pl && !_bgPlaying) {
+    final ctrl = VideoPlayerController.networkUrl(
+      Uri.parse(widget.channel.url),
+      httpHeaders: {'User-Agent': 'SmartIPTV'},
+    );
+    _bgController = ctrl;
+    ctrl.initialize().then((_) {
+      if (mounted) {
+        ctrl.setVolume(0); // Silent preview
+        ctrl.play();
         setState(() => _bgPlaying = true);
       }
-    });
-    // Autoplay the movie silently in the background
-    _bgPlayer!.open(Media(widget.channel.url), play: true);
+    }).catchError((_) {}); // Silently ignore preview errors
   }
 
   Future<void> _initData() async {
@@ -126,29 +126,26 @@ class _MovieDetailsScreenState extends ConsumerState<MovieDetailsScreen>
     final uiLocale = ref.read(appLocaleProvider);
     final s = AppStrings(uiLocale);
 
+    // Pause background preview while full-screen player is active
+    _bgController?.pause();
+
+    final p = OpticPlayer();
+    p.open(widget.channel.url, headers: {'User-Agent': 'SmartIPTV'});
+
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (_) {
-          final p = Player(configuration: const PlayerConfiguration(title: 'KOBANI 4K Movie'));
-          final vc = VideoController(p, configuration: const VideoControllerConfiguration(enableHardwareAcceleration: true));
-          p.open(Media(widget.channel.url));
-          return MoviePlayerPage(
-            player: p,
-            controller: vc,
-            channel: widget.channel,
-            uiLocale: uiLocale,
-            strings: s,
-          );
-        },
+        builder: (_) => MoviePlayerPage(
+          player: p,
+          channel: widget.channel,
+          uiLocale: uiLocale,
+          strings: s,
+        ),
       ),
     ).then((_) {
       // Resume background preview when returning
-      _bgPlayer?.play();
+      _bgController?.play();
     });
-    
-    // Pause background preview while full-screen player is active
-    _bgPlayer?.pause();
   }
 
   Future<void> _openTrailer() async {
@@ -163,7 +160,7 @@ class _MovieDetailsScreenState extends ConsumerState<MovieDetailsScreen>
 
   @override
   void dispose() {
-    _bgPlayer?.dispose();
+    _bgController?.dispose();
     _shimmerController.dispose();
     super.dispose();
   }
@@ -195,12 +192,12 @@ class _MovieDetailsScreenState extends ConsumerState<MovieDetailsScreen>
               child: AnimatedOpacity(
                 duration: const Duration(seconds: 2),
                 opacity: _bgPlaying ? 0.75 : 0.0,
-                child: Video(
-                  controller: _bgController!,
-                  controls: NoVideoControls,
-                  fit: BoxFit.cover,
-                  fill: Colors.transparent,
-                ),
+                child: _bgController!.value.isInitialized
+                    ? AspectRatio(
+                        aspectRatio: _bgController!.value.aspectRatio,
+                        child: VideoPlayer(_bgController!),
+                      )
+                    : const SizedBox.shrink(),
               ),
             ),
 

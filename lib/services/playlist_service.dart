@@ -3,8 +3,7 @@ import 'dart:convert';
 
 import 'package:firebase_database/firebase_database.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:media_kit/media_kit.dart';
-import 'package:media_kit_video/media_kit_video.dart';
+import '../services/optic_player.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 const _kChannelCache = 'channels_cache_v1';
@@ -215,36 +214,11 @@ final groupsProvider = StreamProvider<List<ChannelGroup>>((ref) {
   });
 });
 
-// TV Media Engine Providers
-final playerProvider = Provider<Player>((ref) {
-  final player = Player();
-  _configureMpvPlayer(player);
+
+// ExoPlayer-backed player provider (replaces the former media_kit/mpv provider)
+final playerProvider = Provider<OpticPlayer>((ref) {
+  final player = OpticPlayer();
+  ref.onDispose(() => player.dispose());
   return player;
 });
 
-void _configureMpvPlayer(Player player) {
-  if (player.platform is NativePlayer) {
-    final native = player.platform as dynamic;
-    Future<void> set(String k, String v) async {
-      try { await native.setProperty(k, v); } catch (_) {}
-    }
-    set('hwdec', 'auto-safe');
-    set('vd-lavc-threads', '0');
-    set('profile', 'low-latency');
-    set('cache', 'no');
-    set('demuxer-max-bytes', '512000');
-    set('demuxer-max-back-bytes', '512000');
-    set('demuxer-readahead-secs', '0');
-    set('cache-secs', '0');
-    set('network-timeout', '5');
-    set('tcp-fastopen', 'yes');
-    set('user-agent', 'SmartIPTV');
-    set('stream-buffer-size', '4096');
-    set('untimed', 'yes');
-  }
-}
-
-final videoControllerProvider = Provider<VideoController>((ref) {
-  final player = ref.watch(playerProvider);
-  return VideoController(player);
-});

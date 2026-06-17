@@ -4,11 +4,11 @@ import '../../services/viewer_service.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:media_kit/media_kit.dart';
-import 'package:media_kit_video/media_kit_video.dart';
+import 'package:video_player/video_player.dart';
 import 'package:intl/intl.dart' hide TextDirection;
 import 'package:glassmorphism/glassmorphism.dart';
 import 'package:simple_pip_mode/simple_pip.dart';
+import '../../services/optic_player.dart';
 
 import '../../services/playlist_service.dart';
 import '../../services/platform_service.dart';
@@ -24,20 +24,18 @@ import '../../services/settings_service.dart';
 /// - TV: Premium Koya HUD + D-pad Zapping + Quick Zap Sidebar.
 /// - Phone: Restored "Nano Banana" Elite Mobile HUD + Glassmorphism + Gestures.
 class FullscreenPlayerPage extends ConsumerStatefulWidget {
-  final Player player;
-  final VideoController controller;
+  final OpticPlayer player;
   final List<Channel> channels;
   final int initialIndex;
   final int activeServerIndex;
   final Locale uiLocale;
-  final dynamic strings; // Using dynamic for compatibility with original calls
+  final dynamic strings;
   final void Function(int serverIndex)? onServerChanged;
   final void Function(Channel oldChannel, Channel newChannel)? onChannelChanged;
 
   const FullscreenPlayerPage({
     super.key, 
     required this.player,
-    required this.controller,
     required this.channels,
     required this.initialIndex,
     required this.activeServerIndex,
@@ -174,16 +172,14 @@ class _FullscreenPlayerPageState extends ConsumerState<FullscreenPlayerPage> {
       }
     }
 
-    widget.player.open(Media(
+    widget.player.open(
       _currentChannel.url,
-      httpHeaders: {'User-Agent': _currentChannel.userAgent ?? 'SmartIPTV'},
-    ));
+      headers: {'User-Agent': _currentChannel.userAgent ?? 'SmartIPTV'},
+    );
     _resetHideTimer();
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted) {
-        _scrollToActiveChannel();
-      }
+      if (mounted) _scrollToActiveChannel();
     });
   }
 
@@ -250,10 +246,10 @@ class _FullscreenPlayerPageState extends ConsumerState<FullscreenPlayerPage> {
       _overlayVisible = true;
     });
     widget.onServerChanged?.call(serverIndex);
-    widget.player.open(Media(
+    widget.player.open(
       url,
-      httpHeaders: {'User-Agent': _currentChannel.userAgent ?? 'SmartIPTV'},
-    ));
+      headers: {'User-Agent': _currentChannel.userAgent ?? 'SmartIPTV'},
+    );
     _resetHideTimer();
   }
 
@@ -311,11 +307,22 @@ class _FullscreenPlayerPageState extends ConsumerState<FullscreenPlayerPage> {
             children: [
               // THE VIDEO LAYER
               Center(
-                child: Video(
-                  controller: widget.controller,
-                  fill: Colors.black,
-                  controls: NoVideoControls,
-                  fit: _currentFit,
+                child: ValueListenableBuilder(
+                  valueListenable: widget.player.controller != null
+                      ? widget.player.controller!
+                      : ValueNotifier(null),
+                  builder: (context, val, _) {
+                    final ctrl = widget.player.controller;
+                    if (ctrl == null || !ctrl.value.isInitialized) {
+                      return const SizedBox.expand(
+                        child: ColoredBox(color: Colors.black),
+                      );
+                    }
+                    return AspectRatio(
+                      aspectRatio: ctrl.value.aspectRatio,
+                      child: VideoPlayer(ctrl),
+                    );
+                  },
                 ),
               ),
               

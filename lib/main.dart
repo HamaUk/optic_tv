@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:firebase_core/firebase_core.dart';
-import 'package:media_kit/media_kit.dart';
+
 import 'package:shared_preferences/shared_preferences.dart';
 import 'core/theme.dart';
 import 'core/security/http_overrides.dart';
@@ -19,7 +19,6 @@ import 'services/platform_service.dart';
 void main() async {
   HttpOverrides.global = GlobalSecurityHttpOverrides();
   WidgetsFlutterBinding.ensureInitialized();
-  MediaKit.ensureInitialized();
   try {
     if (identical(0, 0.0)) { // Simple check for web
       await Firebase.initializeApp(
