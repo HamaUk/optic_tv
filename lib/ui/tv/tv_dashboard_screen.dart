@@ -286,7 +286,7 @@ class _TvDashboardScreenState extends ConsumerState<TvDashboardScreen> {
       top: 0,
       left: 0,
       right: 0,
-      height: 400,
+      height: 240,
       child: Container(
         decoration: BoxDecoration(
           gradient: LinearGradient(
@@ -301,30 +301,32 @@ class _TvDashboardScreenState extends ConsumerState<TvDashboardScreen> {
             stops: const [0.0, 0.5, 0.8, 1.0],
           ),
         ),
-        padding: const EdgeInsets.fromLTRB(40, 60, 40, 20),
+        padding: const EdgeInsets.fromLTRB(40, 40, 40, 10),
         child: _focusedChannel != null
             ? Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 mainAxisAlignment: MainAxisAlignment.end,
                 children: [
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                    decoration: BoxDecoration(color: _accent, borderRadius: BorderRadius.circular(8)),
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                    decoration: BoxDecoration(color: _accent, borderRadius: BorderRadius.circular(6)),
                     child: Text(
                       _focusedChannel!.group.toUpperCase(),
                       style: AppTheme.withRabarIfKurdish(
                         s.locale,
-                        const TextStyle(color: Colors.black, fontWeight: FontWeight.bold, fontSize: 12, letterSpacing: 1.5),
+                        const TextStyle(color: Colors.black, fontWeight: FontWeight.bold, fontSize: 10, letterSpacing: 1.2),
                       ),
                     ),
                   ),
-                  const SizedBox(height: 12),
+                  const SizedBox(height: 8),
                   Text(
                     _focusedChannel!.name,
                     style: AppTheme.withRabarIfKurdish(
                       s.locale,
-                      const TextStyle(color: Colors.white, fontSize: 48, fontWeight: FontWeight.w900, shadows: [Shadow(color: Colors.black, blurRadius: 10)]),
+                      const TextStyle(color: Colors.white, fontSize: 32, fontWeight: FontWeight.w900, shadows: [Shadow(color: Colors.black, blurRadius: 8)]),
                     ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                   ),
                 ],
               )
