@@ -23,7 +23,7 @@ import '../../services/palette_service.dart';
 import '../../services/playlist_service.dart';
 import '../../services/settings_service.dart';
 import '../../services/viewer_service.dart';
-import 'package:intl/intl.dart';
+import 'package:intl/intl.dart' as intl;
 import '../admin/admin_screen.dart';
 import '../player/player_screen.dart';
 import '../player/movie_player_page.dart';
@@ -1663,7 +1663,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
                                     const Icon(Icons.remove_red_eye_rounded, color: Colors.white, size: 10),
                                     const SizedBox(width: 4),
                                     Text(
-                                      NumberFormat.compact().format(count),
+                                      intl.NumberFormat.compact().format(count),
                                       style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold),
                                     ),
                                   ],

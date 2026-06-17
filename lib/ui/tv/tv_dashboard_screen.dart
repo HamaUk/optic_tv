@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 
-import 'package:intl/intl.dart';
+import 'package:intl/intl.dart' as intl;
 
 import '../../core/theme.dart';
 import '../../l10n/app_strings.dart';
@@ -224,7 +224,7 @@ class _TvDashboardScreenState extends ConsumerState<TvDashboardScreen> {
                                     const Icon(Icons.remove_red_eye_rounded, color: Colors.white, size: 10),
                                     const SizedBox(width: 4),
                                     Text(
-                                      NumberFormat.compact().format(count),
+                                      intl.NumberFormat.compact().format(count),
                                       style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold),
                                     ),
                                   ],
