@@ -123,9 +123,9 @@ fun PlayerScreen(channelName: String) {
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Row(horizontalArrangement = Arrangement.spacedBy(40.dp)) {
-                        Text("↑ LIVE SETTINGS", color = Color.White54, fontWeight = FontWeight.Bold, letterSpacing = 2.sp)
-                        Text("↕ ZAP LIST", color = Color.White54, fontWeight = FontWeight.Bold, letterSpacing = 2.sp)
-                        Text("↔ PREV/NEXT", color = Color.White54, fontWeight = FontWeight.Bold, letterSpacing = 2.sp)
+                        Text("↑ LIVE SETTINGS", color = Color.White.copy(alpha = 0.54f), fontWeight = FontWeight.Bold, letterSpacing = 2.sp)
+                        Text("↕ ZAP LIST", color = Color.White.copy(alpha = 0.54f), fontWeight = FontWeight.Bold, letterSpacing = 2.sp)
+                        Text("↔ PREV/NEXT", color = Color.White.copy(alpha = 0.54f), fontWeight = FontWeight.Bold, letterSpacing = 2.sp)
                     }
                     Text("LIVE: OK", color = Color(0xFFFFD700).copy(alpha = 0.5f), fontWeight = FontWeight.Black, letterSpacing = 2.sp)
                 }

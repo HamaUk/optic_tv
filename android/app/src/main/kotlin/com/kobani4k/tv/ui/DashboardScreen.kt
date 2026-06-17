@@ -1,6 +1,7 @@
 package com.kobani4k.tv.ui
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -12,8 +13,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.tv.foundation.lazy.grid.TvGridCells
-import androidx.tv.foundation.lazy.grid.TvLazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.tv.material3.*
 import com.kobani4k.tv.data.FirebaseRepository
 
@@ -47,7 +48,7 @@ fun DashboardScreen(onChannelSelected: (String) -> Unit) {
                     modifier = Modifier
                         .fillMaxHeight()
                         .background(Color.Black.copy(alpha = 0.5f))
-                        .border(1.dp, Brush.verticalGradient(listOf(Color.White.copy(alpha=0.1f), Color.Transparent)))
+                        .border(1.dp, Brush.verticalGradient(listOf(Color.White.copy(alpha=0.1f), Color.Transparent)), RoundedCornerShape(0.dp))
                         .padding(24.dp),
                     verticalArrangement = Arrangement.Center
                 ) {
@@ -87,11 +88,11 @@ fun DashboardScreen(onChannelSelected: (String) -> Unit) {
                 
                 if (isLoading) {
                     Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                        Text("Loading Channels...", color = Color.White54)
+                        Text("Loading Channels...", color = Color.White.copy(alpha = 0.54f))
                     }
                 } else {
-                    TvLazyVerticalGrid(
-                        columns = TvGridCells.Fixed(4),
+                    LazyVerticalGrid(
+                        columns = GridCells.Fixed(4),
                         contentPadding = PaddingValues(bottom = 64.dp),
                         horizontalArrangement = Arrangement.spacedBy(20.dp),
                         verticalArrangement = Arrangement.spacedBy(20.dp),
@@ -119,7 +120,7 @@ fun SidebarItem(title: String, isSelected: Boolean, onClick: () -> Unit) {
         colors = ClickableSurfaceDefaults.colors(
             containerColor = if (isSelected) Color(0xFFFFD700).copy(alpha = 0.15f) else Color.Transparent,
             focusedContainerColor = Color.White,
-            contentColor = if (isSelected) Color(0xFFFFD700) else Color.White54,
+            contentColor = if (isSelected) Color(0xFFFFD700) else Color.White.copy(alpha = 0.54f),
             focusedContentColor = Color.Black
         ),
         modifier = Modifier.width(180.dp)
