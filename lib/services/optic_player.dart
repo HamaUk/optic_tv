@@ -14,7 +14,7 @@ import 'package:flutter/services.dart';
 /// - Custom HttpDataSource → cross-protocol redirects, custom User-Agent
 /// - HLS + RTSP + RTMP → all IPTV protocols natively supported
 /// - SeekParameters tuned for live TV fast seeking
-class OpticPlayer {
+class OpticPlayer with WidgetsBindingObserver {
   static const _channel = MethodChannel('com.kobani4k/native_player');
 
   // ─── Texture ID for rendering ─────────────────────────────────────────
@@ -43,6 +43,7 @@ class OpticPlayer {
   double _speed = 1.0;
   bool _disposed = false;
   bool _initialized = false;
+  bool _wasPlayingBeforePause = false;
 
   /// Convenience getters for synchronous access
   Duration get currentPosition => _position;
@@ -65,8 +66,24 @@ class OpticPlayer {
   dynamic get controller => null;
 
   OpticPlayer() {
+    WidgetsBinding.instance.addObserver(this);
     _channel.setMethodCallHandler(_handleNativeEvent);
     _init();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.paused) {
+      _wasPlayingBeforePause = _isPlaying;
+      if (_isPlaying) {
+        pause();
+      }
+    } else if (state == AppLifecycleState.resumed) {
+      if (_wasPlayingBeforePause) {
+        play();
+        _wasPlayingBeforePause = false;
+      }
+    }
   }
 
   Future<void> _init() async {
@@ -149,6 +166,7 @@ class OpticPlayer {
   }
 
   Future<void> dispose() async {
+    WidgetsBinding.instance.removeObserver(this);
     if (_disposed) return;
     _disposed = true;
     await _channel.invokeMethod('dispose');
