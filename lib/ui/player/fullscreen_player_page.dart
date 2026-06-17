@@ -190,18 +190,38 @@ class _FullscreenPlayerPageState extends ConsumerState<FullscreenPlayerPage> {
     );
   }
 
-  void _toggleAspectFit() {
-    setState(() {
-      if (_currentFit == BoxFit.contain) {
-        _currentFit = BoxFit.cover;
-      } else if (_currentFit == BoxFit.cover) {
-        _currentFit = BoxFit.fill;
-      } else {
-        _currentFit = BoxFit.contain;
-      }
-    });
-    _osdLabel = "FIT: ${_currentFit.name.toUpperCase()}";
-    _resetOSDTimer();
+  void _showAspectDialog() {
+    final options = [
+      {'label': 'Default (Auto Fit)', 'fit': BoxFit.contain},
+      {'label': 'Stretch to Screen', 'fit': BoxFit.fill},
+      {'label': 'Zoom (Crop Edges)', 'fit': BoxFit.cover},
+    ];
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: const Color(0xFF141A22),
+        title: const Text('Select Screen Size', style: TextStyle(color: Colors.white)),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: options.map((opt) {
+            final fit = opt['fit'] as BoxFit;
+            final label = opt['label'] as String;
+            final isCurrent = _currentFit == fit;
+            return ListTile(
+              title: Text(label, style: TextStyle(color: isCurrent ? Colors.redAccent : Colors.white70, fontWeight: isCurrent ? FontWeight.bold : FontWeight.normal)),
+              trailing: isCurrent ? const Icon(Icons.check, color: Colors.redAccent) : null,
+              onTap: () {
+                Navigator.pop(context);
+                setState(() => _currentFit = fit);
+                _osdLabel = "SIZE: ${label.toUpperCase()}";
+                _resetOSDTimer();
+              },
+            );
+          }).toList(),
+        ),
+      ),
+    );
   }
 
   void _showQualityDialog() {
@@ -560,7 +580,7 @@ class _FullscreenPlayerPageState extends ConsumerState<FullscreenPlayerPage> {
                 // Aspect Ratio (Fit Toggle)
                 TVFocusable(
                   onSelect: () {
-                    _toggleAspectFit();
+                    _showAspectDialog();
                     _resetHideTimer();
                   },
                   child: const SizedBox(),
@@ -569,7 +589,7 @@ class _FullscreenPlayerPageState extends ConsumerState<FullscreenPlayerPage> {
                     child: IconButton(
                       icon: const Icon(Icons.aspect_ratio_rounded, color: Colors.white, size: 28),
                       onPressed: () {
-                        _toggleAspectFit();
+                        _showAspectDialog();
                         _resetHideTimer();
                       },
                     ),

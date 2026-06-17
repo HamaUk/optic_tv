@@ -94,6 +94,8 @@ class _TvDashboardScreenState extends ConsumerState<TvDashboardScreen> {
     return TVFocusable(
       onSelect: () => setState(() => _navIndex = index),
       onFocus: () => setState(() => _sidebarHasFocus = true),
+      showFocusBorder: false,
+      focusScale: 1.0,
       child: const SizedBox(),
       builder: (context, isFocused, child) {
         return AnimatedContainer(
@@ -177,6 +179,8 @@ class _TvDashboardScreenState extends ConsumerState<TvDashboardScreen> {
           _sidebarHasFocus = false;
         });
       },
+      showFocusBorder: false,
+      focusScale: 1.0,
       child: const SizedBox(),
       builder: (context, isFocused, child) {
         return AnimatedContainer(
