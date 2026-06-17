@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<paths>
+    <!-- Expose app's external files directory -->
+    <external-path name="external_files" path="." />
+    <!-- Expose app's external cache directory (good for downloaded APKs) -->
+    <external-cache-path name="external_cache" path="." />
+    <!-- Expose internal cache directory -->
+    <cache-path name="cache" path="." />
+    <!-- Expose internal files directory -->
+    <files-path name="files" path="." />
+</paths>

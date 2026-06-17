@@ -18,6 +18,8 @@ import '../../widgets/tv/tv_focusable.dart';
 import '../player/player_screen.dart';
 import '../dashboard/movie_details_screen.dart';
 import '../settings/settings_screen.dart';
+import '../../services/update_service.dart';
+import '../../widgets/update_prompt_dialog.dart';
 
 class TvDashboardScreen extends ConsumerStatefulWidget {
   final List<Channel> allChannels;
@@ -33,6 +35,7 @@ class _TvDashboardScreenState extends ConsumerState<TvDashboardScreen> {
   int _navIndex = 0; // 0=Live TV, 1=Movies, 2=Sports, 3=Favorites, 4=Settings
   Channel? _focusedChannel;
   bool _sidebarHasFocus = true;
+  bool _hasPromptedUpdate = false;
 
   Color get _accent {
     final settings = ref.watch(appUiSettingsProvider).asData?.value ?? const AppSettingsData();
@@ -352,6 +355,16 @@ class _TvDashboardScreenState extends ConsumerState<TvDashboardScreen> {
 
   @override
   Widget build(BuildContext context) {
+    ref.listen<AsyncValue<AppUpdateData>>(updateManagerProvider, (previous, next) {
+      final data = next.valueOrNull;
+      if (data != null && data.isActive && data.versionCode > 3) {
+        if (!_hasPromptedUpdate) {
+          _hasPromptedUpdate = true;
+          UpdatePromptDialog.show(context, data);
+        }
+      }
+    });
+
     final s = AppStrings(ref.watch(appLocaleProvider));
     final settings = ref.watch(appUiSettingsProvider).asData?.value ?? const AppSettingsData();
     

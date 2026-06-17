@@ -6,8 +6,12 @@ import android.content.res.Configuration
 import androidx.media3.common.util.UnstableApi
 import io.flutter.embedding.android.FlutterActivity
 import io.flutter.embedding.engine.FlutterEngine
+import android.content.Intent
+import android.net.Uri
+import androidx.core.content.FileProvider
 import io.flutter.plugin.common.MethodChannel
 import com.kobani4k.player.NativeExoPlayer
+import java.io.File
 
 @UnstableApi
 class MainActivity: FlutterActivity() {
@@ -56,6 +60,25 @@ class MainActivity: FlutterActivity() {
                     result.success(isPackageInstalled(packageName))
                 } else {
                     result.error("INVALID_ARGUMENT", "packageName is required", null)
+                }
+            } else if (call.method == "installApk") {
+                val apkPath = call.argument<String>("apkPath")
+                if (apkPath != null) {
+                    try {
+                        val file = File(apkPath)
+                        val uri = FileProvider.getUriForFile(this, "$packageName.fileprovider", file)
+                        val intent = Intent(Intent.ACTION_VIEW).apply {
+                            setDataAndType(uri, "application/vnd.android.package-archive")
+                            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                            addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                        }
+                        startActivity(intent)
+                        result.success(true)
+                    } catch (e: Exception) {
+                        result.error("INSTALL_FAILED", e.message, null)
+                    }
+                } else {
+                    result.error("INVALID_ARGUMENT", "apkPath is required", null)
                 }
             } else {
                 result.notImplemented()

@@ -30,6 +30,8 @@ import '../player/movie_player_page.dart';
 import '../settings/settings_screen.dart';
 import 'movie_details_screen.dart';
 import '../tv/tv_dashboard_screen.dart';
+import '../../services/update_service.dart';
+import '../../widgets/update_prompt_dialog.dart';
 
 import '../../services/tmdb_service.dart';
 import '../../widgets/dynamic_background.dart';
@@ -58,6 +60,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
   bool _searchOpen = false;
   bool _tvHomeActive = true; 
   final TextEditingController _searchController = TextEditingController();
+  bool _hasPromptedUpdate = false;
   
   Channel? _focusedChannel;
   bool _sidebarFocused = false;
@@ -517,6 +520,16 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
 
   @override
   Widget build(BuildContext context) {
+    ref.listen<AsyncValue<AppUpdateData>>(updateManagerProvider, (previous, next) {
+      final data = next.valueOrNull;
+      if (data != null && data.isActive && data.versionCode > 3) {
+        if (!_hasPromptedUpdate) {
+          _hasPromptedUpdate = true;
+          UpdatePromptDialog.show(context, data);
+        }
+      }
+    });
+
     final s = AppStrings(ref.watch(appLocaleProvider));
     final settings = ref.watch(appUiSettingsProvider).asData?.value ?? const AppSettingsData();
     final portrait = MediaQuery.orientationOf(context) == Orientation.portrait;

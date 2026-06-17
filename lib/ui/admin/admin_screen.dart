@@ -62,6 +62,13 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
   final _notifBodyController = TextEditingController();
   final _notifImageController = TextEditingController();
 
+  // Update Manager State
+  final _updateApkUrlController = TextEditingController();
+  final _updateVersionCodeController = TextEditingController();
+  final _updateVersionNameController = TextEditingController();
+  final _updateReleaseNotesController = TextEditingController();
+  bool _updateIsActive = false;
+
   // Admin Auth Shield State
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
@@ -112,7 +119,7 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
   void initState() {
     super.initState();
     _isAuthenticated = FirebaseAuth.instance.currentUser != null;
-    _tabController = TabController(length: 9, vsync: this);
+    _tabController = TabController(length: 10, vsync: this);
     _channelGroupController.text = 'Live TV';
     _channelSearchController.addListener(() {
       setState(() => _channelSearchQuery = _channelSearchController.text.trim().toLowerCase());
@@ -144,6 +151,10 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
     _notifTitleController.dispose();
     _notifBodyController.dispose();
     _notifImageController.dispose();
+    _updateApkUrlController.dispose();
+    _updateVersionCodeController.dispose();
+    _updateVersionNameController.dispose();
+    _updateReleaseNotesController.dispose();
     super.dispose();
   }
 
@@ -1830,6 +1841,7 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
                 Tab(text: 'HEALTH'),
                 Tab(text: 'ACCESS'),
                 Tab(text: 'BROADCAST'),
+                Tab(text: 'UPDATE'),
               ],
             ),
           ],
@@ -4411,6 +4423,91 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
     } catch (e) {
       _snack('Failed to update order: $e', error: true);
     }
+  }
+
+  DatabaseReference get _updateRef => FirebaseDatabase.instance.ref('sync/global/updateManager');
+
+  Widget _buildUpdateTab() {
+    return ListView(
+      padding: const EdgeInsets.all(24),
+      children: [
+        _buildSectionHeader(Icons.system_update_rounded, 'Update Manager', 'Push an OTA update to all users.'),
+        const SizedBox(height: 24),
+        _card(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              _buildGlassTextField(controller: _updateApkUrlController, label: 'Latest APK URL (Direct Link)', icon: Icons.link_rounded),
+              const SizedBox(height: 16),
+              Row(
+                children: [
+                  Expanded(child: _buildGlassTextField(controller: _updateVersionCodeController, label: 'Version Code (Integer, e.g. 4)', icon: Icons.numbers_rounded)),
+                  const SizedBox(width: 16),
+                  Expanded(child: _buildGlassTextField(controller: _updateVersionNameController, label: 'Version Name (e.g. 1.2.0)', icon: Icons.info_outline_rounded)),
+                ],
+              ),
+              const SizedBox(height: 16),
+              _buildGlassTextField(controller: _updateReleaseNotesController, label: 'Release Notes (optional)', icon: Icons.notes_rounded),
+              const SizedBox(height: 16),
+              SwitchListTile(
+                title: const Text('Activate Update Prompt', style: TextStyle(color: Colors.white)),
+                subtitle: const Text('If ON, users will see the update popup.', style: TextStyle(color: Colors.white54, fontSize: 12)),
+                value: _updateIsActive,
+                activeColor: AppTheme.primaryGold,
+                onChanged: (v) => setState(() => _updateIsActive = v),
+              ),
+              const SizedBox(height: 24),
+              FilledButton.icon(
+                onPressed: _pushUpdate,
+                icon: const Icon(Icons.send_rounded),
+                label: const Text('PUSH UPDATE TO USERS'),
+                style: FilledButton.styleFrom(backgroundColor: AppTheme.primaryGold, foregroundColor: Colors.black, padding: const EdgeInsets.symmetric(vertical: 16)),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 24),
+        StreamBuilder(
+          stream: _updateRef.onValue,
+          builder: (context, snap) {
+            final val = snap.data?.snapshot.value;
+            if (val == null) return const Text('No active update.', style: TextStyle(color: Colors.white54));
+            final map = val as Map;
+            return _card(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text('Currently Published Update', style: TextStyle(color: AppTheme.primaryGold, fontWeight: FontWeight.bold, fontSize: 16)),
+                  const SizedBox(height: 12),
+                  Text('Version Name: ${map['versionName']}', style: const TextStyle(color: Colors.white)),
+                  Text('Version Code: ${map['versionCode']}', style: const TextStyle(color: Colors.white)),
+                  Text('APK URL: ${map['apkUrl']}', style: const TextStyle(color: Colors.white70)),
+                  Text('Active: ${map['isActive']}', style: const TextStyle(color: Colors.white70)),
+                  const SizedBox(height: 16),
+                  OutlinedButton.icon(
+                    onPressed: () => _updateRef.remove(),
+                    icon: const Icon(Icons.delete_forever_rounded),
+                    label: const Text('Delete / Disable Update'),
+                    style: OutlinedButton.styleFrom(foregroundColor: Colors.redAccent),
+                  )
+                ],
+              ),
+            );
+          }
+        ),
+      ],
+    );
+  }
+
+  Future<void> _pushUpdate() async {
+    await _updateRef.set({
+      'apkUrl': _updateApkUrlController.text.trim(),
+      'versionCode': int.tryParse(_updateVersionCodeController.text.trim()) ?? 0,
+      'versionName': _updateVersionNameController.text.trim(),
+      'releaseNotes': _updateReleaseNotesController.text.trim(),
+      'isActive': _updateIsActive,
+    });
+    _snack('Update published successfully!');
   }
 }
 
