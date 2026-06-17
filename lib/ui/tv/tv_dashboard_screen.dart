@@ -204,35 +204,6 @@ class _TvDashboardScreenState extends ConsumerState<TvDashboardScreen> {
                         fit: isMovie ? BoxFit.cover : BoxFit.contain,
                         errorWidget: (_, __, ___) => const Center(child: Icon(Icons.tv_off_rounded, color: Colors.white24)),
                       ),
-                      if (!isMovie)
-                        Positioned(
-                          top: 8,
-                          right: 8,
-                          child: Consumer(
-                            builder: (context, ref, child) {
-                              final count = ref.watch(channelViewersProvider(channel.url)).value ?? 0;
-                              if (count == 0) return const SizedBox();
-                              return Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
-                                decoration: BoxDecoration(
-                                  color: Colors.redAccent.withOpacity(0.9),
-                                  borderRadius: BorderRadius.circular(6),
-                                ),
-                                child: Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    const Icon(Icons.remove_red_eye_rounded, color: Colors.white, size: 10),
-                                    const SizedBox(width: 4),
-                                    Text(
-                                      intl.NumberFormat.compact().format(count),
-                                      style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold),
-                                    ),
-                                  ],
-                                ),
-                              );
-                            },
-                          ),
-                        ),
                     ],
                   ),
                 ),
