@@ -107,10 +107,15 @@ dependencies {
     val navVersion = "2.7.7"
     implementation("androidx.navigation:navigation-compose:$navVersion")
     
-    // ExoPlayer for Video Playback
-    val media3Version = "1.3.1"
+    // ExoPlayer / Media3 — Full Ghosten-Level IPTV Stack
+    val media3Version = "1.8.0"
     implementation("androidx.media3:media3-exoplayer:$media3Version")
+    implementation("androidx.media3:media3-exoplayer-hls:$media3Version")
+    implementation("androidx.media3:media3-exoplayer-rtsp:$media3Version")
+    implementation("androidx.media3:media3-datasource:$media3Version")
+    implementation("androidx.media3:media3-datasource-rtmp:$media3Version")
     implementation("androidx.media3:media3-ui:$media3Version")
+    implementation("androidx.media3:media3-session:$media3Version")
 
     // Firebase
     implementation(platform("com.google.firebase:firebase-bom:32.7.4"))

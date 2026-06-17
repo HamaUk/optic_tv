@@ -3,7 +3,7 @@ import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:video_player/video_player.dart';
+import '../../widgets/native_player_view.dart';
 import 'package:intl/intl.dart' hide TextDirection;
 import 'package:path_provider/path_provider.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -150,7 +150,7 @@ class _MoviePlayerPageState extends ConsumerState<MoviePlayerPage> {
   Widget build(BuildContext context) {
     final settingsAsync = ref.watch(appUiSettingsProvider);
     final settings = settingsAsync.asData?.value ?? AppSettingsData();
-    final ctrl = widget.player.controller;
+    final ctrl = null; // Native ExoPlayer — no Flutter controller needed
     return WillPopScope(
       onWillPop: _exitFullscreen,
       child: Scaffold(
@@ -169,14 +169,8 @@ class _MoviePlayerPageState extends ConsumerState<MoviePlayerPage> {
           child: Stack(
             fit: StackFit.expand,
             children: [
-              // 1. Video Layer
-              if (ctrl != null && ctrl.value.isInitialized)
-                AspectRatio(
-                  aspectRatio: ctrl.value.aspectRatio,
-                  child: VideoPlayer(ctrl),
-                )
-              else
-                const ColoredBox(color: Colors.black),
+              // 1. Video Layer — Native ExoPlayer via PlatformView
+              const NativePlayerView(),
 
               // 2. Ambient Clock
               if (_overlayVisible)
@@ -402,7 +396,6 @@ class _MoviePlayerPageState extends ConsumerState<MoviePlayerPage> {
   }
 
   void _showSettingsModal() {
-    final ctrl = widget.player.controller;
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.transparent,
@@ -414,15 +407,10 @@ class _MoviePlayerPageState extends ConsumerState<MoviePlayerPage> {
           children: [
             const Text("VIDEO SETTINGS", style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.w900)),
             const SizedBox(height: 20),
-            ListTile(
-              leading: const Icon(Icons.info_outline_rounded, color: Colors.white),
-              title: const Text("Resolution Info", style: TextStyle(color: Colors.white)),
-              subtitle: Text(
-                ctrl != null
-                    ? '${ctrl.value.size.width.toInt()}x${ctrl.value.size.height.toInt()}'
-                    : 'Loading...',
-                style: const TextStyle(color: Colors.white54),
-              ),
+            const ListTile(
+              leading: Icon(Icons.info_outline_rounded, color: Colors.white),
+              title: Text("Engine", style: TextStyle(color: Colors.white)),
+              subtitle: Text('Native ExoPlayer (Media3)', style: TextStyle(color: Colors.white54)),
             ),
           ],
         ),

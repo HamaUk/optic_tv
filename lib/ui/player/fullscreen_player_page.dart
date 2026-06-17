@@ -4,7 +4,7 @@ import '../../services/viewer_service.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:video_player/video_player.dart';
+import '../../widgets/native_player_view.dart';
 import 'package:intl/intl.dart' hide TextDirection;
 import 'package:glassmorphism/glassmorphism.dart';
 import 'package:simple_pip_mode/simple_pip.dart';
@@ -306,24 +306,8 @@ class _FullscreenPlayerPageState extends ConsumerState<FullscreenPlayerPage> {
           child: Stack(
             children: [
               // THE VIDEO LAYER
-              Center(
-                child: ValueListenableBuilder(
-                  valueListenable: widget.player.controller != null
-                      ? widget.player.controller!
-                      : ValueNotifier(null),
-                  builder: (context, val, _) {
-                    final ctrl = widget.player.controller;
-                    if (ctrl == null || !ctrl.value.isInitialized) {
-                      return const SizedBox.expand(
-                        child: ColoredBox(color: Colors.black),
-                      );
-                    }
-                    return AspectRatio(
-                      aspectRatio: ctrl.value.aspectRatio,
-                      child: VideoPlayer(ctrl),
-                    );
-                  },
-                ),
+              const Center(
+                child: NativePlayerView(),
               ),
               
               // THE HUD LAYER

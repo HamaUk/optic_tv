@@ -6,7 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart' hide TextDirection;
-import 'package:video_player/video_player.dart';
+import '../../widgets/native_player_view.dart';
 import 'package:simple_pip_mode/simple_pip.dart';
 import 'dart:ui' show ImageFilter;
 import 'package:animations/animations.dart';
@@ -514,7 +514,6 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
   // Subtitle search and VOD logic removed (Moved to MoviePlayerPage)
 
   Widget _buildVideoView() {
-    final ctrl = _player?.controller;
     return ColoredBox(
       color: Colors.black,
       child: Stack(
@@ -522,13 +521,8 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
         children: [
           GestureDetector(
             onTap: _playPause,
-            child: ctrl != null
-                ? AspectRatio(
-                    aspectRatio: ctrl.value.isInitialized
-                        ? ctrl.value.aspectRatio
-                        : 16 / 9,
-                    child: VideoPlayer(ctrl),
-                  )
+            child: _player != null
+                ? const NativePlayerView()
                 : const Center(child: CircularProgressIndicator(color: Colors.white24)),
           ),
           // Quality and Fullscreen (Bottom Right)

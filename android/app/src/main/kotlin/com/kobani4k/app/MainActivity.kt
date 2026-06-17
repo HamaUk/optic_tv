@@ -3,12 +3,20 @@ package com.kobani4k.app
 import android.app.UiModeManager
 import android.content.pm.PackageManager
 import android.content.res.Configuration
+import androidx.media3.common.util.UnstableApi
 import io.flutter.embedding.android.FlutterActivity
 import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.MethodChannel
+import com.kobani4k.player.NativeExoPlayer
+import com.kobani4k.player.NativeExoPlayerViewFactory
 
+@UnstableApi
 class MainActivity: FlutterActivity() {
     private val CHANNEL = "com.optic.iptv/device"
+    private val PLAYER_CHANNEL = "com.kobani4k/native_player"
+    private val PLAYER_VIEW_TYPE = "com.kobani4k/native_player_view"
+
+    private var nativeExoPlayer: NativeExoPlayer? = null
 
     /// Many STBs / TV boxes still report [Configuration.UI_MODE_TYPE_NORMAL] while exposing
     /// leanback or television system features. Relying only on [UiModeManager] keeps Flutter on
@@ -39,6 +47,8 @@ class MainActivity: FlutterActivity() {
 
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
+
+        // Device info channel (existing)
         MethodChannel(flutterEngine.dartExecutor.binaryMessenger, CHANNEL).setMethodCallHandler { call, result ->
             if (call.method == "isTelevision") {
                 result.success(isTelevisionDevice())
@@ -53,6 +63,29 @@ class MainActivity: FlutterActivity() {
                 result.notImplemented()
             }
         }
+
+        // Native ExoPlayer channel
+        val playerChannel = MethodChannel(flutterEngine.dartExecutor.binaryMessenger, PLAYER_CHANNEL)
+        val player = NativeExoPlayer(
+            context = this,
+            methodChannel = playerChannel,
+            eventSink = null,
+        )
+        nativeExoPlayer = player
+
+        // Route player MethodChannel calls to the native engine
+        playerChannel.setMethodCallHandler { call, result ->
+            player.handleMethodCall(call, result)
+        }
+
+        // Register the PlatformView factory so Flutter can embed the native PlayerView
+        flutterEngine.platformViewsController.registry
+            .registerViewFactory(PLAYER_VIEW_TYPE, NativeExoPlayerViewFactory(player))
+    }
+
+    override fun onDestroy() {
+        nativeExoPlayer?.dispose()
+        nativeExoPlayer = null
+        super.onDestroy()
     }
 }
-
