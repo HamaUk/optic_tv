@@ -71,14 +71,15 @@ dev_dependencies:
 flutter_launcher_icons:
   android: true
   ios: true
-  image_path: assets/images/kobani4k_icon.png
+  image_path: assets/images/logonewww.png
   adaptive_icon_background: "#000000"
-  adaptive_icon_foreground: assets/images/kobani4k_icon.png
+  adaptive_icon_foreground: assets/images/logonewww.png
   remove_alpha_ios: true
 
 flutter:
   uses-material-design: true
   assets:
+    - assets/images/logonewww.png
     - assets/images/optic_logo.png
     - assets/images/newiconapp.jpg
     - assets/images/kobani4k_icon.png

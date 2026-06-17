@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 
+import 'package:intl/intl.dart';
+
 import '../../core/theme.dart';
 import '../../l10n/app_strings.dart';
 import '../../providers/app_locale_provider.dart';
@@ -10,7 +12,9 @@ import '../../providers/channel_library_provider.dart';
 import '../../providers/ui_settings_provider.dart';
 import '../../services/playlist_service.dart';
 import '../../services/settings_service.dart';
+import '../../services/viewer_service.dart';
 import '../../widgets/dynamic_background.dart';
+import '../../widgets/optic_wordmark.dart';
 import '../../widgets/tv/tv_focusable.dart';
 import '../player/player_screen.dart';
 import '../dashboard/movie_details_screen.dart';
@@ -142,7 +146,7 @@ class _TvDashboardScreenState extends ConsumerState<TvDashboardScreen> {
             padding: const EdgeInsets.symmetric(horizontal: 16),
             child: Row(
               children: [
-                Icon(Icons.tv_rounded, color: _accent, size: 32),
+                OpticWordmark(height: 32),
                 if (_sidebarHasFocus) ...[
                   const SizedBox(width: 12),
                   const Text('OPTIC TV', style: TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.w900, letterSpacing: 2)),
@@ -192,10 +196,44 @@ class _TvDashboardScreenState extends ConsumerState<TvDashboardScreen> {
               Expanded(
                 child: ClipRRect(
                   borderRadius: const BorderRadius.vertical(top: Radius.circular(14)),
-                  child: CachedNetworkImage(
-                    imageUrl: channel.logo ?? '',
-                    fit: isMovie ? BoxFit.cover : BoxFit.contain,
-                    errorWidget: (_, __, ___) => const Center(child: Icon(Icons.tv_off_rounded, color: Colors.white24)),
+                  child: Stack(
+                    fit: StackFit.expand,
+                    children: [
+                      CachedNetworkImage(
+                        imageUrl: channel.logo ?? '',
+                        fit: isMovie ? BoxFit.cover : BoxFit.contain,
+                        errorWidget: (_, __, ___) => const Center(child: Icon(Icons.tv_off_rounded, color: Colors.white24)),
+                      ),
+                      if (!isMovie)
+                        Positioned(
+                          top: 8,
+                          right: 8,
+                          child: Consumer(
+                            builder: (context, ref, child) {
+                              final count = ref.watch(channelViewersProvider(channel.url)).value ?? 0;
+                              if (count == 0) return const SizedBox();
+                              return Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+                                decoration: BoxDecoration(
+                                  color: Colors.redAccent.withOpacity(0.9),
+                                  borderRadius: BorderRadius.circular(6),
+                                ),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    const Icon(Icons.remove_red_eye_rounded, color: Colors.white, size: 10),
+                                    const SizedBox(width: 4),
+                                    Text(
+                                      NumberFormat.compact().format(count),
+                                      style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold),
+                                    ),
+                                  ],
+                                ),
+                              );
+                            },
+                          ),
+                        ),
+                    ],
                   ),
                 ),
               ),

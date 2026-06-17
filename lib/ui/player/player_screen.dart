@@ -219,6 +219,7 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
 
     final p = OpticPlayer();
     _player = p;
+    await p.setMaxResolution(1080);
 
     _subscriptions.add(p.stream.volume.listen((v) {
       if (mounted && v > 0 && _muted) setState(() => _muted = false);
