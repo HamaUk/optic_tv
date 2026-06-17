@@ -25,6 +25,7 @@ class OpticPlayer {
   // ─── ValueNotifiers (for ValueListenableBuilder in UI) ────────────────
   final ValueNotifier<bool> playing = ValueNotifier(false);
   final ValueNotifier<bool> buffering = ValueNotifier(true);
+  final ValueNotifier<Size> videoSize = ValueNotifier(Size.zero);
 
   // ─── Stream controllers (for StreamBuilder compatibility) ─────────────
   final _positionCtrl = StreamController<Duration>.broadcast();
@@ -142,6 +143,11 @@ class OpticPlayer {
     await _channel.invokeMethod('stop');
   }
 
+  Future<void> setMaxResolution(int maxHeight) async {
+    if (_disposed) return;
+    await _channel.invokeMethod('setMaxResolution', {'maxHeight': maxHeight});
+  }
+
   Future<void> dispose() async {
     if (_disposed) return;
     _disposed = true;
@@ -193,6 +199,12 @@ class OpticPlayer {
         break;
 
       case 'onVideoSizeChanged':
+        final map = call.arguments as Map;
+        final w = (map['width'] as num).toDouble();
+        final h = (map['height'] as num).toDouble();
+        if (w > 0 && h > 0) {
+          videoSize.value = Size(w, h);
+        }
         break;
 
       case 'onBufferPositionChanged':

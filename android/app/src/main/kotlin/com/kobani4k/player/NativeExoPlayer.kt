@@ -163,8 +163,28 @@ class NativeExoPlayer(
                 val dur = if (player.duration == C.TIME_UNSET) 0L else player.duration
                 result.success(dur)
             }
-            "isPlaying" -> {
-                result.success(player.isPlaying)
+            "setMaxResolution" -> {
+                val maxHeight = call.argument<Number>("maxHeight")?.toInt() ?: 0
+                if (maxHeight <= 0) {
+                    // Auto — remove resolution cap
+                    player.trackSelectionParameters = player.trackSelectionParameters
+                        .buildUpon()
+                        .clearVideoSizeConstraints()
+                        .build()
+                } else {
+                    // Cap to specific height (e.g. 480, 720, 1080)
+                    val maxWidth = (maxHeight * 16 / 9) // Assume 16:9
+                    player.trackSelectionParameters = player.trackSelectionParameters
+                        .buildUpon()
+                        .setMaxVideoSize(maxWidth, maxHeight)
+                        .build()
+                }
+                result.success(null)
+            }
+            "getVideoSize" -> {
+                val w = player.videoSize.width
+                val h = player.videoSize.height
+                result.success(mapOf("width" to w, "height" to h))
             }
             else -> result.notImplemented()
         }

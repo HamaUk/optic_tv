@@ -69,6 +69,7 @@ class _FullscreenPlayerPageState extends ConsumerState<FullscreenPlayerPage> {
   late int _currentServerIndex;
   late final ScrollController _scrollController;
   BoxFit _currentFit = BoxFit.contain;
+  int _currentMaxHeight = 0; // 0 = Auto
 
   @override
   void initState() {
@@ -210,26 +211,38 @@ class _FullscreenPlayerPageState extends ConsumerState<FullscreenPlayerPage> {
   }
 
   void _showQualityDialog() {
+    final options = [
+      {'label': 'Auto (Adaptive)', 'height': 0},
+      {'label': '4K (2160p)', 'height': 2160},
+      {'label': 'Full HD (1080p)', 'height': 1080},
+      {'label': 'HD (720p)', 'height': 720},
+      {'label': 'SD (480p)', 'height': 480},
+      {'label': 'Low (360p)', 'height': 360},
+    ];
+
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
         backgroundColor: const Color(0xFF141A22),
-        title: const Text('Stream Quality', style: TextStyle(color: Colors.white)),
-        content: const Column(
+        title: const Text('Select Maximum Quality', style: TextStyle(color: Colors.white)),
+        content: Column(
           mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(
-              'ExoPlayer automatically selects the best quality based on your network speed.\n\nAdaptive HLS streaming is enabled.',
-              style: TextStyle(color: Colors.white70, height: 1.5),
-            ),
-          ],
+          children: options.map((opt) {
+            final h = opt['height'] as int;
+            final label = opt['label'] as String;
+            final isCurrent = _currentMaxHeight == h;
+            return ListTile(
+              title: Text(label, style: TextStyle(color: isCurrent ? Colors.redAccent : Colors.white70, fontWeight: isCurrent ? FontWeight.bold : FontWeight.normal)),
+              trailing: isCurrent ? const Icon(Icons.check, color: Colors.redAccent) : null,
+              onTap: () {
+                Navigator.pop(context);
+                setState(() => _currentMaxHeight = h);
+                widget.player.setMaxResolution(h);
+                ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Quality set to $label')));
+              },
+            );
+          }).toList(),
         ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('OK', style: TextStyle(color: Colors.redAccent)),
-          ),
-        ],
       ),
     );
   }
@@ -305,7 +318,7 @@ class _FullscreenPlayerPageState extends ConsumerState<FullscreenPlayerPage> {
                 child: SizedBox.expand(),
               ),
               Center(
-                child: NativePlayerView(player: widget.player),
+                child: NativePlayerView(player: widget.player, fit: _currentFit),
               ),
               
               // THE HUD LAYER

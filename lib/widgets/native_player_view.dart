@@ -10,8 +10,13 @@ import '../services/optic_player.dart';
 /// are displayed correctly on ANY page — inline player, fullscreen, PiP.
 class NativePlayerView extends StatelessWidget {
   final OpticPlayer player;
+  final BoxFit fit;
   
-  const NativePlayerView({super.key, required this.player});
+  const NativePlayerView({
+    super.key, 
+    required this.player,
+    this.fit = BoxFit.contain,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -26,7 +31,27 @@ class NativePlayerView extends StatelessWidget {
             ),
           );
         }
-        return Texture(textureId: id);
+        
+        return ValueListenableBuilder<Size>(
+          valueListenable: player.videoSize,
+          builder: (context, size, _) {
+            if (size.isEmpty) {
+              // Fallback if video size is not yet known
+              return Texture(textureId: id);
+            }
+            
+            return SizedBox.expand(
+              child: FittedBox(
+                fit: fit,
+                child: SizedBox(
+                  width: size.width,
+                  height: size.height,
+                  child: Texture(textureId: id),
+                ),
+              ),
+            );
+          },
+        );
       },
     );
   }
