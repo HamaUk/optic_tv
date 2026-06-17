@@ -584,7 +584,6 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
                   )
                 : const Center(child: CircularProgressIndicator(color: Colors.white24)),
           ),
-          ),
           // Quality and Fullscreen (Bottom Right)
           if (!_isFullscreen)
             Positioned(
