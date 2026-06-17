@@ -1901,6 +1901,10 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
                       key: const PageStorageKey<String>('admin_announcement'),
                       child: _KeepAliveTab(child: _buildAnnouncementTab()),
                     ),
+                    KeyedSubtree(
+                      key: const PageStorageKey<String>('admin_update'),
+                      child: _KeepAliveTab(child: _buildUpdateTab()),
+                    ),
                   ],
                 ),
               ),
