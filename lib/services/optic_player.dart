@@ -76,11 +76,11 @@ class OpticPlayer with WidgetsBindingObserver {
     if (state == AppLifecycleState.paused) {
       _wasPlayingBeforePause = _isPlaying;
       if (_isPlaying) {
-        pause();
+        stop();
       }
     } else if (state == AppLifecycleState.resumed) {
-      if (_wasPlayingBeforePause) {
-        play();
+      if (_wasPlayingBeforePause && _lastUrl != null) {
+        open(_lastUrl!, headers: _lastHeaders);
         _wasPlayingBeforePause = false;
       }
     }
@@ -101,8 +101,13 @@ class OpticPlayer with WidgetsBindingObserver {
 
   // ─── Commands (Dart → Kotlin) ─────────────────────────────────────────
 
+  String? _lastUrl;
+  Map<String, String>? _lastHeaders;
+
   Future<void> open(String url, {Map<String, String>? headers}) async {
     if (_disposed) return;
+    _lastUrl = url;
+    _lastHeaders = headers;
     // Ensure init is complete before opening
     if (!_initialized) {
       await _init();
@@ -125,6 +130,11 @@ class OpticPlayer with WidgetsBindingObserver {
   Future<void> pause() async {
     if (_disposed) return;
     await _channel.invokeMethod('pause');
+  }
+
+  Future<void> stop() async {
+    if (_disposed) return;
+    await _channel.invokeMethod('stop');
   }
 
   Future<void> playOrPause() async {
