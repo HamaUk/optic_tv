@@ -40,8 +40,9 @@ class _OpticWordmarkState extends State<OpticWordmark>
 
   @override
   Widget build(BuildContext context) {
-    // Made the base size larger to fulfill "make the logo bigger"
-    final double imageSize = widget.height * 1.5;
+    // Made the base font size smaller as requested
+    final double fontSize = widget.height * 0.75;
+    final double letterSpacing = widget.height * 0.06;
 
     return AnimatedBuilder(
       animation: _controller,
@@ -52,10 +53,60 @@ class _OpticWordmarkState extends State<OpticWordmark>
         
         return Transform.scale(
           scale: scale,
-          child: Image.asset(
-            'assets/images/logonewww.png',
-            height: imageSize,
-            fit: BoxFit.contain,
+          child: ShaderMask(
+            blendMode: BlendMode.srcIn,
+            shaderCallback: (bounds) => LinearGradient(
+              begin: Alignment(-2.0 + t * 4.0, -1.0),
+              end: Alignment(0.0 + t * 4.0, 1.0),
+              colors: const [
+                Color(0xFF38BDF8),
+                AppTheme.primaryGold,
+                Color(0xFFA78BFA),
+                Color(0xFF38BDF8),
+              ],
+              stops: const [0.0, 0.35, 0.7, 1.0],
+            ).createShader(bounds),
+            child: widget.twoLine
+                ? Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: [
+                      Text(
+                        'KOBANI',
+                        textAlign: TextAlign.center,
+                        style: GoogleFonts.orbitron(
+                          fontSize: fontSize,
+                          fontWeight: FontWeight.w900,
+                          color: Colors.white,
+                          letterSpacing: letterSpacing * 1.2,
+                          height: 0.95,
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        '4K',
+                        textAlign: TextAlign.center,
+                        style: GoogleFonts.orbitron(
+                          fontSize: fontSize * 0.65,
+                          fontWeight: FontWeight.w900,
+                          color: Colors.white,
+                          letterSpacing: letterSpacing * 1.8,
+                          height: 0.95,
+                        ),
+                      ),
+                    ],
+                  )
+                : Text(
+                    'KOBANI 4K',
+                    textAlign: TextAlign.center,
+                    style: GoogleFonts.orbitron(
+                      fontSize: fontSize,
+                      fontWeight: FontWeight.w800,
+                      color: Colors.white,
+                      letterSpacing: widget.height * 0.12,
+                      height: 1.0,
+                    ),
+                  ),
           ),
         );
       },
