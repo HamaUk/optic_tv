@@ -403,6 +403,7 @@ class _FullscreenPlayerPageState extends ConsumerState<FullscreenPlayerPage> {
                             overflow: TextOverflow.ellipsis,
                           ),
                         ),
+                      ],
                     ),
                   ),
                   const SizedBox(width: 8),
