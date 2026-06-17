@@ -17,7 +17,7 @@ import com.kobani4k.tv.ui.DashboardScreen
 import com.kobani4k.tv.ui.LoginScreen
 import com.kobani4k.tv.ui.PlayerScreen
 
-class MainActivity : ComponentActivity() {
+class TvMainActivity : ComponentActivity() {
     @OptIn(ExperimentalTvMaterial3Api::class)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
