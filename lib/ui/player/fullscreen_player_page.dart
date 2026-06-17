@@ -336,12 +336,14 @@ class _FullscreenPlayerPageState extends ConsumerState<FullscreenPlayerPage> {
               ),
               
               // THE HUD LAYER
-              if (_overlayVisible && !_zapListVisible)
-                AnimatedOpacity(
-                  opacity: _overlayVisible ? 1.0 : 0.0,
+              IgnorePointer(
+                ignoring: !_overlayVisible || _zapListVisible,
+                child: AnimatedOpacity(
+                  opacity: (_overlayVisible && !_zapListVisible) ? 1.0 : 0.0,
                   duration: const Duration(milliseconds: 300),
                   child: isTv ? _buildTvHud(accent) : _buildNanoOverlay(accent),
                 ),
+              ),
 
               // QUICK ZAP OVERLAY (TV Only)
               if (isTv && _zapListVisible) _buildQuickZap(accent),
