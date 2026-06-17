@@ -210,31 +210,26 @@ class _FullscreenPlayerPageState extends ConsumerState<FullscreenPlayerPage> {
   }
 
   void _showQualityDialog() {
-    final tracks = widget.player.state.tracks.video;
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
         backgroundColor: const Color(0xFF141A22),
-        title: const Text('Select Quality', style: TextStyle(color: Colors.white)),
-        content: Column(
+        title: const Text('Stream Quality', style: TextStyle(color: Colors.white)),
+        content: const Column(
           mainAxisSize: MainAxisSize.min,
-          children: tracks.isEmpty 
-              ? [const Text('No multiple qualities available for this stream.', style: TextStyle(color: Colors.white70))]
-              : tracks.map((track) {
-                  final isAuto = track.id == 'auto' || track.id == 'no';
-                  final title = isAuto ? 'Auto' : '${track.h ?? track.id}p';
-                  final isCurrent = widget.player.state.track.video == track;
-                  return ListTile(
-                    title: Text(title, style: TextStyle(color: isCurrent ? Colors.redAccent : Colors.white70, fontWeight: isCurrent ? FontWeight.bold : FontWeight.normal)),
-                    trailing: isCurrent ? const Icon(Icons.check, color: Colors.redAccent) : null,
-                    onTap: () {
-                      Navigator.pop(context);
-                      widget.player.setVideoTrack(track);
-                      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Quality changed to $title')));
-                    },
-                  );
-          }).toList(),
+          children: [
+            Text(
+              'ExoPlayer automatically selects the best quality based on your network speed.\n\nAdaptive HLS streaming is enabled.',
+              style: TextStyle(color: Colors.white70, height: 1.5),
+            ),
+          ],
         ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('OK', style: TextStyle(color: Colors.redAccent)),
+          ),
+        ],
       ),
     );
   }

@@ -47,8 +47,7 @@ class PlayerScreen extends ConsumerStatefulWidget {
 class _PlayerScreenState extends ConsumerState<PlayerScreen> {
   Color get _accent => AppTheme.accentColor(_settings.gradientPreset);
 
-  final GlobalKey<VideoState> _videoKey = GlobalKey<VideoState>();
-  
+
   // OpticPlayer (ExoPlayer backend)
   OpticPlayer? _player;
   
@@ -173,18 +172,14 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
     final p = _player;
     if (p == null || !mounted) return;
     
-    try {
-      final bit = await (p.platform as dynamic).getProperty('video-bitrate');
-      setState(() {
-        if (bit != null) {
-          final kbps = (double.tryParse(bit.toString()) ?? 0) / 1024;
-          _bitrate = "${kbps.toStringAsFixed(0)} kbps";
-        }
-        _fps = "60 FPS";
-        _resolution = "1920x1080";
-        _codec = "H.264";
-      });
-    } catch (_) {}
+    // Native ExoPlayer — media info is not exposed via MethodChannel yet.
+    // Show static values for now; future: add native event for video format info.
+    setState(() {
+      _bitrate = "— kbps";
+      _fps = "— FPS";
+      _resolution = "Native";
+      _codec = "ExoPlayer";
+    });
   }
 
   Future<void> _initFlow() async {
