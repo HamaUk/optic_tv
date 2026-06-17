@@ -186,6 +186,30 @@ class NativeExoPlayer(
                 val h = player.videoSize.height
                 result.success(mapOf("width" to w, "height" to h))
             }
+            "getTracks" -> {
+                val videoTracks = mutableListOf<Map<String, Any>>()
+                for (group in player.currentTracks.groups) {
+                    if (group.type == C.TRACK_TYPE_VIDEO) {
+                        val trackGroup = group.mediaTrackGroup
+                        for (i in 0 until trackGroup.length) {
+                            val format = trackGroup.getFormat(i)
+                            val width = format.width
+                            val height = format.height
+                            val bitrate = format.bitrate
+                            val codecs = format.codecs ?: ""
+                            if (width > 0 && height > 0) {
+                                videoTracks.add(mapOf(
+                                    "width" to width,
+                                    "height" to height,
+                                    "bitrate" to bitrate,
+                                    "codecs" to codecs
+                                ))
+                            }
+                        }
+                    }
+                }
+                result.success(videoTracks)
+            }
             else -> result.notImplemented()
         }
     }

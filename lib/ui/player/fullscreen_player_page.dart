@@ -224,30 +224,56 @@ class _FullscreenPlayerPageState extends ConsumerState<FullscreenPlayerPage> {
     );
   }
 
-  void _showQualityDialog() {
-    final options = [
-      {'label': 'Auto (Adaptive)', 'height': 0},
-      {'label': '4K (2160p)', 'height': 2160},
-      {'label': 'Full HD (1080p)', 'height': 1080},
-      {'label': 'HD (720p)', 'height': 720},
-      {'label': 'SD (480p)', 'height': 480},
-      {'label': 'Low (360p)', 'height': 360},
+  Future<void> _showQualityDialog() async {
+    final tracks = await widget.player.getTracks();
+    
+    final options = <Map<String, dynamic>>[
+      {'label': 'Auto', 'height': 0},
     ];
+
+    if (tracks.isNotEmpty) {
+      tracks.sort((a, b) => (b['height'] as int).compareTo(a['height'] as int));
+      final seen = <String>{};
+      for (final t in tracks) {
+        final h = t['height'] as int;
+        final w = t['width'] as int;
+        final b = t['bitrate'] as int;
+        final c = t['codecs'] as String? ?? '';
+        final key = '${w}x$h-$b';
+        if (!seen.contains(key)) {
+          seen.add(key);
+          final mbps = (b / 1000000).toStringAsFixed(2);
+          final codecStr = c.isNotEmpty ? ', $c' : '';
+          options.add({'label': '$w × $h, $mbps Mbps$codecStr', 'height': h});
+        }
+      }
+    } else {
+      options.addAll([
+        {'label': '4K (2160p)', 'height': 2160},
+        {'label': 'Full HD (1080p)', 'height': 1080},
+        {'label': 'HD (720p)', 'height': 720},
+        {'label': 'SD (480p)', 'height': 480},
+        {'label': 'Low (360p)', 'height': 360},
+      ]);
+    }
+
+    if (!mounted) return;
 
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
         backgroundColor: const Color(0xFF141A22),
-        title: const Text('Select Maximum Quality', style: TextStyle(color: Colors.white)),
+        title: const Text('Broadcast Quality', style: TextStyle(color: Colors.white)),
         content: Column(
           mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: options.map((opt) {
             final h = opt['height'] as int;
             final label = opt['label'] as String;
             final isCurrent = _currentMaxHeight == h;
             return ListTile(
               title: Text(label, style: TextStyle(color: isCurrent ? Colors.redAccent : Colors.white70, fontWeight: isCurrent ? FontWeight.bold : FontWeight.normal)),
-              trailing: isCurrent ? const Icon(Icons.check, color: Colors.redAccent) : null,
+              trailing: isCurrent ? const Icon(Icons.radio_button_checked, color: Colors.redAccent) : const Icon(Icons.radio_button_unchecked, color: Colors.white24),
               onTap: () {
                 Navigator.pop(context);
                 setState(() => _currentMaxHeight = h);

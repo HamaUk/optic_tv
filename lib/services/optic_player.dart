@@ -151,6 +151,18 @@ class OpticPlayer with WidgetsBindingObserver {
     await _channel.invokeMethod('seekTo', {'position': ms});
   }
 
+  Future<List<Map<String, dynamic>>> getTracks() async {
+    if (_disposed) return [];
+    try {
+      final List<dynamic>? tracks = await _channel.invokeMethod('getTracks');
+      if (tracks == null) return [];
+      return tracks.map((t) => Map<String, dynamic>.from(t as Map)).toList();
+    } catch (e) {
+      debugPrint('Error getting tracks: $e');
+      return [];
+    }
+  }
+
   Future<void> setVolume(double percent) async {
     if (_disposed) return;
     final vol = (percent / 100.0).clamp(0.0, 1.0);
