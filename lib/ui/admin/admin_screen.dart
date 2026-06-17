@@ -1101,13 +1101,13 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
     for (final rawLine in lines) {
       final line = rawLine.trim();
       if (line.startsWith('#EXTINF:')) {
-        final nameMatch = RegExp(r'tvg-name="([^"]*)"').firstMatch(line);
-        final logoMatch = RegExp(r'tvg-logo="([^"]*)"').firstMatch(line);
-        final groupMatch = RegExp(r'group-title="([^"]*)"').firstMatch(line);
+        final nameMatch = RegExp(r"""(?:tvg-name|name)\s*=\s*(?:"([^"]*)"|'([^']*)'|([^,\s\t]+))""", caseSensitive: false).firstMatch(line);
+        final logoMatch = RegExp(r"""(?:tvg-logo|logo|icon)\s*=\s*(?:"([^"]*)"|'([^']*)'|([^,\s\t]+))""", caseSensitive: false).firstMatch(line);
+        final groupMatch = RegExp(r"""(?:group-title|group|category)\s*=\s*(?:"([^"]*)"|'([^']*)'|([^,\s\t]+))""", caseSensitive: false).firstMatch(line);
 
-        name = nameMatch?.group(1);
-        logo = logoMatch?.group(1);
-        group = groupMatch?.group(1);
+        name = nameMatch?.group(1) ?? nameMatch?.group(2) ?? nameMatch?.group(3);
+        logo = logoMatch?.group(1) ?? logoMatch?.group(2) ?? logoMatch?.group(3);
+        group = groupMatch?.group(1) ?? groupMatch?.group(2) ?? groupMatch?.group(3);
 
         // Fallback: channel name after the last comma.
         if (name == null || name.isEmpty) {
@@ -2749,6 +2749,7 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
                 child: logo != null && '$logo'.isNotEmpty
                     ? ChannelLogoImage(
                         logo: '$logo',
+                        channelName: name,
                         width: 50,
                         height: 50,
                         fit: BoxFit.cover,
@@ -4369,7 +4370,13 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
                   key: ValueKey('feat_${e.key}'),
                   leading: ClipRRect(
                     borderRadius: BorderRadius.circular(8),
-                    child: ChannelLogoImage(logo: val['logo'] ?? val['icon_url'], width: 40, height: 40, fit: BoxFit.cover),
+                    child: ChannelLogoImage(
+                      logo: val['logo'] ?? val['icon_url'],
+                      channelName: val['name'] != null ? '${val['name']}' : null,
+                      width: 40,
+                      height: 40,
+                      fit: BoxFit.cover,
+                    ),
                   ),
                   title: Text('${val['name']}', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14)),
                   subtitle: Text('${val['group'] ?? 'General'}', style: TextStyle(color: Colors.white.withOpacity(0.5), fontSize: 11)),

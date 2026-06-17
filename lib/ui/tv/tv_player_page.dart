@@ -195,7 +195,12 @@ class _TvPlayerPageState extends ConsumerState<TvPlayerPage> {
   Widget _buildTopPlayerBar() {
     return Row(
       children: [
-        ChannelLogoImage(logo: _current.logo, height: 80, width: 80),
+        ChannelLogoImage(
+          logo: _current.logo,
+          channelName: _current.name,
+          height: 80,
+          width: 80,
+        ),
         const SizedBox(width: 30),
         Expanded(
           child: Column(
@@ -282,7 +287,12 @@ class _TvPlayerPageState extends ConsumerState<TvPlayerPage> {
                 ),
                 child: Row(
                   children: [
-                    ChannelLogoImage(logo: ch.logo, height: 40, width: 40),
+                    ChannelLogoImage(
+                      logo: ch.logo,
+                      channelName: ch.name,
+                      height: 40,
+                      width: 40,
+                    ),
                     const SizedBox(width: 20),
                     Expanded(
                       child: Text(ch.name, style: TextStyle(color: isCurrent ? Colors.white : Colors.white54, fontWeight: FontWeight.bold, fontSize: 16)),

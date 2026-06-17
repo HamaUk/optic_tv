@@ -116,7 +116,7 @@ class _TvLoginScreenState extends ConsumerState<TvLoginScreen> {
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    const OpticWordmark(height: 80),
+                    const OpticWordmark(height: 60, twoLine: true),
                     const SizedBox(height: 60),
                     Text(
                       'ACTIVATE SERVICE',

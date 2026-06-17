@@ -46,6 +46,7 @@ class TVChannelCard extends StatelessWidget {
                   child: Center(
                     child: ChannelLogoImage(
                       logo: channel.logo,
+                      channelName: channel.name,
                       width: 80,
                       height: 80,
                     ),

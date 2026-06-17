@@ -154,7 +154,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                const Center(child: OpticWordmark(height: 64)),
+                const Center(child: OpticWordmark(height: 48, twoLine: true)),
                 const SizedBox(height: 40),
                 Text(
                   s.loginTitle.toUpperCase(),
@@ -235,7 +235,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
               mainAxisAlignment: MainAxisAlignment.center,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const OpticWordmark(height: 80),
+                const OpticWordmark(height: 60, twoLine: true),
                 const SizedBox(height: 60),
                 Text(
                   s.loginTitle.toUpperCase(),

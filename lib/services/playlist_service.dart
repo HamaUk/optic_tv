@@ -216,7 +216,34 @@ final groupsProvider = StreamProvider<List<ChannelGroup>>((ref) {
 });
 
 // TV Media Engine Providers
-final playerProvider = Provider<Player>((ref) => Player());
+final playerProvider = Provider<Player>((ref) {
+  final player = Player();
+  _configureMpvPlayer(player);
+  return player;
+});
+
+void _configureMpvPlayer(Player player) {
+  if (player.platform is NativePlayer) {
+    final native = player.platform as dynamic;
+    Future<void> set(String k, String v) async {
+      try { await native.setProperty(k, v); } catch (_) {}
+    }
+    set('hwdec', 'auto-safe');
+    set('vd-lavc-threads', '0');
+    set('profile', 'low-latency');
+    set('cache', 'no');
+    set('demuxer-max-bytes', '512000');
+    set('demuxer-max-back-bytes', '512000');
+    set('demuxer-readahead-secs', '0');
+    set('cache-secs', '0');
+    set('network-timeout', '5');
+    set('tcp-fastopen', 'yes');
+    set('user-agent', 'SmartIPTV');
+    set('stream-buffer-size', '4096');
+    set('untimed', 'yes');
+  }
+}
+
 final videoControllerProvider = Provider<VideoController>((ref) {
   final player = ref.watch(playerProvider);
   return VideoController(player);

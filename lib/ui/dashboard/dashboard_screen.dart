@@ -1381,6 +1381,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
                opacity: 0.15,
                child: ChannelLogoImage(
                   logo: ch.logo,
+                  channelName: ch.name,
                   fit: BoxFit.cover,
                ),
              ),
@@ -1448,6 +1449,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
                       constraints: const BoxConstraints(maxHeight: 240, maxWidth: 240),
                       child: ChannelLogoImage(
                         logo: ch.logo,
+                        channelName: ch.name,
                         fit: BoxFit.contain,
                       ),
                     ),
@@ -1649,6 +1651,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
                         padding: const EdgeInsets.all(12),
                         child: ChannelLogoImage(
                           logo: channel.logo,
+                          channelName: channel.name,
                           width: double.infinity,
                           height: double.infinity,
                           fit: BoxFit.contain,
@@ -1730,6 +1733,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
             if (channel.logo != null && channel.logo!.isNotEmpty)
               ChannelLogoImage(
                 logo: channel.logo,
+                channelName: channel.name,
                 width: double.infinity,
                 height: double.infinity,
                 fit: BoxFit.cover,
@@ -2222,6 +2226,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
                   padding: const EdgeInsets.all(36),
                   child: ChannelLogoImage(
                     logo: ch.logo,
+                    channelName: ch.name,
                     fit: BoxFit.contain,
                   ),
                 )

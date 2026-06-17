@@ -210,17 +210,18 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
       set('hwdec', 'auto-safe');          // Secure hardware acceleration
       set('vd-lavc-threads', '0');        // CPU thread optimization
       
-      // Ultra-Fast Start: Minimal buffering for instant playback
-      set('cache', 'yes');
-      set('demuxer-max-bytes', '16777216');      // 16MB (down from 64MB)
-      set('demuxer-max-back-bytes', '8388608');  // 8MB back-buffer
-      set('demuxer-readahead-secs', '1');         // 1 second readahead only
-      set('cache-secs', '2');                     // 2s cache — just enough
+      // Ultra-Fast Start: Low latency streaming profile (no delay)
+      set('profile', 'low-latency');
+      set('cache', 'no');
+      set('demuxer-max-bytes', '512000');         // 500KB buffer (down from 16MB)
+      set('demuxer-max-back-bytes', '512000');    // 500KB back-buffer
+      set('demuxer-readahead-secs', '0');         // No readahead
+      set('cache-secs', '0');                     // 0s cache
+      set('stream-buffer-size', '4096');          // 4KB stream buffer (down from 2MB)
       
       // Instant Start & Network
-      set('network-timeout', '8');                // Fast failover
+      set('network-timeout', '5');                // Fast failover
       set('tcp-fastopen', 'yes');                 // Faster TCP handshake
-      set('stream-buffer-size', '2048KiB');       // Smaller initial buffer
       set('user-agent', 'SmartIPTV');             // Highly compatible IPTV agent
       set('untimed', 'yes');                      // Don't wait for timestamps — play ASAP
       
@@ -452,6 +453,19 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
                 _activeServerIndex = newServerIndex;
                 _retryCount = 0;
               });
+            }
+          },
+          onChannelChanged: (oldCh, newCh) {
+            if (mounted) {
+              setState(() {
+                final idx = widget.channels.indexOf(newCh);
+                if (idx >= 0) {
+                  _index = idx;
+                  _selectedGroup = newCh.group;
+                }
+              });
+              ref.read(viewerServiceProvider).leaveChannel(oldCh.url);
+              ref.read(viewerServiceProvider).joinChannel(newCh.url, channelName: newCh.name);
             }
           },
         ),
@@ -902,7 +916,12 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
                       children: [
                         Expanded(
                           child: Center(
-                            child: ChannelLogoImage(logo: ch.logo, height: 72, width: 72),
+                            child: ChannelLogoImage(
+                              logo: ch.logo,
+                              channelName: ch.name,
+                              height: 72,
+                              width: 72,
+                            ),
                           ),
                         ),
                         const SizedBox(height: 12),
@@ -1219,13 +1238,11 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
                       // Channel logo
                       ClipRRect(
                         borderRadius: BorderRadius.circular(6),
-                        child: Container(
+                        child: ChannelLogoImage(
+                          logo: ch.logo,
+                          channelName: ch.name,
                           width: 32,
                           height: 32,
-                          color: Colors.white.withOpacity(0.05),
-                          child: ch.logo != null && ch.logo!.isNotEmpty
-                              ? ChannelLogoImage(logo: ch.logo, width: 32, height: 32)
-                              : Icon(Icons.tv_rounded, color: Colors.white12, size: 18),
                         ),
                       ),
                       const SizedBox(width: 8),

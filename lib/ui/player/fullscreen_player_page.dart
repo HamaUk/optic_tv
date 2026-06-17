@@ -8,6 +8,7 @@ import 'package:media_kit/media_kit.dart';
 import 'package:media_kit_video/media_kit_video.dart';
 import 'package:intl/intl.dart' hide TextDirection;
 import 'package:glassmorphism/glassmorphism.dart';
+import 'package:simple_pip_mode/simple_pip.dart';
 
 import '../../services/playlist_service.dart';
 import '../../services/platform_service.dart';
@@ -31,6 +32,7 @@ class FullscreenPlayerPage extends ConsumerStatefulWidget {
   final Locale uiLocale;
   final dynamic strings; // Using dynamic for compatibility with original calls
   final void Function(int serverIndex)? onServerChanged;
+  final void Function(Channel oldChannel, Channel newChannel)? onChannelChanged;
 
   const FullscreenPlayerPage({
     super.key, 
@@ -42,6 +44,7 @@ class FullscreenPlayerPage extends ConsumerStatefulWidget {
     required this.uiLocale,
     this.strings,
     this.onServerChanged,
+    this.onChannelChanged,
   });
 
   @override
@@ -66,6 +69,8 @@ class _FullscreenPlayerPageState extends ConsumerState<FullscreenPlayerPage> {
   Timer? _osdTimer;
   double? _brightnessValue;
   late int _currentServerIndex;
+  late final ScrollController _scrollController;
+  BoxFit _currentFit = BoxFit.contain;
 
   @override
   void initState() {
@@ -73,6 +78,7 @@ class _FullscreenPlayerPageState extends ConsumerState<FullscreenPlayerPage> {
     _currentIndex = widget.initialIndex;
     _currentServerIndex = widget.activeServerIndex;
     _currentChannel = widget.channels[_currentIndex];
+    _scrollController = ScrollController();
     
     _subscriptions.add(widget.player.stream.position.listen((p) {
       if (mounted) setState(() {}); // Refresh for progress if needed
@@ -92,16 +98,39 @@ class _FullscreenPlayerPageState extends ConsumerState<FullscreenPlayerPage> {
 
     _resetHideTimer();
     
+    if (widget.onChannelChanged == null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) {
+          ref.read(viewerServiceProvider).joinChannel(_currentChannel.url, channelName: _currentChannel.name);
+        }
+      });
+    }
+
+    // Load video fit settings & scroll bottom carousel
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) {
-        ref.read(viewerServiceProvider).joinChannel(_currentChannel.url, channelName: _currentChannel.name);
+        final settings = ref.read(appUiSettingsProvider).asData?.value;
+        if (settings != null) {
+          setState(() {
+            _currentFit = settings.videoFit;
+          });
+        }
+        _scrollToActiveChannel();
       }
     });
   }
 
   @override
   void dispose() {
-    ref.read(viewerServiceProvider).leaveChannel(_currentChannel.url);
+    _scrollController.dispose();
+    if (widget.onChannelChanged == null) {
+      ref.read(viewerServiceProvider).leaveChannel(_currentChannel.url);
+      try {
+        widget.player.stop();
+      } catch (e) {
+        debugPrint('Error stopping player on dispose: $e');
+      }
+    }
     for (var s in _subscriptions) {
       s.cancel();
     }
@@ -124,7 +153,7 @@ class _FullscreenPlayerPageState extends ConsumerState<FullscreenPlayerPage> {
   void _zapTo(int index) {
     if (index < 0 || index >= widget.channels.length) return;
     
-    final oldUrl = _currentChannel.url;
+    final oldChannel = _currentChannel;
 
     setState(() {
       _currentIndex = index;
@@ -135,10 +164,14 @@ class _FullscreenPlayerPageState extends ConsumerState<FullscreenPlayerPage> {
       _zapListVisible = false;
     });
 
-    final newUrl = _currentChannel.url;
-    if (oldUrl != newUrl) {
-      ref.read(viewerServiceProvider).leaveChannel(oldUrl);
-      ref.read(viewerServiceProvider).joinChannel(newUrl, channelName: _currentChannel.name);
+    final newChannel = _currentChannel;
+    if (oldChannel.url != newChannel.url) {
+      if (widget.onChannelChanged != null) {
+        widget.onChannelChanged!(oldChannel, newChannel);
+      } else {
+        ref.read(viewerServiceProvider).leaveChannel(oldChannel.url);
+        ref.read(viewerServiceProvider).joinChannel(newChannel.url, channelName: newChannel.name);
+      }
     }
 
     widget.player.open(Media(
@@ -146,6 +179,68 @@ class _FullscreenPlayerPageState extends ConsumerState<FullscreenPlayerPage> {
       httpHeaders: {'User-Agent': _currentChannel.userAgent ?? 'SmartIPTV'},
     ));
     _resetHideTimer();
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        _scrollToActiveChannel();
+      }
+    });
+  }
+
+  void _scrollToActiveChannel() {
+    if (!_scrollController.hasClients) return;
+    const cardWidth = 116.0; // 100 card width + 16 horizontal margins
+    final targetOffset = _currentIndex * cardWidth - (MediaQuery.of(context).size.width / 2) + (cardWidth / 2);
+    final clampedOffset = targetOffset.clamp(0.0, _scrollController.position.maxScrollExtent);
+    _scrollController.animateTo(
+      clampedOffset,
+      duration: const Duration(milliseconds: 300),
+      curve: Curves.easeInOut,
+    );
+  }
+
+  void _toggleAspectFit() {
+    setState(() {
+      if (_currentFit == BoxFit.contain) {
+        _currentFit = BoxFit.cover;
+      } else if (_currentFit == BoxFit.cover) {
+        _currentFit = BoxFit.fill;
+      } else {
+        _currentFit = BoxFit.contain;
+      }
+    });
+    _osdLabel = "FIT: ${_currentFit.name.toUpperCase()}";
+    _resetOSDTimer();
+  }
+
+  void _showQualityDialog() {
+    final tracks = widget.player.state.tracks.video;
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: const Color(0xFF141A22),
+        title: const Text('Select Quality', style: TextStyle(color: Colors.white)),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: tracks.isEmpty 
+              ? [const Text('No multiple qualities available for this stream.', style: TextStyle(color: Colors.white70))]
+              : tracks.map((track) {
+                  final isAuto = track.id == 'auto' || track.id == 'no';
+                  final title = isAuto ? 'Auto' : '${track.h ?? track.id}p';
+                  final isCurrent = widget.player.state.track.video == track;
+                  return ListTile(
+                    title: Text(title, style: TextStyle(color: isCurrent ? Colors.redAccent : Colors.white70, fontWeight: isCurrent ? FontWeight.bold : FontWeight.normal)),
+                    trailing: isCurrent ? const Icon(Icons.check, color: Colors.redAccent) : null,
+                    onTap: () {
+                      Navigator.pop(context);
+                      widget.player.setVideoTrack(track);
+                      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Quality changed to $title')));
+                    },
+                  );
+          }).toList(),
+        ),
+      ),
+    );
   }
 
   void _switchServer(int serverIndex, String url) {
@@ -219,7 +314,8 @@ class _FullscreenPlayerPageState extends ConsumerState<FullscreenPlayerPage> {
                 child: Video(
                   controller: widget.controller,
                   fill: Colors.black,
-                  controls: NoVideoControls, 
+                  controls: NoVideoControls,
+                  fit: _currentFit,
                 ),
               ),
               
@@ -251,7 +347,11 @@ class _FullscreenPlayerPageState extends ConsumerState<FullscreenPlayerPage> {
     return Container(
       decoration: BoxDecoration(
         gradient: LinearGradient(
-          colors: [Colors.black87, Colors.transparent, Colors.black87],
+          colors: [
+            Colors.black.withOpacity(0.8),
+            Colors.transparent,
+            Colors.black.withOpacity(0.85),
+          ],
           begin: Alignment.topCenter,
           end: Alignment.bottomCenter,
         ),
@@ -259,159 +359,296 @@ class _FullscreenPlayerPageState extends ConsumerState<FullscreenPlayerPage> {
       child: SafeArea(
         child: Column(
           children: [
-            // Top Bar
+            // 1. Top Bar (Back + Logo + Name + Viewers + FHD Quality Tag)
             Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
               child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  IconButton(
-                    icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.white),
-                    onPressed: () => Navigator.pop(context),
-                  ),
-                  const SizedBox(width: 16),
+                  // Back button & logo/name
                   Expanded(
-                    child: Text(
-                      _currentChannel.name.toUpperCase(),
-                      style: const TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ),
-                  IconButton(icon: const Icon(Icons.lock_outline_rounded, color: Colors.white), onPressed: () {}),
-                  IconButton(icon: const Icon(Icons.picture_in_picture_alt_rounded, color: Colors.white), onPressed: () {}),
-                  IconButton(icon: const Icon(Icons.aspect_ratio_rounded, color: Colors.white), onPressed: () {}),
-                  IconButton(
-                    icon: const Icon(Icons.settings_outlined, color: Colors.white), 
-                    onPressed: () {
-                      final tracks = widget.player.state.tracks.video;
-                      showDialog(
-                        context: context,
-                        builder: (context) => AlertDialog(
-                          backgroundColor: const Color(0xFF141A22),
-                          title: const Text('Select Quality', style: TextStyle(color: Colors.white)),
-                          content: Column(
-                            mainAxisSize: MainAxisSize.min,
-                            children: tracks.isEmpty 
-                                ? [const Text('No multiple qualities available for this stream.', style: TextStyle(color: Colors.white70))]
-                                : tracks.map((track) {
-                                    final isAuto = track.id == 'auto' || track.id == 'no';
-                                    final title = isAuto ? 'Auto' : '${track.h ?? track.id}p';
-                                    final isCurrent = widget.player.state.track.video == track;
-                                    return ListTile(
-                                      title: Text(title, style: TextStyle(color: isCurrent ? Colors.redAccent : Colors.white70, fontWeight: isCurrent ? FontWeight.bold : FontWeight.normal)),
-                                      trailing: isCurrent ? const Icon(Icons.check, color: Colors.redAccent) : null,
-                                      onTap: () {
-                                        Navigator.pop(context);
-                                        widget.player.setVideoTrack(track);
-                                        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Quality changed to $title')));
-                                      },
-                                    );
-                            }).toList(),
+                    child: Row(
+                      children: [
+                        IconButton(
+                          icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.white),
+                          onPressed: () => Navigator.pop(context),
+                        ),
+                        const SizedBox(width: 8),
+                        if (_currentChannel.logo != null && _currentChannel.logo!.isNotEmpty) ...[
+                          Container(
+                            width: 36,
+                            height: 36,
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(8),
+                              color: Colors.white10,
+                            ),
+                            child: ClipRRect(
+                              borderRadius: BorderRadius.circular(8),
+                              child: ChannelLogoImage(
+                                logo: _currentChannel.logo,
+                                channelName: _currentChannel.name,
+                                width: 36,
+                                height: 36,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                        ],
+                        Expanded(
+                          child: Text(
+                            _currentChannel.name.toUpperCase(),
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                              letterSpacing: 1.1,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
                           ),
                         ),
+                      ],
+                    ),
+                  ),
+                  // Viewers + FHD Tag
+                  Consumer(
+                    builder: (context, ref, child) {
+                      final viewersAsync = ref.watch(channelViewersProvider(_currentChannel.url));
+                      final viewersCount = viewersAsync.value ?? 1;
+                      return Column(
+                        crossAxisAlignment: CrossAxisAlignment.end,
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Text(
+                                '$viewersCount',
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                              const SizedBox(width: 4),
+                              const Icon(
+                                Icons.people_rounded,
+                                color: Colors.white,
+                                size: 16,
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 2),
+                          const Text(
+                            'FHD',
+                            style: TextStyle(
+                              color: Colors.white70,
+                              fontSize: 11,
+                              fontWeight: FontWeight.w600,
+                              letterSpacing: 1.1,
+                            ),
+                          ),
+                        ],
                       );
-                    }
+                    },
                   ),
                 ],
               ),
             ),
-            
-            // Horizontal Server List
             _buildHorizontalServerSelection(accent),
-            
-            // Center Play/Pause Control
+
+            // 2. Spacer
             const Spacer(),
-            Center(
-              child: StreamBuilder<bool>(
-                stream: widget.player.stream.playing,
-                builder: (context, snapshot) {
-                  final isPlaying = snapshot.data ?? true;
-                  return GestureDetector(
-                    onTap: () {
-                      if (isPlaying) {
-                        widget.player.pause();
-                      } else {
-                        widget.player.play();
-                      }
-                    },
-                    child: Container(
-                      padding: const EdgeInsets.all(16),
-                      decoration: BoxDecoration(
-                        color: Colors.black.withOpacity(0.5),
-                        shape: BoxShape.circle,
-                        border: Border.all(color: Colors.white24),
-                      ),
-                      child: Icon(
-                        isPlaying ? Icons.pause_rounded : Icons.play_arrow_rounded,
+
+            // 3. Center Controls Row (Prev, Mute, Settings, Play/Pause, Aspect, PiP, Next)
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                // Previous Channel
+                IconButton(
+                  icon: const Icon(Icons.fast_rewind_rounded, color: Colors.white, size: 28),
+                  onPressed: () {
+                    final prevIdx = (_currentIndex - 1 + widget.channels.length) % widget.channels.length;
+                    _zapTo(prevIdx);
+                  },
+                ),
+                const SizedBox(width: 20),
+                // Volume/Mute Toggle
+                StreamBuilder<double>(
+                  stream: widget.player.stream.volume,
+                  builder: (context, snapshot) {
+                    final volume = snapshot.data ?? 100.0;
+                    final isMuted = volume == 0.0;
+                    return IconButton(
+                      icon: Icon(
+                        isMuted ? Icons.volume_off_rounded : Icons.volume_up_rounded,
                         color: Colors.white,
-                        size: 48,
+                        size: 28,
                       ),
-                    ),
-                  );
-                },
+                      onPressed: () {
+                        widget.player.setVolume(isMuted ? 100.0 : 0.0);
+                        _resetHideTimer();
+                      },
+                    );
+                  },
+                ),
+                const SizedBox(width: 20),
+                // Settings/Quality
+                IconButton(
+                  icon: const Icon(Icons.settings_rounded, color: Colors.white, size: 28),
+                  onPressed: () {
+                    _showQualityDialog();
+                    _resetHideTimer();
+                  },
+                ),
+                const SizedBox(width: 20),
+                // Play/Pause
+                StreamBuilder<bool>(
+                  stream: widget.player.stream.playing,
+                  builder: (context, snapshot) {
+                    final isPlaying = snapshot.data ?? true;
+                    return Container(
+                      decoration: BoxDecoration(
+                        color: Colors.white.withOpacity(0.15),
+                        shape: BoxShape.circle,
+                      ),
+                      child: IconButton(
+                        icon: Icon(
+                          isPlaying ? Icons.pause_rounded : Icons.play_arrow_rounded,
+                          color: Colors.white,
+                          size: 36,
+                        ),
+                        onPressed: () {
+                          if (isPlaying) {
+                            widget.player.pause();
+                          } else {
+                            widget.player.play();
+                          }
+                          _resetHideTimer();
+                        },
+                      ),
+                    );
+                  },
+                ),
+                const SizedBox(width: 20),
+                // Aspect Ratio (Fit Toggle)
+                IconButton(
+                  icon: const Icon(Icons.aspect_ratio_rounded, color: Colors.white, size: 28),
+                  onPressed: () {
+                    _toggleAspectFit();
+                    _resetHideTimer();
+                  },
+                ),
+                const SizedBox(width: 20),
+                // Picture-in-Picture Mode
+                IconButton(
+                  icon: const Icon(Icons.picture_in_picture_alt_rounded, color: Colors.white, size: 28),
+                  onPressed: () {
+                    SimplePip().enterPipMode();
+                    _resetHideTimer();
+                  },
+                ),
+                const SizedBox(width: 20),
+                // Next Channel
+                IconButton(
+                  icon: const Icon(Icons.fast_forward_rounded, color: Colors.white, size: 28),
+                  onPressed: () {
+                    final nextIdx = (_currentIndex + 1) % widget.channels.length;
+                    _zapTo(nextIdx);
+                  },
+                ),
+              ],
+            ),
+
+            // 4. Spacer
+            const Spacer(),
+
+            // 5. Bottom Channel Carousel
+            Container(
+              height: 110,
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(vertical: 8),
+              decoration: BoxDecoration(
+                color: Colors.black.withOpacity(0.4),
+                border: const Border(
+                  top: BorderSide(color: Colors.white12, width: 0.5),
+                ),
+              ),
+              child: ListView.builder(
+                controller: _scrollController,
+                scrollDirection: Axis.horizontal,
+                physics: const BouncingScrollPhysics(),
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                itemCount: widget.channels.length,
+                itemBuilder: (context, idx) => _buildChannelCarouselItem(idx, accent),
               ),
             ),
-            const Spacer(),
-            
-            // Bottom Progress Bar
-            Padding(
-              padding: const EdgeInsets.fromLTRB(32, 16, 32, 32),
-              child: Row(
-                children: [
-                  StreamBuilder<Duration>(
-                    stream: widget.player.stream.position,
-                    builder: (context, snap) {
-                      final pos = snap.data ?? Duration.zero;
-                      return Text(_formatDuration(pos), style: const TextStyle(color: Colors.white));
-                    },
-                  ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: StreamBuilder<Duration>(
-                      stream: widget.player.stream.position,
-                      builder: (context, posSnap) {
-                        return StreamBuilder<Duration>(
-                          stream: widget.player.stream.duration,
-                          builder: (context, durSnap) {
-                            final pos = posSnap.data ?? Duration.zero;
-                            final dur = durSnap.data ?? Duration.zero;
-                            double progress = 0;
-                            if (dur.inMilliseconds > 0) {
-                              progress = pos.inMilliseconds / dur.inMilliseconds;
-                            }
-                            return SliderTheme(
-                              data: SliderThemeData(
-                                trackHeight: 4,
-                                thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 6),
-                                overlayShape: const RoundSliderOverlayShape(overlayRadius: 14),
-                                activeTrackColor: accent,
-                                inactiveTrackColor: Colors.white24,
-                                thumbColor: accent,
-                              ),
-                              child: Slider(
-                                value: progress.clamp(0.0, 1.0),
-                                onChanged: (val) {
-                                  if (dur.inMilliseconds > 0) {
-                                    widget.player.seek(Duration(milliseconds: (val * dur.inMilliseconds).round()));
-                                  }
-                                },
-                              ),
-                            );
-                          },
-                        );
-                      },
-                    ),
-                  ),
-                  const SizedBox(width: 16),
-                  StreamBuilder<Duration>(
-                    stream: widget.player.stream.duration,
-                    builder: (context, snap) {
-                      final dur = snap.data ?? Duration.zero;
-                      return Text(_formatDuration(dur), style: const TextStyle(color: Colors.white));
-                    },
-                  ),
-                ],
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildChannelCarouselItem(int index, Color accent) {
+    final channel = widget.channels[index];
+    final isSelected = index == _currentIndex;
+
+    return GestureDetector(
+      onTap: () {
+        _zapTo(index);
+      },
+      child: Container(
+        width: 100,
+        margin: const EdgeInsets.symmetric(horizontal: 8),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            AnimatedContainer(
+              duration: const Duration(milliseconds: 200),
+              width: 90,
+              height: 65,
+              decoration: BoxDecoration(
+                color: isSelected ? Colors.white : Colors.white.withOpacity(0.08),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(
+                  color: isSelected ? accent : Colors.transparent,
+                  width: 3,
+                ),
+                boxShadow: isSelected
+                    ? [
+                        BoxShadow(
+                          color: accent.withOpacity(0.4),
+                          blurRadius: 8,
+                          spreadRadius: 2,
+                        ),
+                      ]
+                    : null,
               ),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(9),
+                child: Padding(
+                  padding: const EdgeInsets.all(6.0),
+                  child: ChannelLogoImage(
+                    logo: channel.logo,
+                    channelName: channel.name,
+                    width: double.infinity,
+                    height: double.infinity,
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(height: 6),
+            Text(
+              channel.name.toUpperCase(),
+              style: TextStyle(
+                color: isSelected ? Colors.white : Colors.white70,
+                fontSize: 11,
+                fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
+              ),
+              textAlign: TextAlign.center,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
             ),
           ],
         ),
@@ -435,11 +672,13 @@ class _FullscreenPlayerPageState extends ConsumerState<FullscreenPlayerPage> {
 
     if (servers.length <= 1) return const SizedBox.shrink();
 
-    return SizedBox(
-      height: 40,
+    return Container(
+      height: 36,
+      alignment: Alignment.centerLeft,
+      padding: const EdgeInsets.symmetric(horizontal: 76),
       child: ListView.builder(
         scrollDirection: Axis.horizontal,
-        padding: const EdgeInsets.symmetric(horizontal: 24),
+        shrinkWrap: true,
         itemCount: servers.length,
         itemBuilder: (context, i) {
           final s = servers[i];
@@ -447,8 +686,8 @@ class _FullscreenPlayerPageState extends ConsumerState<FullscreenPlayerPage> {
           return GestureDetector(
             onTap: () => _switchServer(s['index'], s['url']),
             child: Container(
-              margin: const EdgeInsets.only(right: 12),
-              padding: const EdgeInsets.symmetric(horizontal: 16),
+              margin: const EdgeInsets.only(right: 8),
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
               alignment: Alignment.center,
               decoration: BoxDecoration(
                 color: active ? accent : Colors.black.withOpacity(0.5),
@@ -460,7 +699,7 @@ class _FullscreenPlayerPageState extends ConsumerState<FullscreenPlayerPage> {
                 style: TextStyle(
                   color: active ? Colors.white : Colors.white70,
                   fontWeight: active ? FontWeight.bold : FontWeight.w500,
-                  fontSize: 14,
+                  fontSize: 12,
                 ),
               ),
             ),
@@ -468,15 +707,6 @@ class _FullscreenPlayerPageState extends ConsumerState<FullscreenPlayerPage> {
         },
       ),
     );
-  }
-
-  String _formatDuration(Duration d) {
-    final minutes = d.inMinutes.remainder(60).toString().padLeft(2, '0');
-    final seconds = d.inSeconds.remainder(60).toString().padLeft(2, '0');
-    if (d.inHours > 0) {
-      return '${d.inHours}:$minutes:$seconds';
-    }
-    return '$minutes:$seconds';
   }
 
   void _handleVerticalDrag(DragUpdateDetails details) {
@@ -529,9 +759,12 @@ class _FullscreenPlayerPageState extends ConsumerState<FullscreenPlayerPage> {
                   color: Colors.white10,
                   borderRadius: BorderRadius.circular(8),
                 ),
-                child: _currentChannel.logo != null 
-                    ? ChannelLogoImage(logo: _currentChannel.logo, width: 60, height: 60)
-                    : const Icon(Icons.tv, color: Colors.white24),
+                child: ChannelLogoImage(
+                  logo: _currentChannel.logo,
+                  channelName: _currentChannel.name,
+                  width: 60,
+                  height: 60,
+                ),
               ),
               const SizedBox(width: 20),
               Column(

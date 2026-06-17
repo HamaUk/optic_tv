@@ -78,6 +78,7 @@ class TvChannelGrid extends StatelessWidget {
                             borderRadius: BorderRadius.circular(12),
                             child: ChannelLogoImage(
                               logo: isPosterStyle ? ch.backdrop ?? ch.logo : ch.logo,
+                              channelName: ch.name,
                               height: double.infinity,
                               width: double.infinity,
                               fit: isPosterStyle ? BoxFit.cover : BoxFit.contain,
