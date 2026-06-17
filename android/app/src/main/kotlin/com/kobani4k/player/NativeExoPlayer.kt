@@ -273,8 +273,16 @@ class NativeExoPlayer(
     }
 
     override fun onVideoSizeChanged(videoSize: VideoSize) {
+        // Multiply by pixelWidthHeightRatio to handle anamorphic widescreen correctly
+        val ratio = if (videoSize.pixelWidthHeightRatio > 0) videoSize.pixelWidthHeightRatio else 1.0f
+        val displayWidth = (videoSize.width * ratio).toInt()
+        
+        // Ensure the native Flutter SurfaceTexture receives the correct buffer dimensions
+        // to prevent hardware squishing before the Texture widget renders it
+        textureEntry?.surfaceTexture()?.setDefaultBufferSize(displayWidth, videoSize.height)
+
         sendEvent("onVideoSizeChanged", mapOf(
-            "width" to videoSize.width,
+            "width" to displayWidth,
             "height" to videoSize.height
         ))
     }
