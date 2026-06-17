@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -5,6 +6,7 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:media_kit/media_kit.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'core/theme.dart';
+import 'core/security/http_overrides.dart';
 import 'providers/app_locale_provider.dart';
 import 'providers/session_provider.dart';
 import 'providers/ui_settings_provider.dart';
@@ -19,6 +21,7 @@ import 'services/platform_service.dart';
 import 'ui/tv/elite_tv_dashboard.dart';
 
 void main() async {
+  HttpOverrides.global = GlobalSecurityHttpOverrides();
   WidgetsFlutterBinding.ensureInitialized();
   MediaKit.ensureInitialized();
   try {
@@ -93,13 +96,28 @@ class OpticTvApp extends ConsumerStatefulWidget {
   ConsumerState<OpticTvApp> createState() => _OpticTvAppState();
 }
 
-class _OpticTvAppState extends ConsumerState<OpticTvApp> {
+class _OpticTvAppState extends ConsumerState<OpticTvApp> with WidgetsBindingObserver {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       ref.read(sessionProvider.notifier).initialize(widget.initialLoggedIn, widget.initialCode);
     });
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      // Re-run security check every time the app comes back to the foreground
+      ref.refresh(securityCheckProvider);
+    }
   }
 
   @override
