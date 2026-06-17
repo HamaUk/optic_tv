@@ -1,7 +1,7 @@
 import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
-
+import 'package:flutter/widgets.dart';
 /// Native ExoPlayer engine connected via MethodChannel.
 ///
 /// Uses Texture-based rendering: the native ExoPlayer renders frames into a
@@ -175,11 +175,6 @@ class OpticPlayer with WidgetsBindingObserver {
     if (_disposed) return;
     _speed = speed;
     await _channel.invokeMethod('setSpeed', {'speed': speed});
-  }
-
-  Future<void> stop() async {
-    if (_disposed) return;
-    await _channel.invokeMethod('stop');
   }
 
   Future<void> setMaxResolution(int maxHeight) async {
