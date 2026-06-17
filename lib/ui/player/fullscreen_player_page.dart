@@ -471,6 +471,8 @@ class _FullscreenPlayerPageState extends ConsumerState<FullscreenPlayerPage> {
               children: [
                 // Previous Channel
                 TVFocusable(
+                  showFocusBorder: false,
+                  focusScale: 1.0,
                   onSelect: () {
                     final prevIdx = (_currentIndex - 1 + widget.channels.length) % widget.channels.length;
                     _zapTo(prevIdx);
@@ -495,6 +497,8 @@ class _FullscreenPlayerPageState extends ConsumerState<FullscreenPlayerPage> {
                     final volume = snapshot.data ?? 100.0;
                     final isMuted = volume == 0.0;
                     return TVFocusable(
+                      showFocusBorder: false,
+                      focusScale: 1.0,
                       onSelect: () {
                         widget.player.setVolume(isMuted ? 100.0 : 0.0);
                         _resetHideTimer();
@@ -520,6 +524,8 @@ class _FullscreenPlayerPageState extends ConsumerState<FullscreenPlayerPage> {
                 const SizedBox(width: 20),
                 // Settings/Quality
                 TVFocusable(
+                  showFocusBorder: false,
+                  focusScale: 1.0,
                   onSelect: () {
                     _showQualityDialog();
                     _resetHideTimer();
@@ -543,6 +549,8 @@ class _FullscreenPlayerPageState extends ConsumerState<FullscreenPlayerPage> {
                   builder: (context, snapshot) {
                     final isPlaying = snapshot.data ?? true;
                     return TVFocusable(
+                      showFocusBorder: false,
+                      focusScale: 1.0,
                       onSelect: () {
                         if (isPlaying) {
                           widget.player.pause();
@@ -579,6 +587,8 @@ class _FullscreenPlayerPageState extends ConsumerState<FullscreenPlayerPage> {
                 const SizedBox(width: 20),
                 // Aspect Ratio (Fit Toggle)
                 TVFocusable(
+                  showFocusBorder: false,
+                  focusScale: 1.0,
                   onSelect: () {
                     _showAspectDialog();
                     _resetHideTimer();
@@ -598,6 +608,8 @@ class _FullscreenPlayerPageState extends ConsumerState<FullscreenPlayerPage> {
                 const SizedBox(width: 20),
                 // Picture-in-Picture Mode
                 TVFocusable(
+                  showFocusBorder: false,
+                  focusScale: 1.0,
                   onSelect: () {
                     SimplePip().enterPipMode();
                     _resetHideTimer();
@@ -617,6 +629,8 @@ class _FullscreenPlayerPageState extends ConsumerState<FullscreenPlayerPage> {
                 const SizedBox(width: 20),
                 // Next Channel
                 TVFocusable(
+                  showFocusBorder: false,
+                  focusScale: 1.0,
                   onSelect: () {
                     final nextIdx = (_currentIndex + 1) % widget.channels.length;
                     _zapTo(nextIdx);
