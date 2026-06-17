@@ -6,9 +6,11 @@ import androidx.compose.animation.*
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.focusable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -109,7 +111,7 @@ fun PlayerScreen(
 
         ExoPlayer.Builder(context)
             .setLoadControl(loadControl)
-            .setMediaSourceFactory(DefaultMediaSourceFactory(context, httpDataSourceFactory))
+            .setMediaSourceFactory(DefaultMediaSourceFactory(httpDataSourceFactory))
             .build()
     }
 
@@ -284,11 +286,9 @@ fun PlayerScreen(
                 colors = SurfaceDefaults.colors(
                     containerColor = SurfaceColor.copy(alpha = 0.95f)
                 ),
-                border = SurfaceDefaults.border(
-                    border = Border(
-                        border = androidx.compose.foundation.BorderStroke(1.dp, SurfaceElevatedColor),
-                        shape = RoundedCornerShape(0.dp)
-                    )
+                border = Border(
+                    border = androidx.compose.foundation.BorderStroke(1.dp, SurfaceElevatedColor),
+                    shape = RoundedCornerShape(0.dp)
                 ),
                 modifier = Modifier
                     .width(320.dp)

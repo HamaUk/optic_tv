@@ -101,6 +101,7 @@ dependencies {
     implementation("androidx.compose.ui:ui-graphics")
     implementation("androidx.compose.ui:ui-tooling-preview")
     implementation("androidx.activity:activity-compose:1.9.1")
+    implementation("androidx.compose.material3:material3")
 
     // Navigation
     val navVersion = "2.7.7"

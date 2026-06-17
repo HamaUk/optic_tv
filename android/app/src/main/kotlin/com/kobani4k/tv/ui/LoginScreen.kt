@@ -151,11 +151,9 @@ fun LoginScreen(onLoginSuccess: () -> Unit) {
                     colors = SurfaceDefaults.colors(
                         containerColor = SurfaceColor.copy(alpha = 0.9f)
                     ),
-                    border = SurfaceDefaults.border(
-                        border = Border(
-                            border = androidx.compose.foundation.BorderStroke(1.dp, SurfaceElevatedColor),
-                            shape = RoundedCornerShape(32.dp)
-                        )
+                    border = Border(
+                        border = androidx.compose.foundation.BorderStroke(1.dp, SurfaceElevatedColor),
+                        shape = RoundedCornerShape(32.dp)
                     ),
                     modifier = Modifier.fillMaxSize()
                 ) {
