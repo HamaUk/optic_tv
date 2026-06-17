@@ -11,6 +11,7 @@ import 'package:simple_pip_mode/simple_pip.dart';
 import 'dart:ui' show ImageFilter;
 import 'package:animations/animations.dart';
 import 'package:optic_tv/widgets/tv_fluid_focusable.dart';
+import '../../widgets/tv/tv_focusable.dart';
 import 'fullscreen_player_page.dart';
 import '../../services/optic_player.dart';
 
@@ -818,14 +819,23 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
   }
 
   Widget _tvGhostenPlayerAction(IconData icon, VoidCallback onTap, {bool isLarge = false, bool autofocus = false}) {
-    return GhostenFocusable(
+    return TVFocusable(
       autofocus: autofocus,
-      onTap: onTap,
-      backgroundColor: Colors.white.withOpacity(0.06),
-      child: Padding(
-        padding: EdgeInsets.all(isLarge ? 18 : 14),
-        child: Icon(icon, color: Colors.white, size: isLarge ? 36 : 28),
-      ),
+      onSelect: onTap,
+      showFocusBorder: false,
+      focusScale: 1.15,
+      child: const SizedBox(),
+      builder: (context, isFocused, child) {
+        return Container(
+          padding: EdgeInsets.all(isLarge ? 18 : 14),
+          decoration: BoxDecoration(
+            color: isFocused ? _accent : Colors.white.withOpacity(0.06),
+            borderRadius: BorderRadius.circular(12),
+            boxShadow: isFocused ? [BoxShadow(color: _accent.withOpacity(0.6), blurRadius: 12)] : [],
+          ),
+          child: Icon(icon, color: isFocused ? Colors.black : Colors.white, size: isLarge ? 36 : 28),
+        );
+      },
     );
   }
 

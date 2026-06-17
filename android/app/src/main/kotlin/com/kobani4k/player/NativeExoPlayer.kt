@@ -13,6 +13,7 @@ import androidx.media3.common.VideoSize
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.datasource.DefaultDataSource
 import androidx.media3.datasource.DefaultHttpDataSource
+import androidx.media3.exoplayer.DefaultLoadControl
 import androidx.media3.exoplayer.DefaultRenderersFactory
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.exoplayer.SeekParameters
@@ -77,9 +78,19 @@ class NativeExoPlayer(
                 DefaultDataSource.Factory(context, httpDataSourceFactory)
             )
 
+        val loadControl = DefaultLoadControl.Builder()
+            .setBufferDurationsMs(
+                32000, // Min buffer 32s
+                64000, // Max buffer 64s
+                2500,  // Buffer for playback to start 2.5s
+                5000   // Buffer for playback to resume 5s
+            )
+            .build()
+
         val exo = ExoPlayer.Builder(context)
             .setRenderersFactory(renderersFactory)
             .setMediaSourceFactory(mediaSourceFactory)
+            .setLoadControl(loadControl)
             .setSeekParameters(SeekParameters(3_000_000, 3_000_000)) // Fast seeks for live
             .build()
 

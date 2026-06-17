@@ -18,6 +18,7 @@ import '../../widgets/optic_wordmark.dart';
 import '../../widgets/tv/tv_focusable.dart';
 import '../player/player_screen.dart';
 import '../dashboard/movie_details_screen.dart';
+import '../settings/settings_screen.dart';
 
 class TvDashboardScreen extends ConsumerStatefulWidget {
   final List<Channel> allChannels;
@@ -92,7 +93,13 @@ class _TvDashboardScreenState extends ConsumerState<TvDashboardScreen> {
   Widget _buildSidebarItem(IconData icon, String label, int index, AppStrings s) {
     final isSelected = _navIndex == index;
     return TVFocusable(
-      onSelect: () => setState(() => _navIndex = index),
+      onSelect: () {
+        if (index == 5) {
+          Navigator.push(context, MaterialPageRoute(builder: (_) => const SettingsScreen()));
+        } else {
+          setState(() => _navIndex = index);
+        }
+      },
       onFocus: () => setState(() => _sidebarHasFocus = true),
       showFocusBorder: false,
       focusScale: 1.0,
@@ -148,10 +155,8 @@ class _TvDashboardScreenState extends ConsumerState<TvDashboardScreen> {
             padding: const EdgeInsets.symmetric(horizontal: 16),
             child: Row(
               children: [
-                OpticWordmark(height: 32),
                 if (_sidebarHasFocus) ...[
                   const SizedBox(width: 12),
-                  const Text('OPTIC TV', style: TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.w900, letterSpacing: 2)),
                 ]
               ],
             ),
@@ -353,7 +358,6 @@ class _TvDashboardScreenState extends ConsumerState<TvDashboardScreen> {
                 fit: StackFit.expand,
                 children: [
                   _buildContentArea(s),
-                  _buildHeroBanner(s),
                 ],
               ),
             ),

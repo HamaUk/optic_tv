@@ -14,6 +14,7 @@ import '../../services/tmdb_service.dart';
 import '../../providers/channel_library_provider.dart';
 import '../../providers/app_locale_provider.dart';
 import '../../l10n/app_strings.dart';
+import '../../widgets/tv/tv_focusable.dart';
 import '../player/movie_player_page.dart';
 
 class MovieDetailsScreen extends ConsumerStatefulWidget {
@@ -607,32 +608,42 @@ class _MovieDetailsScreenState extends ConsumerState<MovieDetailsScreen>
       children: [
         // Primary play button — uses palette accent color
         Expanded(
-          child: Material(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(8),
-            child: InkWell(
-              onTap: _play,
-              borderRadius: BorderRadius.circular(8),
-              child: Container(
-                height: 52,
-                alignment: Alignment.center,
-                child: const Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(Icons.play_arrow_rounded, color: Colors.black, size: 32),
-                    SizedBox(width: 4),
-                    Text(
-                      'Play',
-                      style: TextStyle(
-                        color: Colors.black,
-                        fontSize: 18,
-                        fontWeight: FontWeight.w900,
-                      ),
+          child: TVFocusable(
+            onSelect: _play,
+            showFocusBorder: false,
+            focusScale: 1.05,
+            child: const SizedBox(),
+            builder: (context, isFocused, child) {
+              return Material(
+                color: isFocused ? accent : Colors.white,
+                borderRadius: BorderRadius.circular(8),
+                elevation: isFocused ? 8 : 0,
+                shadowColor: accent.withOpacity(0.5),
+                child: InkWell(
+                  onTap: _play,
+                  borderRadius: BorderRadius.circular(8),
+                  child: Container(
+                    height: 52,
+                    alignment: Alignment.center,
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(Icons.play_arrow_rounded, color: isFocused ? Colors.white : Colors.black, size: 32),
+                        const SizedBox(width: 4),
+                        Text(
+                          'Play',
+                          style: TextStyle(
+                            color: isFocused ? Colors.white : Colors.black,
+                            fontSize: 18,
+                            fontWeight: FontWeight.w900,
+                          ),
+                        ),
+                      ],
                     ),
-                  ],
+                  ),
                 ),
-              ),
-            ),
+              );
+            },
           ),
         ),
         const SizedBox(width: 10),
@@ -663,16 +674,23 @@ class _MovieDetailsScreenState extends ConsumerState<MovieDetailsScreen>
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        Container(
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            border: Border.all(color: Colors.white38, width: 1.5),
-            color: Colors.white.withOpacity(0.05),
-          ),
-          child: IconButton(
-            onPressed: onTap,
-            icon: Icon(icon, color: Colors.white, size: 26),
-          ),
+        TVFocusable(
+          onSelect: onTap,
+          showFocusBorder: false,
+          focusScale: 1.1,
+          child: const SizedBox(),
+          builder: (context, isFocused, child) {
+            return Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                border: Border.all(color: isFocused ? accent : Colors.white38, width: isFocused ? 2 : 1.5),
+                color: isFocused ? accent.withOpacity(0.2) : Colors.white.withOpacity(0.05),
+                boxShadow: isFocused ? [BoxShadow(color: accent.withOpacity(0.5), blurRadius: 10)] : [],
+              ),
+              child: Icon(icon, color: Colors.white, size: 26),
+            );
+          },
         ),
         const SizedBox(height: 4),
         Text(
