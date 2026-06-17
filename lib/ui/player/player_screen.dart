@@ -466,6 +466,9 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
       return Scaffold(
         key: _scaffoldKey,
         backgroundColor: Colors.black,
+        endDrawer: const Drawer(
+          child: SettingsScreen(),
+        ),
         body: Stack(
           fit: StackFit.expand,
           children: [
@@ -686,6 +689,7 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
                 _isPlaying ? Icons.pause_rounded : Icons.play_arrow_rounded,
                 () => _isPlaying ? _player!.pause() : _player!.play(),
                 isLarge: true,
+                autofocus: true,
               ),
               const SizedBox(width: 32),
               _tvGhostenPlayerAction(Icons.skip_next_rounded, () => _handleNext()),
@@ -769,6 +773,7 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
                 final ch = groupChannels[i];
                 final active = ch.url == _current.url;
                 return GhostenFocusable(
+                  autofocus: active,
                   onTap: () {
                     final idx = widget.channels.indexOf(ch);
                     _selectChannelByIndex(idx);
@@ -812,8 +817,9 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
     );
   }
 
-  Widget _tvGhostenPlayerAction(IconData icon, VoidCallback onTap, {bool isLarge = false}) {
+  Widget _tvGhostenPlayerAction(IconData icon, VoidCallback onTap, {bool isLarge = false, bool autofocus = false}) {
     return GhostenFocusable(
+      autofocus: autofocus,
       onTap: onTap,
       backgroundColor: Colors.white.withOpacity(0.06),
       child: Padding(
