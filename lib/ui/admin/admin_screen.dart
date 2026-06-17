@@ -4431,7 +4431,20 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
     return ListView(
       padding: const EdgeInsets.all(24),
       children: [
-        _buildSectionHeader(Icons.system_update_rounded, 'Update Manager', 'Push an OTA update to all users.'),
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                const Icon(Icons.system_update_rounded, color: AppTheme.primaryGold, size: 28),
+                const SizedBox(width: 12),
+                Text('Update Manager', style: TextStyle(fontSize: 22, fontWeight: FontWeight.w900, color: Colors.white.withOpacity(0.9))),
+              ],
+            ),
+            const SizedBox(height: 4),
+            Text('Push an OTA update to all users.', style: TextStyle(fontSize: 13, color: Colors.white.withOpacity(0.5))),
+          ],
+        ),
         const SizedBox(height: 24),
         _card(
           child: Column(
