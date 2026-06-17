@@ -20,7 +20,7 @@ class AppSettingsData {
     this.videoFit = BoxFit.contain,
     this.autoHidePlayerControls = true,
     this.showOnScreenClock = false,
-    this.reduceMotion = false,
+    this.reduceMotion = true, // Changed to true per request
     this.gradientPreset = AppGradientPreset.emberGlow,
     this.subtitleFontSize = 20.0,
     this.subtitleColor = 0xFFFFFFFF, // White
@@ -35,7 +35,7 @@ class AppSettingsData {
       videoFit: _decodeFit(p.getString(_kVideoFit) ?? 'contain'),
       autoHidePlayerControls: p.getBool(_kAutoHideControls) ?? true,
       showOnScreenClock: p.getBool(_kShowClock) ?? false,
-      reduceMotion: p.getBool(_kReduceMotion) ?? false,
+      reduceMotion: p.getBool(_kReduceMotion) ?? true, // Changed fallback to true
       gradientPreset: _decodeGradientPreset(p.getString(_kGradientPreset)),
       subtitleFontSize: p.getDouble(_kSubtitleFontSize) ?? 20.0,
       subtitleColor: p.getInt(_kSubtitleColor) ?? 0xFFFFFFFF,

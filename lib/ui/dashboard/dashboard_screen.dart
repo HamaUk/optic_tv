@@ -27,6 +27,7 @@ import '../player/player_screen.dart';
 import '../player/movie_player_page.dart';
 import '../settings/settings_screen.dart';
 import 'movie_details_screen.dart';
+import '../tv/tv_dashboard_screen.dart';
 
 import '../../services/tmdb_service.dart';
 import '../../widgets/dynamic_background.dart';
@@ -561,43 +562,10 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
         final isTv = MediaQuery.sizeOf(context).width > 900;
 
         if (isTv) {
-          return Theme(
-            data: ThemeData(
-              brightness: Brightness.dark,
-              fontFamily: 'RobotoCondensed',
-              scaffoldBackgroundColor: Colors.black,
-              colorScheme: ColorScheme.fromSeed(seedColor: _accent, brightness: Brightness.dark),
-            ),
-            child: channelsAsync.when(
-              data: (all) {
-                final favorites = ref.watch(favoritesProvider);
-                return Scaffold(
-                  key: _tvScaffoldKey,
-                  backgroundColor: Colors.black,
-                  endDrawer: _buildTvSettingsDrawer(s),
-                  appBar: _buildTvTopAppbar(s, settings),
-                  body: PageTransitionSwitcher(
-                    duration: const Duration(milliseconds: 600),
-                    transitionBuilder: (child, primary, secondary) => SharedAxisTransition(
-                      animation: primary,
-                      secondaryAnimation: secondary,
-                      transitionType: SharedAxisTransitionType.horizontal,
-                      fillColor: Colors.transparent,
-                      child: child,
-                    ),
-                    child: switch (_tvTabIndex) {
-                      0 => _buildTvLiveTvTab(s, all, favorites, settings),
-                      1 => _buildTvMoviesTab(s, all, favorites, settings),
-                      2 => _buildTvSportTab(s, all, favorites, settings),
-                      3 => _buildTvFavoritesTab(s, favorites, settings),
-                      _ => const SizedBox(),
-                    },
-                  ),
-                );
-              },
-              loading: () => const Scaffold(backgroundColor: Colors.black, body: Center(child: CircularProgressIndicator())),
-              error: (e, _) => Scaffold(backgroundColor: Colors.black, body: Center(child: Text('Error: $e'))),
-            ),
+          return channelsAsync.when(
+            data: (all) => TvDashboardScreen(allChannels: all),
+            loading: () => const Scaffold(backgroundColor: Colors.black, body: Center(child: CircularProgressIndicator())),
+            error: (e, _) => Scaffold(backgroundColor: Colors.black, body: Center(child: Text('Error: $e'))),
           );
         }
 
