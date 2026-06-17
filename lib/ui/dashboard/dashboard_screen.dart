@@ -565,7 +565,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
 
         if (isTv) {
           return channelsAsync.when(
-            data: (all) => TvDashboardScreen(allChannels: all),
+            data: (all) => TvDashboardScreen(allChannels: all, managedGroups: managedGroups),
             loading: () => const Scaffold(backgroundColor: Colors.black, body: Center(child: CircularProgressIndicator())),
             error: (e, _) => Scaffold(backgroundColor: Colors.black, body: Center(child: Text('Error: $e'))),
           );

@@ -88,8 +88,11 @@ class _TVFocusableState extends State<TVFocusable> with SingleTickerProviderStat
     if (event is! KeyDownEvent) return KeyEventResult.ignored;
     final key = event.logicalKey;
     if (key == LogicalKeyboardKey.select || key == LogicalKeyboardKey.enter || key == LogicalKeyboardKey.space) {
-      widget.onSelect?.call();
-      return KeyEventResult.handled;
+      if (widget.onSelect != null) {
+        widget.onSelect!.call();
+        return KeyEventResult.handled;
+      }
+      return KeyEventResult.ignored;
     }
     return KeyEventResult.ignored;
   }

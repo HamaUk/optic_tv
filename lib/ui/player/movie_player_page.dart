@@ -83,11 +83,16 @@ class _MoviePlayerPageState extends ConsumerState<MoviePlayerPage> {
     // Set orientations based on device type
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
     
-    // Force landscape for all devices in fullscreen mode
-    SystemChrome.setPreferredOrientations([
-      DeviceOrientation.landscapeLeft,
-      DeviceOrientation.landscapeRight,
-    ]);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      final isTv = MediaQuery.of(context).size.shortestSide >= 600;
+      if (!isTv) {
+        SystemChrome.setPreferredOrientations([
+          DeviceOrientation.landscapeLeft,
+          DeviceOrientation.landscapeRight,
+        ]);
+      }
+    });
 
     _resetHideTimer();
     

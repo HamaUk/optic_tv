@@ -1,6 +1,7 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../widgets/tv/tv_focusable.dart';
 
 import '../../core/theme.dart';
 import '../../l10n/app_strings.dart';
@@ -220,7 +221,11 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                   child: Column(
                     children: [
                       for (final preset in AppGradientPreset.values)
-                        RadioListTile<AppGradientPreset>(
+                        TVFocusable(
+                          showFocusBorder: true,
+                          focusScale: 1.02,
+                          borderRadius: BorderRadius.circular(16),
+                          child: RadioListTile<AppGradientPreset>(
                           value: preset,
                           groupValue: _data.gradientPreset,
                           activeColor: AppTheme.accentColor(_data.gradientPreset),
@@ -229,6 +234,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                           onChanged: (v) {
                             if (v != null) _apply(_data.copyWith(gradientPreset: v));
                           },
+                        ),
                         ),
                     ],
                   ),
@@ -245,19 +251,29 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 _glassCard(
                   child: Column(
                     children: [
-                      RadioListTile<String>(
+                      TVFocusable(
+                        showFocusBorder: true,
+                        focusScale: 1.02,
+                        borderRadius: BorderRadius.circular(16),
+                        child: RadioListTile<String>(
                         value: 'ckb',
                         groupValue: uiLocale.languageCode,
                         activeColor: AppTheme.accentColor(_data.gradientPreset),
                         title: Text(s.langKurdishSorani),
                         onChanged: (_) => ref.read(appLocaleProvider.notifier).setLocale(const Locale('ckb')),
                       ),
-                      RadioListTile<String>(
+                      ),
+                      TVFocusable(
+                        showFocusBorder: true,
+                        focusScale: 1.02,
+                        borderRadius: BorderRadius.circular(16),
+                        child: RadioListTile<String>(
                         value: 'en',
                         groupValue: uiLocale.languageCode,
                         activeColor: AppTheme.accentColor(_data.gradientPreset),
                         title: Text(s.langEnglish),
                         onChanged: (_) => ref.read(appLocaleProvider.notifier).setLocale(const Locale('en')),
+                      ),
                       ),
                     ],
                   ),
@@ -329,7 +345,11 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                   child: Column(
                     children: [
                       for (final fit in _fitChoices)
-                        RadioListTile<BoxFit>(
+                        TVFocusable(
+                          showFocusBorder: true,
+                          focusScale: 1.02,
+                          borderRadius: BorderRadius.circular(16),
+                          child: RadioListTile<BoxFit>(
                           value: fit,
                           groupValue: _data.videoFit,
                           activeColor: AppTheme.accentColor(_data.gradientPreset),
@@ -337,6 +357,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                           onChanged: (v) {
                             if (v != null) _apply(_data.copyWith(videoFit: v));
                           },
+                        ),
                         ),
                     ],
                   ),
@@ -406,7 +427,11 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 _glassCard(
                   child: Column(
                     children: [
-                      ListTile(
+                      TVFocusable(
+                        showFocusBorder: true,
+                        focusScale: 1.02,
+                        borderRadius: BorderRadius.circular(16),
+                        child: ListTile(
                         leading: const Icon(Icons.speed_rounded, color: AppTheme.accentTeal),
                         title: const Text('Internet Speed Test'),
                         subtitle: Text(
@@ -428,6 +453,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                                 onPressed: _runSpeedTest,
                                 child: Text('RUN TEST', style: TextStyle(color: AppTheme.accentColor(_data.gradientPreset), fontWeight: FontWeight.bold)),
                               ),
+                      ),
                       ),
                       if (_testingSpeed)
                         Padding(

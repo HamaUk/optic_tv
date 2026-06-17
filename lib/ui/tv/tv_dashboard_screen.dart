@@ -21,15 +21,16 @@ import '../settings/settings_screen.dart';
 
 class TvDashboardScreen extends ConsumerStatefulWidget {
   final List<Channel> allChannels;
+  final List<ChannelGroup> managedGroups;
   
-  const TvDashboardScreen({super.key, required this.allChannels});
+  const TvDashboardScreen({super.key, required this.allChannels, required this.managedGroups});
 
   @override
   ConsumerState<TvDashboardScreen> createState() => _TvDashboardScreenState();
 }
 
 class _TvDashboardScreenState extends ConsumerState<TvDashboardScreen> {
-  int _navIndex = 0; // 0=Home, 1=Live TV, 2=Movies, 3=Sports, 4=Favorites, 5=Settings
+  int _navIndex = 0; // 0=Live TV, 1=Movies, 2=Sports, 3=Favorites, 4=Settings
   Channel? _focusedChannel;
   bool _sidebarHasFocus = true;
 
@@ -78,14 +79,11 @@ class _TvDashboardScreenState extends ConsumerState<TvDashboardScreen> {
   List<Channel> _getTabChannels() {
     final favorites = ref.watch(favoritesProvider);
     switch (_navIndex) {
-      case 1: return widget.allChannels.where((c) => !_isMovieChannel(c) && !_isSportChannel(c)).toList(); // Live TV
-      case 2: return widget.allChannels.where(_isMovieChannel).toList(); // Movies
-      case 3: return widget.allChannels.where(_isSportChannel).toList(); // Sports
-      case 4: return favorites; // Favorites
-      case 0: // Home (Featured/Trending)
-      default:
-        // Show a mix of Live TV and Sports
-        return widget.allChannels.where((c) => !_isMovieChannel(c)).toList();
+      case 0: return widget.allChannels.where((c) => !_isMovieChannel(c) && !_isSportChannel(c)).toList(); // Live TV
+      case 1: return widget.allChannels.where(_isMovieChannel).toList(); // Movies
+      case 2: return widget.allChannels.where(_isSportChannel).toList(); // Sports
+      case 3: return favorites; // Favorites
+      default: return widget.allChannels.where((c) => !_isMovieChannel(c)).toList();
     }
   }
 
@@ -93,7 +91,7 @@ class _TvDashboardScreenState extends ConsumerState<TvDashboardScreen> {
     final isSelected = _navIndex == index;
     return TVFocusable(
       onSelect: () {
-        if (index == 5) {
+        if (index == 4) {
           Navigator.push(context, MaterialPageRoute(builder: (_) => const SettingsScreen()));
         } else {
           setState(() => _navIndex = index);
@@ -161,20 +159,19 @@ class _TvDashboardScreenState extends ConsumerState<TvDashboardScreen> {
             ),
           ),
           const SizedBox(height: 50),
-          _buildSidebarItem(Icons.home_rounded, 'Home', 0, s),
-          _buildSidebarItem(Icons.live_tv_rounded, 'Live TV', 1, s),
-          _buildSidebarItem(Icons.movie_creation_rounded, 'Movies', 2, s),
-          _buildSidebarItem(Icons.sports_soccer_rounded, 'Sports', 3, s),
-          _buildSidebarItem(Icons.star_rounded, 'Favorites', 4, s),
+          _buildSidebarItem(Icons.live_tv_rounded, 'Live TV', 0, s),
+          _buildSidebarItem(Icons.movie_creation_rounded, 'Movies', 1, s),
+          _buildSidebarItem(Icons.sports_soccer_rounded, 'Sports', 2, s),
+          _buildSidebarItem(Icons.star_rounded, 'Favorites', 3, s),
           const Spacer(),
-          _buildSidebarItem(Icons.settings_rounded, 'Settings', 5, s),
+          _buildSidebarItem(Icons.settings_rounded, 'Settings', 4, s),
           const SizedBox(height: 20),
         ],
       ),
     );
   }
 
-  Widget _buildChannelCard(Channel channel, bool isMovie, AppStrings s) {
+  Widget _buildChannelCard(Channel channel, bool isMovie, AppStrings s, double cardWidth) {
     return TVFocusable(
       onSelect: () => _openPlayer(channel),
       onFocus: () {
@@ -184,18 +181,19 @@ class _TvDashboardScreenState extends ConsumerState<TvDashboardScreen> {
         });
       },
       showFocusBorder: false,
-      focusScale: 1.0,
+      focusScale: 1.05, // Slightly larger pop on focus
       child: const SizedBox(),
       builder: (context, isFocused, child) {
         return AnimatedContainer(
           duration: const Duration(milliseconds: 250),
-          margin: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
-          width: isMovie ? 160 : 200,
-          transform: isFocused ? (Matrix4.identity()..scale(1.1)) : Matrix4.identity(),
+          margin: const EdgeInsets.only(right: 16),
+          width: cardWidth,
+          transform: isFocused ? (Matrix4.identity()..scale(1.05)) : Matrix4.identity(),
+          transformAlignment: Alignment.center,
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(16),
             color: Colors.white.withOpacity(0.05),
-            border: Border.all(color: isFocused ? _accent : Colors.white10, width: isFocused ? 3 : 1),
+            border: Border.all(color: isFocused ? _accent : Colors.white10, width: isFocused ? 4 : 1),
             boxShadow: isFocused ? [BoxShadow(color: _accent.withOpacity(0.5), blurRadius: 20)] : [],
           ),
           child: Column(
@@ -203,29 +201,29 @@ class _TvDashboardScreenState extends ConsumerState<TvDashboardScreen> {
             children: [
               Expanded(
                 child: ClipRRect(
-                  borderRadius: const BorderRadius.vertical(top: Radius.circular(14)),
-                  child: Stack(
-                    fit: StackFit.expand,
-                    children: [
-                      CachedNetworkImage(
-                        imageUrl: channel.logo ?? '',
-                        fit: isMovie ? BoxFit.cover : BoxFit.contain,
-                        errorWidget: (_, __, ___) => const Center(child: Icon(Icons.tv_off_rounded, color: Colors.white24)),
-                      ),
-                    ],
+                  borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
+                  child: Container(
+                    color: Colors.black45,
+                    padding: isMovie ? EdgeInsets.zero : const EdgeInsets.all(16), // No padding for movies so poster fits entirely, reasonable padding for logos
+                    child: CachedNetworkImage(
+                      imageUrl: channel.logo ?? '',
+                      fit: isMovie ? BoxFit.cover : BoxFit.contain,
+                      errorWidget: (_, __, ___) => const Center(child: Icon(Icons.tv_off_rounded, color: Colors.white24, size: 48)),
+                    ),
                   ),
                 ),
               ),
               Container(
-                padding: const EdgeInsets.all(12),
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
                 decoration: const BoxDecoration(
                   color: Colors.black87,
-                  borderRadius: BorderRadius.vertical(bottom: Radius.circular(14)),
+                  borderRadius: BorderRadius.vertical(bottom: Radius.circular(12)),
                 ),
                 child: Text(
                   channel.name,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
+                  textAlign: TextAlign.center,
                   style: AppTheme.withRabarIfKurdish(
                     s.locale,
                     TextStyle(color: isFocused ? _accent : Colors.white, fontWeight: FontWeight.bold, fontSize: 14),
@@ -246,7 +244,20 @@ class _TvDashboardScreenState extends ConsumerState<TvDashboardScreen> {
     }
 
     final groups = _groupChannels(channels);
-    final sortedGroups = groups.keys.toList()..sort();
+    
+    // Sort groups identically to the mobile dashboard
+    final sortedGroups = groups.keys.toList()..sort((a, b) {
+      final ga = widget.managedGroups.firstWhere((g) => g.name == a, orElse: () => ChannelGroup(key: '', name: a, order: 999999));
+      final gb = widget.managedGroups.firstWhere((g) => g.name == b, orElse: () => ChannelGroup(key: '', name: b, order: 999999));
+      if (ga.order != gb.order) return ga.order.compareTo(gb.order);
+      return a.toLowerCase().compareTo(b.toLowerCase());
+    });
+
+    // We want exactly 5 items per row visible at a time.
+    // Screen width - sidebar (either 260 or 80) - padding (20 left + some right)
+    final availableWidth = MediaQuery.sizeOf(context).width - (_sidebarHasFocus ? 260 : 80) - 20;
+    // We divide by 5.2 to allow 5 full items + a tiny peek of the 6th item to hint at scrolling
+    final cardWidth = availableWidth / 5.2;
 
     return ListView.builder(
       padding: const EdgeInsets.only(top: 250, bottom: 50, left: 20),
@@ -260,22 +271,22 @@ class _TvDashboardScreenState extends ConsumerState<TvDashboardScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Padding(
-              padding: const EdgeInsets.only(left: 10, bottom: 10),
+              padding: const EdgeInsets.only(bottom: 16),
               child: Text(
                 groupName.toUpperCase(),
                 style: AppTheme.withRabarIfKurdish(
                   s.locale,
-                  const TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.w900, letterSpacing: 1.5),
+                  const TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.w900, letterSpacing: 1.5),
                 ),
               ),
             ),
             SizedBox(
-              height: isMovieRow ? 260 : 180,
+              height: isMovieRow ? cardWidth * 1.5 : cardWidth * 0.9,
               child: ListView.builder(
                 scrollDirection: Axis.horizontal,
-                padding: const EdgeInsets.only(bottom: 20),
+                padding: const EdgeInsets.only(bottom: 24),
                 itemCount: groupChannels.length,
-                itemBuilder: (context, idx) => _buildChannelCard(groupChannels[idx], isMovieRow, s),
+                itemBuilder: (context, idx) => _buildChannelCard(groupChannels[idx], isMovieRow, s, cardWidth),
               ),
             ),
             const SizedBox(height: 20),
