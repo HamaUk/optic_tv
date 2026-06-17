@@ -71,6 +71,7 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
   bool _isPlaying = true; 
   BoxFit _viewFit = BoxFit.contain;
   final FocusNode _playerFocus = FocusNode();
+  final FocusNode _playPauseFocusNode = FocusNode();
   bool _isFullscreen = false;
   bool _fullscreenOverlayVisible = false;
   Timer? _fullscreenOverlayTimer;
@@ -297,6 +298,7 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
     _techInfoSubscription?.cancel();
     _mediaInfoTimer?.cancel();
     _hideTimer?.cancel();
+    _playPauseFocusNode.dispose();
     _playerFocus.dispose();
     _player?.stop();
     _player?.dispose();
@@ -674,6 +676,7 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
                         }),
                         const SizedBox(width: 24),
                         TVFocusable(
+                          focusNode: _playPauseFocusNode,
                           showFocusBorder: false,
                           focusScale: 1.1,
                           onSelect: () {
@@ -715,11 +718,23 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
                     height: 120,
                     width: double.infinity,
                     padding: const EdgeInsets.symmetric(vertical: 8),
-                    child: ListView.builder(
-                      scrollDirection: Axis.horizontal,
-                      padding: const EdgeInsets.symmetric(horizontal: 48),
-                      itemCount: widget.channels.length,
-                      itemBuilder: (context, idx) => _buildTvChannelCarouselItem(idx, _accent),
+                    child: Focus(
+                      onKeyEvent: (node, event) {
+                        if (event is KeyDownEvent || event is KeyRepeatEvent) {
+                          if (event.logicalKey == LogicalKeyboardKey.arrowUp) {
+                            _playPauseFocusNode.requestFocus();
+                            _resetTvHideTimer();
+                            return KeyEventResult.handled;
+                          }
+                        }
+                        return KeyEventResult.ignored;
+                      },
+                      child: ListView.builder(
+                        scrollDirection: Axis.horizontal,
+                        padding: const EdgeInsets.symmetric(horizontal: 48),
+                        itemCount: widget.channels.length,
+                        itemBuilder: (context, idx) => _buildTvChannelCarouselItem(idx, _accent),
+                      ),
                     ),
                   ),
                   const SizedBox(height: 16),
