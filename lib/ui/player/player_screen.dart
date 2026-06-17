@@ -834,18 +834,19 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
       final key = event.logicalKey;
 
       if (_activePanel.value == _TvPanelType.none) {
-        if (key == LogicalKeyboardKey.arrowUp || key == LogicalKeyboardKey.select || key == LogicalKeyboardKey.enter) {
+        if (key == LogicalKeyboardKey.select || key == LogicalKeyboardKey.enter || key == LogicalKeyboardKey.space) {
           setState(() {
             _reversePanelTransition = false;
             _activePanel.value = _TvPanelType.progressbar;
           });
           return KeyEventResult.handled;
         }
+        if (key == LogicalKeyboardKey.arrowUp) {
+          _handlePrevious();
+          return KeyEventResult.handled;
+        }
         if (key == LogicalKeyboardKey.arrowDown) {
-          setState(() {
-            _reversePanelTransition = false;
-            _activePanel.value = _TvPanelType.playlist;
-          });
+          _handleNext();
           return KeyEventResult.handled;
         }
         if (key == LogicalKeyboardKey.arrowLeft) {
