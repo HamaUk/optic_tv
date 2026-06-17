@@ -37,6 +37,35 @@
     },
     {
       "client_info": {
+        "mobilesdk_app_id": "1:476890397528:android:df5b60c3d70fe6238f432d",
+        "android_client_info": {
+          "package_name": "com.kobani4k.tv"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "476890397528-34m44rn8l4cdjm7jb14v9brk4egufkl5.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCvNllsitniHSvzTIKiH74EqgCrHqB5xJI"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "476890397528-34m44rn8l4cdjm7jb14v9brk4egufkl5.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    },
+    {
+      "client_info": {
         "mobilesdk_app_id": "1:476890397528:android:b848d70d15c2e7b28f432d",
         "android_client_info": {
           "package_name": "com.optic.iptv"

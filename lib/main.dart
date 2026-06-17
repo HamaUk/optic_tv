@@ -14,11 +14,7 @@ import 'services/notification_service.dart';
 import 'services/settings_service.dart';
 import 'ui/auth/login_screen.dart';
 import 'ui/dashboard/dashboard_screen.dart';
-import 'ui/tv/tv_login_screen.dart';
-import 'ui/tv/tv_dashboard_screen.dart';
-import 'ui/tv/tv_mode_selector_screen.dart';
 import 'services/platform_service.dart';
-import 'ui/tv/elite_tv_dashboard.dart';
 
 void main() async {
   HttpOverrides.global = GlobalSecurityHttpOverrides();
@@ -155,14 +151,10 @@ class _OpticTvAppState extends ConsumerState<OpticTvApp> with WidgetsBindingObse
                 return _buildSecurityWarning(maliciousApps);
               }
               
-              return deviceType == DeviceType.tv 
-                ? (session.loggedIn ? const EliteTvDashboard() : const TvLoginScreen())
-                : (session.loggedIn ? const DashboardScreen() : const LoginScreen());
+              return session.loggedIn ? const DashboardScreen() : const LoginScreen();
             },
             loading: () => const Scaffold(backgroundColor: Colors.black, body: Center(child: CircularProgressIndicator())),
-            error: (_, __) => deviceType == DeviceType.tv 
-                ? (session.loggedIn ? const EliteTvDashboard() : const TvLoginScreen())
-                : (session.loggedIn ? const DashboardScreen() : const LoginScreen()),
+            error: (_, __) => session.loggedIn ? const DashboardScreen() : const LoginScreen(),
           );
         },
       ),

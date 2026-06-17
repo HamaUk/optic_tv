@@ -1,4 +1,4 @@
-package com.optic.iptv
+package com.kobani4k.app
 
 import android.app.UiModeManager
 import android.content.pm.PackageManager

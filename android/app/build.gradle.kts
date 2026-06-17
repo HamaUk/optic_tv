@@ -17,7 +17,7 @@ if (keystorePropertiesFile.exists()) {
 }
 
 android {
-    namespace = "com.optic.iptv"
+    namespace = "com.kobani4k.app"
     compileSdk = flutter.compileSdkVersion
     ndkVersion = flutter.ndkVersion
 
@@ -32,7 +32,7 @@ android {
     }
 
     defaultConfig {
-        applicationId = "com.optic.iptv"
+        applicationId = "com.kobani4k.app"
         minSdk = 21
         targetSdk = flutter.targetSdkVersion // Fixed reference
         versionCode = flutter.versionCode
