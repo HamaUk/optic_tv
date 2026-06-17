@@ -656,11 +656,6 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        _buildTvFocusIcon(Icons.fast_rewind_rounded, () {
-                          _handlePrevious();
-                          _resetTvHideTimer();
-                        }),
-                        const SizedBox(width: 24),
                         _buildTvFocusIcon(
                           _muted ? Icons.volume_off_rounded : Icons.volume_up_rounded, 
                           () {
@@ -700,11 +695,6 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
                         ),
                         const SizedBox(width: 24),
                         _buildTvFocusIcon(Icons.aspect_ratio_rounded, () {
-                          _resetTvHideTimer();
-                        }),
-                        const SizedBox(width: 24),
-                        _buildTvFocusIcon(Icons.fast_forward_rounded, () {
-                          _handleNext();
                           _resetTvHideTimer();
                         }),
                       ],
