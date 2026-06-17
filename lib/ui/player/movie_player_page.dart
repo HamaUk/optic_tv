@@ -170,7 +170,7 @@ class _MoviePlayerPageState extends ConsumerState<MoviePlayerPage> {
             fit: StackFit.expand,
             children: [
               // 1. Video Layer — Native ExoPlayer via PlatformView
-              const NativePlayerView(),
+              NativePlayerView(player: widget.player),
 
               // 2. Ambient Clock
               if (_overlayVisible)

@@ -517,7 +517,7 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
           GestureDetector(
             onTap: _playPause,
             child: _player != null
-                ? const NativePlayerView()
+                ? NativePlayerView(player: _player!)
                 : const Center(child: CircularProgressIndicator(color: Colors.white24)),
           ),
           // Quality and Fullscreen (Bottom Right)

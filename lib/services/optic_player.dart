@@ -4,20 +4,23 @@ import 'package:flutter/services.dart';
 
 /// Native ExoPlayer engine connected via MethodChannel.
 ///
-/// Replaces the Flutter `video_player` plugin with a direct Kotlin bridge
-/// to Media3 ExoPlayer — identical architecture to Ghosten Player.
+/// Uses Texture-based rendering: the native ExoPlayer renders frames into a
+/// SurfaceTexture registered with Flutter's TextureRegistry. Flutter displays
+/// them via `Texture(textureId: textureId)` — works on any page, any widget,
+/// inline or fullscreen, without re-parenting issues.
 ///
-/// Performance advantages over video_player plugin:
+/// All Ghosten-level optimizations are active:
 /// - forceEnableMediaCodecAsynchronousQueueing() → async hardware decode
-/// - SurfaceView rendering → zero-copy frame pipeline
 /// - Custom HttpDataSource → cross-protocol redirects, custom User-Agent
 /// - HLS + RTSP + RTMP → all IPTV protocols natively supported
 /// - SeekParameters tuned for live TV fast seeking
-///
-/// Public API is identical to the previous OpticPlayer so all UI files
-/// (player_screen, fullscreen_player_page, movie_player_page) need zero changes.
 class OpticPlayer {
   static const _channel = MethodChannel('com.kobani4k/native_player');
+
+  // ─── Texture ID for rendering ─────────────────────────────────────────
+  /// The Flutter texture ID. Use `Texture(textureId: player.textureId)` to display.
+  int textureId = -1;
+  final ValueNotifier<int> textureIdNotifier = ValueNotifier(-1);
 
   // ─── ValueNotifiers (for ValueListenableBuilder in UI) ────────────────
   final ValueNotifier<bool> playing = ValueNotifier(false);
@@ -30,7 +33,6 @@ class OpticPlayer {
   final _bufferingCtrl = StreamController<bool>.broadcast();
   final _errorCtrl = StreamController<String?>.broadcast();
   final _volumeCtrl = StreamController<double>.broadcast();
-  final _videoSizeCtrl = StreamController<Map<String, int>>.broadcast();
 
   Duration _position = Duration.zero;
   Duration _duration = Duration.zero;
@@ -39,15 +41,16 @@ class OpticPlayer {
   double _volume = 1.0;
   double _speed = 1.0;
   bool _disposed = false;
+  bool _initialized = false;
 
-  /// Convenience getters for synchronous access (matches old API)
+  /// Convenience getters for synchronous access
   Duration get currentPosition => _position;
   Duration get totalDuration => _duration;
   bool get isPlaying => _isPlaying;
   bool get isBuffering => _isBuffering;
+  bool get isInitialized => _initialized;
 
-  /// Stream-based access (mirrors the old media_kit Player.stream API so
-  /// callers don't need to be rewritten).
+  /// Stream-based access (mirrors the old Player.stream API)
   late final _OpticPlayerStreams stream = _OpticPlayerStreams(
     position: _positionCtrl.stream,
     duration: _durationCtrl.stream,
@@ -57,20 +60,35 @@ class OpticPlayer {
     volume: _volumeCtrl.stream,
   );
 
-  /// No VideoPlayerController anymore — the native view is embedded via AndroidView.
-  /// This getter returns null since we use PlatformView now.
+  /// No VideoPlayerController — rendering is via Texture(textureId).
   dynamic get controller => null;
 
   OpticPlayer() {
-    // Listen for events FROM native Kotlin → Dart
     _channel.setMethodCallHandler(_handleNativeEvent);
+    _init();
+  }
+
+  Future<void> _init() async {
+    try {
+      final id = await _channel.invokeMethod<int>('init');
+      if (id != null && id >= 0) {
+        textureId = id;
+        textureIdNotifier.value = id;
+        _initialized = true;
+      }
+    } catch (e) {
+      debugPrint('OpticPlayer init error: $e');
+    }
   }
 
   // ─── Commands (Dart → Kotlin) ─────────────────────────────────────────
 
-  /// Open a media URL. The native ExoPlayer prepares and auto-plays.
   Future<void> open(String url, {Map<String, String>? headers}) async {
     if (_disposed) return;
+    // Ensure init is complete before opening
+    if (!_initialized) {
+      await _init();
+    }
     buffering.value = true;
     _isBuffering = true;
     _bufferingCtrl.add(true);
@@ -134,9 +152,9 @@ class OpticPlayer {
     _bufferingCtrl.close();
     _errorCtrl.close();
     _volumeCtrl.close();
-    _videoSizeCtrl.close();
     playing.dispose();
     buffering.dispose();
+    textureIdNotifier.dispose();
   }
 
   // ─── Native Event Handler (Kotlin → Dart) ─────────────────────────────
@@ -175,11 +193,9 @@ class OpticPlayer {
         break;
 
       case 'onVideoSizeChanged':
-        // Map with 'width' and 'height'
         break;
 
       case 'onBufferPositionChanged':
-        // Buffer position — currently not used by UI
         break;
 
       case 'onCompleted':
@@ -191,8 +207,7 @@ class OpticPlayer {
   }
 }
 
-/// Stream bundle — mirrors the old `Player.stream` API from media_kit
-/// so existing StreamBuilder / listener code in the UI doesn't need changes.
+/// Stream bundle — mirrors the old `Player.stream` API
 class _OpticPlayerStreams {
   final Stream<Duration> position;
   final Stream<Duration> duration;

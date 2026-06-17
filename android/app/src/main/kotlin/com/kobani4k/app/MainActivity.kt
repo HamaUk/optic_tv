@@ -8,13 +8,11 @@ import io.flutter.embedding.android.FlutterActivity
 import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.MethodChannel
 import com.kobani4k.player.NativeExoPlayer
-import com.kobani4k.player.NativeExoPlayerViewFactory
 
 @UnstableApi
 class MainActivity: FlutterActivity() {
     private val CHANNEL = "com.optic.iptv/device"
     private val PLAYER_CHANNEL = "com.kobani4k/native_player"
-    private val PLAYER_VIEW_TYPE = "com.kobani4k/native_player_view"
 
     private var nativeExoPlayer: NativeExoPlayer? = null
 
@@ -64,12 +62,12 @@ class MainActivity: FlutterActivity() {
             }
         }
 
-        // Native ExoPlayer channel
+        // Native ExoPlayer channel — Texture-based rendering
         val playerChannel = MethodChannel(flutterEngine.dartExecutor.binaryMessenger, PLAYER_CHANNEL)
         val player = NativeExoPlayer(
             context = this,
             methodChannel = playerChannel,
-            eventSink = null,
+            textureRegistry = flutterEngine.renderer,
         )
         nativeExoPlayer = player
 
@@ -77,10 +75,6 @@ class MainActivity: FlutterActivity() {
         playerChannel.setMethodCallHandler { call, result ->
             player.handleMethodCall(call, result)
         }
-
-        // Register the PlatformView factory so Flutter can embed the native PlayerView
-        flutterEngine.platformViewsController.registry
-            .registerViewFactory(PLAYER_VIEW_TYPE, NativeExoPlayerViewFactory(player))
     }
 
     override fun onDestroy() {

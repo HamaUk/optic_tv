@@ -302,7 +302,10 @@ class _FullscreenPlayerPageState extends ConsumerState<FullscreenPlayerPage> {
             children: [
               // THE VIDEO LAYER
               const Center(
-                child: NativePlayerView(),
+                child: SizedBox.expand(),
+              ),
+              Center(
+                child: NativePlayerView(player: widget.player),
               ),
               
               // THE HUD LAYER

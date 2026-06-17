@@ -1,10 +1,10 @@
 package com.kobani4k.player
 
 import android.content.Context
+import android.graphics.SurfaceTexture
 import android.os.Handler
 import android.os.Looper
-import android.view.LayoutInflater
-import android.view.View
+import android.view.Surface
 import androidx.media3.common.C
 import androidx.media3.common.MediaItem
 import androidx.media3.common.PlaybackException
@@ -17,32 +17,39 @@ import androidx.media3.exoplayer.DefaultRenderersFactory
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.exoplayer.SeekParameters
 import androidx.media3.exoplayer.source.DefaultMediaSourceFactory
-import com.kobani4k.app.R
-import io.flutter.plugin.common.EventChannel
 import io.flutter.plugin.common.MethodCall
 import io.flutter.plugin.common.MethodChannel
+import io.flutter.view.TextureRegistry
 
 /**
  * Native Kotlin ExoPlayer engine — Ghosten-level IPTV optimizations.
+ *
+ * Uses Texture-based rendering: ExoPlayer renders frames into a SurfaceTexture
+ * provided by Flutter's TextureRegistry. Flutter displays it anywhere via
+ * Texture(textureId). This allows the same video to appear on ANY page
+ * (inline, fullscreen, PiP) without re-parenting issues.
  *
  * Key performance features (identical to Ghosten Player):
  * 1. forceEnableMediaCodecAsynchronousQueueing() — async HW decoder pipeline
  * 2. DefaultMediaSourceFactory + DefaultHttpDataSource — custom UA, cross-protocol redirects
  * 3. SeekParameters(3_000_000) — fast seeks on live streams
- * 4. SurfaceView rendering — zero-copy frame pipeline (via layout XML)
- * 5. HLS + RTSP + RTMP — all IPTV protocols natively supported
+ * 4. HLS + RTSP + RTMP — all IPTV protocols natively supported
  */
 @UnstableApi
 class NativeExoPlayer(
     private val context: Context,
     private val methodChannel: MethodChannel,
-    private val eventSink: EventChannel.EventSink?,
+    private val textureRegistry: TextureRegistry,
 ) : Player.Listener {
 
     private val handler = Handler(Looper.getMainLooper())
     private var player: ExoPlayer
-    private var playerView: androidx.media3.ui.PlayerView? = null
-    private var nativeView: View? = null
+    private var textureEntry: TextureRegistry.SurfaceTextureEntry? = null
+    private var surface: Surface? = null
+
+    /** The Flutter texture ID — Dart reads this to create Texture(textureId) */
+    var textureId: Long = -1
+        private set
 
     // Ghosten-identical HTTP factory: cross-protocol redirects + custom User-Agent
     private val httpDataSourceFactory = DefaultHttpDataSource.Factory()
@@ -52,6 +59,7 @@ class NativeExoPlayer(
 
     init {
         player = buildPlayer()
+        setupTexture()
         startPositionPolling()
     }
 
@@ -87,26 +95,27 @@ class NativeExoPlayer(
     }
 
     /**
-     * Inflates the native PlayerView and attaches ExoPlayer.
-     * Called by the PlatformViewFactory.
+     * Creates a Flutter SurfaceTexture and connects ExoPlayer's video output to it.
+     * Flutter can then display this texture anywhere via Texture(textureId: id).
      */
-    fun createView(context: Context): View {
-        val view = LayoutInflater.from(context).inflate(R.layout.native_player_view, null)
-        playerView = view.findViewById(R.id.native_player_view)
-        playerView?.player = player
-        nativeView = view
-        return view
-    }
+    private fun setupTexture() {
+        val entry = textureRegistry.createSurfaceTexture()
+        textureEntry = entry
+        textureId = entry.id()
 
-    /**
-     * Returns the already-created native view (for PlatformView reuse).
-     */
-    fun getView(): View? = nativeView
+        val surfaceTexture: SurfaceTexture = entry.surfaceTexture()
+        surface = Surface(surfaceTexture)
+        player.setVideoSurface(surface)
+    }
 
     // ─── MethodChannel Command Handler ───────────────────────────────────
 
     fun handleMethodCall(call: MethodCall, result: MethodChannel.Result) {
         when (call.method) {
+            "init" -> {
+                // Return the texture ID so Flutter can display it
+                result.success(textureId)
+            }
             "open" -> {
                 val url = call.argument<String>("url") ?: run {
                     result.error("MISSING_URL", "url is required", null)
@@ -207,8 +216,12 @@ class NativeExoPlayer(
     fun dispose() {
         handler.removeCallbacksAndMessages(null)
         player.removeListener(this)
+        player.setVideoSurface(null)
         player.release()
-        playerView?.player = null
+        surface?.release()
+        surface = null
+        textureEntry?.release()
+        textureEntry = null
     }
 
     // ─── Player.Listener callbacks → Flutter Events ──────────────────────

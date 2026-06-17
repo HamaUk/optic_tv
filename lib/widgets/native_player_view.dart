@@ -1,35 +1,32 @@
-import 'dart:io' show Platform;
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
+import '../services/optic_player.dart';
 
-/// Embeds the native ExoPlayer PlayerView via AndroidView.
+/// Displays the native ExoPlayer video frames via Flutter's Texture widget.
+///
+/// The native ExoPlayer renders into a SurfaceTexture registered with Flutter's
+/// TextureRegistry. This widget displays that texture via `Texture(textureId)`.
 /// 
-/// This widget renders zero-copy SurfaceView frames from the Kotlin ExoPlayer
-/// engine — no TextureView intermediate copies. The native view is identified
-/// by the same viewType registered in MainActivity:
-///   "com.kobani4k/native_player_view"
+/// Because it's texture-based (not PlatformView), the same video frames
+/// are displayed correctly on ANY page — inline player, fullscreen, PiP.
 class NativePlayerView extends StatelessWidget {
-  const NativePlayerView({super.key});
+  final OpticPlayer player;
+  
+  const NativePlayerView({super.key, required this.player});
 
   @override
   Widget build(BuildContext context) {
-    if (!Platform.isAndroid) {
-      return const ColoredBox(
-        color: Colors.black,
-        child: Center(
-          child: Text(
-            'Native player only available on Android',
-            style: TextStyle(color: Colors.white54),
-          ),
-        ),
-      );
-    }
-
-    return AndroidView(
-      viewType: 'com.kobani4k/native_player_view',
-      creationParamsCodec: const StandardMessageCodec(),
-      onPlatformViewCreated: (_) {
-        // View is ready — ExoPlayer is already attached by the factory
+    return ValueListenableBuilder<int>(
+      valueListenable: player.textureIdNotifier,
+      builder: (context, id, _) {
+        if (id < 0) {
+          return const ColoredBox(
+            color: Colors.black,
+            child: Center(
+              child: CircularProgressIndicator(color: Colors.white24, strokeWidth: 2),
+            ),
+          );
+        }
+        return Texture(textureId: id);
       },
     );
   }
