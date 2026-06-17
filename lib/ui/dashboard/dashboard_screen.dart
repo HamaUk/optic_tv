@@ -594,7 +594,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
                     : _buildScrollableContent(
                         context,
                         s,
-                        channels,
+                        filteredForNav,
                         filtered,
                         groups,
                         settings,
