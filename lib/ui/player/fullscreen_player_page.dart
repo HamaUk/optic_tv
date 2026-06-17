@@ -409,8 +409,38 @@ class _FullscreenPlayerPageState extends ConsumerState<FullscreenPlayerPage> {
                             overflow: TextOverflow.ellipsis,
                           ),
                         ),
-                      ],
                     ),
+                  ),
+                  const SizedBox(width: 8),
+                  // Live Viewers Badge
+                  Consumer(
+                    builder: (context, ref, child) {
+                      final count = ref.watch(channelViewersProvider(_currentChannel.url)).value ?? 0;
+                      return Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                        decoration: BoxDecoration(
+                          color: Colors.redAccent.withOpacity(0.15),
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: Colors.redAccent.withOpacity(0.5), width: 1.5),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const Icon(Icons.remove_red_eye_rounded, color: Colors.redAccent, size: 14),
+                            const SizedBox(width: 4),
+                            Text(
+                              NumberFormat.compact().format(count),
+                              style: const TextStyle(
+                                color: Colors.redAccent,
+                                fontSize: 13,
+                                fontWeight: FontWeight.bold,
+                                letterSpacing: 1.1,
+                              ),
+                            ),
+                          ],
+                        ),
+                      );
+                    },
                   ),
                 ],
               ),
@@ -733,6 +763,37 @@ class _FullscreenPlayerPageState extends ConsumerState<FullscreenPlayerPage> {
                   Text(_currentChannel.group.toUpperCase(), style: TextStyle(color: accent, letterSpacing: 2, fontSize: 12)),
                   Text(_currentChannel.name, style: const TextStyle(color: Colors.white, fontSize: 32, fontWeight: FontWeight.bold)),
                 ],
+              ),
+              const Spacer(),
+              // Live Viewers Badge (TV)
+              Consumer(
+                builder: (context, ref, child) {
+                  final count = ref.watch(channelViewersProvider(_currentChannel.url)).value ?? 0;
+                  return Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                    decoration: BoxDecoration(
+                      color: Colors.redAccent.withOpacity(0.15),
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(color: Colors.redAccent.withOpacity(0.5), width: 2),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Icon(Icons.remove_red_eye_rounded, color: Colors.redAccent, size: 22),
+                        const SizedBox(width: 8),
+                        Text(
+                          NumberFormat.compact().format(count),
+                          style: const TextStyle(
+                            color: Colors.redAccent,
+                            fontSize: 20,
+                            fontWeight: FontWeight.bold,
+                            letterSpacing: 1.2,
+                          ),
+                        ),
+                      ],
+                    ),
+                  );
+                },
               ),
             ],
           ),
