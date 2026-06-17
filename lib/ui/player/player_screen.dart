@@ -209,10 +209,11 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
       // Hardware & Performance
       set('hwdec', 'auto-safe');          // Secure hardware acceleration
       
-      // Robust HLS/IPTV streaming configuration (removed aggressive low-latency buffers that caused timeouts)
+      // Robust HLS/IPTV streaming configuration
       set('profile', 'fast');
       set('cache', 'yes');
-      set('cache-secs', '5');                     // Allow 5s cache for stability
+      set('cache-secs', '10');                    // Buffer up to 10s in the background
+      set('cache-pause', 'no');                   // DO NOT wait for the cache to fill before playing
       set('demuxer-max-bytes', '32000000');       // 32MB buffer for large HLS segments
       set('demuxer-max-back-bytes', '32000000');
       
