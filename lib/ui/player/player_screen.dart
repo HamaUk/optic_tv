@@ -208,21 +208,17 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
       
       // Hardware & Performance
       set('hwdec', 'auto-safe');          // Secure hardware acceleration
-      set('vd-lavc-threads', '0');        // CPU thread optimization
       
-      // Ultra-Fast Start: Low latency streaming profile (no delay)
-      set('profile', 'low-latency');
-      set('cache', 'no');
-      set('demuxer-max-bytes', '512000');         // 500KB buffer (down from 16MB)
-      set('demuxer-max-back-bytes', '512000');    // 500KB back-buffer
-      set('demuxer-readahead-secs', '0');         // No readahead
-      set('cache-secs', '0');                     // 0s cache
-      set('stream-buffer-size', '4096');          // 4KB stream buffer (down from 2MB)
+      // Robust HLS/IPTV streaming configuration (removed aggressive low-latency buffers that caused timeouts)
+      set('profile', 'fast');
+      set('cache', 'yes');
+      set('cache-secs', '5');                     // Allow 5s cache for stability
+      set('demuxer-max-bytes', '32000000');       // 32MB buffer for large HLS segments
+      set('demuxer-max-back-bytes', '32000000');
       
-      // Instant Start & Network
+      // Network
       set('tcp-fastopen', 'yes');                 // Faster TCP handshake
       set('user-agent', 'SmartIPTV');             // Highly compatible IPTV agent
-      set('untimed', 'yes');                      // Don't wait for timestamps — play ASAP
       
       // Removed network-timeout and ytdl-format to prevent 10-15s hang times on M3U8 URLs!
     }
