@@ -12,6 +12,8 @@ jobs:
     name: Build APK
     runs-on: ubuntu-latest
     timeout-minutes: 45
+    permissions:
+      contents: write
     env:
       # GitHub is moving Actions to Node 24; avoids Node 20 deprecation warnings on older action majors.
       FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
@@ -46,16 +48,10 @@ jobs:
       - name: Build APK
         run: flutter build apk --release --no-tree-shake-icons
 
-      - name: Upload APK to Uguu.se (Bypass GitHub Quota)
+      - name: Create GitHub Release and Upload APK
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          echo "Your APK download link:"
-          curl -s -F "files[]=@build/app/outputs/flutter-apk/app-release.apk" https://uguu.se/upload.php | jq -r '.files[0].url' || true
-          echo ""
-
-      - name: Upload APK
-        uses: actions/upload-artifact@v4
-        continue-on-error: true
-        with:
-          name: optic-tv-release-apk
-          path: build/app/outputs/flutter-apk/app-release.apk
-          retention-days: 1
+          TAG_NAME="build-$(date +'%Y%m%d%H%M%S')"
+          echo "Creating Release $TAG_NAME..."
+          gh release create "$TAG_NAME" build/app/outputs/flutter-apk/app-release.apk --title "New Build $TAG_NAME" --notes "Here is your fresh APK!"
