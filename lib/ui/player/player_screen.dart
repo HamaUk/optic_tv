@@ -156,6 +156,7 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
       _configureNativePlayer();
       _startTechInfoTicker();
       ref.read(viewerServiceProvider).joinChannel(_current.url, channelName: _current.name);
+      MonitorService.updateActivity(_current.name);
     });
   }
 
@@ -332,6 +333,7 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
     if (oldUrl != newUrl) {
       ref.read(viewerServiceProvider).leaveChannel(oldUrl);
       ref.read(viewerServiceProvider).joinChannel(newUrl, channelName: widget.channels[fullListIndex].name);
+      MonitorService.updateActivity(widget.channels[fullListIndex].name);
     }
     ref.read(recentChannelsProvider.notifier).record(_current);
     unawaited(_reopenCurrentStream());
@@ -539,13 +541,13 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
                 ? NativePlayerView(player: _player!)
                 : const Center(child: CircularProgressIndicator(color: Colors.white24)),
           ),
-          // Live Viewers (Top Right)
+          // Live Viewers (Top Left)
           if (!_isFullscreen)
             Positioned(
-              top: 8,
-              right: 8,
+              top: 16,
+              left: 16,
               child: StreamBuilder<int>(
-                stream: ref.watch(analyticsServiceProvider).getLiveChannelViewersStream(_current.name),
+                stream: ref.watch(viewerServiceProvider).getViewersStream(_current.url),
                 builder: (context, snapshot) {
                   final viewers = snapshot.data ?? 0;
                   if (viewers == 0) return const SizedBox.shrink();
@@ -679,7 +681,7 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
                                 ),
                               ),
                               StreamBuilder<int>(
-                                stream: ref.watch(analyticsServiceProvider).getLiveChannelViewersStream(_current.name),
+                                stream: ref.watch(viewerServiceProvider).getViewersStream(_current.url),
                                 builder: (context, snapshot) {
                                   final viewers = snapshot.data ?? 0;
                                   if (viewers == 0) return const SizedBox.shrink();
