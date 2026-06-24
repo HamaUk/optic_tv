@@ -807,12 +807,11 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
                 ],
               ),
             ),
-          ]
-        ),
-      ),
-    ),
-  );
-}
+          ), // Closes IgnorePointer
+        ], // Closes children
+      ), // Closes Stack
+    ); // Closes Focus
+  }
 
   Widget _buildTvFocusIcon(IconData icon, VoidCallback onSelect) {
     return TVFocusable(

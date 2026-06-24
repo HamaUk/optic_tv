@@ -2310,20 +2310,23 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
   }
 
   Widget _tvGhostenSettingsItem(IconData icon, String label, String subtitle, VoidCallback onTap) {
-    final focusNode = FocusNode();
-    return GhostenFluidFocusable(
-      focusNode: focusNode,
-      backgroundColor: Colors.transparent,
-      child: ListTile(
-        focusNode: focusNode,
-        leading: Icon(icon),
-        title: Text(label),
-        subtitle: Text(subtitle),
-        trailing: const Icon(Icons.chevron_right_rounded),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
-        visualDensity: VisualDensity.compact,
-        onTap: onTap,
-      ),
+    return DpadFocusable(
+      onClick: onTap,
+      builder: (context, isFocused) {
+        return GhostenFluidFocusable(
+          isFocused: isFocused,
+          backgroundColor: Colors.transparent,
+          child: ListTile(
+            leading: Icon(icon),
+            title: Text(label),
+            subtitle: Text(subtitle),
+            trailing: const Icon(Icons.chevron_right_rounded),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
+            visualDensity: VisualDensity.compact,
+            onTap: onTap,
+          ),
+        );
+      },
     );
   }
 
