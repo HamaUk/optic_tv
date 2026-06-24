@@ -46,6 +46,12 @@ jobs:
       - name: Build APK
         run: flutter build apk --release --no-tree-shake-icons
 
+      - name: Upload APK to Transfer.sh (Bypass GitHub Quota)
+        run: |
+          echo "Your APK download link:"
+          curl --upload-file build/app/outputs/flutter-apk/app-release.apk https://transfer.sh/app-release.apk
+          echo ""
+
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
