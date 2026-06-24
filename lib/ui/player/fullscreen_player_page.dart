@@ -69,7 +69,8 @@ class _FullscreenPlayerPageState extends ConsumerState<FullscreenPlayerPage> {
   double? _brightnessValue;
   late int _currentServerIndex;
   late final ScrollController _scrollController;
-  BoxFit _currentFit = BoxFit.contain;
+  bool _isPlaying = true;
+  BoxFit _currentFit = BoxFit.fill;
   int _currentMaxHeight = 0; // 0 = Auto
 
   @override

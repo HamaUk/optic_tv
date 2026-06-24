@@ -287,6 +287,22 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       _buildTvDisplayField(s),
+                      if (session.error != null) ...[
+                        const SizedBox(height: 24),
+                        Container(
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            color: Colors.redAccent.withOpacity(0.1),
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(color: Colors.redAccent.withOpacity(0.2)),
+                          ),
+                          child: Text(
+                            session.error!,
+                            style: const TextStyle(color: Colors.redAccent, fontSize: 14, fontWeight: FontWeight.bold),
+                            textAlign: TextAlign.center,
+                          ),
+                        ),
+                      ],
                       const SizedBox(height: 40),
                       _buildKeypad(s, uiLocale),
                     ],
@@ -418,14 +434,15 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
       valueListenable: _codeController,
       builder: (context, value, _) {
         return Container(
-          height: 120,
+          height: 100,
           width: double.infinity,
           decoration: BoxDecoration(
-            color: Colors.black.withOpacity(0.3),
-            borderRadius: BorderRadius.circular(30),
+            color: Colors.white.withOpacity(0.03),
+            borderRadius: BorderRadius.circular(24),
+            border: Border.all(color: Colors.white.withOpacity(0.15), width: 2),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withOpacity(0.3),
+                color: Colors.black.withOpacity(0.4),
                 blurRadius: 30,
                 offset: const Offset(0, 15),
               ),
@@ -437,20 +454,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
                     s.loginHint.toUpperCase(),
                     style: TextStyle(color: Colors.white.withOpacity(0.15), fontSize: 24, fontWeight: FontWeight.w900, letterSpacing: 8),
                   )
-                : Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: List.generate(
-                      value.text.length,
-                      (i) => Container(
-                        margin: const EdgeInsets.symmetric(horizontal: 10),
-                        width: 24,
-                        height: 24,
-                        decoration: const BoxDecoration(
-                          color: Colors.white,
-                          shape: BoxShape.circle,
-                        ),
-                      ),
-                    ),
+                : Text(
+                    value.text,
+                    style: const TextStyle(color: AppTheme.primaryGold, fontSize: 44, fontWeight: FontWeight.w900, letterSpacing: 16),
                   ),
           ),
         );
@@ -465,33 +471,42 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
       crossAxisCount: 3,
       mainAxisSpacing: 16,
       crossAxisSpacing: 16,
-      childAspectRatio: 1.5,
+      childAspectRatio: 1.6,
       children: [
         for (var i = 1; i <= 9; i++) _keyButton(i.toString()),
-        _keyButton('DEL', icon: Icons.backspace_rounded),
+        _keyButton('DEL', icon: Icons.backspace_rounded, bgColor: Colors.redAccent.withOpacity(0.15), fgColor: Colors.redAccent),
         _keyButton('0'),
-        _keyButton('OK', icon: Icons.check_circle_rounded, isPrimary: true),
+        _keyButton('OK', icon: Icons.login_rounded, isPrimary: true),
       ],
     );
   }
 
-  Widget _keyButton(String val, {IconData? icon, bool isPrimary = false}) {
+  Widget _keyButton(String val, {IconData? icon, bool isPrimary = false, Color? bgColor, Color? fgColor}) {
+    final backgroundColor = bgColor ?? (isPrimary ? AppTheme.primaryGold.withOpacity(0.2) : Colors.white.withOpacity(0.05));
+    final borderColor = isPrimary ? AppTheme.primaryGold.withOpacity(0.5) : Colors.white.withOpacity(0.1);
+    final foregroundColor = fgColor ?? (isPrimary ? AppTheme.primaryGold : Colors.white);
+
     return GhostenFocusable(
       onTap: () => val == 'OK' ? _submit(AppStrings(ref.read(appLocaleProvider))) : _onKeyPress(val),
       child: Container(
         decoration: BoxDecoration(
-          color: isPrimary ? AppTheme.primaryGold.withOpacity(0.2) : Colors.white.withOpacity(0.05),
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(
-            color: isPrimary ? AppTheme.primaryGold.withOpacity(0.5) : Colors.white.withOpacity(0.1),
-          ),
+          color: backgroundColor,
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: borderColor, width: 1.5),
+          boxShadow: isPrimary ? [
+            BoxShadow(
+              color: AppTheme.primaryGold.withOpacity(0.2),
+              blurRadius: 15,
+              offset: const Offset(0, 5),
+            )
+          ] : null,
         ),
         child: Center(
           child: icon != null
-              ? Icon(icon, color: isPrimary ? AppTheme.primaryGold : Colors.white, size: 32)
+              ? Icon(icon, color: foregroundColor, size: 32)
               : Text(
                   val,
-                  style: const TextStyle(color: Colors.white, fontSize: 32, fontWeight: FontWeight.bold),
+                  style: TextStyle(color: foregroundColor, fontSize: 32, fontWeight: FontWeight.w900),
                 ),
         ),
       ),

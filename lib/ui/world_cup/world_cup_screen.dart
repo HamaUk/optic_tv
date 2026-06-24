@@ -12,12 +12,13 @@ class _WorldCupScreenState extends State<WorldCupScreen> with SingleTickerProvid
   late TabController _tabController;
   List<dynamic> _games = [];
   List<dynamic> _groups = [];
+  List<dynamic> _liveSoccer = [];
   bool _isLoading = true;
 
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 2, vsync: this);
+    _tabController = TabController(length: 3, vsync: this);
     _loadData();
   }
 
@@ -25,11 +26,13 @@ class _WorldCupScreenState extends State<WorldCupScreen> with SingleTickerProvid
     setState(() => _isLoading = true);
     final games = await WorldCupService.fetchGames();
     final groups = await WorldCupService.fetchGroups();
+    final liveSoccer = await WorldCupService.fetchLiveSoccer();
     
     if (mounted) {
       setState(() {
         _games = games;
         _groups = groups;
+        _liveSoccer = liveSoccer;
         _isLoading = false;
       });
     }
@@ -49,7 +52,7 @@ class _WorldCupScreenState extends State<WorldCupScreen> with SingleTickerProvid
         backgroundColor: Colors.transparent,
         elevation: 0,
         title: const Text(
-          'World Cup 2026',
+          'Live Football ⚽',
           style: TextStyle(fontWeight: FontWeight.w900, color: Colors.white, fontSize: 24),
         ),
         bottom: TabBar(
@@ -58,10 +61,12 @@ class _WorldCupScreenState extends State<WorldCupScreen> with SingleTickerProvid
           indicatorWeight: 3,
           labelColor: Colors.white,
           unselectedLabelColor: Colors.white54,
+          isScrollable: true,
           labelStyle: const TextStyle(fontWeight: FontWeight.bold),
           tabs: const [
-            Tab(text: 'MATCHES'),
-            Tab(text: 'GROUPS'),
+            Tab(text: 'LIVE SOCCER'),
+            Tab(text: 'WC MATCHES'),
+            Tab(text: 'WC GROUPS'),
           ],
         ),
       ),
@@ -70,6 +75,7 @@ class _WorldCupScreenState extends State<WorldCupScreen> with SingleTickerProvid
         : TabBarView(
             controller: _tabController,
             children: [
+              _buildLiveSoccerTab(),
               _buildMatchesTab(),
               _buildGroupsTab(),
             ],
@@ -77,12 +83,180 @@ class _WorldCupScreenState extends State<WorldCupScreen> with SingleTickerProvid
     );
   }
 
-  Widget _buildMatchesTab() {
-    if (_games.isEmpty) {
-      return const Center(child: Text('No matches found.', style: TextStyle(color: Colors.white70)));
+  Widget _buildLiveSoccerTab() {
+    if (_liveSoccer.isEmpty) {
+      return const Center(child: Text('No live matches found.', style: TextStyle(color: Colors.white70)));
     }
     
     return ListView.builder(
+      padding: const EdgeInsets.only(top: 16, bottom: 100),
+      itemCount: _liveSoccer.length,
+      itemBuilder: (context, index) {
+        final event = _liveSoccer[index];
+        return _buildEspnMatchCard(event);
+      },
+    );
+  }
+
+  Widget _buildEspnMatchCard(dynamic event) {
+    String homeTeam = 'Unknown';
+    String awayTeam = 'Unknown';
+    String homeFlag = '';
+    String awayFlag = '';
+    String homeScore = '0';
+    String awayScore = '0';
+
+    try {
+      final competitions = event['competitions'] as List<dynamic>? ?? [];
+      if (competitions.isNotEmpty) {
+        final competitors = competitions[0]['competitors'] as List<dynamic>? ?? [];
+        for (var c in competitors) {
+          final isHome = c['homeAway'] == 'home';
+          final team = c['team'] ?? {};
+          final name = team['shortDisplayName'] ?? team['name'] ?? 'Unknown';
+          final logo = team['logo'] ?? '';
+          final score = c['score'] ?? '0';
+          
+          if (isHome) {
+            homeTeam = name;
+            homeFlag = logo;
+            homeScore = score;
+          } else {
+            awayTeam = name;
+            awayFlag = logo;
+            awayScore = score;
+          }
+        }
+      }
+    } catch (_) {}
+
+    final status = event['status'] ?? {};
+    final type = status['type'] ?? {};
+    final state = type['state'] ?? 'pre'; // pre, in, post
+    final displayClock = status['displayClock'] ?? '';
+    final shortDetail = type['shortDetail'] ?? '';
+    
+    bool isLive = state == 'in';
+    bool finished = state == 'post';
+
+    String timeLabel = shortDetail;
+    if (isLive && displayClock.isNotEmpty) timeLabel = displayClock;
+
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Colors.white.withOpacity(0.05),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: isLive ? Colors.redAccent.withOpacity(0.5) : Colors.white.withOpacity(0.1), width: isLive ? 2.0 : 1.5),
+        boxShadow: [
+          BoxShadow(
+            color: isLive ? Colors.redAccent.withOpacity(0.1) : Colors.black.withOpacity(0.2),
+            blurRadius: 15,
+            offset: const Offset(0, 4),
+          )
+        ],
+      ),
+      child: Column(
+        children: [
+          if (event['name'] != null)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 12),
+              child: Text(
+                event['shortName'] ?? event['name'],
+                style: const TextStyle(color: Colors.white54, fontSize: 12, fontWeight: FontWeight.bold),
+              ),
+            ),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Expanded(
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  children: [
+                    Expanded(
+                      child: Text(
+                        homeTeam,
+                        textAlign: TextAlign.end,
+                        style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    if (homeFlag.isNotEmpty)
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(4),
+                        child: Image.network(homeFlag, width: 32, height: 32, fit: BoxFit.contain,
+                          errorBuilder: (context, error, stackTrace) => const Icon(Icons.shield, color: Colors.white54),
+                        ),
+                      )
+                    else
+                      const SizedBox(width: 32),
+                  ],
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 20),
+                child: Column(
+                  children: [
+                    Text(
+                      state == 'pre' ? 'VS' : '$homeScore - $awayScore',
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w900,
+                        fontSize: 26,
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: finished ? Colors.white24 : (state == 'pre' ? Colors.blueAccent.withOpacity(0.3) : Colors.redAccent.withOpacity(0.3)),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Text(
+                        timeLabel,
+                        style: TextStyle(
+                          color: finished ? Colors.white : (state == 'pre' ? Colors.blueAccent : Colors.redAccent),
+                          fontWeight: FontWeight.bold,
+                          fontSize: 11,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Expanded(
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.start,
+                  children: [
+                    if (awayFlag.isNotEmpty)
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(4),
+                        child: Image.network(awayFlag, width: 32, height: 32, fit: BoxFit.contain,
+                          errorBuilder: (context, error, stackTrace) => const Icon(Icons.shield, color: Colors.white54),
+                        ),
+                      )
+                    else
+                      const SizedBox(width: 32),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Text(
+                        awayTeam,
+                        textAlign: TextAlign.start,
+                        style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildMatchesTab() {
       padding: const EdgeInsets.only(top: 16, bottom: 100),
       itemCount: _games.length,
       itemBuilder: (context, index) {

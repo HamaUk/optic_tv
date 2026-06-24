@@ -70,7 +70,7 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
   bool _controlsVisible = true;
   Timer? _hideTimer;
   bool _isPlaying = true; 
-  BoxFit _viewFit = BoxFit.contain;
+  BoxFit _viewFit = BoxFit.fill;
   final FocusNode _playerFocus = FocusNode();
   final FocusNode _playPauseFocusNode = FocusNode();
   bool _isFullscreen = false;

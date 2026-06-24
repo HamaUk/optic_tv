@@ -83,4 +83,18 @@ class WorldCupService {
     }
     return [];
   }
+
+  /// Fetches Live Soccer games from ESPN API (Free, No Key)
+  static Future<List<dynamic>> fetchLiveSoccer() async {
+    try {
+      final response = await http.get(Uri.parse('https://site.api.espn.com/apis/site/v2/sports/soccer/all/scoreboard'));
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        return data['events'] as List<dynamic>? ?? [];
+      }
+    } catch (e) {
+      print('Error fetching ESPN live soccer: $e');
+    }
+    return [];
+  }
 }
