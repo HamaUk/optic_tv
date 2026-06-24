@@ -14,7 +14,6 @@ import 'package:dpad/dpad.dart';
 import 'package:lottie/lottie.dart';
 
 import '../world_cup/world_cup_screen.dart';
-import '../../models/app_settings_data.dart';
 import '../../core/theme.dart';
 import '../../widgets/channel_logo_image.dart';
 import '../../widgets/kobani_wordmark.dart';
