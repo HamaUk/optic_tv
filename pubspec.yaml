@@ -56,6 +56,8 @@ dependencies:
   flutter_staggered_animations: ^1.1.1
   fl_chart: ^0.68.0
   wakelock_plus: ^1.2.8
+  dpad: ^3.0.0
+  flutter_jailbreak_detection: ^1.10.0
 
   # Media Engine — ExoPlayer (Android native, zero overhead)
   video_player: ^2.9.1
@@ -73,14 +75,15 @@ dev_dependencies:
 flutter_launcher_icons:
   android: true
   ios: true
-  image_path: assets/images/logonewww.png
+  image_path: assets/images/flut.png
   adaptive_icon_background: "#000000"
-  adaptive_icon_foreground: assets/images/logonewww.png
+  adaptive_icon_foreground: assets/images/flut.png
   remove_alpha_ios: true
 
 flutter:
   uses-material-design: true
   assets:
+    - assets/images/flut.png
     - assets/images/logonewww.png
     - assets/images/optic_logo.png
     - assets/images/newiconapp.jpg

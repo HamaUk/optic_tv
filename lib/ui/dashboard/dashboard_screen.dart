@@ -10,6 +10,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:animations/animations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:dpad/dpad.dart';
 
 
 import '../../core/theme.dart';
@@ -1083,7 +1084,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
                 animMs: animMs,
                 gradientPreset: settings.gradientPreset,
                 reduceMotion: settings.reduceMotion,
-                onWatch: (c) => _openPlayer(allChannels, c),
+                onWatch: (c) => _openPlayer(fullChannels, c),
               ),
             ),
           ),
@@ -2076,29 +2077,32 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
           child: Material(
             type: MaterialType.transparency,
             clipBehavior: Clip.hardEdge,
-            child: ListView.separated(
-              padding: const EdgeInsets.only(left: 36, right: 12, top: 80, bottom: 60),
-              itemCount: sortedKeys.length + 1,
-              separatorBuilder: (_, __) => const SizedBox(height: 4),
-              itemBuilder: (context, index) {
-                if (index == 0) {
-                  // "All" entry
+            child: DpadRegion(
+              memoryKey: 'tv_sidebar',
+              child: ListView.separated(
+                padding: const EdgeInsets.only(left: 36, right: 12, top: 80, bottom: 60),
+                itemCount: sortedKeys.length + 1,
+                separatorBuilder: (_, __) => const SizedBox(height: 4),
+                itemBuilder: (context, index) {
+                  if (index == 0) {
+                    // "All" entry
+                    return _tvGhostenGroupTile(
+                      label: 'All channels',
+                      count: channels.length,
+                      selected: _selectedTvGroup == null,
+                      autofocus: true,
+                      onTap: () => setState(() => _selectedTvGroup = null),
+                    );
+                  }
+                  final g = sortedKeys[index - 1];
                   return _tvGhostenGroupTile(
-                    label: 'All channels',
-                    count: channels.length,
-                    selected: _selectedTvGroup == null,
-                    autofocus: true,
-                    onTap: () => setState(() => _selectedTvGroup = null),
+                    label: g,
+                    count: groups[g]?.length ?? 0,
+                    selected: _selectedTvGroup == g,
+                    onTap: () => setState(() => _selectedTvGroup = g),
                   );
-                }
-                final g = sortedKeys[index - 1];
-                return _tvGhostenGroupTile(
-                  label: g,
-                  count: groups[g]?.length ?? 0,
-                  selected: _selectedTvGroup == g,
-                  onTap: () => setState(() => _selectedTvGroup = g),
-                );
-              },
+                },
+              ),
             ),
           ),
         ),
@@ -2108,47 +2112,50 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
             flex: 3,
             child: displayChannels.isEmpty
                 ? _buildEmptyState(s)
-                : settings.reduceMotion
-                  ? ScrollConfiguration(
-                      behavior: ScrollConfiguration.of(context),
-                      child: GridView.builder(
-                        padding: const EdgeInsets.only(left: 8, right: 48, top: 80, bottom: 60),
-                        gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
-                          maxCrossAxisExtent: 198,
-                          mainAxisSpacing: 16,
-                          crossAxisSpacing: 16,
-                        ),
-                        itemCount: displayChannels.length,
-                        itemBuilder: (context, idx) => _tvGhostenChannelCard(channels, displayChannels[idx]),
-                      ),
-                    )
-                  : AnimationLimiter(
-                      child: ScrollConfiguration(
-                        behavior: ScrollConfiguration.of(context),
-                        child: GridView.builder(
-                          padding: const EdgeInsets.only(left: 8, right: 48, top: 80, bottom: 60),
-                          gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
-                            maxCrossAxisExtent: 198,
-                            mainAxisSpacing: 16,
-                            crossAxisSpacing: 16,
-                          ),
-                          itemCount: displayChannels.length,
-                          itemBuilder: (context, idx) {
-                            final ch = displayChannels[idx];
-                            return AnimationConfiguration.staggeredGrid(
-                              position: idx,
-                              duration: const Duration(milliseconds: 375),
-                              columnCount: 4, // Estimate or dynamic
-                              child: ScaleAnimation(
-                                child: FadeInAnimation(
-                                  child: _tvGhostenChannelCard(channels, ch),
-                                ),
+                : DpadRegion(
+                    memoryKey: 'tv_grid',
+                    child: settings.reduceMotion
+                        ? ScrollConfiguration(
+                            behavior: ScrollConfiguration.of(context),
+                            child: GridView.builder(
+                              padding: const EdgeInsets.only(left: 8, right: 48, top: 80, bottom: 60),
+                              gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
+                                maxCrossAxisExtent: 198,
+                                mainAxisSpacing: 16,
+                                crossAxisSpacing: 16,
                               ),
-                            );
-                          },
-                        ),
-                      ),
-                    ),
+                              itemCount: displayChannels.length,
+                              itemBuilder: (context, idx) => _tvGhostenChannelCard(channels, displayChannels[idx]),
+                            ),
+                          )
+                        : AnimationLimiter(
+                            child: ScrollConfiguration(
+                              behavior: ScrollConfiguration.of(context),
+                              child: GridView.builder(
+                                padding: const EdgeInsets.only(left: 8, right: 48, top: 80, bottom: 60),
+                                gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
+                                  maxCrossAxisExtent: 198,
+                                  mainAxisSpacing: 16,
+                                  crossAxisSpacing: 16,
+                                ),
+                                itemCount: displayChannels.length,
+                                itemBuilder: (context, idx) {
+                                  final ch = displayChannels[idx];
+                                  return AnimationConfiguration.staggeredGrid(
+                                    position: idx,
+                                    duration: const Duration(milliseconds: 375),
+                                    columnCount: 4, // Estimate or dynamic
+                                    child: ScaleAnimation(
+                                      child: FadeInAnimation(
+                                        child: _tvGhostenChannelCard(channels, ch),
+                                      ),
+                                    ),
+                                  );
+                                },
+                              ),
+                            ),
+                          ),
+                  ),
           ),
       ],
     );

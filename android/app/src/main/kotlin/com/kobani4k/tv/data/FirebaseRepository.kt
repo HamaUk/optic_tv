@@ -16,12 +16,39 @@ class FirebaseRepository {
 
     /**
      * Verifies if a given 6-digit code exists in `sync/global/loginCodes`.
+     * Checks if the code is active and has not expired.
      * Returns true if successful, false otherwise.
      */
     suspend fun verifyLoginCode(code: String): Boolean {
         return try {
-            val snapshot = db.child("sync/global/loginCodes").child(code).get().await()
-            snapshot.exists()
+            val snapshot = db.child("sync/global/loginCodes")
+                .orderByChild("code")
+                .equalTo(code)
+                .get()
+                .await()
+
+            if (snapshot.exists()) {
+                for (child in snapshot.children) {
+                    val active = child.child("active").getValue(Boolean::class.java) ?: false
+                    if (!active) continue
+
+                    val expiresAt = child.child("expiresAt").getValue(String::class.java)
+                    if (expiresAt != null) {
+                        try {
+                            val expireTime = java.time.Instant.parse(expiresAt)
+                            val now = java.time.Instant.now()
+                            if (now.isAfter(expireTime)) {
+                                continue // This specific code entry is expired
+                            }
+                        } catch (e: Exception) {
+                            e.printStackTrace()
+                        }
+                    }
+                    // We found an active, non-expired code
+                    return true
+                }
+            }
+            false
         } catch (e: Exception) {
             e.printStackTrace()
             false

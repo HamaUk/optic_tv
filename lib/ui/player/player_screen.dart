@@ -28,6 +28,7 @@ import '../../providers/ui_settings_provider.dart';
 import '../../services/monitor_service.dart';
 import '../../services/playlist_service.dart';
 import '../../services/settings_service.dart';
+import '../../services/analytics_service.dart';
 import '../../widgets/tv_focus_wrapper.dart';
 import '../settings/settings_screen.dart';
 
@@ -260,7 +261,10 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
 
     await p.open(
       validUrls[_activeServerIndex],
-      headers: {'User-Agent': _current.userAgent ?? 'SmartIPTV'},
+      headers: {
+        'User-Agent': _current.userAgent ?? 'SmartIPTV',
+        'X-Optic-Security-Token': 'k4k-secure-stream-99X',
+      },
     );
 
     if (mounted) setState(() => _showEngineSplash = false);
@@ -535,6 +539,43 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
                 ? NativePlayerView(player: _player!)
                 : const Center(child: CircularProgressIndicator(color: Colors.white24)),
           ),
+          // Live Viewers (Top Right)
+          if (!_isFullscreen)
+            Positioned(
+              top: 8,
+              right: 8,
+              child: StreamBuilder<int>(
+                stream: ref.watch(analyticsServiceProvider).getLiveChannelViewersStream(_current.name),
+                builder: (context, snapshot) {
+                  final viewers = snapshot.data ?? 0;
+                  if (viewers == 0) return const SizedBox.shrink();
+                  
+                  return Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: Colors.black.withOpacity(0.5),
+                      borderRadius: BorderRadius.circular(6),
+                      border: Border.all(color: Colors.redAccent.withOpacity(0.5), width: 1),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Icon(Icons.remove_red_eye_rounded, color: Colors.redAccent, size: 14),
+                        const SizedBox(width: 4),
+                        Text(
+                          '$viewers',
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 12,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ],
+                    ),
+                  );
+                },
+              ),
+            ),
           // Quality and Fullscreen (Bottom Right)
           if (!_isFullscreen)
             Positioned(
@@ -575,67 +616,102 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
       child: Stack(
         fit: StackFit.expand,
         children: [
-          // If overlay is visible, dim the background slightly
-          if (_tvOverlayVisible)
-            Container(
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  colors: [
-                    Colors.black.withOpacity(0.8),
-                    Colors.transparent,
-                    Colors.black.withOpacity(0.85),
-                  ],
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
-                ),
-              ),
-            ),
-          
-          if (_tvOverlayVisible)
-            SafeArea(
-              child: Column(
+          IgnorePointer(
+            ignoring: !_tvOverlayVisible,
+            child: AnimatedOpacity(
+              duration: const Duration(milliseconds: 300),
+              opacity: _tvOverlayVisible ? 1.0 : 0.0,
+              child: Stack(
+                fit: StackFit.expand,
                 children: [
-                  // Top Bar
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 48, vertical: 24),
-                    child: Row(
-                      children: [
-                        if (_current.logo != null && _current.logo!.isNotEmpty) ...[
-                          Container(
-                            width: 48,
-                            height: 48,
-                            decoration: BoxDecoration(
-                              borderRadius: BorderRadius.circular(12),
-                              color: Colors.white10,
-                            ),
-                            child: ClipRRect(
-                              borderRadius: BorderRadius.circular(12),
-                              child: ChannelLogoImage(
-                                logo: _current.logo,
-                                channelName: _current.name,
-                                width: 48,
-                                height: 48,
-                              ),
-                            ),
-                          ),
-                          const SizedBox(width: 16),
+                  Container(
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        colors: [
+                          Colors.black.withOpacity(0.8),
+                          Colors.transparent,
+                          Colors.black.withOpacity(0.85),
                         ],
-                        Expanded(
-                          child: Text(
-                            _current.name.toUpperCase(),
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 24,
-                              fontWeight: FontWeight.bold,
-                              letterSpacing: 1.2,
-                            ),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ),
-                      ],
+                        begin: Alignment.topCenter,
+                        end: Alignment.bottomCenter,
+                      ),
                     ),
                   ),
+                  SafeArea(
+                    child: Column(
+                      children: [
+                        // Top Bar
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 48, vertical: 24),
+                          child: Row(
+                            children: [
+                              if (_current.logo != null && _current.logo!.isNotEmpty) ...[
+                                Container(
+                                  width: 48,
+                                  height: 48,
+                                  decoration: BoxDecoration(
+                                    borderRadius: BorderRadius.circular(12),
+                                    color: Colors.white10,
+                                  ),
+                                  child: ClipRRect(
+                                    borderRadius: BorderRadius.circular(12),
+                                    child: ChannelLogoImage(
+                                      logo: _current.logo,
+                                      channelName: _current.name,
+                                      width: 48,
+                                      height: 48,
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(width: 16),
+                              ],
+                              Expanded(
+                                child: Text(
+                                  _current.name.toUpperCase(),
+                                  style: const TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 24,
+                                    fontWeight: FontWeight.bold,
+                                    letterSpacing: 1.2,
+                                  ),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                              StreamBuilder<int>(
+                                stream: ref.watch(analyticsServiceProvider).getLiveChannelViewersStream(_current.name),
+                                builder: (context, snapshot) {
+                                  final viewers = snapshot.data ?? 0;
+                                  if (viewers == 0) return const SizedBox.shrink();
+                                  
+                                  return Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                                    decoration: BoxDecoration(
+                                      color: Colors.black.withOpacity(0.6),
+                                      borderRadius: BorderRadius.circular(8),
+                                      border: Border.all(color: Colors.redAccent.withOpacity(0.6), width: 1.5),
+                                    ),
+                                    child: Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        const Icon(Icons.remove_red_eye_rounded, color: Colors.redAccent, size: 18),
+                                        const SizedBox(width: 8),
+                                        Text(
+                                          '$viewers',
+                                          style: const TextStyle(
+                                            color: Colors.white,
+                                            fontSize: 16,
+                                            fontWeight: FontWeight.bold,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  );
+                                },
+                              ),
+                            ],
+                          ),
+                        ),
 
                   const Spacer(),
 
@@ -731,10 +807,12 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
                 ],
               ),
             ),
-        ],
+          ]
+        ),
       ),
-    );
-  }
+    ),
+  );
+}
 
   Widget _buildTvFocusIcon(IconData icon, VoidCallback onSelect) {
     return TVFocusable(

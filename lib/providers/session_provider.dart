@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -12,6 +13,9 @@ class SessionState {
 }
 
 class SessionNotifier extends Notifier<SessionState> {
+  StreamSubscription<bool>? _codeSub;
+  Timer? _expiryTimer;
+
   @override
   SessionState build() {
     // Initial build can't async access prefs easily, handled by overrides in main.dart
@@ -23,7 +27,37 @@ class SessionNotifier extends Notifier<SessionState> {
     if (initialLoggedIn && code != null) {
       state = SessionState(loggedIn: true, activeCode: code);
       MonitorService.start(code);
+      _listenToCode(code);
     }
+  }
+
+  void _listenToCode(String code) {
+    _codeSub?.cancel();
+    _codeSub = LoginCodesService.watchValidation(code).listen((isValid) {
+      if (!isValid && state.loggedIn) {
+        _forceLogoutExpired();
+      }
+    });
+
+    _expiryTimer?.cancel();
+    _expiryTimer = Timer.periodic(const Duration(minutes: 1), (_) async {
+      final stillValid = await LoginCodesService.validate(code);
+      if (!stillValid && state.loggedIn) {
+        _forceLogoutExpired();
+      }
+    });
+  }
+
+  Future<void> _forceLogoutExpired() async {
+    final p = await SharedPreferences.getInstance();
+    await p.setBool('auth_logged_in', false);
+    await p.remove('auth_active_code');
+    MonitorService.stop();
+    _codeSub?.cancel();
+    _codeSub = null;
+    _expiryTimer?.cancel();
+    _expiryTimer = null;
+    state = SessionState(loggedIn: false, error: 'Your activation code expired.');
   }
 
   Future<bool> loginWithCode(String code) async {
@@ -40,6 +74,7 @@ class SessionNotifier extends Notifier<SessionState> {
       
       state = SessionState(loggedIn: true, activeCode: code);
       MonitorService.start(code);
+      _listenToCode(code);
       return true;
     } catch (e) {
       state = SessionState(loggedIn: false, error: 'Connection Error: $e');
@@ -52,6 +87,10 @@ class SessionNotifier extends Notifier<SessionState> {
     await p.setBool('auth_logged_in', false);
     await p.remove('auth_active_code');
     MonitorService.stop();
+    _codeSub?.cancel();
+    _codeSub = null;
+    _expiryTimer?.cancel();
+    _expiryTimer = null;
     state = SessionState(loggedIn: false);
   }
 }

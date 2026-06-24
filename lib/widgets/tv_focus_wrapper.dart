@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:dpad/dpad.dart';
 import '../core/theme.dart';
 
 /// A premium focus wrapper for Android TV that provides a scale-up (8%)
@@ -60,55 +61,39 @@ class _TvFocusWrapperState extends State<TvFocusWrapper> with SingleTickerProvid
     final accent = widget.accentColor ?? AppTheme.primaryGold;
     final showEffects = isTv && _isFocused;
 
-    return Focus(
-      focusNode: _focusNode,
+    return DpadFocusable(
       autofocus: widget.autofocus,
       onFocusChange: (focused) {
         if (mounted) setState(() => _isFocused = focused);
       },
-      onKeyEvent: (node, event) {
-        if (event is KeyDownEvent) {
-          final isSelect = event.logicalKey == LogicalKeyboardKey.select ||
-              event.logicalKey == LogicalKeyboardKey.enter ||
-              event.logicalKey == LogicalKeyboardKey.numpadEnter;
-          
-          if (isSelect && widget.onTap != null) {
-            widget.onTap!();
-            return KeyEventResult.handled;
-          }
-        }
-        return KeyEventResult.ignored;
-      },
-      child: GestureDetector(
-        onTap: widget.onTap,
-        onLongPress: widget.onLongPress,
-        child: AnimatedScale(
-          scale: showEffects ? widget.scale : 1.0,
+      onSelect: widget.onTap,
+      onLongSelect: widget.onLongPress,
+      child: AnimatedScale(
+        scale: showEffects ? widget.scale : 1.0,
+        duration: const Duration(milliseconds: 200),
+        curve: Curves.easeOutCubic,
+        child: AnimatedContainer(
           duration: const Duration(milliseconds: 200),
           curve: Curves.easeOutCubic,
-          child: AnimatedContainer(
-            duration: const Duration(milliseconds: 200),
-            curve: Curves.easeOutCubic,
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(widget.borderRadius),
-              border: Border.all(
-                color: showEffects ? accent : Colors.transparent,
-                width: 2.5,
-              ),
-              boxShadow: showEffects
-                  ? [
-                      BoxShadow(
-                        color: accent.withOpacity(0.35),
-                        blurRadius: 15,
-                        spreadRadius: 2,
-                      )
-                    ]
-                  : [],
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(widget.borderRadius),
+            border: Border.all(
+              color: showEffects ? accent : Colors.transparent,
+              width: 2.5,
             ),
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(widget.borderRadius - 2),
-              child: widget.child,
-            ),
+            boxShadow: showEffects
+                ? [
+                    BoxShadow(
+                      color: accent.withOpacity(0.35),
+                      blurRadius: 15,
+                      spreadRadius: 2,
+                    )
+                  ]
+                : [],
+          ),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(widget.borderRadius - 2),
+            child: widget.child,
           ),
         ),
       ),

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:dpad/dpad.dart';
 import '../../core/theme.dart';
 
 /// Professional TV Focus Engine ported from KoyaPlayer.
@@ -99,50 +100,46 @@ class _TVFocusableState extends State<TVFocusable> with SingleTickerProviderStat
 
   @override
   Widget build(BuildContext context) {
-    return Focus(
-      focusNode: _focusNode,
+    return DpadFocusable(
       autofocus: widget.autofocus,
-      canRequestFocus: widget.enabled,
       onFocusChange: _handleFocusChange,
-      onKeyEvent: _handleKeyEvent,
-      child: GestureDetector(
-        onTap: widget.onSelect,
-        child: AnimatedBuilder(
-          animation: _scaleAnimation,
-          builder: (context, child) {
-            final focusedChild = widget.builder != null 
-                ? widget.builder!(context, _isFocused, widget.child) 
-                : widget.child;
+      onSelect: widget.onSelect,
+      effects: const [], // effects handled by internal animated builder
+      child: AnimatedBuilder(
+        animation: _scaleAnimation,
+        builder: (context, child) {
+          final focusedChild = widget.builder != null 
+              ? widget.builder!(context, _isFocused, widget.child) 
+              : widget.child;
 
-            return Stack(
-              clipBehavior: Clip.none,
-              children: [
-                Transform.scale(
-                  scale: _scaleAnimation.value,
-                  child: focusedChild,
-                ),
-                if (widget.showFocusBorder && _isFocused)
-                  Positioned.fill(
-                    child: IgnorePointer(
-                      child: Container(
-                        decoration: BoxDecoration(
-                          borderRadius: widget.borderRadius ?? BorderRadius.circular(8),
-                          border: Border.all(color: Theme.of(context).primaryColor, width: 3),
-                          boxShadow: [
-                            BoxShadow(
-                              color: Theme.of(context).primaryColor.withOpacity(0.4),
-                              blurRadius: 16,
-                              spreadRadius: 2,
-                            ),
-                          ],
-                        ),
+          return Stack(
+            clipBehavior: Clip.none,
+            children: [
+              Transform.scale(
+                scale: _scaleAnimation.value,
+                child: focusedChild,
+              ),
+              if (widget.showFocusBorder && _isFocused)
+                Positioned.fill(
+                  child: IgnorePointer(
+                    child: Container(
+                      decoration: BoxDecoration(
+                        borderRadius: widget.borderRadius ?? BorderRadius.circular(8),
+                        border: Border.all(color: Theme.of(context).primaryColor, width: 3),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Theme.of(context).primaryColor.withOpacity(0.4),
+                            blurRadius: 16,
+                            spreadRadius: 2,
+                          ),
+                        ],
                       ),
                     ),
                   ),
-              ],
-            );
-          },
-        ),
+                ),
+            ],
+          );
+        },
       ),
     );
   }

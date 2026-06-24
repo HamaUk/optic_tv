@@ -6,6 +6,8 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:rxdart/rxdart.dart';
 
+import 'package:dpad/dpad.dart';
+
 class GhostenFluidFocusable extends StatefulWidget {
   const GhostenFluidFocusable({
     super.key,
@@ -13,13 +15,13 @@ class GhostenFluidFocusable extends StatefulWidget {
     this.backgroundColor,
     this.selectedBackgroundColor,
     this.selected,
-    this.focusNode,
+    this.isFocused = false,
   });
 
   final Color? backgroundColor;
   final Color? selectedBackgroundColor;
   final bool? selected;
-  final FocusNode? focusNode;
+  final bool isFocused;
   final Widget child;
 
   @override
@@ -53,7 +55,17 @@ class _GhostenFluidFocusableState extends State<GhostenFluidFocusable>
         _animation.stop();
       }
     });
-    widget.focusNode?.addListener(_focusChanged);
+    if (widget.isFocused) {
+      _focusChanged();
+    }
+  }
+
+  @override
+  void didUpdateWidget(GhostenFluidFocusable oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.isFocused != oldWidget.isFocused) {
+      _focusChanged();
+    }
   }
 
   @override
@@ -61,7 +73,6 @@ class _GhostenFluidFocusableState extends State<GhostenFluidFocusable>
     _animation.dispose();
     _animationSubscription?.cancel();
     _animationController.close();
-    widget.focusNode?.removeListener(_focusChanged);
     super.dispose();
   }
 
@@ -78,7 +89,7 @@ class _GhostenFluidFocusableState extends State<GhostenFluidFocusable>
                 : (widget.backgroundColor ??
                     Theme.of(context).colorScheme.surfaceContainerLow),
             shape: GradientRoundedRectangleBorder(
-              side: (widget.focusNode?.hasFocus ?? false)
+              side: widget.isFocused
                   ? const BorderSide(width: 4, strokeAlign: 2)
                   : BorderSide.none,
               gradient: SweepGradient(
@@ -104,7 +115,7 @@ class _GhostenFluidFocusableState extends State<GhostenFluidFocusable>
   }
 
   void _focusChanged() {
-    _animationController.add(widget.focusNode!.hasFocus);
+    _animationController.add(widget.isFocused);
     setState(() {});
   }
 }
@@ -139,32 +150,37 @@ class GhostenFocusable extends StatefulWidget {
 }
 
 class _GhostenFocusableState extends State<GhostenFocusable> {
-  final _focusNode = FocusNode();
-
-  @override
-  void dispose() {
-    _focusNode.dispose();
-    super.dispose();
-  }
+  bool _hasFocus = false;
 
   @override
   Widget build(BuildContext context) {
     return SizedBox(
       width: widget.width,
       height: widget.height,
-      child: GhostenFluidFocusable(
-        focusNode: _focusNode,
-        selected: widget.selected,
-        backgroundColor: widget.backgroundColor,
-        selectedBackgroundColor: widget.selectedBackgroundColor,
-        child: InkWell(
-          focusNode: _focusNode,
-          autofocus: widget.autofocus,
-          onFocusChange: widget.onFocusChange,
-          customBorder:
-              RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
-          onTap: widget.onTap,
-          child: widget.child,
+      child: DpadFocusable(
+        autofocus: widget.autofocus,
+        onSelect: widget.onTap,
+        onFocusChange: (focused) {
+          setState(() {
+            _hasFocus = focused;
+          });
+          if (widget.onFocusChange != null) {
+            widget.onFocusChange!(focused);
+          }
+        },
+        effects: const [
+          DpadScaleEffect(scale: 1.05),
+        ],
+        child: GhostenFluidFocusable(
+          isFocused: _hasFocus,
+          selected: widget.selected,
+          backgroundColor: widget.backgroundColor,
+          selectedBackgroundColor: widget.selectedBackgroundColor,
+          child: Padding(
+            // To replace the InkWell padding/behavior
+            padding: const EdgeInsets.all(0),
+            child: widget.child,
+          ),
         ),
       ),
     );

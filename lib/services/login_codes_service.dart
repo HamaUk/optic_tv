@@ -27,6 +27,18 @@ class LoginCodesService {
     return _matchCached(normalized);
   }
 
+  static Stream<bool> watchValidation(String raw) {
+    final normalized = _normalize(raw);
+    if (normalized.isEmpty) return Stream.value(false);
+
+    return FirebaseDatabase.instance.ref(_rtdbPath).onValue.map((event) {
+      if (event.snapshot.exists && event.snapshot.value != null) {
+        return _matchSnapshot(event.snapshot.value, normalized);
+      }
+      return false;
+    });
+  }
+
   static String _normalize(String s) =>
       s.trim().toLowerCase();
 

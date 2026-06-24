@@ -1,7 +1,9 @@
 import 'dart:async';
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:dpad/dpad.dart';
 
 import 'package:intl/intl.dart' as intl;
 
@@ -144,32 +146,50 @@ class _TvDashboardScreenState extends ConsumerState<TvDashboardScreen> {
       duration: const Duration(milliseconds: 300),
       width: _sidebarHasFocus ? 260 : 80,
       decoration: BoxDecoration(
-        color: Colors.black.withOpacity(0.8),
+        color: Colors.black.withOpacity(0.6),
         border: const Border(right: BorderSide(color: Colors.white10)),
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const SizedBox(height: 40),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            child: Row(
+      child: ClipRect(
+        child: BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 15, sigmaY: 15),
+          child: DpadRegion(
+            memoryKey: 'tv_sidebar',
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                if (_sidebarHasFocus) ...[
-                  const SizedBox(width: 12),
-                ]
+                const SizedBox(height: 40),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  child: Row(
+                    children: [
+                      const Icon(Icons.access_time_rounded, color: Colors.white70, size: 24),
+                      if (_sidebarHasFocus) ...[
+                        const SizedBox(width: 12),
+                        StreamBuilder(
+                          stream: Stream.periodic(const Duration(seconds: 1)),
+                          builder: (context, snapshot) {
+                            return Text(
+                              intl.DateFormat('HH:mm').format(DateTime.now()),
+                              style: const TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.bold),
+                            );
+                          },
+                        ),
+                      ]
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 50),
+                _buildSidebarItem(Icons.live_tv_rounded, 'Live TV', 0, s),
+                _buildSidebarItem(Icons.movie_creation_rounded, 'Movies', 1, s),
+                _buildSidebarItem(Icons.sports_soccer_rounded, 'Sports', 2, s),
+                _buildSidebarItem(Icons.star_rounded, 'Favorites', 3, s),
+                const Spacer(),
+                _buildSidebarItem(Icons.settings_rounded, 'Settings', 4, s),
+                const SizedBox(height: 20),
               ],
             ),
           ),
-          const SizedBox(height: 50),
-          _buildSidebarItem(Icons.live_tv_rounded, 'Live TV', 0, s),
-          _buildSidebarItem(Icons.movie_creation_rounded, 'Movies', 1, s),
-          _buildSidebarItem(Icons.sports_soccer_rounded, 'Sports', 2, s),
-          _buildSidebarItem(Icons.star_rounded, 'Favorites', 3, s),
-          const Spacer(),
-          _buildSidebarItem(Icons.settings_rounded, 'Settings', 4, s),
-          const SizedBox(height: 20),
-        ],
+        ),
       ),
     );
   }
@@ -184,55 +204,76 @@ class _TvDashboardScreenState extends ConsumerState<TvDashboardScreen> {
         });
       },
       showFocusBorder: false,
-      focusScale: 1.05, // Slightly larger pop on focus
+      focusScale: 1.1, // Increased scale
       child: const SizedBox(),
       builder: (context, isFocused, child) {
         return AnimatedContainer(
           duration: const Duration(milliseconds: 250),
-          margin: const EdgeInsets.only(right: 16),
+          margin: const EdgeInsets.only(right: 16, top: 8, bottom: 8), // Give some margin for shadow
           width: cardWidth,
-          transform: isFocused ? (Matrix4.identity()..scale(1.05)) : Matrix4.identity(),
+          transform: isFocused ? (Matrix4.identity()..scale(1.1)) : Matrix4.identity(),
           transformAlignment: Alignment.center,
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(16),
             color: Colors.white.withOpacity(0.05),
-            border: Border.all(color: isFocused ? _accent : Colors.white10, width: isFocused ? 4 : 1),
-            boxShadow: isFocused ? [BoxShadow(color: _accent.withOpacity(0.5), blurRadius: 20)] : [],
+            border: Border.all(color: isFocused ? _accent : Colors.white10, width: isFocused ? 3 : 1),
+            boxShadow: isFocused ? [BoxShadow(color: _accent.withOpacity(0.8), blurRadius: 24, spreadRadius: 4)] : [],
           ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
+          child: Stack(
+            fit: StackFit.expand,
             children: [
-              Expanded(
-                child: ClipRRect(
-                  borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Expanded(
+                    child: ClipRRect(
+                      borderRadius: const BorderRadius.vertical(top: Radius.circular(14)), // Adjusted radius to fit border
+                      child: Container(
+                        color: Colors.black45,
+                        padding: isMovie ? EdgeInsets.zero : const EdgeInsets.all(16),
+                        child: CachedNetworkImage(
+                          imageUrl: channel.logo ?? '',
+                          fit: isMovie ? BoxFit.cover : BoxFit.contain,
+                          errorWidget: (_, __, ___) => const Center(child: Icon(Icons.tv_off_rounded, color: Colors.white24, size: 48)),
+                        ),
+                      ),
+                    ),
+                  ),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+                    decoration: const BoxDecoration(
+                      color: Colors.black87,
+                      borderRadius: BorderRadius.vertical(bottom: Radius.circular(14)),
+                    ),
+                    child: Text(
+                      channel.name,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      textAlign: TextAlign.center,
+                      style: AppTheme.withRabarIfKurdish(
+                        s.locale,
+                        TextStyle(color: isFocused ? _accent : Colors.white, fontWeight: FontWeight.bold, fontSize: 14),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              if (!isMovie && channel.type != 'vod') // Live Badge
+                Positioned(
+                  top: 8,
+                  right: 8,
                   child: Container(
-                    color: Colors.black45,
-                    padding: isMovie ? EdgeInsets.zero : const EdgeInsets.all(16), // No padding for movies so poster fits entirely, reasonable padding for logos
-                    child: CachedNetworkImage(
-                      imageUrl: channel.logo ?? '',
-                      fit: isMovie ? BoxFit.cover : BoxFit.contain,
-                      errorWidget: (_, __, ___) => const Center(child: Icon(Icons.tv_off_rounded, color: Colors.white24, size: 48)),
+                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                    decoration: BoxDecoration(
+                      color: Colors.redAccent.withOpacity(0.9),
+                      borderRadius: BorderRadius.circular(4),
+                    ),
+                    child: const Text(
+                      'LIVE',
+                      style: TextStyle(color: Colors.white, fontSize: 9, fontWeight: FontWeight.bold, letterSpacing: 1.0),
                     ),
                   ),
                 ),
-              ),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
-                decoration: const BoxDecoration(
-                  color: Colors.black87,
-                  borderRadius: BorderRadius.vertical(bottom: Radius.circular(12)),
-                ),
-                child: Text(
-                  channel.name,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  textAlign: TextAlign.center,
-                  style: AppTheme.withRabarIfKurdish(
-                    s.locale,
-                    TextStyle(color: isFocused ? _accent : Colors.white, fontWeight: FontWeight.bold, fontSize: 14),
-                  ),
-                ),
-              ),
             ],
           ),
         );
@@ -262,8 +303,10 @@ class _TvDashboardScreenState extends ConsumerState<TvDashboardScreen> {
     // We divide by 5.2 to allow 5 full items + a tiny peek of the 6th item to hint at scrolling
     final cardWidth = availableWidth / 5.2;
 
-    return ListView.builder(
-      padding: const EdgeInsets.only(top: 250, bottom: 50, left: 20),
+    return DpadRegion(
+      memoryKey: 'tv_grid',
+      child: ListView.builder(
+        padding: const EdgeInsets.only(top: 250, bottom: 50, left: 20),
       itemCount: sortedGroups.length,
       itemBuilder: (context, index) {
         final groupName = sortedGroups[index];
@@ -296,6 +339,7 @@ class _TvDashboardScreenState extends ConsumerState<TvDashboardScreen> {
           ],
         );
       },
+      ),
     );
   }
 
@@ -377,6 +421,7 @@ class _TvDashboardScreenState extends ConsumerState<TvDashboardScreen> {
               child: Stack(
                 fit: StackFit.expand,
                 children: [
+                  _buildHeroBanner(s),
                   _buildContentArea(s),
                 ],
               ),

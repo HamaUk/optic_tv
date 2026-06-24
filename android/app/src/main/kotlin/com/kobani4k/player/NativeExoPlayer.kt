@@ -237,11 +237,15 @@ class NativeExoPlayer(
             httpDataSourceFactory.setDefaultRequestProperties(headers)
         }
 
-        val mediaItem = MediaItem.Builder()
-            .setUri(url)
-            .build()
+        val builder = MediaItem.Builder().setUri(url)
+        
+        if (url.contains("m3u8", ignoreCase = true)) {
+            builder.setMimeType(androidx.media3.common.MimeTypes.APPLICATION_M3U8)
+        } else if (url.contains("mpd", ignoreCase = true)) {
+            builder.setMimeType(androidx.media3.common.MimeTypes.APPLICATION_MPD)
+        }
 
-        player.setMediaItem(mediaItem)
+        player.setMediaItem(builder.build())
         player.playWhenReady = true
         player.prepare()
     }

@@ -1,10 +1,12 @@
 import 'dart:io';
+import 'package:flutter/services.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:firebase_core/firebase_core.dart';
 
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:dpad/dpad.dart';
 import 'core/theme.dart';
 import 'core/security/http_overrides.dart';
 import 'providers/app_locale_provider.dart';
@@ -15,10 +17,26 @@ import 'services/settings_service.dart';
 import 'ui/auth/login_screen.dart';
 import 'ui/dashboard/dashboard_screen.dart';
 import 'services/platform_service.dart';
+import 'package:flutter_jailbreak_detection/flutter_jailbreak_detection.dart';
 
 void main() async {
   HttpOverrides.global = GlobalSecurityHttpOverrides();
   WidgetsFlutterBinding.ensureInitialized();
+  
+  // RASP Security Check: Block Rooted / Jailbroken Devices
+  if (!identical(0, 0.0) && Platform.isAndroid || Platform.isIOS) {
+    try {
+      final bool jailbroken = await FlutterJailbreakDetection.jailbroken;
+      if (jailbroken) {
+        debugPrint('Security violation: Device is rooted/jailbroken.');
+        SystemNavigator.pop();
+        return;
+      }
+    } catch (e) {
+      debugPrint('Jailbreak detection failed: $e');
+    }
+  }
+
   try {
     if (identical(0, 0.0)) { // Simple check for web
       await Firebase.initializeApp(
@@ -115,6 +133,8 @@ class _OpticTvAppState extends ConsumerState<OpticTvApp> with WidgetsBindingObse
     }
   }
 
+  final GlobalKey<NavigatorState> _navigatorKey = GlobalKey<NavigatorState>();
+
   @override
   Widget build(BuildContext context) {
     final uiLocale = ref.watch(appLocaleProvider);
@@ -124,14 +144,27 @@ class _OpticTvAppState extends ConsumerState<OpticTvApp> with WidgetsBindingObse
     final deviceType = deviceTypeAsync.asData?.value ?? DeviceType.phone;
 
     return MaterialApp(
+      navigatorKey: _navigatorKey,
       title: 'KOBANI 4K',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.darkThemeForUi(uiLocale, settings.gradientPreset),
       locale: const Locale('en'),
       builder: (context, child) {
+        final dpadBuilder = Dpad.wrap(
+          debugOverlay: false,
+          onBack: () {
+            final ctx = _navigatorKey.currentContext;
+            if (ctx != null && Navigator.canPop(ctx)) {
+              Navigator.pop(ctx);
+              return true;
+            }
+            return false;
+          },
+        );
+        final dpadChild = dpadBuilder(context, child);
         return Directionality(
           textDirection: TextDirection.ltr,
-          child: child ?? const SizedBox.shrink(),
+          child: dpadChild,
         );
       },
       localizationsDelegates: const [

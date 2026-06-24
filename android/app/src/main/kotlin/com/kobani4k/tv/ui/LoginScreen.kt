@@ -9,8 +9,8 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.scale
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
@@ -18,21 +18,20 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.tv.material3.*
-import com.airbnb.lottie.compose.*
 import com.kobani4k.tv.data.FirebaseRepository
 import kotlinx.coroutines.launch
 
-// Premium Palette
-private val CanvasColor = Color(0xFF07111B)
-private val CanvasElevated = Color(0xFF0B1622)
-private val SurfaceColor = Color(0xFF0F1B29)
-private val SurfaceElevatedColor = Color(0xFF162338)
-private val BrandGold = Color(0xFFFFC766)
-private val BrandGoldMuted = Color(0x33FFC766)
-private val FocusedOutlineColor = Color(0xFFF5F7FB)
-private val TextPrimary = Color(0xFFF5F7FB)
-private val TextSecondary = Color(0xFFBBC6D8)
-private val TextError = Color(0xFFFF5C61)
+// Refined Premium Palette
+private val BackgroundDark = Color(0xFF04080F)
+private val BackgroundGradientEnd = Color(0xFF0F1A2C)
+private val SurfaceColor = Color(0x40162338) // Glass effect
+private val SurfaceElevatedColor = Color(0x801E2E4A)
+private val BrandGold = Color(0xFFFFD700)
+private val BrandGoldMuted = Color(0x40FFD700)
+private val FocusedOutlineColor = Color(0xFFFFFFFF)
+private val TextPrimary = Color(0xFFFFFFFF)
+private val TextSecondary = Color(0xFF90A4BE)
+private val TextError = Color(0xFFFF4C4C)
 
 @OptIn(ExperimentalTvMaterial3Api::class)
 @Composable
@@ -43,89 +42,89 @@ fun LoginScreen(onLoginSuccess: () -> Unit) {
     val scope = rememberCoroutineScope()
     val repository = remember { FirebaseRepository() }
 
-    // Premium Lottie Background
-    val composition by rememberLottieComposition(
-        LottieCompositionSpec.Url("https://assets3.lottiefiles.com/packages/lf20_M9pWvS.json")
-    )
-
     Box(
         modifier = Modifier
             .fillMaxSize()
             .background(
-                Brush.verticalGradient(
-                    colors = listOf(CanvasColor, CanvasElevated)
+                Brush.radialGradient(
+                    colors = listOf(BackgroundGradientEnd, BackgroundDark),
+                    radius = 1200f
                 )
             )
     ) {
-        LottieAnimation(
-            composition = composition,
-            iterations = LottieConstants.IterateForever,
-            modifier = Modifier
-                .fillMaxSize()
-                .alpha(0.2f)
-        )
-
         Row(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(horizontal = 48.dp),
+                .padding(horizontal = 48.dp, vertical = 32.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
             // LEFT PANEL: Luxury Branding & Activation Fields
             Column(
                 modifier = Modifier
-                    .weight(1.2f)
-                    .fillMaxHeight(),
+                    .weight(1.3f)
+                    .fillMaxHeight()
+                    .padding(end = 40.dp),
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.Center
             ) {
                 Text(
                     text = "KOBANI 4K",
-                    fontSize = 46.sp,
+                    fontSize = 54.sp,
                     color = BrandGold,
                     fontWeight = FontWeight.Black,
-                    letterSpacing = 6.sp
+                    letterSpacing = 8.sp,
+                    style = androidx.compose.ui.text.TextStyle(
+                        shadow = androidx.compose.ui.graphics.Shadow(
+                            color = BrandGoldMuted,
+                            blurRadius = 20f
+                        )
+                    )
                 )
-                Spacer(modifier = Modifier.height(12.dp))
+                Spacer(modifier = Modifier.height(16.dp))
                 Text(
                     text = "ENTER DEVICE ACTIVATION CODE",
-                    fontSize = 14.sp,
+                    fontSize = 15.sp,
                     color = TextSecondary,
                     fontWeight = FontWeight.Bold,
-                    letterSpacing = 2.sp
+                    letterSpacing = 3.sp
                 )
-                Spacer(modifier = Modifier.height(48.dp))
+                Spacer(modifier = Modifier.height(56.dp))
 
-                // Modern Glow Slots
-                Row(horizontalArrangement = Arrangement.spacedBy(14.dp)) {
+                // Responsive Glow Slots
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    modifier = Modifier.fillMaxWidth(0.9f)
+                ) {
                     for (i in 0 until 6) {
                         val hasDigit = i < enteredCode.length
                         val digitValue = if (hasDigit) enteredCode[i].toString() else ""
                         Box(
                             modifier = Modifier
-                                .size(70.dp, 88.dp)
+                                .weight(1f)
+                                .aspectRatio(0.85f)
+                                .shadow(if (hasDigit) 8.dp else 0.dp, RoundedCornerShape(16.dp))
                                 .background(
                                     if (hasDigit) SurfaceElevatedColor else SurfaceColor,
-                                    RoundedCornerShape(18.dp)
+                                    RoundedCornerShape(16.dp)
                                 )
                                 .border(
                                     width = if (hasDigit) 2.dp else 1.dp,
                                     color = if (hasDigit) BrandGold else SurfaceElevatedColor,
-                                    shape = RoundedCornerShape(18.dp)
+                                    shape = RoundedCornerShape(16.dp)
                                 ),
                             contentAlignment = Alignment.Center
                         ) {
                             Text(
                                 text = digitValue,
-                                fontSize = 38.sp,
-                                color = if (hasDigit) TextPrimary else TextSecondary.copy(alpha = 0.5f),
-                                fontWeight = FontWeight.Bold
+                                fontSize = 42.sp,
+                                color = if (hasDigit) TextPrimary else Color.Transparent,
+                                fontWeight = FontWeight.ExtraBold
                             )
                         }
                     }
                 }
 
-                Spacer(modifier = Modifier.height(24.dp))
+                Spacer(modifier = Modifier.height(32.dp))
 
                 AnimatedVisibility(visible = errorMessage != null) {
                     Text(
@@ -141,28 +140,28 @@ fun LoginScreen(onLoginSuccess: () -> Unit) {
             // RIGHT PANEL: Elegant Keypad
             Box(
                 modifier = Modifier
-                    .width(420.dp)
+                    .weight(1f)
                     .fillMaxHeight()
-                    .padding(vertical = 40.dp)
+                    .padding(vertical = 16.dp)
             ) {
                 // Keypad Card Surface
                 Surface(
-                    shape = RoundedCornerShape(32.dp),
+                    shape = RoundedCornerShape(28.dp),
                     colors = SurfaceDefaults.colors(
-                        containerColor = SurfaceColor.copy(alpha = 0.9f)
+                        containerColor = SurfaceColor
                     ),
                     border = Border(
                         border = androidx.compose.foundation.BorderStroke(1.dp, SurfaceElevatedColor),
-                        shape = RoundedCornerShape(32.dp)
+                        shape = RoundedCornerShape(28.dp)
                     ),
                     modifier = Modifier.fillMaxSize()
                 ) {
                     Column(
                         modifier = Modifier
                             .fillMaxSize()
-                            .padding(28.dp),
+                            .padding(32.dp),
                         horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.SpaceBetween
+                        verticalArrangement = Arrangement.SpaceEvenly
                     ) {
                         fun onDigit(digit: String) {
                             if (enteredCode.length < 6) {
@@ -207,13 +206,13 @@ fun LoginScreen(onLoginSuccess: () -> Unit) {
                         )
 
                         Column(
-                            verticalArrangement = Arrangement.spacedBy(12.dp),
+                            verticalArrangement = Arrangement.spacedBy(14.dp),
                             modifier = Modifier.fillMaxWidth()
                         ) {
                             rows.forEach { row ->
                                 Row(
                                     modifier = Modifier.fillMaxWidth(),
-                                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                                    horizontalArrangement = Arrangement.spacedBy(14.dp)
                                 ) {
                                     row.forEach { key ->
                                         Box(modifier = Modifier.weight(1f)) {
@@ -233,26 +232,28 @@ fun LoginScreen(onLoginSuccess: () -> Unit) {
                             }
                         }
 
-                        Spacer(modifier = Modifier.height(16.dp))
+                        Spacer(modifier = Modifier.height(8.dp))
 
                         // Submit Button
+                        val isReady = enteredCode.length == 6
                         Button(
                             onClick = { handleSubmit() },
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .height(60.dp),
+                                .height(64.dp),
                             shape = ButtonDefaults.shape(shape = RoundedCornerShape(16.dp)),
                             colors = ButtonDefaults.colors(
-                                containerColor = if (enteredCode.length == 6) BrandGold else SurfaceElevatedColor,
-                                contentColor = if (enteredCode.length == 6) CanvasColor else TextSecondary,
-                                focusedContainerColor = TextPrimary,
-                                focusedContentColor = CanvasColor
-                            )
+                                containerColor = if (isReady) BrandGold else SurfaceElevatedColor,
+                                contentColor = if (isReady) BackgroundDark else TextSecondary,
+                                focusedContainerColor = FocusedOutlineColor,
+                                focusedContentColor = BackgroundDark
+                            ),
+                            scale = ButtonDefaults.scale(focusedScale = 1.05f)
                         ) {
                             Text(
                                 text = if (isLoading) "VERIFYING..." else "ACTIVATE DEVICE",
-                                fontSize = 16.sp,
-                                fontWeight = FontWeight.Bold,
+                                fontSize = 18.sp,
+                                fontWeight = FontWeight.ExtraBold,
                                 letterSpacing = 2.sp
                             )
                         }
@@ -270,37 +271,33 @@ fun KeypadButton(
     isSpecial: Boolean,
     onClick: () -> Unit
 ) {
-    var isFocused by remember { mutableStateOf(false) }
-    val scale by animateFloatAsState(targetValue = if (isFocused) 1.08f else 1.0f)
-
     Button(
         onClick = onClick,
         modifier = Modifier
             .fillMaxWidth()
-            .height(68.dp)
-            .scale(scale)
-            .onFocusChanged { isFocused = it.isFocused },
+            .aspectRatio(1.2f),
         shape = ButtonDefaults.shape(shape = RoundedCornerShape(16.dp)),
         colors = ButtonDefaults.colors(
-            containerColor = SurfaceElevatedColor.copy(alpha = 0.5f),
-            focusedContainerColor = TextPrimary,
+            containerColor = SurfaceElevatedColor.copy(alpha = 0.6f),
+            focusedContainerColor = FocusedOutlineColor,
             contentColor = if (isSpecial) BrandGold else TextPrimary,
-            focusedContentColor = CanvasColor
+            focusedContentColor = BackgroundDark
         ),
+        scale = ButtonDefaults.scale(focusedScale = 1.08f),
         border = ButtonDefaults.border(
             border = Border(
                 border = androidx.compose.foundation.BorderStroke(1.dp, SurfaceElevatedColor),
                 shape = RoundedCornerShape(16.dp)
             ),
             focusedBorder = Border(
-                border = androidx.compose.foundation.BorderStroke(2.dp, FocusedOutlineColor),
+                border = androidx.compose.foundation.BorderStroke(3.dp, BrandGold),
                 shape = RoundedCornerShape(16.dp)
             )
         )
     ) {
         Text(
             text = label,
-            fontSize = 20.sp,
+            fontSize = 24.sp,
             fontWeight = FontWeight.Bold
         )
     }

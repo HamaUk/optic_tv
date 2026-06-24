@@ -20,6 +20,10 @@ class MainActivity: FlutterActivity() {
 
     private var nativeExoPlayer: NativeExoPlayer? = null
 
+    override fun onCreate(savedInstanceState: android.os.Bundle?) {
+        super.onCreate(savedInstanceState)
+    }
+
     /// Many STBs / TV boxes still report [Configuration.UI_MODE_TYPE_NORMAL] while exposing
     /// leanback or television system features. Relying only on [UiModeManager] keeps Flutter on
     /// a [TextField], and the TV IME often covers the whole screen with a grey layer.
