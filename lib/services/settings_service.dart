@@ -17,7 +17,7 @@ class AppSettingsData {
 
   const AppSettingsData({
     this.keepScreenOnWhilePlaying = true,
-    this.videoFit = BoxFit.contain,
+    this.videoFit = BoxFit.fill,
     this.autoHidePlayerControls = true,
     this.showOnScreenClock = false,
     this.reduceMotion = true, // Changed to true per request
@@ -32,7 +32,7 @@ class AppSettingsData {
 
     return AppSettingsData(
       keepScreenOnWhilePlaying: p.getBool(_kKeepScreenOn) ?? true,
-      videoFit: _decodeFit(p.getString(_kVideoFit) ?? 'contain'),
+      videoFit: _decodeFit(p.getString(_kVideoFit) ?? 'fill'),
       autoHidePlayerControls: p.getBool(_kAutoHideControls) ?? true,
       showOnScreenClock: p.getBool(_kShowClock) ?? false,
       reduceMotion: p.getBool(_kReduceMotion) ?? true, // Changed fallback to true
@@ -100,7 +100,7 @@ class AppSettingsData {
       'fitHeight' => BoxFit.fitHeight,
       'scaleDown' => BoxFit.scaleDown,
       'none' => BoxFit.none,
-      _ => BoxFit.contain,
+      _ => BoxFit.fill,
     };
   }
 

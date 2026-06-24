@@ -34,7 +34,7 @@ android {
 
     defaultConfig {
         applicationId = "com.kobani4k.app"
-        minSdk = 21
+        minSdk = flutter.minSdkVersion
         targetSdk = flutter.targetSdkVersion // Fixed reference
         versionCode = flutter.versionCode
         versionName = flutter.versionName
