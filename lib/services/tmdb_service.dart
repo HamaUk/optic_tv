@@ -55,6 +55,7 @@ class TmdbService {
         // 3. Search TMDB
         final res = await _dio.get('/search/movie', queryParameters: {
           'query': cleanTitle,
+          'language': 'ckb', // Central Kurdish (Sorani)
           if (year != null) 'primary_release_year': year,
         });
 
@@ -114,7 +115,10 @@ class TmdbService {
   Future<List<TmdbMovie>> getRecommendations(int movieId) async {
     if (!isConfigured) return [];
     try {
-      final res = await _dio.get('/movie/$movieId/recommendations');
+      final res = await _dio.get(
+        '/movie/$movieId/recommendations',
+        queryParameters: {'language': 'ckb'}, // Central Kurdish (Sorani)
+      );
       final results = res.data['results'] as List?;
       if (results == null) return [];
 
@@ -130,7 +134,10 @@ class TmdbService {
   Future<List<TmdbCast>> getCredits(int movieId) async {
     if (!isConfigured) return [];
     try {
-      final res = await _dio.get('/movie/$movieId/credits');
+      final res = await _dio.get(
+        '/movie/$movieId/credits',
+        queryParameters: {'language': 'ckb'}, // Central Kurdish (Sorani)
+      );
       final cast = res.data['cast'] as List?;
       if (cast == null) return [];
 
