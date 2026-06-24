@@ -11,8 +11,10 @@ import 'package:flutter/cupertino.dart';
 import 'package:animations/animations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:dpad/dpad.dart';
+import 'package:lottie/lottie.dart';
 
-
+import '../world_cup/world_cup_screen.dart';
+import '../../models/app_settings_data.dart';
 import '../../core/theme.dart';
 import '../../widgets/channel_logo_image.dart';
 import '../../widgets/kobani_wordmark.dart';
@@ -57,7 +59,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
   int _adminLogoTaps = 0;
   Timer? _adminTapResetTimer;
 
-  /// 0 Home, 1 Movies, 2 Sport, 3 About
+  /// 0 Home, 1 Movies, 2 Sport, 3 World Cup, 4 About
   int _navIndex = 0;
   bool _searchOpen = false;
   bool _tvHomeActive = true; 
@@ -553,7 +555,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
           });
 
         // About tab: show dedicated screen instead of channel grid.
-        if (_navIndex == 3) {
+        if (_navIndex == 4) {
           final screen = _AboutTab(settings: settings, s: s);
 
           return Scaffold(
@@ -567,6 +569,23 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
                 child: _buildDashboardShell(
                   context, s, 16.0, false, screen, settings,
                 ),
+              ),
+            ),
+            bottomNavigationBar: portrait ? _buildBottomNav(s, MediaQuery.paddingOf(context).bottom, settings) : null,
+          );
+        }
+
+        // World Cup tab
+        if (_navIndex == 3) {
+          return Scaffold(
+            backgroundColor: AppTheme.backgroundBlack,
+            body: Container(
+              decoration: BoxDecoration(
+                gradient: AppTheme.shellGradient(settings.gradientPreset),
+              ),
+              child: const SafeArea(
+                bottom: false,
+                child: WorldCupScreen(),
               ),
             ),
             bottomNavigationBar: portrait ? _buildBottomNav(s, MediaQuery.paddingOf(context).bottom, settings) : null,
@@ -1844,7 +1863,8 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
                   _navItem(s, settings, iconActive: Icons.grid_view_rounded, iconInactive: Icons.grid_view_outlined, label: s.navHome, index: 0),
                   _navItem(s, settings, iconActive: Icons.movie_creation_rounded, iconInactive: Icons.movie_creation_outlined, label: s.navMovies, index: 1),
                   _navItem(s, settings, iconActive: Icons.sports_basketball_rounded, iconInactive: Icons.sports_basketball_outlined, label: s.navSport, index: 2),
-                  _navItem(s, settings, iconActive: Icons.person_rounded, iconInactive: Icons.person_outline_rounded, label: s.navProfile, index: 3),
+                  _navItem(s, settings, iconActive: Icons.emoji_events_rounded, iconInactive: Icons.emoji_events_outlined, label: s.navWorldCup, index: 3),
+                  _navItem(s, settings, iconActive: Icons.person_rounded, iconInactive: Icons.person_outline_rounded, label: s.navProfile, index: 4),
                 ],
               ),
             ),
