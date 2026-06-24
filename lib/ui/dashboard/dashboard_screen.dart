@@ -37,6 +37,7 @@ import '../../widgets/update_prompt_dialog.dart';
 import '../../services/tmdb_service.dart';
 import '../../widgets/dynamic_background.dart';
 import '../../widgets/tv_focus_wrapper.dart';
+import '../../widgets/tv/tv_focusable.dart';
 import '../../widgets/tv_fluid_focusable.dart';
 import 'package:lottie/lottie.dart';
 import 'package:flutter_staggered_animations/flutter_staggered_animations.dart';
