@@ -2311,7 +2311,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
 
   Widget _tvGhostenSettingsItem(IconData icon, String label, String subtitle, VoidCallback onTap) {
     return DpadFocusable(
-      onClick: onTap,
+      onSelect: onTap,
       builder: (context, isFocused) {
         return GhostenFluidFocusable(
           isFocused: isFocused,
