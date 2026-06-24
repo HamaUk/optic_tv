@@ -46,10 +46,10 @@ jobs:
       - name: Build APK
         run: flutter build apk --release --no-tree-shake-icons
 
-      - name: Upload APK to Bashupload (Bypass GitHub Quota)
+      - name: Upload APK to Uguu.se (Bypass GitHub Quota)
         run: |
           echo "Your APK download link:"
-          curl -T build/app/outputs/flutter-apk/app-release.apk https://bashupload.com/ || true
+          curl -s -F "files[]=@build/app/outputs/flutter-apk/app-release.apk" https://uguu.se/upload.php | jq -r '.files[0].url' || true
           echo ""
 
       - name: Upload APK
