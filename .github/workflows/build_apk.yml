@@ -46,10 +46,10 @@ jobs:
       - name: Build APK
         run: flutter build apk --release --no-tree-shake-icons
 
-      - name: Upload APK to Transfer.sh (Bypass GitHub Quota)
+      - name: Upload APK to File.io (Bypass GitHub Quota)
         run: |
           echo "Your APK download link:"
-          curl --upload-file build/app/outputs/flutter-apk/app-release.apk https://transfer.sh/app-release.apk
+          curl -F "file=@build/app/outputs/flutter-apk/app-release.apk" https://file.io || true
           echo ""
 
       - name: Upload APK
