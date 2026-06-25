@@ -241,7 +241,7 @@ class _WorldCupScreenState extends ConsumerState<WorldCupScreen>
                   s.wcLive.toUpperCase(),
                   style: const TextStyle(
                     color: Colors.redAccent,
-                    fontWeight: FontWeight.black,
+                    fontWeight: FontWeight.w900,
                     fontSize: 12,
                     letterSpacing: 1.5
                   ),
@@ -705,7 +705,7 @@ class _WorldCupScreenState extends ConsumerState<WorldCupScreen>
                     border: Border(
                       bottom: idx == teams.length - 1
                           ? BorderSide.none
-                          : const BorderSide(color: Colors.white05),
+                          : const BorderSide(color: Colors.white10),
                     ),
                   ),
                   children: [
@@ -1046,7 +1046,7 @@ class _WorldCupScreenState extends ConsumerState<WorldCupScreen>
                   Navigator.push(
                     context,
                     MaterialPageRoute(
-                      builder: (_) => TeamDetailsScreen(teamId: id, teamName: name, teamLogo: logo),
+                      builder: (_) => TeamDetailsScreen(teamId: id, teamName: name, teamFlag: logo),
                     ),
                   );
                 }
