@@ -799,6 +799,83 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                     ],
                   ),
                 ),
+                const SizedBox(height: 32),
+                Text(
+                  'About',
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                        color: AppTheme.accentColor(_data.gradientPreset),
+                        fontWeight: FontWeight.bold,
+                      ),
+                ),
+                const SizedBox(height: 12),
+                _glassCard(
+                  child: Column(
+                    children: [
+                      const Icon(Icons.info_outline_rounded, color: Colors.white70, size: 48),
+                      const SizedBox(height: 16),
+                      Text(
+                        'KOBANI 4K',
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 24,
+                          fontWeight: FontWeight.w900,
+                          letterSpacing: 2,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        'Version 1.2.0+14',
+                        style: TextStyle(
+                          color: Colors.white.withOpacity(0.5),
+                          fontSize: 14,
+                        ),
+                      ),
+                      const SizedBox(height: 24),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 16),
+                        child: Text(
+                          s.locale.languageCode == 'ckb'
+                              ? 'ئەگەر تووشی هەر کێشەیەک بوویت یان پێویستت بە هاوکاری بوو، تکایە ڕاستەوخۆ لە تێلیگرام پەیوەندیم پێوە بکە. من لێرەم بۆ یارمەتیدانت!'
+                              : 'If you encounter any problem or need help, please contact me directly on Telegram. I\'m here to help you!',
+                          style: TextStyle(
+                            color: Colors.white.withOpacity(0.7),
+                            fontSize: 14,
+                            height: 1.5,
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
+                      ),
+                      const SizedBox(height: 24),
+                      SizedBox(
+                        width: double.infinity,
+                        child: FilledButton.icon(
+                          style: FilledButton.styleFrom(
+                            backgroundColor: AppTheme.accentColor(_data.gradientPreset),
+                            padding: const EdgeInsets.symmetric(vertical: 16),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                          ),
+                          onPressed: () async {
+                            final url = Uri.parse('https://t.me/KOBANI_4K');
+                            if (await canLaunchUrl(url)) {
+                              await launchUrl(url, mode: LaunchMode.externalApplication);
+                            }
+                          },
+                          icon: const Icon(Icons.send_rounded, color: Colors.black),
+                          label: Text(
+                            s.locale.languageCode == 'ckb' ? 'تێلیگرامی کۆبانی' : 'KOBANI 4K TELEGRAM',
+                            style: const TextStyle(color: Colors.black, fontWeight: FontWeight.w900, letterSpacing: 1.2),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      Text(
+                        '© 2026 KOBANI 4K. All rights reserved.',
+                        style: TextStyle(color: Colors.white.withOpacity(0.3), fontSize: 12),
+                      ),
+                      const SizedBox(height: 8),
+                    ],
+                  ),
+                ),
               ],
               ),
             ),

@@ -59,7 +59,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
   int _adminLogoTaps = 0;
   Timer? _adminTapResetTimer;
 
-  /// 0 Home, 1 Movies, 2 Sport, 3 World Cup, 4 About
+  /// 0 Home, 1 Movies, 2 Sport, 3 World Cup
   int _navIndex = 0;
   bool _searchOpen = false;
   bool _tvHomeActive = true; 
@@ -203,7 +203,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
         // Sport tab: show only channels that are identified as Sport
         return all.where(_isSportChannel).toList();
       case 3:
-        // About tab: return empty, content is built in _AboutTab widget.
+        // World Cup tab: return empty, content is built in WorldCupScreen
         return [];
       default:
         // Home: ONLY show live tv, strictly exclude movies and sports.
@@ -554,12 +554,13 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
             return a.key.toLowerCase().compareTo(b.key.toLowerCase());
           });
 
-        // About tab: show dedicated screen instead of channel grid.
-        if (_navIndex == 4) {
-          final screen = _AboutTab(settings: settings, s: s);
+        // World Cup tab: show dedicated screen instead of channel grid.
+        if (_navIndex == 3) {
+          return const WorldCupScreen();
+        }
 
-          return Scaffold(
-            backgroundColor: AppTheme.backgroundBlack,
+        return Scaffold(
+          backgroundColor: AppTheme.backgroundBlack,
             body: Container(
               decoration: BoxDecoration(
                 gradient: AppTheme.shellGradient(settings.gradientPreset),
@@ -810,7 +811,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
                         const SizedBox(height: 16),
                         _railItem(s, 2, Icons.sports_basketball_rounded, s.navSport, _navIndex == 2),
                         const SizedBox(height: 16),
-                        _railItem(s, 3, Icons.person_pin_rounded, s.sectionAbout, _navIndex == 3),
+                        _railItem(s, 3, Icons.emoji_events_rounded, s.navWorldCup, _navIndex == 3),
                         const Spacer(),
                         _railItem(s, -1, Icons.settings_suggest_rounded, s.settingsTooltip, false, onTap: _openSettings),
                       ],
@@ -1874,18 +1875,13 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
                 selectedIndex: _navIndex,
                 onTabChange: (index) {
                   HapticFeedback.selectionClick();
-                  if (index == 4 && _navIndex == 4) {
-                    _openSettings(); // Allow opening settings by tapping profile again
-                  } else {
-                    setState(() => _navIndex = index);
-                  }
+                  setState(() => _navIndex = index);
                 },
                 tabs: [
                   GButton(icon: _navIndex == 0 ? Icons.grid_view_rounded : Icons.grid_view_outlined, text: s.navHome),
                   GButton(icon: _navIndex == 1 ? Icons.movie_creation_rounded : Icons.movie_creation_outlined, text: s.navMovies),
                   GButton(icon: _navIndex == 2 ? Icons.sports_basketball_rounded : Icons.sports_basketball_outlined, text: s.navSport),
                   GButton(icon: _navIndex == 3 ? Icons.emoji_events_rounded : Icons.emoji_events_outlined, text: s.navWorldCup),
-                  GButton(icon: _navIndex == 4 ? Icons.person_rounded : Icons.person_outline_rounded, text: s.navProfile),
                 ],
               ),
             ),
@@ -2845,131 +2841,6 @@ class _MarqueeTextState extends State<_MarqueeText> with SingleTickerProviderSta
           ),
         ),
       ],
-    );
-  }
-}
-
-class _AboutTab extends StatelessWidget {
-  final AppSettingsData settings;
-  final AppStrings s;
-  const _AboutTab({required this.settings, required this.s});
-
-  Future<void> _launchUrl(String url) async {
-    try {
-      final uri = Uri.parse(url);
-      if (await canLaunchUrl(uri)) {
-        await launchUrl(uri, mode: LaunchMode.externalApplication);
-      }
-    } catch (_) {}
-  }
-
-  Future<void> _checkUpdate(BuildContext context) async {
-    final ref = FirebaseDatabase.instance.ref('sync/global/settings/updateUrl');
-    final snapshot = await ref.get();
-    final url = snapshot.value as String?;
-
-    if (url != null && url.isNotEmpty) {
-      await _launchUrl(url);
-    } else {
-      if (context.mounted) {
-        // High-visibility snackbar with theme accent
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              s.locale.languageCode == 'ckb' 
-                  ? 'تۆ نوێترین وەشانت لایە' 
-                  : 'You are on the latest version',
-              style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
-            ),
-            backgroundColor: AppTheme.accentColor(settings.gradientPreset),
-            duration: const Duration(seconds: 4),
-          ),
-        );
-      }
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final accent = AppTheme.accentColor(settings.gradientPreset);
-    return SingleChildScrollView(
-      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
-      child: Column(
-        children: [
-          const KobaniWordmark(height: 60),
-          const SizedBox(height: 48),
-          Container(
-            padding: const EdgeInsets.all(24),
-            decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.06),
-              borderRadius: BorderRadius.circular(24),
-              border: Border.all(color: Colors.white.withOpacity(0.1)),
-            ),
-            child: Column(
-              children: [
-                Text(
-                  "ئەگەر تووشی هەر کێشەیەک بوویت یان پێویستت بە هاوکاری بوو، تکایە ڕاستەوخۆ لە تێلیگرام پەیوەندیم پێوە بکە. من لێرەم بۆ یارمەتیدانت!",
-                  style: AppTheme.withRabarIfKurdish(
-                    const Locale('ckb'),
-                    const TextStyle(
-                      color: Colors.white,
-                      fontSize: 16,
-                      height: 1.6,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                  textAlign: TextAlign.center,
-                ),
-                const SizedBox(height: 24),
-                SizedBox(
-                  width: double.infinity,
-                  child: FilledButton.icon(
-                    style: FilledButton.styleFrom(
-                      backgroundColor: accent,
-                      padding: const EdgeInsets.symmetric(vertical: 16),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                    ),
-                    onPressed: () => _launchUrl('https://t.me/KOBANI_4K'),
-                    icon: const Icon(Icons.send_rounded, color: Colors.black),
-                    label: Text(
-                      s.locale.languageCode == 'ckb' ? 'تێلیگرامی کۆبانی' : 'KOBANI 4K TELEGRAM',
-                      style: const TextStyle(color: Colors.black, fontWeight: FontWeight.w900, letterSpacing: 1.2),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 24),
-          SizedBox(
-            width: double.infinity,
-            child: OutlinedButton.icon(
-              style: OutlinedButton.styleFrom(
-                side: BorderSide(color: accent.withOpacity(0.5), width: 1.5),
-                padding: const EdgeInsets.symmetric(vertical: 16),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                foregroundColor: accent,
-              ),
-              onPressed: () => _checkUpdate(context),
-              icon: const Icon(Icons.system_update_rounded),
-              label: Text(
-                s.locale.languageCode == 'ckb' ? 'پشکنین بۆ وەشانە نوێکان' : 'CHECK LATEST UPDATE',
-                style: const TextStyle(fontWeight: FontWeight.w800, letterSpacing: 1),
-              ),
-            ),
-          ),
-          const SizedBox(height: 64),
-          Text(
-            'Version 1.0.0+1',
-            style: TextStyle(color: Colors.white24, fontSize: 12),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            '© 2026 KOBANI 4K. All rights reserved.',
-            style: TextStyle(color: Colors.white10, fontSize: 10),
-          ),
-        ],
-      ),
     );
   }
 }
