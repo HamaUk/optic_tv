@@ -699,9 +699,9 @@ class AppStrings {
   // ─── World Cup ────────────────────────────────────────────────
 
   String get wcTitle {
-    if (isKurmanji) return 'Kûpaya Cîhanê FIFA';
-    if (isSorani) return 'جامجهانی FIFA';
-    return 'FIFA World Cup';
+    if (isKurmanji) return 'Kûpaya Cîhanê FIFA 2026';
+    if (isSorani) return 'مۆندیالی ٢٠٢٦';
+    return 'FIFA World Cup 2026';
   }
 
   String get wcTabLive {

@@ -62,7 +62,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
     final uiLocale = ref.watch(appLocaleProvider);
     final session = ref.watch(sessionProvider);
     final s = AppStrings(uiLocale);
-    final isTv = MediaQuery.sizeOf(context).width > 900;
+    const isTv = false;
 
     return Scaffold(
       backgroundColor: Colors.black,

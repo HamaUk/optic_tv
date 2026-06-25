@@ -8,6 +8,7 @@ import '../../providers/app_locale_provider.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'match_details_screen.dart';
 import 'team_details_screen.dart';
+
 class WorldCupScreen extends ConsumerStatefulWidget {
   const WorldCupScreen({super.key});
 
@@ -18,8 +19,7 @@ class WorldCupScreen extends ConsumerStatefulWidget {
 class _WorldCupScreenState extends ConsumerState<WorldCupScreen>
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
-  DateTime _selectedDate = DateTime.now();
-  List<dynamic> _games = [];
+  int _selectedDayOffset = 0; // -1 = Yesterday, 0 = Today, 1 = Tomorrow
   List<dynamic> _groups = [];
   List<dynamic> _liveSoccer = [];
   List<dynamic> _news = [];
@@ -32,58 +32,29 @@ class _WorldCupScreenState extends ConsumerState<WorldCupScreen>
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 7, vsync: this);
+    // 6 Tabs: Matches (Combined), Groups, News, Scorers (Stats), Teams, Venues
+    _tabController = TabController(length: 6, vsync: this);
     _loadData();
-    _loadLiveSoccer(_selectedDate);
+    _loadLiveSoccerForOffset(_selectedDayOffset);
     _loadNews();
     _loadScorers();
   }
 
   Future<void> _loadData() async {
     setState(() => _isLoading = true);
-    final games = await WorldCupService.fetchGames();
     final groups = await WorldCupService.fetchGroups();
-    
-    // Sort games strategically: 
-    // 1. Upcoming games first (sorted ascending by date, so soonest is top)
-    // 2. Finished games next (sorted descending by date, so most recently finished is top)
-    DateTime? parseDate(String? d) {
-      if (d == null) return null;
-      try {
-        final p = d.split(' ');
-        final dp = p[0].split('/');
-        final tp = p[1].split(':');
-        return DateTime(int.parse(dp[2]), int.parse(dp[0]), int.parse(dp[1]), int.parse(tp[0]), int.parse(tp[1]));
-      } catch (_) { return null; }
-    }
-    
-    games.sort((a, b) {
-      final aFin = a['finished'] == 'TRUE' || a['finished'] == true;
-      final bFin = b['finished'] == 'TRUE' || b['finished'] == true;
-      if (aFin != bFin) return aFin ? 1 : -1; // Unfinished first
-      final aDate = parseDate(a['local_date']);
-      final bDate = parseDate(b['local_date']);
-      if (aDate == null && bDate == null) return 0;
-      if (aDate == null) return 1;
-      if (bDate == null) return -1;
-      // If unfinished, sort ascending (closest first)
-      if (!aFin) return aDate.compareTo(bDate);
-      // If finished, sort descending (most recent first)
-      return bDate.compareTo(aDate);
-    });
-
     if (mounted) {
       setState(() {
-        _games = games;
         _groups = groups;
         _isLoading = false;
       });
     }
   }
 
-  Future<void> _loadLiveSoccer(DateTime date) async {
+  Future<void> _loadLiveSoccerForOffset(int offset) async {
     setState(() => _isLoadingLive = true);
-    final data = await WorldCupService.fetchLiveSoccerForDate(date);
+    final targetDate = DateTime.now().add(Duration(days: offset));
+    final data = await WorldCupService.fetchLiveSoccerForDate(targetDate);
     if (mounted) {
       setState(() {
         _liveSoccer = data;
@@ -132,7 +103,7 @@ class _WorldCupScreenState extends ConsumerState<WorldCupScreen>
         elevation: 0,
         centerTitle: true,
         title: Text(
-          '${s.wcTitle} 2026',
+          s.wcTitle,
           style: const TextStyle(
             color: Colors.white,
             fontSize: 24,
@@ -148,7 +119,6 @@ class _WorldCupScreenState extends ConsumerState<WorldCupScreen>
           isScrollable: true,
           labelStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
           tabs: [
-            Tab(text: s.wcTabLive),
             Tab(text: s.wcTabMatches),
             Tab(text: s.wcTabGroups),
             Tab(text: s.wcTabNews),
@@ -161,7 +131,6 @@ class _WorldCupScreenState extends ConsumerState<WorldCupScreen>
       body: TabBarView(
         controller: _tabController,
         children: [
-          _buildLiveSoccerTab(s),
           _buildMatchesTab(s),
           _buildGroupsTab(s),
           _buildNewsTab(s),
@@ -173,99 +142,24 @@ class _WorldCupScreenState extends ConsumerState<WorldCupScreen>
     );
   }
 
-  // ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ Live Soccer Tab ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬
-
-  Widget _buildLiveSoccerTab(AppStrings s) {
-    final today = DateTime(DateTime.now().year, DateTime.now().month, DateTime.now().day);
-    final List<DateTime> tournamentDates = [];
-    
-    // Add recent and upcoming days around today
-    for (int i = -3; i <= 7; i++) {
-      tournamentDates.add(today.add(Duration(days: i)));
-    }
-    
-    // Add World Cup dates
-    final wcStart = DateTime(2026, 6, 11);
-    final wcEnd = DateTime(2026, 7, 19);
-    for (var d = wcStart; d.isBefore(wcEnd.add(const Duration(days: 1))); d = d.add(const Duration(days: 1))) {
-      // Only add if not already in the list
-      if (!tournamentDates.any((existing) => existing.year == d.year && existing.month == d.month && existing.day == d.day)) {
-        tournamentDates.add(d);
-      }
-    }
-    
-    // Sort chronologically
-    tournamentDates.sort((a, b) => a.compareTo(b));
-    
-    int selectedIndex = tournamentDates.indexWhere((d) => d.year == _selectedDate.year && d.month == _selectedDate.month && d.day == _selectedDate.day);
-    if (selectedIndex < 0) selectedIndex = 0;
-    
-    double initialOffset = (selectedIndex > 2 ? selectedIndex - 2 : 0) * 82.0;
-
+  Widget _buildMatchesTab(AppStrings s) {
     return Column(
       children: [
+        // Yesterday, Today, Tomorrow filters
         Padding(
-          padding: const EdgeInsets.symmetric(vertical: 12),
-          child: SizedBox(
-            height: 60,
-            child: ListView.builder(
-              controller: ScrollController(initialScrollOffset: initialOffset),
-              scrollDirection: Axis.horizontal,
-              itemCount: tournamentDates.length,
-              itemBuilder: (context, index) {
-                final date = tournamentDates[index];
-                final isSelected = _selectedDate.year == date.year && _selectedDate.month == date.month && _selectedDate.day == date.day;
-                final monthStr = ["", "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"][date.month];
-
-                return GestureDetector(
-                  onTap: () {
-                    if (_selectedDate != date) {
-                      setState(() => _selectedDate = date);
-                      _loadLiveSoccer(date);
-                    }
-                  },
-                  child: Container(
-                    margin: const EdgeInsets.only(left: 12),
-                    child: isSelected
-                        ? AnimatedGradientBorder(
-                            borderWidth: 1.5,
-                            borderRadius: BorderRadius.circular(20),
-                            child: Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                              decoration: BoxDecoration(
-                                color: const Color(0xFFD4AF37).withOpacity(0.15),
-                                borderRadius: BorderRadius.circular(20),
-                              ),
-                              child: Column(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  Text(monthStr, style: const TextStyle(color: Color(0xFFD4AF37), fontSize: 10, fontWeight: FontWeight.bold)),
-                                  Text(date.day.toString(), style: const TextStyle(color: Color(0xFFD4AF37), fontSize: 16, fontWeight: FontWeight.w900)),
-                                ],
-                              ),
-                            ),
-                          )
-                        : Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                            decoration: BoxDecoration(
-                              color: const Color(0xFF1A1A1A),
-                              borderRadius: BorderRadius.circular(20),
-                              border: Border.all(color: Colors.white10),
-                            ),
-                            child: Column(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Text(monthStr, style: const TextStyle(color: Colors.white54, fontSize: 10, fontWeight: FontWeight.bold)),
-                                Text(date.day.toString(), style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w900)),
-                              ],
-                            ),
-                          ),
-                  ),
-                );
-              },
-            ),
+          padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              _buildDateToggle(-1, s.wcYesterday),
+              const SizedBox(width: 8),
+              _buildDateToggle(0, s.wcToday),
+              const SizedBox(width: 8),
+              _buildDateToggle(1, s.wcTomorrow),
+            ],
           ),
         ),
+        
         Expanded(
           child: _isLoadingLive
               ? const Center(child: CircularProgressIndicator(color: Color(0xFFD4AF37)))
@@ -274,16 +168,106 @@ class _WorldCupScreenState extends ConsumerState<WorldCupScreen>
                   : RefreshIndicator(
                       color: const Color(0xFFD4AF37),
                       backgroundColor: const Color(0xFF1A1A1A),
-                      onRefresh: () => _loadLiveSoccer(_selectedDate),
-                      child: ListView.builder(
-                        padding: const EdgeInsets.only(bottom: 100),
-                        itemCount: _liveSoccer.length,
-                        itemBuilder: (context, index) {
-                          return _buildEspnMatchCard(_liveSoccer[index], s);
-                        },
-                      ),
+                      onRefresh: () => _loadLiveSoccerForOffset(_selectedDayOffset),
+                      child: _buildMatchesList(s),
                     ),
         ),
+      ],
+    );
+  }
+
+  Widget _buildDateToggle(int offset, String label) {
+    final isSelected = _selectedDayOffset == offset;
+    return GestureDetector(
+      onTap: () {
+        if (!isSelected) {
+          setState(() => _selectedDayOffset = offset);
+          _loadLiveSoccerForOffset(offset);
+        }
+      },
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+        decoration: BoxDecoration(
+          gradient: isSelected 
+            ? const LinearGradient(colors: [Color(0xFFD4AF37), Color(0xFFAA8C2C)])
+            : null,
+          color: isSelected ? null : Colors.white.withOpacity(0.08),
+          borderRadius: BorderRadius.circular(24),
+          border: Border.all(
+            color: isSelected ? const Color(0xFFD4AF37) : Colors.white.withOpacity(0.15),
+            width: isSelected ? 2 : 1,
+          ),
+          boxShadow: isSelected 
+            ? [BoxShadow(color: const Color(0xFFD4AF37).withOpacity(0.3), blurRadius: 12, offset: const Offset(0, 4))]
+            : null,
+        ),
+        child: Text(
+          label,
+          style: TextStyle(
+            color: isSelected ? Colors.black : Colors.white70,
+            fontWeight: isSelected ? FontWeight.w800 : FontWeight.w500,
+            fontSize: 13,
+            letterSpacing: 0.5,
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildMatchesList(AppStrings s) {
+    // Separate live from other matches
+    final liveMatches = _liveSoccer.where((event) {
+      final state = event['status']?['type']?['state'] ?? 'pre';
+      return state == 'in';
+    }).toList();
+    
+    final otherMatches = _liveSoccer.where((event) {
+      final state = event['status']?['type']?['state'] ?? 'pre';
+      return state != 'in';
+    }).toList();
+
+    return ListView(
+      padding: const EdgeInsets.only(bottom: 100),
+      children: [
+        if (liveMatches.isNotEmpty) ...[
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            child: Row(
+              children: [
+                const Icon(Icons.live_tv_rounded, color: Colors.redAccent, size: 18),
+                const SizedBox(width: 8),
+                Text(
+                  s.wcLive.toUpperCase(),
+                  style: const TextStyle(
+                    color: Colors.redAccent,
+                    fontWeight: FontWeight.black,
+                    fontSize: 12,
+                    letterSpacing: 1.5
+                  ),
+                ),
+              ],
+            ),
+          ),
+          ...liveMatches.map((match) => _buildEspnMatchCard(match, s)),
+          const Divider(color: Colors.white10, height: 24, thickness: 1, indent: 16, endIndent: 16),
+        ],
+        
+        if (otherMatches.isNotEmpty) ...[
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            child: Text(
+              s.wcTabMatches.toUpperCase(),
+              style: const TextStyle(
+                color: Colors.white54,
+                fontWeight: FontWeight.bold,
+                fontSize: 11,
+                letterSpacing: 1.5
+              ),
+            ),
+          ),
+          ...otherMatches.map((match) => _buildEspnMatchCard(match, s)),
+        ],
       ],
     );
   }
@@ -346,16 +330,20 @@ class _WorldCupScreenState extends ConsumerState<WorldCupScreen>
       } catch (_) {}
     }
 
+    // Exact Match Time (e.g. 18:00) to display in the middle instead of "VS"
+    String matchTime = 'VS';
+    if (event['date'] != null) {
+      try {
+        final dt = DateTime.parse(event['date']).toLocal();
+        matchTime = '${dt.hour.toString().padLeft(2, '0')}:${dt.minute.toString().padLeft(2, '0')}';
+      } catch (_) {}
+    }
+
     final Color badgeColor = finished
         ? Colors.white.withOpacity(0.18)
         : isLive
             ? const Color(0xFFD4AF37).withOpacity(0.2)
             : Colors.blue.withOpacity(0.18);
-    final Color badgeBorder = finished
-        ? Colors.white.withOpacity(0.25)
-        : isLive
-            ? const Color(0xFFD4AF37)
-            : Colors.blueAccent.withOpacity(0.6);
     final Color badgeText = finished
         ? Colors.white60
         : isLive
@@ -408,156 +396,153 @@ class _WorldCupScreenState extends ConsumerState<WorldCupScreen>
               ],
             ),
             child: Padding(
-          padding: const EdgeInsets.all(18),
-          child: Column(
-            children: [
-              // Top bar: LIVE badge + match name
-              Row(
+              padding: const EdgeInsets.all(18),
+              child: Column(
                 children: [
-                  if (isLive) ...[
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 8, vertical: 3),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFD4AF37).withOpacity(0.18),
-                        borderRadius: BorderRadius.circular(10),
-                        border: Border.all(
-                          color: const Color(0xFFD4AF37).withOpacity(0.7),
-                          width: 1,
-                        ),
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Container(
-                            width: 5,
-                            height: 5,
-                            decoration: const BoxDecoration(
-                              color: Color(0xFFD4AF37),
-                              shape: BoxShape.circle,
-                            ),
-                          ),
-                          const SizedBox(width: 5),
-                          Text(
-                            s.wcLive,
-                            style: const TextStyle(
-                              color: Color(0xFFD4AF37),
-                              fontSize: 10,
-                              fontWeight: FontWeight.w800,
-                              letterSpacing: 0.8,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                  ],
-                  if (event['shortName'] != null || event['name'] != null)
-                    Expanded(
-                      child: Text(
-                        event['shortName'] ?? event['name'] ?? '',
-                        style: TextStyle(
-                          color: Colors.white.withOpacity(0.45),
-                          fontSize: 11,
-                          fontWeight: FontWeight.w500,
-                        ),
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ),
-                ],
-              ),
-              const SizedBox(height: 14),
-              // Teams row
-              Row(
-                children: [
-                  // Home
-                  Expanded(
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.end,
-                      children: [
-                        Expanded(
-                          child: Text(
-                            homeTeam,
-                            textAlign: TextAlign.end,
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontWeight: FontWeight.bold,
-                              fontSize: 15,
-                            ),
-                            maxLines: 2,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ),
-                        const SizedBox(width: 10),
-                        _teamLogo(homeFlag, width: 30, height: 22),
-                      ],
-                    ),
-                  ),
-                  // Score / VS
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 16),
-                    child: Column(
-                      children: [
-                        Text(
-                          state == 'pre'
-                              ? 'VS'
-                              : '$homeScore - $awayScore',
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontWeight: FontWeight.w900,
-                            fontSize: 24,
-                          ),
-                        ),
-                        const SizedBox(height: 6),
+                  Row(
+                    children: [
+                      if (isLive) ...[
                         Container(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 8, vertical: 3),
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                           decoration: BoxDecoration(
-                            color: badgeColor,
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          child: Text(
-                            finished ? s.wcFinished : timeLabel,
-                            style: TextStyle(
-                              color: badgeText,
-                              fontWeight: FontWeight.bold,
-                              fontSize: 11,
+                            color: const Color(0xFFD4AF37).withOpacity(0.18),
+                            borderRadius: BorderRadius.circular(10),
+                            border: Border.all(
+                              color: const Color(0xFFD4AF37).withOpacity(0.7),
+                              width: 1,
                             ),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Container(
+                                width: 5,
+                                height: 5,
+                                decoration: const BoxDecoration(
+                                  color: Color(0xFFD4AF37),
+                                  shape: BoxShape.circle,
+                                ),
+                              ),
+                              const SizedBox(width: 5),
+                              Text(
+                                s.wcLive,
+                                style: const TextStyle(
+                                  color: Color(0xFFD4AF37),
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.w800,
+                                  letterSpacing: 0.8,
+                                ),
+                              ),
+                            ],
                           ),
                         ),
+                        const SizedBox(width: 8),
                       ],
-                    ),
-                  ),
-                  // Away
-                  Expanded(
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.start,
-                      children: [
-                        _teamLogo(awayFlag, width: 30, height: 22),
-                        const SizedBox(width: 10),
+                      if (event['shortName'] != null || event['name'] != null)
                         Expanded(
                           child: Text(
-                            awayTeam,
-                            textAlign: TextAlign.start,
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontWeight: FontWeight.bold,
-                              fontSize: 15,
+                            event['shortName'] ?? event['name'] ?? '',
+                            style: TextStyle(
+                              color: Colors.white.withOpacity(0.45),
+                              fontSize: 11,
+                              fontWeight: FontWeight.w500,
                             ),
-                            maxLines: 2,
                             overflow: TextOverflow.ellipsis,
                           ),
                         ),
-                      ],
-                    ),
+                    ],
+                  ),
+                  const SizedBox(height: 14),
+                  Row(
+                    children: [
+                      // Home
+                      Expanded(
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.end,
+                          children: [
+                            Expanded(
+                              child: Text(
+                                homeTeam,
+                                textAlign: TextAlign.end,
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 15,
+                                ),
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                            const SizedBox(width: 10),
+                            _teamLogo(homeFlag, width: 30, height: 22),
+                          ],
+                        ),
+                      ),
+                      // Score or Match Time
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 16),
+                        child: Column(
+                          children: [
+                            Text(
+                              state == 'pre' ? matchTime : '$homeScore - $awayScore',
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontWeight: FontWeight.w900,
+                                fontSize: 24,
+                              ),
+                            ),
+                            const SizedBox(height: 6),
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 8, vertical: 3),
+                              decoration: BoxDecoration(
+                                color: badgeColor,
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: Text(
+                                finished 
+                                    ? s.wcFinished 
+                                    : (state == 'pre' ? s.wcUpcoming : timeLabel),
+                                style: TextStyle(
+                                  color: badgeText,
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 11,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      // Away
+                      Expanded(
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.start,
+                          children: [
+                            _teamLogo(awayFlag, width: 30, height: 22),
+                            const SizedBox(width: 10),
+                            Expanded(
+                              child: Text(
+                                awayTeam,
+                                textAlign: TextAlign.start,
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 15,
+                                ),
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
                   ),
                 ],
               ),
-            ],
+            ),
           ),
         ),
-      ),
-      ),
       ),
     );
   }
@@ -597,246 +582,11 @@ class _WorldCupScreenState extends ConsumerState<WorldCupScreen>
     );
   }
 
-  // ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ Matches Tab (worldcup26.ir) ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬
-
-  Widget _buildMatchesTab(AppStrings s) {
-    if (_games.isEmpty) {
-      return Center(
-        child: Text(s.wcNoMatchesFound,
-            style: const TextStyle(color: Colors.white54)));
-    }
-    return RefreshIndicator(
-      color: const Color(0xFFD4AF37),
-      backgroundColor: const Color(0xFF1A1A1A),
-      onRefresh: _loadData,
-      child: ListView.builder(
-        padding: const EdgeInsets.only(top: 12, bottom: 100),
-        itemCount: _games.length,
-        itemBuilder: (context, index) {
-          return _buildMatchCard(_games[index], s);
-        },
-      ),
-    );
-  }
-
-  Widget _buildMatchCard(dynamic game, AppStrings s) {
-    final homeTeam =
-        game['home_team_name_en'] ?? game['home_team_label'] ?? '';
-    final awayTeam =
-        game['away_team_name_en'] ?? game['away_team_label'] ?? '';
-    final homeFlag = game['home_team_flag'];
-    final awayFlag = game['away_team_flag'];
-    final homeScore = game['home_score']?.toString() ?? '0';
-    final awayScore = game['away_score']?.toString() ?? '0';
-    final time = game['time_elapsed'] ?? '';
-    final finished =
-        game['finished'] == 'TRUE' || game['finished'] == true;
-    final isLive = !finished && time != 'notstarted' && time.isNotEmpty;
-
-    // Badge styling
-    final Color badgeBg = finished
-        ? Colors.white.withOpacity(0.1)
-        : isLive
-            ? const Color(0xFFD4AF37).withOpacity(0.15)
-            : Colors.blue.withOpacity(0.15);
-    final Color badgeText = finished
-        ? Colors.white54
-        : isLive
-            ? const Color(0xFFD4AF37)
-            : Colors.blueAccent;
-
-    return GestureDetector(
-      onTap: () {
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (context) => MatchDetailsScreen(
-              eventId: '', // worldcup26.ir matches don't have ESPN ID
-              homeTeam: homeTeam,
-              awayTeam: awayTeam,
-              homeFlag: homeFlag,
-              awayFlag: awayFlag,
-              gameData: game,
-            ),
-          ),
-        );
-      },
-      child: Container(
-        margin: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
-        child: AnimatedGradientBorder(
-        borderWidth: 1.2,
-        borderRadius: BorderRadius.circular(18),
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 18),
-          decoration: BoxDecoration(
-            color: isLive
-                ? const Color(0xFFD4AF37).withOpacity(0.05)
-                : Colors.white.withOpacity(0.04),
-            borderRadius: BorderRadius.circular(18),
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              if (game['local_date'] != null)
-                Padding(
-                  padding: const EdgeInsets.only(bottom: 12),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text(
-                        game['local_date'] ?? '',
-                        style: TextStyle(
-                          color: Colors.white.withOpacity(0.5),
-                          fontSize: 11,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                      if (game['group'] != null)
-                        Text(
-                          'Group ${game['group']}',
-                          style: TextStyle(
-                            color: Colors.white.withOpacity(0.5),
-                            fontSize: 11,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                    ],
-                  ),
-                ),
-              Row(
-                children: [
-                  // Home
-              Expanded(
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.end,
-                  children: [
-                    Expanded(
-                      child: Text(
-                        homeTeam,
-                        textAlign: TextAlign.end,
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontWeight: FontWeight.bold,
-                          fontSize: 15,
-                        ),
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ),
-                    const SizedBox(width: 10),
-                    if (homeFlag != null)
-                      ClipRRect(
-                        borderRadius: BorderRadius.circular(4),
-                        child: Image.network(
-                          homeFlag,
-                          width: 30,
-                          height: 22,
-                          fit: BoxFit.cover,
-                          errorBuilder: (_, __, ___) => const Icon(
-                              Icons.flag_rounded,
-                              color: Colors.white24,
-                              size: 20),
-                        ),
-                      )
-                    else
-                      const SizedBox(width: 30),
-                  ],
-                ),
-              ),
-              // Score
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                child: Column(
-                  children: [
-                    Text(
-                      time == 'notstarted'
-                          ? 'VS'
-                          : '$homeScore - $awayScore',
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontWeight: FontWeight.w900,
-                        fontSize: 24,
-                      ),
-                    ),
-                    const SizedBox(height: 6),
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 8, vertical: 3),
-                      decoration: BoxDecoration(
-                        color: badgeBg,
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: Text(
-                        finished
-                            ? s.wcFinished
-                            : (time == 'notstarted'
-                                ? s.wcUpcoming
-                                : time),
-                        style: TextStyle(
-                          color: badgeText,
-                          fontWeight: FontWeight.bold,
-                          fontSize: 11,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              // Away
-              Expanded(
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.start,
-                  children: [
-                    if (awayFlag != null)
-                      ClipRRect(
-                        borderRadius: BorderRadius.circular(4),
-                        child: Image.network(
-                          awayFlag,
-                          width: 30,
-                          height: 22,
-                          fit: BoxFit.cover,
-                          errorBuilder: (_, __, ___) => const Icon(
-                              Icons.flag_rounded,
-                              color: Colors.white24,
-                              size: 20),
-                        ),
-                      )
-                    else
-                      const SizedBox(width: 30),
-                    const SizedBox(width: 10),
-                    Expanded(
-                      child: Text(
-                        awayTeam,
-                        textAlign: TextAlign.start,
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontWeight: FontWeight.bold,
-                          fontSize: 15,
-                        ),
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-            ],
-          ),
-        ),
-      ),
-      ),
-    );
-  }
-
-  // ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ Groups Tab ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬
-
   Widget _buildGroupsTab(AppStrings s) {
     if (_groups.isEmpty) {
       return Center(
-          child: Text(s.wcNoGroups,
-              style: const TextStyle(color: Colors.white54)));
+        child: Text(s.wcNoGroups, style: const TextStyle(color: Colors.white54))
+      );
     }
     return ListView.builder(
       padding: const EdgeInsets.all(14).copyWith(bottom: 100),
@@ -850,8 +600,7 @@ class _WorldCupScreenState extends ConsumerState<WorldCupScreen>
     );
   }
 
-  Widget _buildGroupCard(
-      String groupName, List<dynamic> teams, AppStrings s) {
+  Widget _buildGroupCard(String groupName, List<dynamic> teams, AppStrings s) {
     return Container(
       margin: const EdgeInsets.only(bottom: 18),
       decoration: BoxDecoration(
@@ -864,27 +613,23 @@ class _WorldCupScreenState extends ConsumerState<WorldCupScreen>
           ],
         ),
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(
-            color: Colors.white.withOpacity(0.09), width: 1),
+        border: Border.all(color: Colors.white.withOpacity(0.09), width: 1),
         boxShadow: [
           BoxShadow(
-              color: Colors.black.withOpacity(0.3),
-              blurRadius: 16,
-              offset: const Offset(0, 6)),
+            color: Colors.black.withOpacity(0.3),
+            blurRadius: 16,
+            offset: const Offset(0, 6)
+          ),
         ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Group header
           Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
               gradient: LinearGradient(
-                colors: [
-                  const Color(0xFFD4AF37).withOpacity(0.15),
-                  const Color(0xFFD4AF37).withOpacity(0.04)
-                ],
+                colors: [const Color(0xFFD4AF37).withOpacity(0.12), const Color(0xFFD4AF37).withOpacity(0.02)],
               ),
               borderRadius: const BorderRadius.only(
                 topLeft: Radius.circular(20),
@@ -894,12 +639,9 @@ class _WorldCupScreenState extends ConsumerState<WorldCupScreen>
             child: Row(
               children: [
                 Container(
-                  padding: const EdgeInsets.symmetric(
-                      horizontal: 12, vertical: 8),
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                   decoration: BoxDecoration(
-                    gradient: const LinearGradient(
-                      colors: [Color(0xFFD4AF37), Color(0xFFB8960E)],
-                    ),
+                    color: const Color(0xFFD4AF37),
                     borderRadius: BorderRadius.circular(10),
                   ),
                   child: Text(
@@ -914,8 +656,8 @@ class _WorldCupScreenState extends ConsumerState<WorldCupScreen>
                 const SizedBox(width: 12),
                 Text(
                   s.wcGroupStandings,
-                  style: TextStyle(
-                    color: Colors.white.withOpacity(0.6),
+                  style: const TextStyle(
+                    color: Colors.white70,
                     fontSize: 13,
                     fontWeight: FontWeight.w500,
                   ),
@@ -923,346 +665,254 @@ class _WorldCupScreenState extends ConsumerState<WorldCupScreen>
               ],
             ),
           ),
-          // Table header
-          Container(
-            padding:
-                const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
-            decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.04)),
-            child: Row(
-              children: [
-                Expanded(
-                    flex: 4,
-                    child: Text(s.wcTeam,
-                        style: const TextStyle(
-                            color: Colors.white38,
-                            fontSize: 11,
-                            fontWeight: FontWeight.w600))),
-                const Expanded(
-                    flex: 1,
-                    child: Text('MP',
-                        textAlign: TextAlign.center,
-                        style: TextStyle(
-                            color: Colors.white38,
-                            fontSize: 11,
-                            fontWeight: FontWeight.w600))),
-                const Expanded(
-                    flex: 1,
-                    child: Text('W',
-                        textAlign: TextAlign.center,
-                        style: TextStyle(
-                            color: Colors.white38,
-                            fontSize: 11,
-                            fontWeight: FontWeight.w600))),
-                const Expanded(
-                    flex: 1,
-                    child: Text('D',
-                        textAlign: TextAlign.center,
-                        style: TextStyle(
-                            color: Colors.white38,
-                            fontSize: 11,
-                            fontWeight: FontWeight.w600))),
-                const Expanded(
-                    flex: 1,
-                    child: Text('L',
-                        textAlign: TextAlign.center,
-                        style: TextStyle(
-                            color: Colors.white38,
-                            fontSize: 11,
-                            fontWeight: FontWeight.w600))),
-                const Expanded(
-                    flex: 1,
-                    child: Text('Pts',
-                        textAlign: TextAlign.center,
-                        style: TextStyle(
-                            color: Color(0xFFD4AF37),
-                            fontSize: 11,
-                            fontWeight: FontWeight.w800))),
-              ],
-            ),
-          ),
-          ...teams.asMap().entries.map((entry) {
-            return _buildTeamRow(entry.value, entry.key < 2);
-          }),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildTeamRow(dynamic team, bool isTop) {
-    final name = team['team_name_en'] ?? '';
-    final flag = team['team_flag'];
-    final mp = team['mp'] ?? '0';
-    final w = team['w'] ?? '0';
-    final d = team['d'] ?? '0';
-    final l = team['l'] ?? '0';
-    final pts = team['pts'] ?? '0';
-
-    return Container(
-      padding:
-          const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
-      decoration: BoxDecoration(
-        color: isTop
-            ? const Color(0xFFD4AF37).withOpacity(0.08)
-            : Colors.transparent,
-        border: isTop
-            ? const Border(
-                left: BorderSide(color: Color(0xFFD4AF37), width: 3))
-            : null,
-      ),
-      child: Row(
-        children: [
-          Expanded(
-            flex: 4,
-            child: Row(
-              children: [
-                if (isTop)
-                  const Padding(
-                    padding: EdgeInsets.only(right: 6),
-                    child: Icon(Icons.arrow_upward_rounded,
-                        color: Color(0xFFD4AF37), size: 14),
-                  ),
-                if (flag != null)
-                  ClipRRect(
-                    borderRadius: BorderRadius.circular(4),
-                    child: Image.network(
-                      flag,
-                      width: 26,
-                      height: 18,
-                      fit: BoxFit.cover,
-                      errorBuilder: (_, __, ___) => const Icon(
-                          Icons.flag_rounded,
-                          color: Colors.white24,
-                          size: 16),
-                    ),
-                  )
-                else
-                  const SizedBox(width: 26),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Text(
-                    name,
-                    style: TextStyle(
-                      color: isTop
-                          ? const Color(0xFFD4AF37)
-                          : Colors.white,
-                      fontWeight: isTop
-                          ? FontWeight.w800
-                          : FontWeight.w500,
-                      fontSize: 13,
-                    ),
-                    overflow: TextOverflow.ellipsis,
-                  ),
+          Table(
+            columnWidths: const {
+              0: FlexColumnWidth(1.2),
+              1: FlexColumnWidth(4.0),
+              2: FlexColumnWidth(1.0),
+              3: FlexColumnWidth(1.0),
+              4: FlexColumnWidth(1.0),
+              5: FlexColumnWidth(1.2),
+            },
+            defaultVerticalAlignment: TableCellVerticalAlignment.middle,
+            children: [
+              TableRow(
+                decoration: const BoxDecoration(
+                  border: Border(bottom: BorderSide(color: Colors.white10)),
                 ),
-              ],
-            ),
-          ),
-          Expanded(
-              flex: 1,
-              child: Text(mp.toString(),
-                  textAlign: TextAlign.center,
-                  style: const TextStyle(
-                      color: Colors.white60, fontSize: 13))),
-          Expanded(
-              flex: 1,
-              child: Text(w.toString(),
-                  textAlign: TextAlign.center,
-                  style: const TextStyle(
-                      color: Colors.white60, fontSize: 13))),
-          Expanded(
-              flex: 1,
-              child: Text(d.toString(),
-                  textAlign: TextAlign.center,
-                  style: const TextStyle(
-                      color: Colors.white60, fontSize: 13))),
-          Expanded(
-              flex: 1,
-              child: Text(l.toString(),
-                  textAlign: TextAlign.center,
-                  style: const TextStyle(
-                      color: Colors.white60, fontSize: 13))),
-          Expanded(
-            flex: 1,
-            child: Text(
-              pts.toString(),
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                color: isTop ? const Color(0xFFD4AF37) : Colors.white,
-                fontWeight: FontWeight.w900,
-                fontSize: 15,
+                children: [
+                  _tableHeaderCell('#', Alignment.center),
+                  _tableHeaderCell(s.wcTeam, Alignment.centerLeft),
+                  _tableHeaderCell('P', Alignment.center),
+                  _tableHeaderCell('W', Alignment.center),
+                  _tableHeaderCell('D', Alignment.center),
+                  _tableHeaderCell('PTS', Alignment.center),
+                ],
               ),
-            ),
+              ...teams.asMap().entries.map((entry) {
+                final idx = entry.key;
+                final t = entry.value;
+                final pos = idx + 1;
+                final name = t['team_name_en'] ?? t['team_label'] ?? '';
+                final flag = t['team_flag'];
+                final p = t['played']?.toString() ?? '0';
+                final w = t['wins']?.toString() ?? '0';
+                final d = t['draws']?.toString() ?? '0';
+                final pts = t['pts']?.toString() ?? '0';
+
+                return TableRow(
+                  decoration: BoxDecoration(
+                    border: Border(
+                      bottom: idx == teams.length - 1
+                          ? BorderSide.none
+                          : const BorderSide(color: Colors.white05),
+                    ),
+                  ),
+                  children: [
+                    TableCell(
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        alignment: Alignment.center,
+                        child: Text(
+                          pos.toString(),
+                          style: TextStyle(
+                            color: pos <= 2 ? const Color(0xFFD4AF37) : Colors.white60,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 13,
+                          ),
+                        ),
+                      ),
+                    ),
+                    TableCell(
+                      child: Row(
+                        children: [
+                          if (flag != null)
+                            ClipRRect(
+                              borderRadius: BorderRadius.circular(2),
+                              child: Image.network(flag, width: 22, height: 16, fit: BoxFit.cover,
+                                errorBuilder: (_, __, ___) => const Icon(Icons.flag_rounded, color: Colors.white24, size: 14),
+                              ),
+                            )
+                          else
+                            const SizedBox(width: 22),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              name,
+                              style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 13),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    _tableBodyCell(p),
+                    _tableBodyCell(w),
+                    _tableBodyCell(d),
+                    TableCell(
+                      child: Container(
+                        alignment: Alignment.center,
+                        child: Text(
+                          pts,
+                          style: const TextStyle(
+                            color: Color(0xFFD4AF37),
+                            fontWeight: FontWeight.w900,
+                            fontSize: 14,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                );
+              }),
+            ],
           ),
         ],
       ),
     );
   }
 
-  // ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ News Tab ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬
+  Widget _tableHeaderCell(String label, Alignment alignment) {
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 8),
+      alignment: alignment,
+      child: Text(
+        label,
+        style: const TextStyle(color: Colors.white38, fontWeight: FontWeight.bold, fontSize: 11),
+      ),
+    );
+  }
+
+  Widget _tableBodyCell(String value) {
+    return TableCell(
+      child: Container(
+        alignment: Alignment.center,
+        child: Text(
+          value,
+          style: const TextStyle(color: Colors.white70, fontSize: 12),
+        ),
+      ),
+    );
+  }
 
   Widget _buildNewsTab(AppStrings s) {
-    if (_isLoadingNews) {
-      return const Center(
-          child: CircularProgressIndicator(color: Color(0xFFD4AF37)));
-    }
     if (_news.isEmpty) {
       return Center(
-          child: Text(s.wcNoNews,
-              style: const TextStyle(color: Colors.white54)));
+        child: Text(s.wcNoNews, style: const TextStyle(color: Colors.white54))
+      );
     }
     return RefreshIndicator(
       color: const Color(0xFFD4AF37),
       backgroundColor: const Color(0xFF1A1A1A),
       onRefresh: _loadNews,
       child: ListView.builder(
-        padding: const EdgeInsets.all(14).copyWith(bottom: 100),
+        padding: const EdgeInsets.only(top: 12, bottom: 100),
         itemCount: _news.length,
         itemBuilder: (context, index) {
-          return _buildNewsCard(_news[index], s);
+          final item = _news[index];
+          return _buildNewsCard(item, s);
         },
       ),
     );
   }
 
-  Widget _buildNewsCard(dynamic article, AppStrings s) {
-    final headline = article['headline'] ?? '';
-    final description = article['description'] ?? '';
-    final images = article['images'] as List<dynamic>? ?? [];
-    final imageUrl = images.isNotEmpty ? images.first['url'] : '';
-    final link = article['links']?['web']?['href'];
-    final published = article['published'] ?? '';
+  Widget _buildNewsCard(dynamic item, AppStrings s) {
+    final title = item['title'] ?? '';
+    final description = item['description'] ?? '';
+    final imageUrl = item['images'] != null && (item['images'] as List).isNotEmpty ? item['images'][0]['url'] : '';
+    final link = item['links'] != null && item['links']['web'] != null ? item['links']['web']['href'] : '';
+    final time = item['published'] ?? '';
+
+    String relativeTime = '';
+    if (time.isNotEmpty) {
+      try {
+        final dt = DateTime.parse(time).toLocal();
+        final diff = DateTime.now().difference(dt);
+        relativeTime = s.wcTimeAgo(diff.inMinutes);
+      } catch (_) {}
+    }
 
     return GestureDetector(
       onTap: () async {
-        if (link != null) {
-          final url = Uri.parse(link);
-          if (await canLaunchUrl(url)) {
-            await launchUrl(url, mode: LaunchMode.externalApplication);
+        if (link.isNotEmpty) {
+          final uri = Uri.parse(link);
+          if (await canLaunchUrl(uri)) {
+            await launchUrl(uri, mode: LaunchMode.externalApplication);
           }
         }
       },
       child: Container(
-        margin: const EdgeInsets.only(bottom: 18),
+        margin: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
         decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [
-              Colors.white.withOpacity(0.07),
-              Colors.white.withOpacity(0.02),
-            ],
-          ),
+          color: Colors.white.withOpacity(0.03),
           borderRadius: BorderRadius.circular(18),
-          border: Border.all(
-              color: Colors.white.withOpacity(0.08), width: 1),
-          boxShadow: [
-            BoxShadow(
-                color: Colors.black.withOpacity(0.2),
-                blurRadius: 12,
-                offset: const Offset(0, 5)),
-          ],
+          border: Border.all(color: Colors.white.withOpacity(0.06), width: 1),
         ),
-        clipBehavior: Clip.antiAlias,
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             if (imageUrl.isNotEmpty)
-              Stack(
-                children: [
-                  Image.network(
-                    imageUrl,
-                    height: 180,
-                    width: double.infinity,
-                    fit: BoxFit.cover,
-                    errorBuilder: (_, __, ___) => Container(
-                      height: 100,
-                      decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          colors: [
-                            Colors.white.withOpacity(0.08),
-                            Colors.white.withOpacity(0.03)
-                          ],
-                        ),
-                      ),
-                      child: const Icon(Icons.article_rounded,
-                          color: Colors.white12, size: 36),
-                    ),
-                  ),
-                  Positioned(
-                    top: 10,
-                    left: 10,
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 9, vertical: 4),
-                      decoration: BoxDecoration(
-                        gradient: const LinearGradient(
-                          colors: [Color(0xFFD4AF37), Color(0xFFB8960E)],
-                        ),
-                        borderRadius: BorderRadius.circular(16),
-                      ),
-                      child: Text(
-                        s.wcNewsLabel,
-                        style: const TextStyle(
-                          color: Colors.black,
-                          fontSize: 10,
-                          fontWeight: FontWeight.w800,
-                          letterSpacing: 0.8,
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
+              ClipRRect(
+                borderRadius: const BorderRadius.only(
+                  topLeft: Radius.circular(18),
+                  topRight: Radius.circular(18),
+                ),
+                child: Image.network(
+                  imageUrl,
+                  height: 160,
+                  width: double.infinity,
+                  fit: BoxFit.cover,
+                  errorBuilder: (_, __, ___) => const SizedBox.shrink(),
+                ),
               ),
             Padding(
               padding: const EdgeInsets.all(16),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFD4AF37).withOpacity(0.12),
+                          borderRadius: BorderRadius.circular(6),
+                        ),
+                        child: Text(
+                          s.wcNewsLabel,
+                          style: const TextStyle(
+                            color: Color(0xFFD4AF37),
+                            fontWeight: FontWeight.w800,
+                            fontSize: 9,
+                            letterSpacing: 0.5,
+                          ),
+                        ),
+                      ),
+                      if (relativeTime.isNotEmpty)
+                        Text(
+                          relativeTime,
+                          style: const TextStyle(color: Colors.white30, fontSize: 10),
+                        ),
+                    ],
+                  ),
+                  const SizedBox(height: 10),
                   Text(
-                    headline,
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 16,
-                      fontWeight: FontWeight.w700,
-                      height: 1.3,
-                    ),
+                    title,
+                    style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14),
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
                   ),
                   if (description.isNotEmpty) ...[
-                    const SizedBox(height: 8),
+                    const SizedBox(height: 6),
                     Text(
                       description,
+                      style: const TextStyle(color: Colors.white54, fontSize: 12, height: 1.3),
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                        color: Colors.white.withOpacity(0.55),
-                        fontSize: 13,
-                        height: 1.4,
-                      ),
                     ),
                   ],
-                  const SizedBox(height: 12),
-                  Row(
-                    children: [
-                      const Icon(Icons.access_time_rounded,
-                          color: Colors.white30, size: 13),
-                      const SizedBox(width: 5),
-                      Text(
-                        published.isNotEmpty
-                            ? _formatNewsDate(published, s)
-                            : s.wcRecently,
-                        style: const TextStyle(
-                          color: Colors.white30,
-                          fontSize: 11,
-                        ),
-                      ),
-                      const Spacer(),
-                      Icon(Icons.arrow_forward_rounded,
-                          color: const Color(0xFFD4AF37).withOpacity(0.6),
-                          size: 16),
-                    ],
-                  ),
                 ],
               ),
             ),
@@ -1272,284 +922,153 @@ class _WorldCupScreenState extends ConsumerState<WorldCupScreen>
     );
   }
 
-  String _formatNewsDate(String dateStr, AppStrings s) {
-    try {
-      final date = DateTime.parse(dateStr);
-      final diff = DateTime.now().difference(date);
-      return s.wcTimeAgo(diff.inMinutes);
-    } catch (_) {
-      return s.wcRecently;
-    }
-  }
-
-  // ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ Scorers Tab ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬
-
   Widget _buildScorersTab(AppStrings s) {
-    if (_isLoadingScorers) {
-      return const Center(
-          child: CircularProgressIndicator(color: Color(0xFFD4AF37)));
-    }
     if (_scorers.isEmpty) {
       return Center(
-          child: Text(s.wcNoScorers,
-              style: const TextStyle(color: Colors.white54)));
+        child: Text(s.wcNoScorers, style: const TextStyle(color: Colors.white54))
+      );
     }
     return RefreshIndicator(
       color: const Color(0xFFD4AF37),
       backgroundColor: const Color(0xFF1A1A1A),
       onRefresh: _loadScorers,
       child: ListView.builder(
-        padding: const EdgeInsets.all(14).copyWith(bottom: 100),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12).copyWith(bottom: 100),
         itemCount: _scorers.length,
         itemBuilder: (context, index) {
-          return _buildScorerCard(_scorers[index], index, s);
+          final item = _scorers[index];
+          final pos = index + 1;
+          final name = item['athlete_name'] ?? '';
+          final team = item['team_name'] ?? '';
+          final logo = item['team_logo'] ?? '';
+          final goals = item['goals']?.toString() ?? '0';
+
+          return Container(
+            margin: const EdgeInsets.only(bottom: 10),
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+            decoration: BoxDecoration(
+              color: Colors.white.withOpacity(0.04),
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: Colors.white.withOpacity(0.06), width: 1),
+            ),
+            child: Row(
+              children: [
+                Container(
+                  width: 24,
+                  alignment: Alignment.center,
+                  child: Text(
+                    pos.toString(),
+                    style: TextStyle(
+                      color: pos <= 3 ? const Color(0xFFD4AF37) : Colors.white38,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 14,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        name,
+                        style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14),
+                      ),
+                      const SizedBox(height: 3),
+                      Row(
+                        children: [
+                          if (logo.isNotEmpty) ...[
+                            Image.network(logo, width: 14, height: 14, fit: BoxFit.contain,
+                              errorBuilder: (_, __, ___) => const SizedBox.shrink(),
+                            ),
+                            const SizedBox(width: 6),
+                          ],
+                          Text(
+                            team,
+                            style: const TextStyle(color: Colors.white38, fontSize: 11),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    Text(
+                      goals,
+                      style: const TextStyle(color: Color(0xFFD4AF37), fontWeight: FontWeight.w900, fontSize: 18),
+                    ),
+                    Text(
+                      s.wcGoals,
+                      style: const TextStyle(color: Colors.white30, fontSize: 9, fontWeight: FontWeight.bold),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          );
         },
       ),
     );
   }
 
-  Widget _buildScorerCard(
-      dynamic scorer, int index, AppStrings s) {
-    final athlete = scorer['athlete'] ?? {};
-    final team = athlete['team'] ?? {};
-    final name = athlete['displayName'] ?? '';
-    final headshot = athlete['headshot']?['href'] ?? '';
-    final goals = scorer['value']?.toString() ?? '0';
-    final teamLogo =
-        team['logos'] != null && (team['logos'] as List).isNotEmpty
-            ? team['logos'][0]['href']
-            : '';
-
-    final isTop3 = index < 3;
-    final Color rankColor = index == 0
-        ? const Color(0xFFD4AF37)
-        : (index == 1
-            ? const Color(0xFFB0B0B0)
-            : const Color(0xFFCD7F32));
-
-    return Container(
-      margin: const EdgeInsets.only(bottom: 14),
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: isTop3
-              ? [rankColor.withOpacity(0.15), rankColor.withOpacity(0.04)]
-              : [
-                  Colors.white.withOpacity(0.05),
-                  Colors.white.withOpacity(0.02)
-                ],
-        ),
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(
-          color: isTop3
-              ? rankColor.withOpacity(0.4)
-              : Colors.white.withOpacity(0.08),
-          width: isTop3 ? 1.5 : 1,
-        ),
-        boxShadow: isTop3
-            ? [
-                BoxShadow(
-                  color: rankColor.withOpacity(0.15),
-                  blurRadius: 12,
-                  offset: const Offset(0, 4),
-                )
-              ]
-            : null,
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(14),
-        child: Row(
-          children: [
-            // Rank
-            Container(
-              width: 38,
-              height: 38,
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  colors: isTop3
-                      ? [rankColor, rankColor.withOpacity(0.6)]
-                      : [
-                          Colors.white.withOpacity(0.08),
-                          Colors.white.withOpacity(0.04)
-                        ],
-                ),
-                borderRadius: BorderRadius.circular(10),
-              ),
-              child: Center(
-                child: Text(
-                  '#${index + 1}',
-                  style: TextStyle(
-                    color: isTop3 ? Colors.black : Colors.white60,
-                    fontSize: 14,
-                    fontWeight: FontWeight.w900,
-                  ),
-                ),
-              ),
-            ),
-            const SizedBox(width: 12),
-            // Avatar
-            Container(
-              width: 52,
-              height: 52,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                border: Border.all(
-                  color: isTop3 ? rankColor : Colors.white.withOpacity(0.15),
-                  width: 2,
-                ),
-              ),
-              child: ClipOval(
-                child: headshot.isNotEmpty
-                    ? Image.network(
-                        headshot,
-                        fit: BoxFit.cover,
-                        errorBuilder: (_, __, ___) => const Icon(
-                            Icons.person_rounded,
-                            color: Colors.white24),
-                      )
-                    : const Icon(Icons.person_rounded,
-                        color: Colors.white24),
-              ),
-            ),
-            const SizedBox(width: 12),
-            // Info
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    name,
-                    style: TextStyle(
-                      color: isTop3 ? rankColor : Colors.white,
-                      fontSize: 15,
-                      fontWeight: isTop3
-                          ? FontWeight.w800
-                          : FontWeight.w600,
-                    ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  if (teamLogo.isNotEmpty) ...[
-                    const SizedBox(height: 4),
-                    Row(
-                      children: [
-                        Image.network(
-                          teamLogo,
-                          height: 16,
-                          errorBuilder: (_, __, ___) =>
-                              const SizedBox(),
-                        ),
-                        const SizedBox(width: 6),
-                        Expanded(
-                          child: Text(
-                            team['displayName'] ?? '',
-                            style: TextStyle(
-                              color: Colors.white.withOpacity(0.45),
-                              fontSize: 11,
-                            ),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
-                ],
-              ),
-            ),
-            // Goals badge
-            Container(
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-              decoration: BoxDecoration(
-                gradient: const LinearGradient(
-                  colors: [Color(0xFFD4AF37), Color(0xFFB8960E)],
-                ),
-                borderRadius: BorderRadius.circular(14),
-                boxShadow: [
-                  BoxShadow(
-                    color: const Color(0xFFD4AF37).withOpacity(0.25),
-                    blurRadius: 8,
-                    offset: const Offset(0, 3),
-                  )
-                ],
-              ),
-              child: Column(
-                children: [
-                  Text(
-                    goals,
-                    style: const TextStyle(
-                      color: Colors.black,
-                      fontSize: 22,
-                      fontWeight: FontWeight.w900,
-                    ),
-                  ),
-                  Text(
-                    s.wcGoals,
-                    style: const TextStyle(
-                      color: Colors.black54,
-                      fontSize: 9,
-                      fontWeight: FontWeight.w700,
-                      letterSpacing: 0.4,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
   Widget _buildTeamsTab(AppStrings s) {
     return FutureBuilder<List<dynamic>>(
-      future: WorldCupService.fetchTeamsList(),
+      future: WorldCupService.fetchTeamsList(), // Using ESPN teams list for reliability
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const Center(child: CircularProgressIndicator(color: Color(0xFFD4AF37)));
         }
         final teams = snapshot.data ?? [];
-        if (teams.isEmpty) return Center(child: Text(s.wcNoTeams, style: const TextStyle(color: Colors.white54)));
+        if (teams.isEmpty) {
+          return Center(child: Text(s.wcNoTeams, style: const TextStyle(color: Colors.white54)));
+        }
 
         return GridView.builder(
-          padding: const EdgeInsets.all(16),
+          padding: const EdgeInsets.all(14).copyWith(bottom: 100),
           gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
             crossAxisCount: 3,
-            crossAxisSpacing: 16,
-            mainAxisSpacing: 16,
-            childAspectRatio: 0.8,
+            crossAxisSpacing: 10,
+            mainAxisSpacing: 10,
+            childAspectRatio: 1.0,
           ),
           itemCount: teams.length,
           itemBuilder: (context, index) {
-            final team = teams[index]['team'] ?? {};
-            final id = team['id'] ?? '';
-            final name = team['shortDisplayName'] ?? '';
-            final logo = team['logos'] != null && team['logos'].isNotEmpty ? team['logos'][0]['href'] : '';
+            final t = teams[index]['team'] ?? {};
+            final name = t['displayName'] ?? t['name'] ?? '';
+            final logo = t['logos'] != null && (t['logos'] as List).isNotEmpty ? t['logos'][0]['href'] : '';
+            final id = t['id'] ?? '';
 
             return GestureDetector(
               onTap: () {
-                Navigator.push(context, MaterialPageRoute(builder: (_) => TeamDetailsScreen(
-                  teamId: id, teamName: name, teamFlag: logo
-                )));
+                if (id.isNotEmpty) {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => TeamDetailsScreen(teamId: id, teamName: name, teamLogo: logo),
+                    ),
+                  );
+                }
               },
               child: Container(
                 decoration: BoxDecoration(
-                  color: const Color(0xFF1A1A1A),
+                  color: Colors.white.withOpacity(0.04),
                   borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: Colors.white10),
+                  border: Border.all(color: Colors.white.withOpacity(0.06), width: 1),
                 ),
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Hero(
-                      tag: 'team_logo_$id',
-                      child: logo.isNotEmpty 
-                          ? Image.network(logo, width: 48, height: 48, errorBuilder: (_,__,___) => const Icon(Icons.flag, color: Colors.white54))
-                          : const Icon(Icons.flag, color: Colors.white54, size: 48),
+                    _teamLogo(logo, width: 36, height: 26),
+                    const SizedBox(height: 8),
+                    Text(
+                      name,
+                      style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 11),
+                      textAlign: TextAlign.center,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                     ),
-                    const SizedBox(height: 12),
-                    Text(name, textAlign: TextAlign.center, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12)),
                   ],
                 ),
               ),
@@ -1562,51 +1081,75 @@ class _WorldCupScreenState extends ConsumerState<WorldCupScreen>
 
   Widget _buildVenuesTab(AppStrings s) {
     final venues = [
-      {'name': 'Estadio Azteca', 'city': 'Mexico City', 'cap': '83,264', 'img': 'https://a.espncdn.com/i/venues/soccer/day/87.jpg'},
-      {'name': 'MetLife Stadium', 'city': 'New York / New Jersey', 'cap': '82,500', 'img': 'https://a.espncdn.com/i/venues/soccer/day/259.jpg'},
-      {'name': 'AT&T Stadium', 'city': 'Dallas', 'cap': '80,000', 'img': 'https://a.espncdn.com/i/venues/nfl/day/211.jpg'},
-      {'name': 'Arrowhead Stadium', 'city': 'Kansas City', 'cap': '76,416', 'img': 'https://a.espncdn.com/i/venues/nfl/day/3494.jpg'},
-      {'name': 'NRG Stadium', 'city': 'Houston', 'cap': '72,220', 'img': 'https://a.espncdn.com/i/venues/nfl/day/3482.jpg'},
-      {'name': 'Mercedes-Benz Stadium', 'city': 'Atlanta', 'cap': '71,000', 'img': 'https://a.espncdn.com/i/venues/nfl/day/3482.jpg'},
-      {'name': 'SoFi Stadium', 'city': 'Los Angeles', 'cap': '70,240', 'img': 'https://a.espncdn.com/i/venues/nfl/day/259.jpg'},
-      {'name': 'Lincoln Financial Field', 'city': 'Philadelphia', 'cap': '69,796', 'img': 'https://a.espncdn.com/i/venues/nfl/day/3482.jpg'},
-      {'name': 'Lumen Field', 'city': 'Seattle', 'cap': '69,000', 'img': 'https://a.espncdn.com/i/venues/nfl/day/3494.jpg'},
-      {'name': "Levi's Stadium", 'city': 'San Francisco', 'cap': '68,500', 'img': 'https://a.espncdn.com/i/venues/nfl/day/259.jpg'},
-      {'name': 'Gillette Stadium', 'city': 'Boston', 'cap': '65,878', 'img': 'https://a.espncdn.com/i/venues/nfl/day/3494.jpg'},
-      {'name': 'Hard Rock Stadium', 'city': 'Miami', 'cap': '64,767', 'img': 'https://a.espncdn.com/i/venues/nfl/day/259.jpg'},
-      {'name': 'BC Place', 'city': 'Vancouver', 'cap': '54,500', 'img': 'https://a.espncdn.com/i/venues/soccer/day/87.jpg'},
-      {'name': 'Estadio BBVA', 'city': 'Monterrey', 'cap': '53,500', 'img': 'https://a.espncdn.com/i/venues/soccer/day/87.jpg'},
-      {'name': 'Estadio Akron', 'city': 'Guadalajara', 'cap': '49,850', 'img': 'https://a.espncdn.com/i/venues/soccer/day/87.jpg'},
-      {'name': 'BMO Field', 'city': 'Toronto', 'cap': '30,000', 'img': 'https://a.espncdn.com/i/venues/soccer/day/87.jpg'},
+      {"name": "Azteca", "city": "Mexico City, Mexico", "capacity": "87,523"},
+      {"name": "MetLife Stadium", "city": "East Rutherford, USA", "capacity": "82,500"},
+      {"name": "AT&T Stadium", "city": "Arlington, USA", "capacity": "80,000"},
+      {"name": "Arrowhead Stadium", "city": "Kansas City, USA", "capacity": "76,416"},
+      {"name": "Mercedes-Benz Stadium", "city": "Atlanta, USA", "capacity": "71,000"},
+      {"name": "SoFi Stadium", "city": "Inglewood, USA", "capacity": "70,240"},
+      {"name": "Lincoln Financial Field", "city": "Philadelphia, USA", "capacity": "69,796"},
+      {"name": "Lumen Field", "city": "Seattle, USA", "capacity": "69,000"},
+      {"name": "Levi's Stadium", "city": "Santa Clara, USA", "capacity": "68,500"},
+      {"name": "Gillette Stadium", "city": "Foxborough, USA", "capacity": "65,878"},
+      {"name": "Hard Rock Stadium", "city": "Miami Gardens, USA", "capacity": "64,767"},
+      {"name": "BC Place", "city": "Vancouver, Canada", "capacity": "54,500"},
+      {"name": "BMO Field", "city": "Toronto, Canada", "capacity": "45,736"},
+      {"name": "BBVA Stadium", "city": "Guadalupe, Mexico", "capacity": "53,500"},
+      {"name": "Akron Stadium", "city": "Zapopan, Mexico", "capacity": "48,071"},
     ];
 
     return ListView.builder(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12).copyWith(bottom: 100),
       itemCount: venues.length,
       itemBuilder: (context, index) {
         final v = venues[index];
         return Container(
-          margin: const EdgeInsets.only(bottom: 20),
-          height: 200,
+          margin: const EdgeInsets.only(bottom: 10),
+          padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(24),
-            image: DecorationImage(
-              image: NetworkImage(v['img']!),
-              fit: BoxFit.cover,
-              colorFilter: ColorFilter.mode(Colors.black.withOpacity(0.4), BlendMode.darken),
-            ),
+            color: Colors.white.withOpacity(0.04),
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: Colors.white.withOpacity(0.06), width: 1),
           ),
-          alignment: Alignment.bottomLeft,
-          padding: const EdgeInsets.all(24),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisSize: MainAxisSize.min,
+          child: Row(
             children: [
-              Text(v['city']!, style: const TextStyle(color: Color(0xFFD4AF37), fontWeight: FontWeight.bold, letterSpacing: 1.5, fontSize: 12)),
-              const SizedBox(height: 4),
-              Text(v['name']!, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 24)),
-              const SizedBox(height: 4),
-              Text(s.wcCapacity + ": ${v['cap']}", style: const TextStyle(color: Colors.white70, fontSize: 14)),
+              Container(
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFD4AF37).withOpacity(0.12),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(Icons.location_on_rounded, color: Color(0xFFD4AF37), size: 20),
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      v["name"]!,
+                      style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14),
+                    ),
+                    Text(
+                      v["city"]!,
+                      style: const TextStyle(color: Colors.white38, fontSize: 11),
+                    ),
+                  ],
+                ),
+              ),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  Text(
+                    v["capacity"]!,
+                    style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 14),
+                  ),
+                  Text(
+                    s.wcCapacity,
+                    style: const TextStyle(color: Colors.white30, fontSize: 9, fontWeight: FontWeight.bold),
+                  ),
+                ],
+              ),
             ],
           ),
         );
@@ -1614,5 +1157,3 @@ class _WorldCupScreenState extends ConsumerState<WorldCupScreen>
     );
   }
 }
-
-

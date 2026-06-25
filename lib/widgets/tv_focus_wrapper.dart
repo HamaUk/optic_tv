@@ -57,7 +57,9 @@ class _TvFocusWrapperState extends State<TvFocusWrapper> with SingleTickerProvid
 
   @override
   Widget build(BuildContext context) {
-    final isTv = MediaQuery.sizeOf(context).width > 900;
+    // The TV UI is fully native Kotlin. The Flutter app is for phone/tablet.
+    // Hence, we disable TV focus highlights to prevent unwanted borders on phone landscape/tablets.
+    const isTv = false;
     final accent = widget.accentColor ?? AppTheme.primaryGold;
     final showEffects = isTv && _isFocused;
 

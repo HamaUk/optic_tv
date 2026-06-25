@@ -571,7 +571,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
           );
         }
 
-        final isTv = MediaQuery.sizeOf(context).width > 900;
+        const isTv = false;
 
         if (isTv) {
           return TvDashboardScreen(allChannels: channels, managedGroups: managedGroups);
@@ -664,7 +664,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
 
     // Landscape: side rail + content column.
     // Wrap content in SafeArea to guard against right-side notch/camera.
-    final isTv = landscape && MediaQuery.sizeOf(context).width > 900;
+    const isTv = false;
     final contentDir = s.locale.languageCode == 'ckb' ? TextDirection.rtl : TextDirection.ltr;
     final insets = MediaQuery.paddingOf(context);
     final bodyColumn = Column(
@@ -1033,7 +1033,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
     List<ChannelGroup> managedGroups,
     List<Channel> fullChannels,
   ) {
-    final isTv = MediaQuery.sizeOf(context).width > 900;
+    const isTv = false;
     final crossCount = isTv ? 6 : 3;
     
     final featured = fullChannels.where((c) => c.featured).toList();
@@ -1583,8 +1583,8 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
     int animMs,
   ) {
     const kTileRadius = 24.0;
-    final focused = _focusedChannel == channel;
-    final isTv = MediaQuery.sizeOf(context).width > 900;
+    const isTv = false;
+    final focused = isTv && (_focusedChannel == channel);
     
     return TvFocusWrapper(
       onTap: () => _openPlayer(allChannels, channel),
@@ -1689,8 +1689,8 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
   ) {
     const kTileRadius = 18.0;
 
-    final isTv = MediaQuery.sizeOf(context).width > 900;
-    final focused = _focusedChannel == channel;
+    const isTv = false;
+    final focused = isTv && (_focusedChannel == channel);
 
     return TvFocusWrapper(
       onTap: () => _openPlayer(allChannels, channel),

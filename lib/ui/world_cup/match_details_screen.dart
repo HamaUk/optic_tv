@@ -223,12 +223,21 @@ class _MatchDetailsScreenState extends ConsumerState<MatchDetailsScreen> with Si
     final competitions = header['competitions'] as List<dynamic>? ?? [];
     String state = 'pre';
     String timeLabel = '';
+    String matchTime = 'VS';
     
     if (competitions.isNotEmpty) {
       final status = competitions[0]['status'] ?? {};
       final type = status['type'] ?? {};
       state = type['state'] ?? 'pre';
       timeLabel = status['displayClock'] ?? type['shortDetail'] ?? '';
+      
+      final dateStr = competitions[0]['date'];
+      if (dateStr != null) {
+        try {
+          final dt = DateTime.parse(dateStr).toLocal();
+          matchTime = '${dt.hour.toString().padLeft(2, '0')}:${dt.minute.toString().padLeft(2, '0')}';
+        } catch (_) {}
+      }
     }
 
     return Container(
@@ -252,7 +261,7 @@ class _MatchDetailsScreenState extends ConsumerState<MatchDetailsScreen> with Si
           Column(
             children: [
               Text(
-                state == 'pre' ? 'VS' : "${homeTeamData['score'] ?? '0'} - ${awayTeamData['score'] ?? '0'}",
+                state == 'pre' ? matchTime : "${homeTeamData['score'] ?? '0'} - ${awayTeamData['score'] ?? '0'}",
                 style: const TextStyle(color: Colors.white, fontSize: 32, fontWeight: FontWeight.w900),
               ),
               const SizedBox(height: 8),

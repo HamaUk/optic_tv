@@ -486,7 +486,7 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
     final uiLocale = ref.watch(appLocaleProvider);
     final s = AppStrings(uiLocale);
     final bottomPad = MediaQuery.of(context).padding.bottom;
-    final isTv = MediaQuery.of(context).size.width > 900;
+    const isTv = false;
 
     if (isTv) {
       return Scaffold(

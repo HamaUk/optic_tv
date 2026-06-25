@@ -60,7 +60,9 @@ class NativeExoPlayer(
 
     init {
         player = buildPlayer()
-        setupTexture()
+        // setupTexture() is deferred to the "init" MethodChannel call.
+        // This prevents startup crashes on Xiaomi/Android 15+ devices where the
+        // Flutter view isn't fully attached when configureFlutterEngine is called.
         startPositionPolling()
     }
 
