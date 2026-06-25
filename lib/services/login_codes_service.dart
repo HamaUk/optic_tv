@@ -21,10 +21,13 @@ class LoginCodesService {
         await _storeCacheFromSnapshot(snap.value);
         return ok;
       }
-    } catch (_) {
-      // Offline / Firebase error → try cache
+      return false;
+    } catch (e) {
+      // Offline / Firebase error -> try cache
+      final cachedOk = await _matchCached(normalized);
+      if (cachedOk) return true;
+      throw Exception('DB Error: $e');
     }
-    return _matchCached(normalized);
   }
 
   static Stream<bool> watchValidation(String raw) {
@@ -40,7 +43,7 @@ class LoginCodesService {
   }
 
   static String _normalize(String s) =>
-      s.trim().toLowerCase();
+      s.replaceAll(RegExp(r'\s+'), '').toLowerCase();
 
   static bool _isExpired(dynamic expiresAt) {
     if (expiresAt == null) return false; // No expiry means permanent.
