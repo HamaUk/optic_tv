@@ -155,7 +155,8 @@ class _WorldCupScreenState extends State<WorldCupScreen> with SingleTickerProvid
                                     style: TextStyle(
                                       color: AppTheme.primaryGold,
                                       fontSize: 36,
-                                      fontWeight: FontStyle.italic,
+                                      fontStyle: FontStyle.italic,
+                                      fontWeight: FontWeight.w900,
                                       letterSpacing: 4,
                                     ),
                                   ),
