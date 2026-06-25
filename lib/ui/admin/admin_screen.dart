@@ -119,7 +119,7 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
   void initState() {
     super.initState();
     _isAuthenticated = FirebaseAuth.instance.currentUser != null;
-    _tabController = TabController(length: 10, vsync: this);
+    _tabController = TabController(length: 9, vsync: this);
     _channelGroupController.text = 'Live TV';
     _channelSearchController.addListener(() {
       setState(() => _channelSearchQuery = _channelSearchController.text.trim().toLowerCase());
@@ -831,7 +831,7 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
       _publishShelf = shelf;
       _channelGroupController.text = grpRaw;
     });
-    _tabController.animateTo(4);
+    _tabController.animateTo(3);
     _snack('Form filled — adjust name and tap Publish');
   }
 
@@ -1833,7 +1833,6 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
               labelStyle: const TextStyle(fontWeight: FontWeight.w900, fontSize: 12, letterSpacing: 1),
               tabs: const [
                 Tab(text: 'OVERVIEW'),
-                Tab(text: 'ANALYTICS'),
                 Tab(text: 'CHANNELS'),
                 Tab(text: 'MOVIES'),
                 Tab(text: 'PUBLISH'),
@@ -1869,10 +1868,7 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
                       key: const PageStorageKey<String>('admin_overview'),
                       child: _KeepAliveTab(child: _buildOverviewTab()),
                     ),
-                    KeyedSubtree(
-                      key: const PageStorageKey<String>('admin_analytics'),
-                      child: _KeepAliveTab(child: _buildAnalyticsTab()),
-                    ),
+
                     KeyedSubtree(
                       key: const PageStorageKey<String>('admin_channels'),
                       child: _KeepAliveTab(child: _buildChannelsTab()),
@@ -1915,227 +1911,7 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
     );
   }
 
-  // ═══════════════════════════════════════════════════════════════
-  //  Tab: Analytics
-  // ═══════════════════════════════════════════════════════════════
 
-  Widget _buildAnalyticsTab() {
-    return Consumer(
-      builder: (context, ref, child) {
-        final analyticsService = ref.watch(analyticsServiceProvider);
-        
-        return Container(
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              colors: [AppTheme.backgroundBlack, AppTheme.surfaceGray.withOpacity(0.35)],
-            ),
-          ),
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.all(20),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-              Text(
-                'Analytics Dashboard',
-                style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800),
-              ),
-              const SizedBox(height: 6),
-              Text(
-                'Monitor your viewers, trends, and channel performance.',
-                style: TextStyle(color: Colors.white.withOpacity(0.45), fontSize: 13),
-              ),
-              const SizedBox(height: 24),
-              
-              // Key Metrics Row
-              FutureBuilder<int>(
-                future: analyticsService.getLiveUsersCount(),
-                builder: (context, snapshot) {
-                  final liveUsers = snapshot.data ?? 0;
-                  return FutureBuilder<int>(
-                    future: analyticsService.getTotalViews(),
-                    builder: (context, totalSnap) {
-                      final totalViews = totalSnap.data ?? 0;
-                      return Row(
-                        children: [
-                          Expanded(
-                            child: _statTile(
-                              icon: Icons.visibility_rounded,
-                              label: 'Total Views',
-                              value: NumberFormat.compact().format(totalViews),
-                              color: AppTheme.primaryGold,
-                            ),
-                          ),
-                          const SizedBox(width: 16),
-                          Expanded(
-                            child: _statTile(
-                              icon: Icons.people_alt_rounded,
-                              label: 'Live Active Users',
-                              value: '$liveUsers',
-                              color: AppTheme.accentTeal,
-                            ),
-                          ),
-                        ],
-                      );
-                    },
-                  );
-                },
-              ),
-              const SizedBox(height: 24),
-
-              // Viewership Trends Chart
-              Text(
-                'Viewership Trends (Last 7 Days)',
-                style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600),
-              ),
-              const SizedBox(height: 12),
-              _card(
-                child: SizedBox(
-                  height: 300,
-                  child: FutureBuilder<Map<String, int>>(
-                    future: analyticsService.getDailyViews(),
-                    builder: (context, snapshot) {
-                      if (!snapshot.hasData) {
-                        return const Center(child: CircularProgressIndicator(color: AppTheme.primaryGold));
-                      }
-                      final dailyData = snapshot.data!;
-                      if (dailyData.isEmpty) {
-                        return const Center(child: Text('No data yet', style: TextStyle(color: Colors.white54)));
-                      }
-
-                      // Prepare chart data
-                      final spots = <FlSpot>[];
-                      final today = DateTime.now();
-                      int maxY = 0;
-                      for (int i = 6; i >= 0; i--) {
-                        final d = today.subtract(Duration(days: i));
-                        final key = DateFormat('yyyy_MM_dd').format(d);
-                        final val = dailyData[key] ?? 0;
-                        if (val > maxY) maxY = val;
-                        spots.add(FlSpot(6.0 - i, val.toDouble()));
-                      }
-                      
-                      if (maxY == 0) maxY = 10; // default scale
-                      
-                      return LineChart(
-                        LineChartData(
-                          gridData: FlGridData(
-                            show: true, 
-                            drawVerticalLine: false,
-                            getDrawingHorizontalLine: (value) => FlLine(color: Colors.white10, strokeWidth: 1),
-                          ),
-                          titlesData: FlTitlesData(
-                            show: true,
-                            rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-                            topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-                            bottomTitles: AxisTitles(
-                              sideTitles: SideTitles(
-                                showTitles: true,
-                                getTitlesWidget: (value, meta) {
-                                  final d = today.subtract(Duration(days: 6 - value.toInt()));
-                                  return Padding(
-                                    padding: const EdgeInsets.only(top: 8),
-                                    child: Text(DateFormat('E').format(d), style: const TextStyle(color: Colors.white54, fontSize: 10)),
-                                  );
-                                },
-                                reservedSize: 22,
-                              ),
-                            ),
-                            leftTitles: AxisTitles(
-                              sideTitles: SideTitles(
-                                showTitles: true,
-                                reservedSize: 40,
-                                getTitlesWidget: (value, meta) {
-                                  return Text(NumberFormat.compact().format(value), style: const TextStyle(color: Colors.white54, fontSize: 10));
-                                },
-                              ),
-                            ),
-                          ),
-                          borderData: FlBorderData(show: false),
-                          minX: 0,
-                          maxX: 6,
-                          minY: 0,
-                          maxY: maxY.toDouble() * 1.2,
-                          lineBarsData: [
-                            LineChartBarData(
-                              spots: spots,
-                              isCurved: true,
-                              color: AppTheme.primaryGold,
-                              barWidth: 4,
-                              isStrokeCapRound: true,
-                              dotData: const FlDotData(show: true),
-                              belowBarData: BarAreaData(
-                                show: true,
-                                color: AppTheme.primaryGold.withOpacity(0.15),
-                              ),
-                            ),
-                          ],
-                        ),
-                      );
-                    },
-                  ),
-                ),
-              ),
-              const SizedBox(height: 24),
-
-              // Top Channels
-              Text(
-                'Top Channels',
-                style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600),
-              ),
-              const SizedBox(height: 12),
-              _card(
-                child: FutureBuilder<List<Map<String, dynamic>>>(
-                  future: analyticsService.getTopChannels(),
-                  builder: (context, snapshot) {
-                    if (!snapshot.hasData) {
-                      return const Center(child: CircularProgressIndicator(color: AppTheme.primaryGold));
-                    }
-                    final topChannels = snapshot.data!;
-                    if (topChannels.isEmpty) {
-                      return const Padding(
-                        padding: EdgeInsets.all(20),
-                        child: Center(child: Text('No channel data yet', style: TextStyle(color: Colors.white54))),
-                      );
-                    }
-                    
-                    return Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: topChannels.map((ch) {
-                        return Padding(
-                          padding: const EdgeInsets.only(bottom: 12),
-                          child: Row(
-                            children: [
-                              Container(
-                                width: 40,
-                                height: 40,
-                                decoration: BoxDecoration(
-                                  color: AppTheme.accentTeal.withOpacity(0.2),
-                                  borderRadius: BorderRadius.circular(10),
-                                ),
-                                child: const Icon(Icons.tv_rounded, color: AppTheme.accentTeal),
-                              ),
-                              const SizedBox(width: 16),
-                              Expanded(
-                                child: Text(ch['name'] as String, style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.white)),
-                              ),
-                              Text(NumberFormat.compact().format(ch['total']), style: const TextStyle(color: AppTheme.primaryGold, fontWeight: FontWeight.bold)),
-                              const SizedBox(width: 4),
-                              const Text('views', style: TextStyle(color: Colors.white54, fontSize: 12)),
-                            ],
-                          ),
-                        );
-                      }).toList(),
-                    );
-                  },
-                ),
-              ),
-              ],
-            ),
-          ),
-        );
-      },
-    );
-  }
 
   // ═══════════════════════════════════════════════════════════════
   //  Tab: Overview
@@ -2248,31 +2024,31 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
                                 Text('Shortcuts', style: Theme.of(context).textTheme.titleMedium),
                                 const SizedBox(height: 16),
                                 FilledButton.icon(
-                                  onPressed: () => _tabController.animateTo(4),
+                                  onPressed: () => _tabController.animateTo(3),
                                   icon: const Icon(Icons.publish_rounded),
                                   label: const Text('Add new content'),
                                 ),
                                 const SizedBox(height: 10),
                                 OutlinedButton.icon(
-                                  onPressed: () => _tabController.animateTo(2),
+                                  onPressed: () => _tabController.animateTo(1),
                                   icon: const Icon(Icons.manage_search_rounded),
                                   label: const Text('Browse & search channels'),
                                 ),
                                 const SizedBox(height: 10),
                                 OutlinedButton.icon(
-                                  onPressed: () => _tabController.animateTo(5),
+                                  onPressed: () => _tabController.animateTo(4),
                                   icon: const Icon(Icons.file_download_rounded),
                                   label: const Text('Import M3U / Xtream'),
                                 ),
                                 const SizedBox(height: 10),
                                 OutlinedButton.icon(
-                                  onPressed: () => _tabController.animateTo(6),
+                                  onPressed: () => _tabController.animateTo(5),
                                   icon: const Icon(Icons.health_and_safety_rounded),
                                   label: const Text('Check channel health'),
                                 ),
                                 const SizedBox(height: 10),
                                 OutlinedButton.icon(
-                                  onPressed: () => _tabController.animateTo(7),
+                                  onPressed: () => _tabController.animateTo(6),
                                   icon: const Icon(Icons.key_rounded),
                                   label: const Text('Groups & login codes'),
                                 ),
@@ -2447,7 +2223,7 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
                   children: [
                     Expanded(
                       child: FilledButton.icon(
-                        onPressed: () => _tabController.animateTo(4), // Publish tab
+                        onPressed: () => _tabController.animateTo(3), // Publish tab
                         icon: const Icon(Icons.add_rounded),
                         label: const Text('Add Channel'),
                         style: FilledButton.styleFrom(
@@ -2461,7 +2237,7 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
                     const SizedBox(width: 12),
                     Expanded(
                       child: FilledButton.icon(
-                        onPressed: () => _tabController.animateTo(5), // Import tab
+                        onPressed: () => _tabController.animateTo(4), // Import tab
                         icon: const Icon(Icons.file_upload_rounded),
                         label: const Text('Bulk Upload M3U'),
                         style: FilledButton.styleFrom(

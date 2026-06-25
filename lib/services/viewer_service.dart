@@ -102,28 +102,7 @@ class ViewerService {
   // ─── Analytics ───────────────────────────────────────────────
 
   void _recordAnalytics(String sanitizedKey, String? channelName) {
-    try {
-      final now = DateTime.now().toUtc();
-      final todayKey =
-          '${now.year}_${now.month.toString().padLeft(2, '0')}_${now.day.toString().padLeft(2, '0')}';
-      final analyticsRef = _db.ref('sync/global/analytics');
-
-      analyticsRef.child('views/total').set(ServerValue.increment(1));
-      analyticsRef.child('views/daily/$todayKey').set(ServerValue.increment(1));
-      analyticsRef
-          .child('channel_views/$sanitizedKey/total')
-          .set(ServerValue.increment(1));
-      analyticsRef
-          .child('channel_views/$sanitizedKey/daily/$todayKey')
-          .set(ServerValue.increment(1));
-      if (channelName != null) {
-        analyticsRef
-            .child('channel_views/$sanitizedKey/name')
-            .set(channelName);
-      }
-    } catch (e) {
-      debugPrint('ViewerService analytics error: $e');
-    }
+    // Analytics tracking removed to save Firebase bandwidth and write limits
   }
 
   // ─── Stream ───────────────────────────────────────────────────
