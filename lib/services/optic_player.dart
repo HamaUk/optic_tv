@@ -198,7 +198,9 @@ class OpticPlayer with WidgetsBindingObserver {
     WidgetsBinding.instance.removeObserver(this);
     if (_disposed) return;
     _disposed = true;
-    await _channel.invokeMethod('dispose');
+    // Don't dispose the native player - just stop it
+    // The native player in MainActivity is shared and should persist
+    await stop();
     _positionCtrl.close();
     _durationCtrl.close();
     _playingCtrl.close();
@@ -251,6 +253,14 @@ class OpticPlayer with WidgetsBindingObserver {
         final h = (map['height'] as num).toDouble();
         if (w > 0 && h > 0) {
           videoSize.value = Size(w, h);
+        }
+        break;
+
+      case 'onTextureChanged':
+        final newTextureId = call.arguments as int?;
+        if (newTextureId != null && newTextureId >= 0) {
+          textureId = newTextureId;
+          textureIdNotifier.value = newTextureId;
         }
         break;
 

@@ -117,6 +117,9 @@ class NativeExoPlayer(
         val surfaceTexture: SurfaceTexture = entry.surfaceTexture()
         surface = Surface(surfaceTexture)
         player.setVideoSurface(surface)
+        
+        // Notify Dart side of new texture ID
+        sendEvent("onTextureChanged", textureId)
     }
 
     // ─── MethodChannel Command Handler ───────────────────────────────────
@@ -124,6 +127,11 @@ class NativeExoPlayer(
     fun handleMethodCall(call: MethodCall, result: MethodChannel.Result) {
         when (call.method) {
             "init" -> {
+                // Reinitialize texture if this is called again (new Flutter instance)
+                // This happens when navigating back to player screen
+                if (textureEntry == null) {
+                    setupTexture()
+                }
                 // Return the texture ID so Flutter can display it
                 result.success(textureId)
             }
