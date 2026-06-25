@@ -6,6 +6,7 @@ import '../../core/theme.dart';
 import '../../l10n/app_strings.dart';
 import '../../providers/app_locale_provider.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:translator/translator.dart';
 import 'match_details_screen.dart';
 import 'team_details_screen.dart';
 import '../../services/playlist_service.dart';
@@ -95,11 +96,33 @@ class _WorldCupScreenState extends ConsumerState<WorldCupScreen>
   Future<void> _loadHighlights() async {
     setState(() => _isLoadingHighlights = true);
     final highlights = await WorldCupService.fetchEventVideos(page: 1, limit: 100);
+    
     if (mounted) {
       setState(() {
         _highlights = highlights;
         _isLoadingHighlights = false;
       });
+    }
+
+    final locale = ref.read(appLocaleProvider);
+    if (locale.languageCode == 'ku') {
+       final translator = GoogleTranslator();
+       for (var i = 0; i < highlights.length; i++) {
+         final title = highlights[i]['title'];
+         if (title != null && title is String && title.isNotEmpty) {
+            translator.translate(title, to: 'ckb').then((t) {
+               if (mounted) {
+                  setState(() => _highlights[i]['title'] = t.text);
+               }
+            }).catchError((_) {
+               translator.translate(title, to: 'ku').then((t2) {
+                  if (mounted) {
+                     setState(() => _highlights[i]['title'] = t2.text);
+                  }
+               }).catchError((_) {});
+            });
+         }
+       }
     }
   }
 
