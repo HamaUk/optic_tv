@@ -509,6 +509,7 @@ class _WorldCupScreenState extends ConsumerState<WorldCupScreen>
         ),
       ),
       ),
+      ),
     );
   }
 
