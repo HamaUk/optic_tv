@@ -383,23 +383,8 @@ class _MoviePlayerPageState extends ConsumerState<MoviePlayerPage> {
   void _showSettingsModal() {
     showModalBottomSheet(
       context: context,
-      backgroundColor: Colors.transparent,
-      builder: (ctx) => Container(
-        decoration: BoxDecoration(color: Colors.black87, borderRadius: const BorderRadius.vertical(top: Radius.circular(24))),
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Text("VIDEO SETTINGS", style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.w900)),
-            const SizedBox(height: 20),
-            const ListTile(
-              leading: Icon(Icons.info_outline_rounded, color: Colors.white),
-              title: Text("Engine", style: TextStyle(color: Colors.white)),
-              subtitle: Text('Native ExoPlayer (Media3)', style: TextStyle(color: Colors.white54)),
-            ),
-          ],
-        ),
-      ),
+      backgroundColor: Colors.transparent, // Allows custom rounded corner container
+      builder: (context) => VideoSettingsModal(player: widget.player),
     );
   }
 
@@ -448,3 +433,212 @@ class _MoviePlayerPageState extends ConsumerState<MoviePlayerPage> {
     return '$mm:$ss';
   }
 }
+
+class VideoSettingsModal extends StatefulWidget {
+  final OpticPlayer player;
+  const VideoSettingsModal({Key? key, required this.player}) : super(key: key);
+
+  @override
+  State<VideoSettingsModal> createState() => _VideoSettingsModalState();
+}
+
+class _VideoSettingsModalState extends State<VideoSettingsModal> {
+  // Mock states to manage UI selection
+  String selectedQuality = 'Auto';
+  String selectedSubtitle = 'English';
+  String selectedAudio = 'English';
+  double selectedSpeed = 1.0;
+
+  final List<double> speedValues = [0.5, 0.75, 1.0, 1.5, 2.0];
+
+  @override
+  Widget build(BuildContext context) {
+    // Dark modern theme style
+    const cardColor = Color(0xFF1E1E1E);
+    const textStyle = TextStyle(color: Colors.white, fontSize: 15);
+    const titleStyle = TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold);
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: const BoxDecoration(
+        color: Color(0xFF121212), // Dark sheet background
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      child: SingleChildScrollView(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // --- 1. VIDEO QUALITY CARD ---
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(color: cardColor, borderRadius: BorderRadius.circular(12)),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      const Icon(Icons.settings, color: Colors.white, size: 20),
+                      const SizedBox(width: 8),
+                      const Text('Video Quality', style: titleStyle),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  ...['Auto', '1080p', '720p', '360p', '240p'].map((quality) => 
+                    _buildSelectionRow(quality, selectedQuality == quality, () {
+                      setState(() => selectedQuality = quality);
+                      if (quality == 'Auto') widget.player.setMaxResolution(0);
+                      if (quality == '1080p') widget.player.setMaxResolution(1080);
+                      if (quality == '720p') widget.player.setMaxResolution(720);
+                      if (quality == '360p') widget.player.setMaxResolution(360);
+                      if (quality == '240p') widget.player.setMaxResolution(240);
+                    })
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 16),
+
+            // --- 2. SUBTITLES & AUDIO CARD ---
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(color: cardColor, borderRadius: BorderRadius.circular(12)),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Subtitles Column
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            const Icon(Icons.subtitles, color: Colors.white, size: 20),
+                            const SizedBox(width: 8),
+                            const Text('Subtitles', style: titleStyle),
+                          ],
+                        ),
+                        const SizedBox(height: 12),
+                        ...['Off', 'English', 'Hindi', 'Spanish'].map((sub) => 
+                          _buildSelectionRow(sub, selectedSubtitle == sub, () {
+                            setState(() => selectedSubtitle = sub);
+                          })
+                        ),
+                      ],
+                    ),
+                  ),
+                  const VerticalDivider(color: Colors.white12, width: 20),
+                  // Audio Column
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            const Icon(Icons.volume_up, color: Colors.white, size: 20),
+                            const SizedBox(width: 8),
+                            const Text('Audio', style: titleStyle),
+                          ],
+                        ),
+                        const SizedBox(height: 12),
+                        ...['English', 'Hindi'].map((audio) => 
+                          _buildSelectionRow(audio, selectedAudio == audio, () {
+                            setState(() => selectedAudio = audio);
+                          })
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 16),
+
+            // --- 3. PLAYBACK SPEED CARD ---
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(color: cardColor, borderRadius: BorderRadius.circular(12)),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      const Icon(Icons.play_circle_outline, color: Colors.white, size: 20),
+                      const SizedBox(width: 8),
+                      const Text('Playback Speed', style: titleStyle),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+                  // Custom Timeline Slider Layout
+                  SliderTheme(
+                    data: SliderTheme.of(context).copyWith(
+                      trackHeight: 2,
+                      activeTrackColor: Colors.white38,
+                      inactiveTrackColor: Colors.white12,
+                      thumbColor: Colors.white,
+                      overlayShape: SliderComponentShape.noOverlay,
+                    ),
+                    child: Slider(
+                      value: selectedSpeed,
+                      min: 0.5,
+                      max: 2.0,
+                      divisions: 4, // 5 distinct points: 0.5, 0.75, 1.0, 1.5, 2.0
+                      onChanged: (value) {
+                        setState(() => selectedSpeed = value);
+                        widget.player.setRate(value); // Set engine speed
+                      },
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  // Bottom Labels Row
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: speedValues.map((val) {
+                      final isSelected = val == selectedSpeed;
+                      return Text(
+                        val == 1.0 ? '1x' : '${val}x',
+                        style: textStyle.copyWith(
+                          fontSize: isSelected ? 14 : 12,
+                          fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                          color: isSelected ? Colors.white : Colors.white38,
+                        ),
+                      );
+                    }).toList(),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // Reusable selector list item row
+  Widget _buildSelectionRow(String text, bool isSelected, VoidCallback onTap) {
+    return InkWell(
+      onTap: onTap,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 8.0),
+        child: Row(
+          children: [
+            // Checkmark or placeholder spacer
+            SizedBox(
+              width: 24,
+              child: isSelected ? const Icon(Icons.check, color: Colors.white, size: 18) : null,
+            ),
+            const SizedBox(width: 8),
+            Text(
+              text,
+              style: TextStyle(
+                color: isSelected ? Colors.white : Colors.white38,
+                fontSize: 14,
+                fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
