@@ -15,6 +15,9 @@ import 'package:dio/dio.dart';
 import 'dart:math' as math;
 import 'dart:io';
 import 'package:path_provider/path_provider.dart';
+import 'package:url_launcher/url_launcher.dart';
+import '../../services/update_service.dart';
+import '../../widgets/update_prompt_dialog.dart';
 
 class SettingsScreen extends ConsumerStatefulWidget {
   const SettingsScreen({super.key});
@@ -523,13 +526,6 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 ),
                 const SizedBox(height: 24),
                 Text(
-                  s.sectionOther,
-                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                        color: AppTheme.accentColor(_data.gradientPreset),
-                        fontWeight: FontWeight.bold,
-                      ),
-                ),
-                Text(
                   s.sectionVideo,
                   style: Theme.of(context).textTheme.titleMedium?.copyWith(
                         color: AppTheme.accentColor(_data.gradientPreset),
@@ -645,7 +641,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 ),
                 const SizedBox(height: 24),
                 Text(
-                  'Network Diagnostics',
+                  'Device & Network Diagnostics',
                   style: Theme.of(context).textTheme.titleMedium?.copyWith(
                         color: AppTheme.accentColor(_data.gradientPreset),
                         fontWeight: FontWeight.bold,
@@ -655,6 +651,24 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 _glassCard(
                   child: Column(
                     children: [
+                      TVFocusable(
+                        showFocusBorder: true,
+                        focusScale: 1.02,
+                        borderRadius: BorderRadius.circular(16),
+                        child: ListTile(
+                          leading: const Icon(Icons.tv_rounded, color: Colors.amberAccent),
+                          title: const Text('Display Output'),
+                          subtitle: Builder(
+                            builder: (ctx) {
+                              final w = MediaQuery.sizeOf(ctx).width * MediaQuery.devicePixelRatioOf(ctx);
+                              if (w >= 3800) return const Text('4K Ultra HD Capable');
+                              if (w >= 1900) return const Text('1080p Full HD');
+                              return const Text('720p HD Ready');
+                            },
+                          ),
+                        ),
+                      ),
+                      const Divider(color: Colors.white12, height: 1),
                       TVFocusable(
                         showFocusBorder: true,
                         focusScale: 1.02,
@@ -698,6 +712,48 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 ),
                 const SizedBox(height: 24),
                 Text(
+                  s.sectionLanguage,
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                        color: AppTheme.accentColor(_data.gradientPreset),
+                        fontWeight: FontWeight.bold,
+                      ),
+                ),
+                const SizedBox(height: 12),
+                _glassCard(
+                  child: Column(
+                    children: [
+                      RadioListTile<String>(
+                        value: 'ckb',
+                        groupValue: ref.watch(appLocaleProvider).languageCode,
+                        activeColor: AppTheme.accentColor(_data.gradientPreset),
+                        title: Text(s.langKurdishSorani),
+                        onChanged: (val) {
+                          if (val != null) ref.read(appLocaleProvider.notifier).setLocale(Locale(val));
+                        },
+                      ),
+                      RadioListTile<String>(
+                        value: 'kmr',
+                        groupValue: ref.watch(appLocaleProvider).languageCode,
+                        activeColor: AppTheme.accentColor(_data.gradientPreset),
+                        title: Text(s.langKurdishKurmanji),
+                        onChanged: (val) {
+                          if (val != null) ref.read(appLocaleProvider.notifier).setLocale(Locale(val));
+                        },
+                      ),
+                      RadioListTile<String>(
+                        value: 'en',
+                        groupValue: ref.watch(appLocaleProvider).languageCode,
+                        activeColor: AppTheme.accentColor(_data.gradientPreset),
+                        title: Text(s.langEnglish),
+                        onChanged: (val) {
+                          if (val != null) ref.read(appLocaleProvider.notifier).setLocale(Locale(val));
+                        },
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 24),
+                Text(
                   s.sectionAbout,
                   style: Theme.of(context).textTheme.titleMedium?.copyWith(
                         color: AppTheme.accentColor(_data.gradientPreset),
@@ -712,9 +768,98 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                     subtitle: Text(s.aboutSub),
                   ),
                 ),
+                const SizedBox(height: 8),
+                _glassCard(
+                  child: ListTile(
+                    leading: const Icon(Icons.update_rounded, color: Colors.greenAccent),
+                    title: const Text('Check for Updates'),
+                    subtitle: const Text('Ensure you have the latest features'),
+                    onTap: () {
+                      final updateData = ref.read(updateManagerProvider).asData?.value;
+                      final localVersionCode = ref.read(appVersionCodeProvider).asData?.value ?? 0;
+                      if (updateData != null && updateData.isActive && updateData.versionCode > localVersionCode) {
+                        UpdatePromptDialog.show(context, updateData);
+                      } else {
+                        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(s.locale.languageCode == 'kmr' ? 'Sepan nûjen e' : (s.locale.languageCode == 'ckb' ? 'ئەپەکە نوێکراوەتەوە' : 'App is up to date'))));
+                      }
+                    },
+                  ),
+                ),
+                const SizedBox(height: 8),
+                _glassCard(
+                  child: ListTile(
+                    leading: const Icon(Icons.telegram_rounded, color: Colors.blueAccent),
+                    title: const Text('Join our Telegram'),
+                    subtitle: const Text('Get support and latest news'),
+                    onTap: () async {
+                      final url = Uri.parse('https://t.me/KOBANI4K');
+                      if (await canLaunchUrl(url)) {
+                        await launchUrl(url, mode: LaunchMode.externalApplication);
+                      }
+                    },
+                  ),
+                ),
+                const SizedBox(height: 24),
+                Text(
+                  'What\'s New?',
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                        color: AppTheme.accentColor(_data.gradientPreset),
+                        fontWeight: FontWeight.bold,
+                      ),
+                ),
+                const SizedBox(height: 12),
+                SizedBox(
+                  height: 140,
+                  child: ListView(
+                    scrollDirection: Axis.horizontal,
+                    padding: const EdgeInsets.only(bottom: 16),
+                    children: [
+                      _changelogCard(
+                        icon: Icons.translate_rounded,
+                        color: Colors.purpleAccent,
+                        title: 'Kurdish Translator',
+                        subtitle: 'Added full Kurdish Kurmanji support',
+                      ),
+                      const SizedBox(width: 12),
+                      _changelogCard(
+                        icon: Icons.data_saver_on_rounded,
+                        color: Colors.orangeAccent,
+                        title: 'Data Saver',
+                        subtitle: 'Save bandwidth on mobile networks',
+                      ),
+                      const SizedBox(width: 12),
+                      _changelogCard(
+                        icon: Icons.storage_rounded,
+                        color: Colors.tealAccent,
+                        title: 'Storage Manager',
+                        subtitle: 'Clear cache and posters easily',
+                      ),
+                    ],
+                  ),
+                ),
               ],
               ),
             ),
+    );
+  }
+
+  Widget _changelogCard({required IconData icon, required Color color, required String title, required String subtitle}) {
+    return _glassCard(
+      child: Container(
+        width: 220,
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(icon, color: color, size: 28),
+            const SizedBox(height: 8),
+            Text(title, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+            const SizedBox(height: 4),
+            Text(subtitle, style: TextStyle(color: Colors.white.withOpacity(0.7), fontSize: 12), maxLines: 2, overflow: TextOverflow.ellipsis),
+          ],
+        ),
+      ),
     );
   }
 
@@ -740,10 +885,11 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
 
   String _gradientPresetTitle(AppStrings s, AppGradientPreset preset) {
     return switch (preset) {
+      AppGradientPreset.classic => 'Midnight (Silver/Gray)',
+      AppGradientPreset.ocean => 'Ocean Abyss (Blue)',
+      AppGradientPreset.goldSunset => 'Gold Sunset (Yellow/Orange)',
+      AppGradientPreset.violetHaze => 'Violet Haze (Purple)',
       AppGradientPreset.emberGlow => 'Ember Glow (Red/Orange)',
-      AppGradientPreset.oceanBreeze => 'Ocean Breeze (Blue/Teal)',
-      AppGradientPreset.neonCyber => 'Neon Cyber (Purple/Pink)',
-      AppGradientPreset.emeraldForest => 'Emerald Forest (Green/Dark)',
     };
   }
 
