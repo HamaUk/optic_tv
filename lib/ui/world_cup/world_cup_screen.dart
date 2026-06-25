@@ -120,49 +120,49 @@ class _WorldCupScreenState extends State<WorldCupScreen> with SingleTickerProvid
                     child: Padding(
                       padding: const EdgeInsets.all(24.0),
                       child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        mainAxisAlignment: MainAxisAlignment.end,
+                        crossAxisAlignment: CrossAxisAlignment.center,
+                        mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          Row(
-                            children: [
-                              Container(
-                                padding: const EdgeInsets.all(12),
-                                decoration: BoxDecoration(
-                                  color: AppTheme.primaryGold.withOpacity(0.2),
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
-                                child: const Icon(
+                          Container(
+                            padding: const EdgeInsets.all(16),
+                            decoration: BoxDecoration(
+                              color: AppTheme.primaryGold.withOpacity(0.15),
+                              borderRadius: BorderRadius.circular(20),
+                              border: Border.all(
+                                color: AppTheme.primaryGold.withOpacity(0.3),
+                                width: 1,
+                              ),
+                            ),
+                            child: Column(
+                              children: [
+                                const Icon(
                                   Icons.sports_soccer,
                                   color: AppTheme.primaryGold,
-                                  size: 32,
+                                  size: 40,
                                 ),
-                              ),
-                              const SizedBox(width: 16),
-                              const Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    'FIFA World Cup',
-                                    style: TextStyle(
-                                      color: Colors.white70,
-                                      fontSize: 14,
-                                      fontWeight: FontWeight.w500,
-                                      letterSpacing: 2,
-                                    ),
+                                const SizedBox(height: 12),
+                                Text(
+                                  'FIFA World Cup',
+                                  style: TextStyle(
+                                    color: Colors.white70,
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.w600,
+                                    letterSpacing: 3,
                                   ),
-                                  Text(
-                                    '2026',
-                                    style: TextStyle(
-                                      color: AppTheme.primaryGold,
-                                      fontSize: 36,
-                                      fontStyle: FontStyle.italic,
-                                      fontWeight: FontWeight.w900,
-                                      letterSpacing: 4,
-                                    ),
+                                ),
+                                const SizedBox(height: 4),
+                                Text(
+                                  '2026',
+                                  style: TextStyle(
+                                    color: AppTheme.primaryGold,
+                                    fontSize: 42,
+                                    fontStyle: FontStyle.italic,
+                                    fontWeight: FontWeight.w900,
+                                    letterSpacing: 6,
                                   ),
-                                ],
-                              ),
-                            ],
+                                ),
+                              ],
+                            ),
                           ),
                         ],
                       ),
