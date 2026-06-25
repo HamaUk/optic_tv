@@ -1,6 +1,6 @@
 ﻿import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../l10n/app_strings.dart';
-import '../../providers/locale_provider.dart';
+import '../../providers/app_locale_provider.dart';
 import 'package:flutter/material.dart';
 import '../../services/world_cup_service.dart';
 
@@ -64,13 +64,13 @@ class _TeamDetailsScreenState extends ConsumerState<TeamDetailsScreen> {
             ),
           ),
           const SizedBox(height: 20),
-          const Text(s.wcSquadRoster, style: TextStyle(color: Color(0xFFD4AF37), fontSize: 18, fontWeight: FontWeight.bold, letterSpacing: 1.2)),
+          Text(s.wcSquadRoster, style: TextStyle(color: Color(0xFFD4AF37), fontSize: 18, fontWeight: FontWeight.bold, letterSpacing: 1.2)),
           const SizedBox(height: 10),
           Expanded(
             child: _loading 
               ? const Center(child: CircularProgressIndicator(color: Color(0xFFD4AF37)))
               : _roster.isEmpty
-                ? const Center(child: Text(s.wcNoRosterData, style: TextStyle(color: Colors.white54)))
+                ? Center(child: Text(s.wcNoRosterData, style: TextStyle(color: Colors.white54)))
                 : ListView.builder(
                     padding: const EdgeInsets.all(16),
                     itemCount: _roster.length,
@@ -123,6 +123,7 @@ class _TeamDetailsScreenState extends ConsumerState<TeamDetailsScreen> {
     );
   }
 }
+
 
 
 

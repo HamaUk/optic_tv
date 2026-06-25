@@ -1,6 +1,6 @@
 ﻿import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../l10n/app_strings.dart';
-import '../../providers/locale_provider.dart';
+import '../../providers/app_locale_provider.dart';
 import 'package:flutter/material.dart';
 import 'dart:async';
 import '../../services/world_cup_service.dart';
@@ -319,7 +319,7 @@ class _MatchDetailsScreenState extends ConsumerState<MatchDetailsScreen> with Si
          child: Column(
            crossAxisAlignment: CrossAxisAlignment.start,
            children: [
-             const Text(s.wcLiveWinProbability, style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),
+             Text(s.wcLiveWinProbability, style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),
              const SizedBox(height: 12),
              Row(
                children: [
@@ -554,6 +554,7 @@ class _MatchDetailsScreenState extends ConsumerState<MatchDetailsScreen> with Si
     );
   }
 }
+
 
 
 
