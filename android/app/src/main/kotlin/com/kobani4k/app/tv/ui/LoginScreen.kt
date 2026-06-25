@@ -142,7 +142,8 @@ fun LoginScreen(onLoginSuccess: () -> Unit) {
                 modifier = Modifier
                     .weight(1f)
                     .fillMaxHeight()
-                    .padding(vertical = 16.dp)
+                    .padding(vertical = 16.dp),
+                contentAlignment = Alignment.Center
             ) {
                 // Keypad Card Surface
                 Surface(
@@ -154,14 +155,16 @@ fun LoginScreen(onLoginSuccess: () -> Unit) {
                         border = androidx.compose.foundation.BorderStroke(1.dp, SurfaceElevatedColor),
                         shape = RoundedCornerShape(28.dp)
                     ),
-                    modifier = Modifier.fillMaxSize()
+                    modifier = Modifier
+                        .width(340.dp)
+                        .wrapContentHeight()
                 ) {
                     Column(
                         modifier = Modifier
-                            .fillMaxSize()
-                            .padding(32.dp),
+                            .wrapContentSize()
+                            .padding(24.dp),
                         horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.SpaceEvenly
+                        verticalArrangement = Arrangement.spacedBy(16.dp)
                     ) {
                         fun onDigit(digit: String) {
                             if (enteredCode.length < 6) {
@@ -275,7 +278,7 @@ fun KeypadButton(
         onClick = onClick,
         modifier = Modifier
             .fillMaxWidth()
-            .aspectRatio(1.2f),
+            .aspectRatio(1.4f),
         shape = ButtonDefaults.shape(shape = RoundedCornerShape(16.dp)),
         colors = ButtonDefaults.colors(
             containerColor = SurfaceElevatedColor.copy(alpha = 0.6f),
