@@ -1,7 +1,10 @@
+﻿import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../l10n/app_strings.dart';
+import '../../providers/locale_provider.dart';
 import 'package:flutter/material.dart';
 import '../../services/world_cup_service.dart';
 
-class TeamDetailsScreen extends StatefulWidget {
+class TeamDetailsScreen extends ConsumerStatefulWidget {
   final String teamId;
   final String teamName;
   final String teamFlag;
@@ -14,10 +17,10 @@ class TeamDetailsScreen extends StatefulWidget {
   });
 
   @override
-  State<TeamDetailsScreen> createState() => _TeamDetailsScreenState();
+  ConsumerState<TeamDetailsScreen> createState() => _TeamDetailsScreenState();
 }
 
-class _TeamDetailsScreenState extends State<TeamDetailsScreen> {
+class _TeamDetailsScreenState extends ConsumerState<TeamDetailsScreen> {
   bool _loading = true;
   List<dynamic> _roster = [];
 
@@ -38,7 +41,10 @@ class _TeamDetailsScreenState extends State<TeamDetailsScreen> {
   }
 
   @override
+  @override
   Widget build(BuildContext context) {
+    final locale = ref.watch(appLocaleProvider);
+    final s = AppStrings(locale);
     return Scaffold(
       backgroundColor: Colors.black,
       appBar: AppBar(
@@ -58,13 +64,13 @@ class _TeamDetailsScreenState extends State<TeamDetailsScreen> {
             ),
           ),
           const SizedBox(height: 20),
-          const Text("Official 26-Man Squad", style: TextStyle(color: Color(0xFFD4AF37), fontSize: 18, fontWeight: FontWeight.bold, letterSpacing: 1.2)),
+          const Text(s.wcSquadRoster, style: TextStyle(color: Color(0xFFD4AF37), fontSize: 18, fontWeight: FontWeight.bold, letterSpacing: 1.2)),
           const SizedBox(height: 10),
           Expanded(
             child: _loading 
               ? const Center(child: CircularProgressIndicator(color: Color(0xFFD4AF37)))
               : _roster.isEmpty
-                ? const Center(child: Text("Roster not announced yet", style: TextStyle(color: Colors.white54)))
+                ? const Center(child: Text(s.wcNoRosterData, style: TextStyle(color: Colors.white54)))
                 : ListView.builder(
                     padding: const EdgeInsets.all(16),
                     itemCount: _roster.length,
@@ -117,3 +123,7 @@ class _TeamDetailsScreenState extends State<TeamDetailsScreen> {
     );
   }
 }
+
+
+
+

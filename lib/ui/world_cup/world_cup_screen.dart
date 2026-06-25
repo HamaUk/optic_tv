@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../services/world_cup_service.dart';
 import '../../widgets/animated_gradient_border.dart';
@@ -100,7 +100,7 @@ class _WorldCupScreenState extends ConsumerState<WorldCupScreen>
     );
   }
 
-  // ─── Live Soccer Tab ─────────────────────────────────────────
+  // â”€â”€â”€ Live Soccer Tab â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   Widget _buildLiveSoccerTab(AppStrings s) {
     final startDate = DateTime(2026, 6, 11);
@@ -487,7 +487,7 @@ class _WorldCupScreenState extends ConsumerState<WorldCupScreen>
     );
   }
 
-  // ─── Matches Tab (worldcup26.ir) ─────────────────────────────
+  // â”€â”€â”€ Matches Tab (worldcup26.ir) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   Widget _buildMatchesTab(AppStrings s) {
     if (_games.isEmpty) {
@@ -672,7 +672,7 @@ class _WorldCupScreenState extends ConsumerState<WorldCupScreen>
     );
   }
 
-  // ─── Groups Tab ──────────────────────────────────────────────
+  // â”€â”€â”€ Groups Tab â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   Widget _buildGroupsTab(AppStrings s) {
     if (_groups.isEmpty) {
@@ -940,7 +940,7 @@ class _WorldCupScreenState extends ConsumerState<WorldCupScreen>
     );
   }
 
-  // ─── News Tab ────────────────────────────────────────────────
+  // â”€â”€â”€ News Tab â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   Widget _buildNewsTab(AppStrings s) {
     if (_isLoadingNews) {
@@ -1124,7 +1124,7 @@ class _WorldCupScreenState extends ConsumerState<WorldCupScreen>
     }
   }
 
-  // ─── Scorers Tab ─────────────────────────────────────────────
+  // â”€â”€â”€ Scorers Tab â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   Widget _buildScorersTab(AppStrings s) {
     if (_isLoadingScorers) {
@@ -1345,3 +1345,4 @@ class _WorldCupScreenState extends ConsumerState<WorldCupScreen>
     );
   }
 }
+

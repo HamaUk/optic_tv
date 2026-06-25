@@ -1,8 +1,11 @@
-﻿import 'package:flutter/material.dart';
+﻿import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../l10n/app_strings.dart';
+import '../../providers/locale_provider.dart';
+import 'package:flutter/material.dart';
 import 'dart:async';
 import '../../services/world_cup_service.dart';
 
-class MatchDetailsScreen extends StatefulWidget {
+class MatchDetailsScreen extends ConsumerStatefulWidget {
   final String eventId;
   final String homeTeam;
   final String awayTeam;
@@ -19,10 +22,10 @@ class MatchDetailsScreen extends StatefulWidget {
   });
 
   @override
-  State<MatchDetailsScreen> createState() => _MatchDetailsScreenState();
+  ConsumerState<MatchDetailsScreen> createState() => _MatchDetailsScreenState();
 }
 
-class _MatchDetailsScreenState extends State<MatchDetailsScreen> {
+class _MatchDetailsScreenState extends ConsumerState<MatchDetailsScreen> with SingleTickerProviderStateMixin {
   bool _loading = true;
   Map<String, dynamic>? _summary;
   Map<String, dynamic>? _probabilities;
@@ -53,7 +56,10 @@ class _MatchDetailsScreenState extends State<MatchDetailsScreen> {
       });
     }
   }  @override
+  @override
   Widget build(BuildContext context) {
+    final locale = ref.watch(appLocaleProvider);
+    final s = AppStrings(locale);
     return Scaffold(
       backgroundColor: Colors.black,
       body: _loading
@@ -236,8 +242,8 @@ class _MatchDetailsScreenState extends State<MatchDetailsScreen> {
       padding: const EdgeInsets.symmetric(horizontal: 20),
       child: Row(
         children: [
-          _buildTab(0, "Summary"),
-          _buildTab(1, "Stats"),
+          _buildTab(0, s.wcSummary),
+          _buildTab(1, s.wcTabScorers),
           _buildTab(2, "Lineups"),
           _buildTab(3, "H2H"),
         ],
@@ -270,8 +276,8 @@ class _MatchDetailsScreenState extends State<MatchDetailsScreen> {
 
   Widget _buildActiveTabContent() {
     switch (_activeTab) {
-      case 0: return _buildSummaryTab();
-      case 1: return _buildStatsTab();
+      case 0: return _buildSummaryTab(s);
+      case 1: return _buildStatsTab(s);
       case 2: return _buildLineupsTab();
       case 3: return _buildH2HTab();
       default: return const SizedBox();
@@ -280,7 +286,7 @@ class _MatchDetailsScreenState extends State<MatchDetailsScreen> {
 
   // --- TAB CONTENTS ---
 
-  Widget _buildSummaryTab() {
+  Widget _buildSummaryTab(AppStrings s) {
     final gameInfo = _summary?['gameInfo'] ?? {};
     final venue = gameInfo['venue'] ?? {};
     final venueName = venue['fullName'] ?? 'Unknown Venue';
@@ -313,7 +319,7 @@ class _MatchDetailsScreenState extends State<MatchDetailsScreen> {
          child: Column(
            crossAxisAlignment: CrossAxisAlignment.start,
            children: [
-             const Text("Live Win Probability", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),
+             const Text(s.wcLiveWinProbability, style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),
              const SizedBox(height: 12),
              Row(
                children: [
@@ -423,7 +429,7 @@ class _MatchDetailsScreenState extends State<MatchDetailsScreen> {
     );
   }
 
-  Widget _buildStatsTab() {
+  Widget _buildStatsTab(AppStrings s) {
     final boxscore = _summary?['boxscore'] ?? {};
     final teams = boxscore['teams'] as List<dynamic>? ?? [];
     if (teams.length < 2) return const Center(child: Text("Stats not available", style: TextStyle(color: Colors.white54)));
@@ -548,4 +554,7 @@ class _MatchDetailsScreenState extends State<MatchDetailsScreen> {
     );
   }
 }
+
+
+
 

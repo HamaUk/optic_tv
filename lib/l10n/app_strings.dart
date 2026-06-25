@@ -871,4 +871,112 @@ class AppStrings {
     if (isSorani) return 'بینەر';
     return 'viewers';
   }
+
+  String get wcNoTeams {
+    if (isKurmanji) return 'Tîm nehatin dîtin';
+    if (isSorani) return 'هیچ تیمێک نەدۆزرایەوە';
+    return 'No teams found';
+  }
+
+  String get wcTournamentStats {
+    if (isKurmanji) return 'Statîstîkên Tûrnûvayê';
+    if (isSorani) return 'ئامارەکانی پاڵەوانێتی';
+    return 'Tournament Stats';
+  }
+
+  String get wcStatsNotAvailable {
+    if (isKurmanji) return 'Statîstîk hê ne berdest in';
+    if (isSorani) return 'ئامارەکان هێشتا بەردەست نین';
+    return 'Stats not available yet';
+  }
+
+  String get wcGoals {
+    if (isKurmanji) return 'Golan';
+    if (isSorani) return 'گۆڵەکان';
+    return 'Goals';
+  }
+
+  String get wcCapacity {
+    if (isKurmanji) return 'Kapasîte';
+    if (isSorani) return 'توانای لەخۆگرتن';
+    return 'Capacity';
+  }
+
+  String get wcLiveWinProbability {
+    if (isKurmanji) return 'Îhtîmala Serkeftinê ya Zindî';
+    if (isSorani) return 'ئەگەری بردنەوەی ڕاستەوخۆ';
+    return 'Live Win Probability';
+  }
+
+  String get wcDraw {
+    if (isKurmanji) return 'Beramber';
+    if (isSorani) return 'یەکسانبوون';
+    return 'Draw';
+  }
+
+  String get wcSummary {
+    if (isKurmanji) return 'Kurte';
+    if (isSorani) return 'کورتە';
+    return 'Summary';
+  }
+
+  String get wcRosters {
+    if (isKurmanji) return 'Kadro';
+    if (isSorani) return 'پێکهاتە';
+    return 'Rosters';
+  }
+
+  String get wcTimeline {
+    if (isKurmanji) return 'Rêzbûyer';
+    if (isSorani) return 'کاتی ڕووداوەکان';
+    return 'Timeline';
+  }
+
+  String get wcSubstitutes {
+    if (isKurmanji) return 'Yedek';
+    if (isSorani) return 'یەدەگەکان';
+    return 'Substitutes';
+  }
+
+  String get wcManager {
+    if (isKurmanji) return 'Rêvebir';
+    if (isSorani) return 'ڕاهێنەر';
+    return 'Manager';
+  }
+
+  String get wcSquadRoster {
+    if (isKurmanji) return 'Kadroyê Tîmê';
+    if (isSorani) return 'پێکهاتەی تیم';
+    return 'Squad Roster';
+  }
+
+  String get wcGoalkeepers {
+    if (isKurmanji) return 'Goleparêz';
+    if (isSorani) return 'گۆڵپارێزەکان';
+    return 'Goalkeepers';
+  }
+
+  String get wcDefenders {
+    if (isKurmanji) return 'Parastvan';
+    if (isSorani) return 'بەرگریکارەکان';
+    return 'Defenders';
+  }
+
+  String get wcMidfielders {
+    if (isKurmanji) return 'Navend';
+    if (isSorani) return 'یاریزانانی ناوەڕاست';
+    return 'Midfielders';
+  }
+
+  String get wcForwards {
+    if (isKurmanji) return 'Êrîşber';
+    if (isSorani) return 'هێرشبەرەکان';
+    return 'Forwards';
+  }
+
+  String get wcNoRosterData {
+    if (isKurmanji) return 'Daneyên kadro tune';
+    if (isSorani) return 'هیچ داتایەکی پێکهاتە نییە';
+    return 'No roster data available';
+  }
 }
