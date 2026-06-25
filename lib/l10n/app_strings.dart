@@ -14,517 +14,517 @@ class AppStrings {
   bool get isSorani => locale.languageCode == 'ckb' || (!isEnglish && !isKurmanji);
 
   String get loginTitle {
-    if (isKurmanji) return 'Bi xÃªr hatÃ®';
-    if (isSorani) return 'Ø¨Û•Ø®ÛŽØ±Ø¨ÛŽÛŒØª';
+    if (isKurmanji) return 'Bi xêr hatî';
+    if (isSorani) return 'بەخێربێیت';
     return 'Welcome';
   }
 
   String get loginSubtitle {
-    if (isKurmanji) return 'Ji kerema xwe koda xwe binivÃ®se da ku berdewam bikÃ®';
-    if (isSorani) return 'ØªÚ©Ø§ÛŒÛ• Ú©Û†Ø¯ÛŒ Ú†ÙˆÙˆÙ†Û•Ú˜ÙˆÙˆØ±Û•ÙˆÛ• Ø¨Ù†ÙˆÙˆØ³Û• Ø¨Û† Ø¨Û•Ø±Ø¯Û•ÙˆØ§Ù…Ø¨ÙˆÙˆÙ†';
+    if (isKurmanji) return 'Ji kerema xwe koda xwe binivîse da ku berdewam bikî';
+    if (isSorani) return 'تکایە کۆدی چوونەژوورەوە بنووسە بۆ بەردەوامبوون';
     return 'Enter your access code to continue';
   }
 
-  String get loginHint => 'â˜†â˜†â˜†â˜†â˜†â˜†';
+  String get loginHint => '☆☆☆☆☆☆';
 
   String get loginButton {
     if (isKurmanji) return 'Berdewam bike';
-    if (isSorani) return 'Ø¨Û•Ø±Ø¯Û•ÙˆØ§Ù…Ø¨Û•';
+    if (isSorani) return 'بەردەوامبە';
     return 'Continue';
   }
 
   String get loginErrorEmpty {
-    if (isKurmanji) return 'KodÃª binivÃ®se';
-    if (isSorani) return 'Ú©Û†Ø¯Û•Ú©Û• Ø¨Ù†ÙˆÙˆØ³Û•';
+    if (isKurmanji) return 'Kodê binivîse';
+    if (isSorani) return 'کۆدەکە بنووسە';
     return 'Enter a code';
   }
 
   String get loginErrorInvalid {
-    if (isKurmanji) return 'Kod nehat nasÃ®n';
-    if (isSorani) return 'Ú©Û†Ø¯Û•Ú©Û• Ù‡Û•ÚµÛ•ÛŒÛ•';
+    if (isKurmanji) return 'Kod nehat nasîn';
+    if (isSorani) return 'کۆدەکە هەڵەیە';
     return 'Code not recognized';
   }
 
   String get loginErrorNetwork {
-    if (isKurmanji) return 'TÃªkiliya Ã®nternetÃª kontrol bike Ã» dÃ®sa biceribÃ®ne';
-    if (isSorani) return 'Ù¾Û•ÛŒÙˆÛ•Ù†Ø¯ÛŒ Ø¦ÛŒÙ†ØªÛ•Ø±Ù†ÛŽØª Ø¨Ù¾Ø´Ú©Ù†Û• Ùˆ Ø¯ÙˆÙˆØ¨Ø§Ø±Û• Ù‡Û•ÙˆÚµØ¨Ø¯Û•ÙˆÛ•';
+    if (isKurmanji) return 'Têkiliya înternetê kontrol bike û dîsa biceribîne';
+    if (isSorani) return 'پەیوەندی ئینتەرنێت بپشکنە و دووبارە هەوڵبدەوە';
     return 'Check connection and try again';
   }
 
   String get appBrand => 'KOBANI 4K';
 
   String get appTagline {
-    if (isKurmanji) return 'CÃ®hanek ji kÃªf Ã» wext derbaskirinÃª';
-    if (isSorani) return 'Ø¬ÛŒÙ‡Ø§Ù†ÛŽÚ© Ù„Û• Ú©Ø§ØªØ¨Û•Ø³Û•Ø±Ø¨Ø±Ø¯Ù†';
+    if (isKurmanji) return 'Cîhanek ji kêf û wext derbaskirinê';
+    if (isSorani) return 'جیهانێک لە کاتبەسەربردن';
     return 'Premium entertainment';
   }
 
   String get noChannels {
-    if (isKurmanji) return 'HÃªj qenal nÃ®nin';
-    if (isSorani) return 'Ù‡ÛŒÚ† Ú©Û•Ù†Ø§ÚµÛŽÚ© Ø¨Û•Ø±Ø¯Û•Ø³Øª Ù†ÛŒÛŒÛ•';
+    if (isKurmanji) return 'Hêj qenal nînin';
+    if (isSorani) return 'هیچ کەناڵێک بەردەست نییە';
     return 'No channels yet';
   }
 
   String get noChannelsHint {
-    if (isKurmanji) return 'Gava lÃ®steya te tÃª hevdeng kirin ew Ãª xuya bibin.';
-    if (isSorani) return 'Ú©Û•Ù†Ø§ÚµÛ•Ú©Ø§Ù† Ø¯Û•Ø±Ø¯Û•Ú©Û•ÙˆÙ† Ú©Ø§ØªÛŽÚ© Ù„ÛŒØ³ØªÛ•Ú©Û•Øª Ù‡Ø§ÙˆÚ©Ø§Øª Ø¯Û•Ú©Ø±ÛŽØª.';
+    if (isKurmanji) return 'Gava lîsteya te tê hevdeng kirin ew ê xuya bibin.';
+    if (isSorani) return 'کەناڵەکان دەردەکەون کاتێک لیستەکەت هاوکات دەکرێت.';
     return 'They appear when your library syncs.';
   }
 
   String get nowPlaying {
-    if (isKurmanji) return 'PÃªÅŸniyarkirÃ®';
-    if (isSorani) return 'Ø¬ÛŽÛŒ Ø³Û•Ø±Ù†Ø¬';
+    if (isKurmanji) return 'Pêşniyarkirî';
+    if (isSorani) return 'جێی سەرنج';
     return 'Featured';
   }
 
   String get featuredNewHint {
-    if (isKurmanji) return 'Qenalek nÃ» li lÃ®steya te hat zÃªdekirin. Dest bide "TemaÅŸe bike".';
-    if (isSorani) return 'Ú©Û•Ù†Ø§ÚµÛŽÚ©ÛŒ Ù†ÙˆÛŽ Ø¨Û† Ù„ÛŒØ³ØªÛ•Ú©Û•Øª Ø²ÛŒØ§Ø¯Ú©Ø±Ø§ÙˆÛ•ØŒ Ø¯Û•Ø³Øª Ù„Û• Â«Ø¨Ø¨ÛŒÙ†Û•Â» Ø¨Ø¯Û• Ø¨Û† Ø³Û•ÛŒØ±Ú©Ø±Ø¯Ù†.';
+    if (isKurmanji) return 'Qenalek nû li lîsteya te hat zêdekirin. Dest bide "Temaşe bike".';
+    if (isSorani) return 'کەناڵێکی نوێ بۆ لیستەکەت زیادکراوە، دەست لە «ببینە» بدە بۆ سەیرکردن.';
     return 'A new channel is available in your lineup. Tap Watch to start playing.';
   }
 
   String get watchNow {
-    if (isKurmanji) return 'TemaÅŸe bike';
-    if (isSorani) return 'Ø¨Ø¨ÛŒÙ†Û•';
+    if (isKurmanji) return 'Temaşe bike';
+    if (isSorani) return 'ببینە';
     return 'Watch';
   }
 
   String get channelLoadError {
     if (isKurmanji) return 'Qenal nehatin xwendin';
-    if (isSorani) return 'Ù†Û•ØªÙˆØ§Ù†Ø±Ø§ Ú©Û•Ù†Ø§ÚµÛ•Ú©Ø§Ù† Ø¨Ø®ÙˆÛŽÙ†Ø±ÛŽØªÛ•ÙˆÛ•';
+    if (isSorani) return 'نەتوانرا کەناڵەکان بخوێنرێتەوە';
     return 'Could not load channels';
   }
 
   String get settingsTooltip {
     if (isKurmanji) return 'Sazkirin';
-    if (isSorani) return 'Ú•ÛŽÚ©Ø®Ø³ØªÙ†Û•Ú©Ø§Ù†';
+    if (isSorani) return 'ڕێکخستنەکان';
     return 'Settings';
   }
 
   String get settingsTitle {
     if (isKurmanji) return 'Sazkirin';
-    if (isSorani) return 'Ú•ÛŽÚ©Ø®Ø³ØªÙ†Û•Ú©Ø§Ù†';
+    if (isSorani) return 'ڕێکخستنەکان';
     return 'Settings';
   }
 
   String get sectionPlayback {
-    if (isKurmanji) return 'LÃªdan';
-    if (isSorani) return 'Ù¾Û•Ø®Ø´Ú©Ø±Ø¯Ù†';
+    if (isKurmanji) return 'Lêdan';
+    if (isSorani) return 'پەخشکردن';
     return 'Playback';
   }
 
   String get sectionVideo {
-    if (isKurmanji) return 'Mezinahiya VÃ®dyoyÃª';
-    if (isSorani) return 'Ù‚Û•Ø¨Ø§Ø±Û•ÛŒ Ú¤ÛŒØ¯ÛŒÛ†';
+    if (isKurmanji) return 'Mezinahiya Vîdyoyê';
+    if (isSorani) return 'قەبارەی ڤیدیۆ';
     return 'Video fit';
   }
 
   String get sectionInterface {
-    if (isKurmanji) return 'RÃ»kar';
-    if (isSorani) return 'Ú•ÙˆÙˆÚ©Ø§Ø±';
+    if (isKurmanji) return 'Rûkar';
+    if (isSorani) return 'ڕووکار';
     return 'Interface';
   }
 
   String get sectionGradientTheme {
-    if (isKurmanji) return 'Reng Ã» PaÅŸxane';
-    if (isSorani) return 'Ø´ÛŽÙˆØ§Ø²ÛŒ Ú•Û•Ù†Ú¯ Ùˆ Ù¾Ø§Ø´Ø¨Ù†Û•';
+    if (isKurmanji) return 'Reng û Paşxane';
+    if (isSorani) return 'شێوازی ڕەنگ و پاشبنە';
     return 'Theme & backdrop';
   }
 
   String get gradientThemeCaption {
-    if (isKurmanji) return 'RengÃªn ji bo dashboard Ã» vÃª rÃ»pelÃª';
-    if (isSorani) return 'Ø´ÛŽÙˆØ§Ø²ÛŒ Ú•Û•Ù†Ú¯ÛŒØ²Û• Ø¨Û† Ø¯Ø§Ø´Ø¨Û†Ø±Ø¯ Ùˆ Ø¦Û•Ù… Ø´Ø§Ø´Û•ÛŒÛ•';
+    if (isKurmanji) return 'Rengên ji bo dashboard û vê rûpelê';
+    if (isSorani) return 'شێوازی ڕەنگیزە بۆ داشبۆرد و ئەم شاشەیە';
     return 'Gradient look for dashboard and this screen';
   }
 
   String get gradientClassic {
-    if (isKurmanji) return 'NÃ®vÃª ÅževÃª';
-    if (isSorani) return 'Ù†ÛŒÙˆÛ•Ø´Û•Ùˆ';
+    if (isKurmanji) return 'Nîvê Şevê';
+    if (isSorani) return 'نیوەشەو';
     return 'Midnight';
   }
 
   String get gradientOcean {
-    if (isKurmanji) return 'KÃ»rahiya OkyanÃ»sÃª';
-    if (isSorani) return 'Ù‚ÙˆÙˆÚµØ§ÛŒÛŒ Ø¦Û†Ù‚ÛŒØ§Ù†ÙˆØ³';
+    if (isKurmanji) return 'Kûrahiya Okyanûsê';
+    if (isSorani) return 'قووڵایی ئۆقیانوس';
     return 'Ocean abyss';
   }
 
   String get gradientGold {
-    if (isKurmanji) return 'ZÃªrÃ®n';
-    if (isSorani) return 'Ø¦Ø§Ø³Û†ÛŒÛŒ Ø²ÛŽÚ•ÛŒÙ†';
+    if (isKurmanji) return 'Zêrîn';
+    if (isSorani) return 'ئاسۆیی زێڕین';
     return 'Gold sunset';
   }
 
   String get gradientViolet {
-    if (isKurmanji) return 'MijÃª Mor';
-    if (isSorani) return 'ØªÛ•Ù…ÙˆÙ…Ú˜ÛŒ Ù…Û†Ø±';
+    if (isKurmanji) return 'Mijê Mor';
+    if (isSorani) return 'تەمومژی مۆر';
     return 'Violet haze';
   }
 
   String get gradientEmber {
-    if (isKurmanji) return 'GÃªla PÃªtÃª (Bingehan)';
-    if (isSorani) return 'Ú¯Û•Ø´ÛŒÛŒ Ù¾Û†Ù„ÛŽØªÛŒ (Ø¨Ù†Û•Ú•Û•ØªÛŒ)';
+    if (isKurmanji) return 'Gêla Pêtê (Bingehan)';
+    if (isSorani) return 'گەشیی پۆلێتی (بنەڕەتی)';
     return 'Ember glow (default)';
   }
 
   String get sectionLanguage {
     if (isKurmanji) return 'Ziman';
-    if (isSorani) return 'Ø²Ù…Ø§Ù†Û•Ú©Ø§Ù†';
+    if (isSorani) return 'زمانەکان';
     return 'Language';
   }
 
   String get sectionAccount {
     if (isKurmanji) return 'Hesab';
-    if (isSorani) return 'Ù‡Û•Ú˜Ù…Ø§Ø±';
+    if (isSorani) return 'هەژمار';
     return 'Account';
   }
 
   String get sectionAbout {
     if (isKurmanji) return 'Derbar';
-    if (isSorani) return 'Ø¯Û•Ø±Ø¨Ø§Ø±Û•';
+    if (isSorani) return 'دەربارە';
     return 'About';
   }
 
   String get keepScreenOnTitle {
-    if (isKurmanji) return 'DÃ®mender ronÃ® bihÃªle';
-    if (isSorani) return 'Ø¯Ø§Ú¯ÛŒØ±Ø³Ø§Ù†Ø¯Ù†ÛŒ Ø´Ø§Ø´Û•';
+    if (isKurmanji) return 'Dîmender ronî bihêle';
+    if (isSorani) return 'داگیرساندنی شاشە';
     return 'Keep screen on';
   }
 
   String get keepScreenOnSub {
-    if (isKurmanji) return 'Dema vÃ®dyo tÃª lÃªdan';
-    if (isSorani) return 'Ú•ÛŽÚ¯Ø±ÛŒ Ù„Û• Ú©ÙˆÚ˜Ø§Ù†Û•ÙˆÛ•ÛŒ Ø´Ø§Ø´Û• Ù„Û•Ú©Ø§ØªÛŒ Ù¾Û•Ø®Ø´Ú©Ø±Ø¯Ù†Ø¯Ø§';
+    if (isKurmanji) return 'Dema vîdyo tê lêdan';
+    if (isSorani) return 'ڕێگری لە کوژانەوەی شاشە لەکاتی پەخشکردندا';
     return 'While video is playing';
   }
 
   String get autoHideTitle {
-    if (isKurmanji) return 'Bikojkan veÅŸÃªre';
-    if (isSorani) return 'Ø´Ø§Ø±Ø¯Ù†Û•ÙˆÛ•ÛŒ Ø¯ÙˆÚ¯Ù…Û•Ú©Ø§Ù†';
+    if (isKurmanji) return 'Bikojkan veşêre';
+    if (isSorani) return 'شاردنەوەی دوگمەکان';
     return 'Hide controls';
   }
 
   String get autoHideSub {
-    if (isKurmanji) return 'Bi dest lÃªdanÃª dubare nÃ®ÅŸan bide';
-    if (isSorani) return 'Ø´Ø§Ø±Ø¯Ù†Û•ÙˆÛ•ÛŒ Ø´Ø±ÛŒØªÛŒ Ù¾Ù„Û•ÛŒÛ•Ø±ØŒ Ø¯Û•Ø³Øª Ù„ÛŽ Ø¨Ø¯Û• Ø¨Û† Ù¾ÛŒØ´Ø§Ù†Ø¯Ø§Ù†Û•ÙˆÛ•';
+    if (isKurmanji) return 'Bi dest lêdanê dubare nîşan bide';
+    if (isSorani) return 'شاردنەوەی شریتی پلەیەر، دەست لێ بدە بۆ پیشاندانەوە';
     return 'Fade player bars; tap to show';
   }
 
   String get clockTitle {
-    if (isKurmanji) return 'DemjimÃªr di lÃ®stikvanÃª de';
-    if (isSorani) return 'Ú©Ø§ØªÚ˜Ù…ÛŽØ± Ù„Û• Ù¾Ù„Û•ÛŒÛ•Ø±';
+    if (isKurmanji) return 'Demjimêr di lîstikvanê de';
+    if (isSorani) return 'کاتژمێر لە پلەیەر';
     return 'Clock in player';
   }
 
   String get clockSub {
-    if (isKurmanji) return 'Dema lÃ®stikvan nÃ®ÅŸan bide';
-    if (isSorani) return 'Ù¾ÛŒØ´Ø§Ù†Ø¯Ø§Ù†ÛŒ Ú©Ø§Øª Ù„Û• Ø´Ø±ÛŒØªÛŒ Ø³Û•Ø±Û•ÙˆÛ•';
+    if (isKurmanji) return 'Dema lîstikvan nîşan bide';
+    if (isSorani) return 'پیشاندانی کات لە شریتی سەرەوە';
     return 'Time in top bar';
   }
 
   String get videoFitCaption {
-    if (isKurmanji) return 'Ã‡awa vÃ®dyo li ser ekranÃª rÃ»ne';
-    if (isSorani) return 'Ú†Û†Ù†ÛŒÛ•ØªÛŒ Ú¯ÙˆÙ†Ø¬Ø§Ù†Ø¯Ù†ÛŒ Ú¤ÛŒØ¯ÛŒÛ† Ù„Û•Ø³Û•Ø± Ø´Ø§Ø´Û•';
+    if (isKurmanji) return 'Çawa vîdyo li ser ekranê rûne';
+    if (isSorani) return 'چۆنیەتی گونجاندنی ڤیدیۆ لەسەر شاشە';
     return 'How video fills the screen';
   }
 
   String get reduceMotionTitle {
-    if (isKurmanji) return 'Tevgeran kÃªm bike';
-    if (isSorani) return 'Ú©Û•Ù…Ú©Ø±Ø¯Ù†Û•ÙˆÛ•ÛŒ Ø¬ÙˆÚµÛ•';
+    if (isKurmanji) return 'Tevgeran kêm bike';
+    if (isSorani) return 'کەمکردنەوەی جوڵە';
     return 'Reduce motion';
   }
 
   String get reduceMotionSub {
-    if (isKurmanji) return 'AnÃ®masyonÃªn kurtir';
-    if (isSorani) return 'Ø¨Û•Ú©Ø§Ø±Ù‡ÛŽÙ†Ø§Ù†ÛŒ Ø¬ÙˆÚµÛ•ÛŒ Ú©ÙˆØ±ØªØªØ±';
+    if (isKurmanji) return 'Anîmasyonên kurtir';
+    if (isSorani) return 'بەکارهێنانی جوڵەی کورتتر';
     return 'Shorter animations';
   }
 
   String get logoutTitle {
     if (isKurmanji) return 'Derkeve';
-    if (isSorani) return 'Ú†ÙˆÙˆÙ†Û•Ø¯Û•Ø±Û•ÙˆÛ•';
+    if (isSorani) return 'چوونەدەرەوە';
     return 'Sign out';
   }
 
   String get logoutSub {
-    if (isKurmanji) return 'HesabÃª xwe ji vÃ® cÃ®hazÃ® rakin';
-    if (isSorani) return 'Ø³Ú•ÛŒÙ†Û•ÙˆÛ•ÛŒ Ù‡Û•Ú˜Ù…Ø§Ø± Ù„Û•Ø³Û•Ø± Ø¦Û•Ù… Ø¦Ø§Ù…ÛŽØ±Û•';
+    if (isKurmanji) return 'Hesabê xwe ji vî cîhazî rakin';
+    if (isSorani) return 'سڕینەوەی هەژمار لەسەر ئەم ئامێرە';
     return 'Clear login on this device';
   }
 
   String get logoutButton {
     if (isKurmanji) return 'Derkeve';
-    if (isSorani) return 'Ú†ÙˆÙˆÙ†Û•Ø¯Û•Ø±Û•ÙˆÛ•';
+    if (isSorani) return 'چوونەدەرەوە';
     return 'Sign out';
   }
 
   String get aboutTitle => 'KOBANI 4K';
 
   String get aboutSub {
-    if (isKurmanji) return 'Guherto 1.2.0 Â· IPTV';
-    if (isSorani) return 'ÙˆÛ•Ø´Ø§Ù†ÛŒ Ù¡.Ù¢.Ù  Â· IPTV';
-    return 'Version 1.2.0 Â· IPTV';
+    if (isKurmanji) return 'Guherto 1.2.0 · IPTV';
+    if (isSorani) return 'وەشانی ١.٢.٠ · IPTV';
+    return 'Version 1.2.0 · IPTV';
   }
 
   String get langEnglish => 'English';
-  String get langKurdishSorani => 'Ú©ÙˆØ±Ø¯ÛŒ (Ø³Û†Ø±Ø§Ù†ÛŒ)';
-  String get langKurdishKurmanji => 'KurdÃ® (KurmancÃ®)';
+  String get langKurdishSorani => 'کوردی (سۆرانی)';
+  String get langKurdishKurmanji => 'Kurdî (Kurmancî)';
 
   String get cancel {
     if (isKurmanji) return 'Betal bike';
-    if (isSorani) return 'Ù‡Û•ÚµÙˆÛ•Ø´Ø§Ù†Ø¯Ù†Û•ÙˆÛ•';
+    if (isSorani) return 'هەڵوەشاندنەوە';
     return 'Cancel';
   }
 
   String get password {
-    if (isKurmanji) return 'ÅžÃ®fre';
-    if (isSorani) return 'ÙˆØ´Û•ÛŒ Ù†Ù‡ÛŽÙ†ÛŒ';
+    if (isKurmanji) return 'Şîfre';
+    if (isSorani) return 'وشەی نهێنی';
     return 'Password';
   }
 
   String get enter {
-    if (isKurmanji) return 'TÃªkeve';
-    if (isSorani) return 'Ú†ÙˆÙˆÙ†Û•Ú˜ÙˆÙˆØ±Û•ÙˆÛ•';
+    if (isKurmanji) return 'Têkeve';
+    if (isSorani) return 'چوونەژوورەوە';
     return 'Enter';
   }
 
   String get fullscreenTooltip {
     if (isKurmanji) return 'Ekrana tije';
-    if (isSorani) return 'Ù¾Ú• Ø¨Û• Ø´Ø§Ø´Û•';
+    if (isSorani) return 'پڕ بە شاشە';
     return 'Fullscreen';
   }
 
   String get navHome {
     if (isKurmanji) return 'Mal';
-    if (isSorani) return 'Ø³Û•Ø±Û•Ú©ÛŒ';
+    if (isSorani) return 'سەرەکی';
     return 'Home';
   }
 
   String get navMovies {
-    if (isKurmanji) return 'FÃ®lm';
-    if (isSorani) return 'ÙÛŒÙ„Ù…Û•Ú©Ø§Ù†';
+    if (isKurmanji) return 'Fîlm';
+    if (isSorani) return 'فیلمەکان';
     return 'Movies';
   }
 
   String get navSport {
     if (isKurmanji) return 'Spor';
-    if (isSorani) return 'ÙˆÛ•Ø±Ø²Ø´';
+    if (isSorani) return 'وەرزش';
     return 'Sport';
   }
 
   String get navWorldCup {
-    if (isKurmanji) return 'KÃ»paya CÃ®hanÃª 26';
-    if (isSorani) return 'Ù…Û†Ù†Ø¯ÛŒØ§Ù„ÛŒ Ù¢Ù Ù¢Ù¦';
+    if (isKurmanji) return 'Kûpaya Cîhanê 26';
+    if (isSorani) return 'مۆندیالی ٢٠٢٦';
     return 'World Cup 26';
   }
 
   String get navProfile {
     if (isKurmanji) return 'Sazkirin';
-    if (isSorani) return 'Ú•ÛŽÚ©Ø®Ø³ØªÙ†Û•Ú©Ø§Ù†';
+    if (isSorani) return 'ڕێکخستنەکان';
     return 'Settings';
   }
 
   String get navFavorites {
     if (isKurmanji) return 'Bijare';
-    if (isSorani) return 'Ø¯ÚµØ®ÙˆØ§Ø²Û•Ú©Ø§Ù†Ù…';
+    if (isSorani) return 'دڵخوازەکانم';
     return 'Favorites';
   }
 
   String get navRecent {
-    if (isKurmanji) return 'DÃ®tÃ®';
-    if (isSorani) return 'Ø¨ÛŒÙ†Ø±Ø§ÙˆÛ•Ú©Ø§Ù†ÛŒ Ø¯ÙˆØ§ÛŒÛŒ';
+    if (isKurmanji) return 'Dîtî';
+    if (isSorani) return 'بینراوەکانی دوایی';
     return 'Recent';
   }
 
   String get searchHint {
-    if (isKurmanji) return 'LÃªgerÃ®n li qenalan...';
-    if (isSorani) return 'Ú¯Û•Ú•Ø§Ù† Ø¨Û•Ø¯ÙˆØ§ÛŒ Ú©Û•Ù†Ø§Úµ...';
-    return 'Search channelsâ€¦';
+    if (isKurmanji) return 'Lêgerîn li qenalan...';
+    if (isSorani) return 'گەڕان بەدوای کەناڵ...';
+    return 'Search channels…';
   }
 
   String get categoriesTitle {
-    if (isKurmanji) return 'KategorÃ®';
-    if (isSorani) return 'Ù‡Ø§ÙˆÙ¾Û†Ù„Û•Ú©Ø§Ù†';
+    if (isKurmanji) return 'Kategorî';
+    if (isSorani) return 'هاوپۆلەکان';
     return 'Categories';
   }
 
   String get channelListTitle {
-    if (isKurmanji) return 'LÃ®steya Qenalan';
-    if (isSorani) return 'Ù„ÛŒØ³ØªÛŒ Ú©Û•Ù†Ø§ÚµÛ•Ú©Ø§Ù†';
+    if (isKurmanji) return 'Lîsteya Qenalan';
+    if (isSorani) return 'لیستی کەناڵەکان';
     return 'Channel list';
   }
 
   String get noChannelsInSection {
-    if (isKurmanji) return 'Qenal li vÃª beÅŸÃª nÃ®nin';
-    if (isSorani) return 'Ù‡ÛŒÚ† Ú©Û•Ù†Ø§ÚµÛŽÚ© Ù„Û•Ù… Ø¨Û•Ø´Û•Ø¯Ø§ Ù†ÛŒÛŒÛ•';
+    if (isKurmanji) return 'Qenal li vê beşê nînin';
+    if (isSorani) return 'هیچ کەناڵێک لەم بەشەدا نییە';
     return 'No channels in this section';
   }
 
   String get noFavorites {
-    if (isKurmanji) return 'HÃªj bijare nÃ®nin';
-    if (isSorani) return 'Ù‡ÛŒÚ† Ø¯ÚµØ®ÙˆØ§Ø²ÛŽÚ© Ù†ÛŒÛŒÛ•';
+    if (isKurmanji) return 'Hêj bijare nînin';
+    if (isSorani) return 'هیچ دڵخوازێک نییە';
     return 'No favorites yet';
   }
 
   String get noFavoritesHint {
-    if (isKurmanji) return 'Ji bo zÃªdekirinÃª, pÃªl stÃªrkÃª bike.';
-    if (isSorani) return 'Ø¦Û•Ø³ØªÛŽØ±Û•ÛŒ Ø³Û•Ø± Ù¾Ù„Û•ÛŒÛ•Ø±Û•Ú©Û• Ø¯Ø§Ø¨Ú¯Ø±Û• Ø¨Û† Ø²ÛŒØ§Ø¯Ú©Ø±Ø¯Ù†ÛŒ Ú©Û•Ù†Ø§Úµ.';
+    if (isKurmanji) return 'Ji bo zêdekirinê, pêl stêrkê bike.';
+    if (isSorani) return 'ئەستێرەی سەر پلەیەرەکە دابگرە بۆ زیادکردنی کەناڵ.';
     return 'Long-press a channel on the home grid or tap the star in the player.';
   }
 
   String get noRecent {
-    if (isKurmanji) return 'HÃªj tiÅŸtek nehatiye lÃ®stin';
-    if (isSorani) return 'Ù‡ÛŒÚ† Ø´ØªÛŽÚ© Ù†Û•Ø¨ÛŒÙ†Ø±Ø§ÙˆÛ•';
+    if (isKurmanji) return 'Hêj tiştek nehatiye lîstin';
+    if (isSorani) return 'هیچ شتێک نەبینراوە';
     return 'Nothing played yet';
   }
 
   String get noRecentHint {
-    if (isKurmanji) return 'QenalÃªn te li vir xuya dibin.';
-    if (isSorani) return 'Ú©Û•Ù†Ø§ÚµÛ•Ú©Ø§Ù† Ù„ÛŽØ±Û•Ø¯Ø§ Ø¯Û•Ø±Ø¯Û•Ú©Û•ÙˆÙ† Ø¨Û† Ø¨ÛŒÙ†ÛŒÙ†Û•ÙˆÛ•ÛŒ Ø®ÛŽØ±Ø§.';
+    if (isKurmanji) return 'Qenalên te li vir xuya dibin.';
+    if (isSorani) return 'کەناڵەکان لێرەدا دەردەکەون بۆ بینینەوەی خێرا.';
     return 'Channels you open appear here for quick return.';
   }
 
   String get sectionLibrary {
-    if (isKurmanji) return 'PirtÃ»kxane';
-    if (isSorani) return 'Ú©ØªÛŽØ¨Ø®Ø§Ù†Û•';
+    if (isKurmanji) return 'Pirtûkxane';
+    if (isSorani) return 'کتێبخانە';
     return 'Library';
   }
 
   String get clearFavoritesTitle {
     if (isKurmanji) return 'Bijareyan Paqij bike';
-    if (isSorani) return 'Ø³Ú•ÛŒÙ†Û•ÙˆÛ•ÛŒ Ø¯ÚµØ®ÙˆØ§Ø²Û•Ú©Ø§Ù†';
+    if (isSorani) return 'سڕینەوەی دڵخوازەکان';
     return 'Clear favorites';
   }
 
   String get clearFavoritesSub {
-    if (isKurmanji) return 'HemÃ» qenalÃªn bijare jÃª bibe';
-    if (isSorani) return 'Ø³Ú•ÛŒÙ†Û•ÙˆÛ•ÛŒ Ù‡Û•Ù…ÙˆÙˆ Ú©Û•Ù†Ø§ÚµÛ• Ø¯ÚµØ®ÙˆØ§Ø²Û•Ú©Ø§Ù†';
+    if (isKurmanji) return 'Hemû qenalên bijare jê bibe';
+    if (isSorani) return 'سڕینەوەی هەموو کەناڵە دڵخوازەکان';
     return 'Remove all starred channels on this device';
   }
 
   String get clearRecentTitle {
-    if (isKurmanji) return 'DÃ®rokÃª Paqij bike';
-    if (isSorani) return 'Ø³Ú•ÛŒÙ†Û•ÙˆÛ•ÛŒ Ù…ÛŽÚ˜ÙˆÙˆÛŒ Ø¨ÛŒÙ†ÛŒÙ†';
+    if (isKurmanji) return 'Dîrokê Paqij bike';
+    if (isSorani) return 'سڕینەوەی مێژووی بینین';
     return 'Clear watch history';
   }
 
   String get clearRecentSub {
-    if (isKurmanji) return 'HemÃ» qenalÃªn dÃ®tÃ® jÃª bibe';
-    if (isSorani) return 'Ø³Ú•ÛŒÙ†Û•ÙˆÛ•ÛŒ Ù‡Û•Ù…ÙˆÙˆ Ú©Û•Ù†Ø§ÚµÛ• Ø¨ÛŒÙ†Ø±Ø§ÙˆÛ•Ú©Ø§Ù†';
+    if (isKurmanji) return 'Hemû qenalên dîtî jê bibe';
+    if (isSorani) return 'سڕینەوەی هەموو کەناڵە بینراوەکان';
     return 'Forget recently opened channels on this device';
   }
 
   String get clearLibraryConfirmBody {
-    if (isKurmanji) return 'Ev nayÃª betalkirin.';
-    if (isSorani) return 'Ø¦Û•Ù… Ù¾Ú•Û†Ø³Û•ÛŒÛ• Ù†Ø§Ú¯Û•Ú•ÛŽØªÛ•ÙˆÛ• Ø¯ÙˆØ§ÙˆÛ•.';
+    if (isKurmanji) return 'Ev nayê betalkirin.';
+    if (isSorani) return 'ئەم پڕۆسەیە ناگەڕێتەوە دواوە.';
     return 'This cannot be undone.';
   }
 
   String get clearButton {
     if (isKurmanji) return 'Paqij bike';
-    if (isSorani) return 'Ø³Ú•ÛŒÙ†Û•ÙˆÛ•';
+    if (isSorani) return 'سڕینەوە';
     return 'Clear';
   }
 
   String get favoriteChannel {
-    if (isKurmanji) return 'ZÃªdeyÃ® bijareyan bike';
-    if (isSorani) return 'Ø²ÛŒØ§Ø¯Ú©Ø±Ø¯Ù† Ø¨Û† Ø¯ÚµØ®ÙˆØ§Ø²Û•Ú©Ø§Ù†';
+    if (isKurmanji) return 'Zêdeyî bijareyan bike';
+    if (isSorani) return 'زیادکردن بۆ دڵخوازەکان';
     return 'Add to favorites';
   }
 
   String get unfavoriteChannel {
-    if (isKurmanji) return 'Ji bijareyan derxÃ®ne';
-    if (isSorani) return 'Ø³Ú•ÛŒÙ†Û•ÙˆÛ• Ù„Û• Ø¯ÚµØ®ÙˆØ§Ø²Û•Ú©Ø§Ù†';
+    if (isKurmanji) return 'Ji bijareyan derxîne';
+    if (isSorani) return 'سڕینەوە لە دڵخوازەکان';
     return 'Remove from favorites';
   }
 
   String fitLabel(BoxFit fit) {
     if (isKurmanji) {
       return switch (fit) {
-        BoxFit.contain => 'TijÃ® (BÃª birÃ®n)',
-        BoxFit.cover => 'RÃ»poÅŸ (Derdor birÃ®n)',
+        BoxFit.contain => 'Tijî (Bê birîn)',
+        BoxFit.cover => 'Rûpoş (Derdor birîn)',
         BoxFit.fill => 'Tije bike',
-        BoxFit.fitWidth => 'Bi firehiyÃª re hevaheng bike',
-        BoxFit.fitHeight => 'Bi bilindiyÃª re hevaheng bike',
-        BoxFit.scaleDown => 'BiÃ§Ã»k bike',
-        BoxFit.none => 'Mezinahiya rastÃ®n',
+        BoxFit.fitWidth => 'Bi firehiyê re hevaheng bike',
+        BoxFit.fitHeight => 'Bi bilindiyê re hevaheng bike',
+        BoxFit.scaleDown => 'Biçûk bike',
+        BoxFit.none => 'Mezinahiya rastîn',
       };
     }
     if (isSorani) {
       return switch (fit) {
-        BoxFit.contain => 'ØªÛ•ÙˆØ§Ùˆ (Ø¨Û• Ø¨ÛŽ Ø¨Ú•ÛŒÙ†)',
-        BoxFit.cover => 'Ø¯Ø§Ù¾Û†Ø´ÛŒÙ† (Ø¨Ú•ÛŒÙ†ÛŒ Ø¯Û•ÙˆØ±ÙˆÙˆØ¨Û•Ø±)',
-        BoxFit.fill => 'Ù¾Ú•Ú©Ø±Ø¯Ù†Û•ÙˆÛ•ÛŒ Ø´Ø§Ø´Û•',
-        BoxFit.fitWidth => 'Ú¯ÙˆÙ†Ø¬Ø§Ù†Ø¯Ù† Ù„Û•Ú¯Û•Úµ Ù¾Ø§Ù†ÛŒ',
-        BoxFit.fitHeight => 'Ú¯ÙˆÙ†Ø¬Ø§Ù†Ø¯Ù† Ù„Û•Ú¯Û•Úµ Ø¨Û•Ø±Ø²ÛŒ',
-        BoxFit.scaleDown => 'Ù¾Ú†ÙˆÚ©Ø±Ø¯Ù†Û•ÙˆÛ•',
-        BoxFit.none => 'Ù‚Û•Ø¨Ø§Ø±Û•ÛŒ Ø¦Û•Ø³ÚµÛŒ',
+        BoxFit.contain => 'تەواو (بە بێ بڕین)',
+        BoxFit.cover => 'داپۆشین (بڕینی دەورووبەر)',
+        BoxFit.fill => 'پڕکردنەوەی شاشە',
+        BoxFit.fitWidth => 'گونجاندن لەگەڵ پانی',
+        BoxFit.fitHeight => 'گونجاندن لەگەڵ بەرزی',
+        BoxFit.scaleDown => 'پچوکردنەوە',
+        BoxFit.none => 'قەبارەی ئەسڵی',
       };
     }
     return AppSettingsData.labelForFit(fit);
   }
   String get sectionStorage {
-    if (isKurmanji) return 'BÃ®rge Ã» KaÅŸ';
-    if (isSorani) return 'Ø¨ÛŒØ±Ú¯Û• Ùˆ Ú©Ø§Ø´';
+    if (isKurmanji) return 'Bîrge û Kaş';
+    if (isSorani) return 'بیرگە و کاش';
     return 'Storage & Cache';
   }
 
   String get storagePosters {
-    if (isKurmanji) return 'PosterÃªn FÃ®lm Ã» RÃªzefÃ®lman';
-    if (isSorani) return 'Ù¾Û†Ø³ØªÛ•Ø±ÛŒ ÙÛŒÙ„Ù… Ùˆ Ø²Ù†Ø¬ÛŒØ±Û•Ú©Ø§Ù†';
+    if (isKurmanji) return 'Posterên Fîlm û Rêzefîlman';
+    if (isSorani) return 'پۆستەری فیلم و زنجیرەکان';
     return 'Movie & Series Posters';
   }
 
   String get storageEpg {
-    if (isKurmanji) return 'DaneyÃªn RÃªberÃª TV EPG';
-    if (isSorani) return 'Ø¯Ø§ØªØ§ÛŒ Ú•ÛŽØ¨Û•Ø±ÛŒ ØªÛ•Ù„Û•ÙØ²ÛŒÛ†Ù†ÛŒ EPG';
+    if (isKurmanji) return 'Daneyên Rêberê TV EPG';
+    if (isSorani) return 'داتای ڕێبەری تەلەفزیۆنی EPG';
     return 'EPG TV Guide Data';
   }
 
   String get storageLogs {
-    if (isKurmanji) return 'DaneyÃªn DemkÃ® Ã» Log';
-    if (isSorani) return 'Ø¯Ø§ØªØ§ÛŒ Ú©Ø§ØªÛŒ Ùˆ Ù„Û†Ú¯Û•Ú©Ø§Ù†';
+    if (isKurmanji) return 'Daneyên Demkî û Log';
+    if (isSorani) return 'داتای کاتی و لۆگەکان';
     return 'Temporary Logs & Data';
   }
 
   String get calculating {
-    if (isKurmanji) return 'TÃª hesibandin...';
-    if (isSorani) return 'Ù„Û• Ù‡Û•Ú˜Ù…Ø§Ø±Ú©Ø±Ø¯Ù†Ø¯Ø§ÛŒÛ•...';
+    if (isKurmanji) return 'Tê hesibandin...';
+    if (isSorani) return 'لە هەژمارکردندایە...';
     return 'Calculating...';
   }
 
   String get sectionSubtitles {
-    if (isKurmanji) return 'VebijarkÃªn BinnivÃ®sÃª (VOD)';
-    if (isSorani) return 'Ù‡Û•ÚµØ¨Ú˜Ø§Ø±Ø¯Û•Ú©Ø§Ù†ÛŒ Ú˜ÛŽØ±Ù†ÙˆÙˆØ³ (VOD)';
+    if (isKurmanji) return 'Vebijarkên Binnivîsê (VOD)';
+    if (isSorani) return 'هەڵبژاردەکانی ژێرنووس (VOD)';
     return 'Subtitle Preferences (VOD)';
   }
 
   String get subtitleCaption {
-    if (isKurmanji) return 'XuyabÃ»na binnivÃ®san di fÃ®lm Ã» rÃªzefÃ®lman de sererast bike';
-    if (isSorani) return 'Ø´ÛŽÙˆØ§Ø²ÛŒ Ø¯Û•Ø±Ú©Û•ÙˆØªÙ†ÛŒ Ú˜ÛŽØ±Ù†ÙˆÙˆØ³ Ù„Û• ÙÛŒÙ„Ù… Ùˆ Ø²Ù†Ø¬ÛŒØ±Û•Ú©Ø§Ù†Ø¯Ø§ Ú•ÛŽÚ©Ø¨Ø®Û•';
+    if (isKurmanji) return 'Xuyabûna binnivîsan di fîlm û rêzefîlman de sererast bike';
+    if (isSorani) return 'شێوازی دەرکەوتنی ژێرنووس لە فیلم و زنجیرەکاندا ڕێکبخە';
     return 'Customize how subtitles look in movies and series';
   }
 
   String get subtitleFontSize {
-    if (isKurmanji) return 'Mezinahiya FontÃª';
-    if (isSorani) return 'Ù‚Û•Ø¨Ø§Ø±Û•ÛŒ ÙÛ†Ù†Øª';
+    if (isKurmanji) return 'Mezinahiya Fontê';
+    if (isSorani) return 'قەبارەی فۆنت';
     return 'Font Size';
   }
 
   String get subtitleColor {
-    if (isKurmanji) return 'RengÃª NivÃ®sÃª';
-    if (isSorani) return 'Ú•Û•Ù†Ú¯ÛŒ Ø¯Û•Ù‚';
+    if (isKurmanji) return 'Rengê Nivîsê';
+    if (isSorani) return 'ڕەنگی دەق';
     return 'Text Color';
   }
 
   String get subtitleBgOpacity {
-    if (isKurmanji) return 'TÃ®rÃªjiya PaÅŸxanÃª';
-    if (isSorani) return 'Ú•ÙˆÙˆÙ†ÛŒ Ù¾Ø§Ø´Ø¨Ù†Û•';
+    if (isKurmanji) return 'Tîrêjiya Paşxanê';
+    if (isSorani) return 'ڕوونی پاشبنە';
     return 'Background Opacity';
   }
 
   String get subtitleBgOff {
-    if (isKurmanji) return 'GirtÃ®';
-    if (isSorani) return 'Ú©ÙˆÚ˜Ø§ÙˆÛ•';
+    if (isKurmanji) return 'Girtî';
+    if (isSorani) return 'کوژاوە';
     return 'Off';
   }
 
@@ -533,62 +533,62 @@ class AppStrings {
   }
 
   String get subtitleBgSolid {
-    if (isKurmanji) return 'TÃ®r';
-    if (isSorani) return 'ØªÛ†Ø®';
+    if (isKurmanji) return 'Tîr';
+    if (isSorani) return 'تۆخ';
     return 'Solid';
   }
 
   String get subtitleSample {
-    if (isKurmanji) return 'MÃ®naka NivÃ®sa BinnivÃ®sÃª';
-    if (isSorani) return 'Ù†Ù…ÙˆÙˆÙ†Û•ÛŒ Ø¯Û•Ù‚ÛŒ Ú˜ÛŽØ±Ù†ÙˆÙˆØ³';
+    if (isKurmanji) return 'Mînaka Nivîsa Binnivîsê';
+    if (isSorani) return 'نموونەی دەقی ژێرنووس';
     return 'Sample Subtitle Text';
   }
 
   String get sectionPlaybackNetwork {
-    if (isKurmanji) return 'LÃªdan Ã» ÃŽnternet';
-    if (isSorani) return 'Ù¾Û•Ø®Ø´Ú©Ø±Ø¯Ù† Ùˆ Ø¦ÛŒÙ†ØªÛ•Ø±Ù†ÛŽØª';
+    if (isKurmanji) return 'Lêdan û Înternet';
+    if (isSorani) return 'پەخشکردن و ئینتەرنێت';
     return 'Playback & Network';
   }
 
   String get hardwareAccel {
     if (isKurmanji) return 'Lezkirina Hardware';
-    if (isSorani) return 'Ø®ÛŽØ±Ø§Ú©Ø±Ø¯Ù†ÛŒ Ú•Û•Ù‚Û•Ú©Ø§ÚµØ§';
+    if (isSorani) return 'خێراکردنی ڕەقەکاڵا';
     return 'Hardware Acceleration';
   }
 
   String get hardwareAccelSub {
-    if (isKurmanji) return 'Dekodkirina hardware bi kar bÃ®ne (ji bo Ã§areserkirina sekinÃ®nÃª di cÃ®hazÃªn kevn de bigire)';
-    if (isSorani) return 'Ø¨Û•Ú©Ø§Ø±Ù‡ÛŽÙ†Ø§Ù†ÛŒ Ø¯ÛŒÙ€Ú©Û†Ø¯ÛŒÙ†Ú¯ÛŒ Ú•Û•Ù‚Û•Ú©Ø§ÚµØ§ (Ø¨ÛŒÚ©ÙˆÚ˜ÛŽÙ†Û•ÙˆÛ• Ø¨Û† Ú†Ø§Ø±Û•Ø³Û•Ø±ÛŒ ÙˆÛ•Ø³ØªØ§Ù† Ù„Û• Ø¦Ø§Ù…ÛŽØ±Û• Ú©Û†Ù†Û•Ú©Ø§Ù†Ø¯Ø§)';
+    if (isKurmanji) return 'Dekodkirina hardware bi kar bîne (ji bo çareserkirina sekinînê di cîhazên kevn de bigire)';
+    if (isSorani) return 'بەکارهێنانی دیـکۆدینگی ڕەقەکاڵا (بیکوژێنەوە بۆ چارەسەری وەستان لە ئامێرە کۆنەکاندا)';
     return 'Use hardware decoding (turn off to fix stuttering on older devices)';
   }
 
   String get dataSaver {
-    if (isKurmanji) return 'Moda Parastina DaneyÃª';
-    if (isSorani) return 'Ù…Û†Ø¯ÛŒ Ù¾Ø§Ø´Û•Ú©Û•ÙˆØªÚ©Ø±Ø¯Ù†ÛŒ Ø¯Ø§ØªØ§';
+    if (isKurmanji) return 'Moda Parastina Daneyê';
+    if (isSorani) return 'مۆدی پاشەکەوتکردنی داتا';
     return 'Data Saver Mode';
   }
 
   String get dataSaverSub {
-    if (isKurmanji) return 'Bi awayekÃ® otomatÃ®k daxwaza weÅŸanÃªn qalÃ®teya nizm li ser torÃªn mobÃ®l dike';
-    if (isSorani) return 'Ø¨Û•Ø´ÛŽÙˆÛ•ÛŒÛ•Ú©ÛŒ Ø¦Û†ØªÛ†Ù…Ø§ØªÛŒÚ©ÛŒ Ø¯Ø§ÙˆØ§ÛŒ Ú©ÙˆØ§Ù„ÛŽØªÛŒ Ù†Ø²Ù…ØªØ± Ø¯Û•Ú©Ø§Øª Ù„Û•Ø³Û•Ø± ØªÛ†Ú•Û•Ú©Ø§Ù†ÛŒ Ù…Û†Ø¨Ø§ÛŒÙ„';
+    if (isKurmanji) return 'Bi awayekî otomatîk daxwaza weşanên qalîteya nizm li ser torên mobîl dike';
+    if (isSorani) return 'بەشێوەیەکی ئۆتۆماتیکی داوای کوالێتی نزمتر دەکات لەسەر تۆڕەکانی مۆبایل';
     return 'Automatically request lower quality streams on mobile networks';
   }
 
   String get sectionDiagnostics {
-    if (isKurmanji) return 'Kontrola CÃ®haz Ã» TorÃª';
-    if (isSorani) return 'Ù¾Ø´Ú©Ù†ÛŒÙ†ÛŒ Ø¦Ø§Ù…ÛŽØ± Ùˆ Ø¦ÛŒÙ†ØªÛ•Ø±Ù†ÛŽØª';
+    if (isKurmanji) return 'Kontrola Cîhaz û Torê';
+    if (isSorani) return 'پشکنینی ئامێر و ئینتەرنێت';
     return 'Device & Network Diagnostics';
   }
 
   String get displayOutput {
-    if (isKurmanji) return 'Derketina DÃ®menderÃª';
-    if (isSorani) return 'Ø¯Û•Ø±Ú†Û•ÛŒ Ø´Ø§Ø´Û•';
+    if (isKurmanji) return 'Derketina Dîmenderê';
+    if (isSorani) return 'دەرچەی شاشە';
     return 'Display Output';
   }
 
   String get display4k {
-    if (isKurmanji) return 'PiÅŸtgiriya 4K Ultra HD dike';
-    if (isSorani) return 'Ù¾Ø´ØªÚ¯ÛŒØ±ÛŒ 4K Ultra HD Ø¯Û•Ú©Ø§Øª';
+    if (isKurmanji) return 'Piştgiriya 4K Ultra HD dike';
+    if (isSorani) return 'پشتگیری 4K Ultra HD دەکات';
     return '4K Ultra HD Capable';
   }
 
@@ -601,315 +601,232 @@ class AppStrings {
   }
 
   String get speedTest {
-    if (isKurmanji) return 'Testa Leza ÃŽnternetÃª';
-    if (isSorani) return 'Ù¾Ø´Ú©Ù†ÛŒÙ†ÛŒ Ø®ÛŽØ±Ø§ÛŒÛŒ Ø¦ÛŒÙ†ØªÛ•Ø±Ù†ÛŽØª';
+    if (isKurmanji) return 'Testa Leza Înternetê';
+    if (isSorani) return 'پشکنینی خێرایی ئینتەرنێت';
     return 'Internet Speed Test';
   }
 
   String get speedTestSub {
-    if (isKurmanji) return 'Leza girÃªdana xwe ji bo weÅŸana 4K/HD biceribÃ®ne';
-    if (isSorani) return 'Ø®ÛŽØ±Ø§ÛŒÛŒ Ø¦ÛŒÙ†ØªÛ•Ø±Ù†ÛŽØªÛ•Ú©Û•Øª Ø¨Ù¾Ø´Ú©Ù†Û• Ø¨Û† Ù¾Û•Ø®Ø´ÛŒ 4K/HD';
+    if (isKurmanji) return 'Leza girêdana xwe ji bo weşana 4K/HD biceribîne';
+    if (isSorani) return 'خێرایی ئینتەرنێتەکەت بپشکنە بۆ پەخشی 4K/HD';
     return 'Test your connection speed for 4K/HD streaming';
   }
 
   String speedTestResult(String speed) {
-    if (isKurmanji) return 'Encama dawÃ®: $speed Mbps';
-    if (isSorani) return 'Ú©Û†ØªØ§ Ø¦Û•Ù†Ø¬Ø§Ù…: $speed Ù…ÛŽÚ¯Ø§Ø¨Ø§ÛŒØª';
+    if (isKurmanji) return 'Encama dawî: $speed Mbps';
+    if (isSorani) return 'کۆتا ئەنجام: $speed مێگابایت';
     return 'Last result: $speed Mbps';
   }
 
   String get runTest {
     if (isKurmanji) return 'TEST BIKIN';
-    if (isSorani) return 'Ù¾Ø´Ú©Ù†ÛŒÙ† Ø¨Ú©Û•';
+    if (isSorani) return 'پشکنین بکە';
     return 'RUN TEST';
   }
 
   String get sectionSupport {
-    if (isKurmanji) return 'PiÅŸtgirÃ® Ã» NÃ»vekirin';
-    if (isSorani) return 'Ù¾Ø´ØªÚ¯ÛŒØ±ÛŒ Ùˆ Ù†ÙˆÛŽÚ©Ø±Ø¯Ù†Û•ÙˆÛ•Ú©Ø§Ù†';
+    if (isKurmanji) return 'Piştgirî û Nûvekirin';
+    if (isSorani) return 'پشتگیری و نوێکردنەوەکان';
     return 'Support & Updates';
   }
 
   String get checkUpdates {
-    if (isKurmanji) return 'Kontrola NÃ»vekirinÃª';
-    if (isSorani) return 'Ù¾Ø´Ú©Ù†ÛŒÙ† Ø¨Û† Ù†ÙˆÛŽÚ©Ø±Ø¯Ù†Û•ÙˆÛ•';
+    if (isKurmanji) return 'Kontrola Nûvekirinê';
+    if (isSorani) return 'پشکنین بۆ نوێکردنەوە';
     return 'Check for Updates';
   }
 
   String get checkUpdatesSub {
-    if (isKurmanji) return 'PiÅŸtrast be ku taybetmendiyÃªn herÃ® nÃ» li cem te ne';
-    if (isSorani) return 'Ø¯ÚµÙ†ÛŒØ§Ø¨Û• Ù„Û•ÙˆÛ•ÛŒ Ù†ÙˆÛŽØªØ±ÛŒÙ† ØªØ§ÛŒØ¨Û•ØªÙ…Û•Ù†Ø¯ÛŒÛŒÛ•Ú©Ø§Ù†Øª Ù‡Û•ÛŒÛ•';
+    if (isKurmanji) return 'Piştrast be ku taybetmendiyên herî nû li cem te ne';
+    if (isSorani) return 'دڵنیابە لەوەی نوێترین تایبەتمەندییەکانت هەیە';
     return 'Ensure you have the latest features';
   }
 
   String get joinTelegram {
-    if (isKurmanji) return 'TevlÃ® Telegrama me bibe';
-    if (isSorani) return 'Ø¨Û•Ø´Ø¯Ø§Ø±Ø¨Û• Ù„Û• ØªÛŽÙ„ÛŒÚ¯Ø±Ø§Ù…Û•Ú©Û•Ù…Ø§Ù†';
+    if (isKurmanji) return 'Tevlî Telegrama me bibe';
+    if (isSorani) return 'بەشداربە لە تێلیگرامەکەمان';
     return 'Join our Telegram';
   }
 
   String get joinTelegramSub {
-    if (isKurmanji) return 'PiÅŸtgirÃ® Ã» nÃ»Ã§eyÃªn herÃ® nÃ» bistÃ®ne';
-    if (isSorani) return 'Ù¾Ø´ØªÚ¯ÛŒØ±ÛŒ Ùˆ Ù†ÙˆÛŽØªØ±ÛŒÙ† Ù‡Û•ÙˆØ§ÚµÛ•Ú©Ø§Ù† ÙˆÛ•Ø±Ø¨Ú¯Ø±Û•';
+    if (isKurmanji) return 'Piştgirî û nûçeyên herî nû bistîne';
+    if (isSorani) return 'پشتگیری و نوێترین هەواڵەکان وەربگرە';
     return 'Get support and latest news';
   }
 
   String get whatsNew {
-    if (isKurmanji) return 'Ã‡i NÃ» ye?';
-    if (isSorani) return 'Ú†ÛŒ Ù†ÙˆÛŽÛŒÛ•ØŸ';
+    if (isKurmanji) return 'Çi Nû ye?';
+    if (isSorani) return 'چی نوێیە؟';
     return 'What\'s New?';
   }
 
   String get whatsNewKurdish {
-    if (isKurmanji) return 'WergerÃª KurdÃ®';
-    if (isSorani) return 'ÙˆÛ•Ø±Ú¯ÛŽÚ•ÛŒ Ú©ÙˆØ±Ø¯ÛŒ';
+    if (isKurmanji) return 'Wergerê Kurdî';
+    if (isSorani) return 'وەرگێڕی کوردی';
     return 'Kurdish Translator';
   }
 
   String get whatsNewKurdishSub {
-    if (isKurmanji) return 'PiÅŸtgiriya tam a Kurdiya KurmancÃ® hat zÃªdekirin';
-    if (isSorani) return 'Ù¾Ø´ØªÚ¯ÛŒØ±ÛŒ ØªÛ•ÙˆØ§ÙˆÛŒ Ú©ÙˆØ±Ø¯ÛŒ Ú©Ø±Ù…Ø§Ù†Ø¬ÛŒ Ø²ÛŒØ§Ø¯Ú©Ø±Ø§';
+    if (isKurmanji) return 'Piştgiriya tam a Kurdiya Kurmancî hat zêdekirin';
+    if (isSorani) return 'پشتگیری تەواوی کوردی کرمانجی زیادکرا';
     return 'Added full Kurdish Kurmanji support';
   }
 
   String get whatsNewDataSaver {
-    if (isKurmanji) return 'Parastina DaneyÃª';
-    if (isSorani) return 'Ù¾Ø§Ø´Û•Ú©Û•ÙˆØªÚ©Ø±Ø¯Ù†ÛŒ Ø¯Ø§ØªØ§';
+    if (isKurmanji) return 'Parastina Daneyê';
+    if (isSorani) return 'پاشەکەوتکردنی داتا';
     return 'Data Saver';
   }
 
   String get whatsNewDataSaverSub {
-    if (isKurmanji) return 'Parastina Ã®nternetÃª li ser torÃªn mobÃ®l';
-    if (isSorani) return 'Ù¾Ø§Ø´Û•Ú©Û•ÙˆØªÚ©Ø±Ø¯Ù†ÛŒ Ø¦ÛŒÙ†ØªÛ•Ø±Ù†ÛŽØª Ù„Û•Ø³Û•Ø± ØªÛ†Ú•Û•Ú©Ø§Ù†ÛŒ Ù…Û†Ø¨Ø§ÛŒÙ„';
+    if (isKurmanji) return 'Parastina înternetê li ser torên mobîl';
+    if (isSorani) return 'پاشەکەوتکردنی ئینتەرنێت لەسەر تۆڕەکانی مۆبایل';
     return 'Save bandwidth on mobile networks';
   }
 
   String get whatsNewStorage {
-    if (isKurmanji) return 'RÃªveberÃª BÃ®rgeyÃª';
-    if (isSorani) return 'Ø¨Û•Ú•ÛŽÙˆÛ•Ø¨Û•Ø±ÛŒ Ø¨ÛŒØ±Ú¯Û•';
+    if (isKurmanji) return 'Rêveberê Bîrgeyê';
+    if (isSorani) return 'بەڕێوەبەری بیرگە';
     return 'Storage Manager';
   }
 
   String get whatsNewStorageSub {
-    if (isKurmanji) return 'Paqijkirina kaÅŸ Ã» posteran bi hÃªsanÃ®';
-    if (isSorani) return 'Ø³Ú•ÛŒÙ†Û•ÙˆÛ•ÛŒ Ú©Ø§Ø´ Ùˆ Ù¾Û†Ø³ØªÛ•Ø±Û•Ú©Ø§Ù† Ø¨Û• Ø¦Ø§Ø³Ø§Ù†ÛŒ';
+    if (isKurmanji) return 'Paqijkirina kaş û posteran bi hêsanî';
+    if (isSorani) return 'سڕینەوەی کاش و پۆستەرەکان بە ئاسانی';
     return 'Clear cache and posters easily';
   }
 
-  // â”€â”€â”€ World Cup â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ─── World Cup ────────────────────────────────────────────────
 
   String get wcTitle {
-    if (isKurmanji) return 'KÃ»paya CÃ®hanÃª FIFA';
-    if (isSorani) return 'Ø¬Ø§Ù…Ø¬Ù‡Ø§Ù†ÛŒ FIFA';
+    if (isKurmanji) return 'Kûpaya Cîhanê FIFA';
+    if (isSorani) return 'جامجهانی FIFA';
     return 'FIFA World Cup';
   }
 
   String get wcTabLive {
-    if (isKurmanji) return 'ZindÃ®';
-    if (isSorani) return 'Ú•Ø§Ø³ØªÛ•ÙˆØ®Û†';
+    if (isKurmanji) return 'Zindî';
+    if (isSorani) return 'ڕاستەوخۆ';
     return 'Live';
   }
 
   String get wcTabMatches {
-    if (isKurmanji) return 'MaÃ§';
-    if (isSorani) return 'ÛŒØ§Ø±ÛŒÛŒÛ•Ú©Ø§Ù†';
+    if (isKurmanji) return 'Maç';
+    if (isSorani) return 'یارییەکان';
     return 'Matches';
   }
 
   String get wcTabGroups {
     if (isKurmanji) return 'Kom';
-    if (isSorani) return 'Ú¯Ø±ÙˆÙ¾Û•Ú©Ø§Ù†';
+    if (isSorani) return 'گروپەکان';
     return 'Groups';
   }
 
   String get wcTabNews {
-    if (isKurmanji) return 'NÃ»Ã§e';
-    if (isSorani) return 'Ù‡Û•ÙˆØ§Ú•Û•Ú©Ø§Ù†';
+    if (isKurmanji) return 'Nûçe';
+    if (isSorani) return 'هەواڕەکان';
     return 'News';
   }
 
   String get wcTabScorers {
     if (isKurmanji) return 'Amar';
-    if (isSorani) return 'Ø¦Ø§Ù…Ø§Ø±Û•Ú©Ø§Ù†';
+    if (isSorani) return 'ئامارەکان';
     return 'Stats';
   }
 
   String get wcTabTeams {
-    if (isKurmanji) return 'TÃ®m';
-    if (isSorani) return 'ØªÛŒÙ…Û•Ú©Ø§Ù†';
+    if (isKurmanji) return 'Tîm';
+    if (isSorani) return 'تیمەکان';
     return 'Teams';
   }
 
   String get wcTabVenues {
-    if (isKurmanji) return 'YarÃ®geh';
-    if (isSorani) return 'ÛŒØ§Ø±ÛŒÚ¯Ø§Ú©Ø§Ù†';
+    if (isKurmanji) return 'Yarîgeh';
+    if (isSorani) return 'یاریگاکان';
     return 'Venues';
   }
 
   String get wcYesterday {
-    if (isKurmanji) return 'DuhÃ®';
-    if (isSorani) return 'Ø¯ÙˆÛŽÙ†ÛŽ';
+    if (isKurmanji) return 'Duhî';
+    if (isSorani) return 'دوێنێ';
     return 'Yesterday';
   }
 
   String get wcToday {
-    if (isKurmanji) return 'ÃŽro';
-    if (isSorani) return 'Ø¦Û•Ù…Ú•Û†';
+    if (isKurmanji) return 'Îro';
+    if (isSorani) return 'ئەمڕۆ';
     return 'Today';
   }
 
   String get wcTomorrow {
-    if (isKurmanji) return 'SibÃª';
-    if (isSorani) return 'Ø³Ø¨Û•ÛŒ';
+    if (isKurmanji) return 'Sibê';
+    if (isSorani) return 'سبەی';
     return 'Tomorrow';
   }
 
   String get wcAfterTomorrow {
-    if (isKurmanji) return 'DuyÃª sibÃª';
-    if (isSorani) return 'Ø¯ÙˆØ§ØªØ±';
+    if (isKurmanji) return 'Duyê sibê';
+    if (isSorani) return 'دواتر';
     return 'Next';
   }
 
   String get wcNoMatches {
-    if (isKurmanji) return 'MaÃ§ tune ye di vÃª rojÃª de';
-    if (isSorani) return 'Ù‡ÛŒÚ† ÛŒØ§Ø±ÛŒÛŒÛ•Ú© Ù†ÛŒÛŒÛ• Ù„Û•Ù… Ø¨Û•Ø±ÙˆØ§Ø±Û•Ø¯Ø§';
+    if (isKurmanji) return 'Maç tune ye di vê rojê de';
+    if (isSorani) return 'هیچ یارییەک نییە لەم بەروارەدا';
     return 'No matches on this date';
   }
 
   String get wcNoMatchesFound {
-    if (isKurmanji) return 'MaÃ§ nehat dÃ®tin';
-    if (isSorani) return 'Ù‡ÛŒÚ† ÛŒØ§Ø±ÛŒ Ù†Û•Ø¯Û†Ø²Ø±Ø§ÛŒÛ•ÙˆÛ•';
+    if (isKurmanji) return 'Maç nehat dîtin';
+    if (isSorani) return 'هیچ یاری نەدۆزرایەوە';
     return 'No matches found';
   }
 
   String get wcGroupStandings {
-    if (isKurmanji) return 'RÃªzika KomÃª';
-    if (isSorani) return 'Ø®Ø´ØªÛ•ÛŒ Ú¯Ø±ÙˆÙ¾';
+    if (isKurmanji) return 'Rêzika Komê';
+    if (isSorani) return 'خشتەی گروپ';
     return 'Group Standings';
   }
 
   String get wcNoGroups {
-    if (isKurmanji) return 'Kom nehat dÃ®tin';
-    if (isSorani) return 'Ù‡ÛŒÚ† Ú¯Ø±ÙˆÙ¾ÛŽÚ© Ù†Û•Ø¯Û†Ø²Ø±Ø§ÛŒÛ•ÙˆÛ•';
+    if (isKurmanji) return 'Kom nehat dîtin';
+    if (isSorani) return 'هیچ گروپێک نەدۆزرایەوە';
     return 'No groups found';
   }
 
   String get wcNoNews {
-    if (isKurmanji) return 'NÃ»Ã§e tune ye';
-    if (isSorani) return 'Ù‡Û•ÙˆØ§Ú• Ø¨Û•Ø±Ø¯Û•Ø³Øª Ù†ÛŒÛŒÛ•';
+    if (isKurmanji) return 'Nûçe tune ye';
+    if (isSorani) return 'هەواڕ بەردەست نییە';
     return 'No news available';
   }
 
   String get wcNoScorers {
-    if (isKurmanji) return 'AgahÃ® tune ye';
-    if (isSorani) return 'Ù‡ÛŒÚ† Ø²Ø§Ù†ÛŒØ§Ø±ÛŒÛŒÛ•Ú© Ø¨Û•Ø±Ø¯Û•Ø³Øª Ù†ÛŒÛŒÛ•';
+    if (isKurmanji) return 'Agahî tune ye';
+    if (isSorani) return 'هیچ زانیارییەک بەردەست نییە';
     return 'No data available';
   }
 
   String get wcLive {
-    if (isKurmanji) return 'ZINDÃŽ';
-    if (isSorani) return 'Ú•Ø§Ø³ØªÛ•ÙˆØ®Û†';
+    if (isKurmanji) return 'ZINDÎ';
+    if (isSorani) return 'ڕاستەوخۆ';
     return 'LIVE';
   }
 
   String get wcUpcoming {
-    if (isKurmanji) return 'BÃª';
-    if (isSorani) return 'Ø¯Ø§Ù‡Ø§ØªÙˆÙˆ';
+    if (isKurmanji) return 'Bê';
+    if (isSorani) return 'داهاتوو';
     return 'Upcoming';
   }
 
   String get wcFinished {
     if (isKurmanji) return 'KU';
-    if (isSorani) return 'Ú©Û†ØªØ§ÛŒÛŒ';
+    if (isSorani) return 'کۆتایی';
     return 'FT';
   }
 
-  String get wcCapacity {
-    if (isKurmanji) return 'KapasÃ®te';
-    if (isSorani) return 'ØªÙˆØ§Ù†Ø§ÛŒ Ù„Û•Ø®Û†Ú¯Ø±ØªÙ†';
-    return 'Capacity';
-  }
-
-  String get wcLiveWinProbability {
-    if (isKurmanji) return 'ÃŽhtÃ®mala SerkeftinÃª ya ZindÃ®';
-    if (isSorani) return 'Ø¦Û•Ú¯Û•Ø±ÛŒ Ø¨Ø±Ø¯Ù†Û•ÙˆÛ•ÛŒ Ú•Ø§Ø³ØªÛ•ÙˆØ®Û†';
-    return 'Live Win Probability';
-  }
-
-  String get wcDraw {
-    if (isKurmanji) return 'Beramber';
-    if (isSorani) return 'ÛŒÛ•Ú©Ø³Ø§Ù†Ø¨ÙˆÙˆÙ†';
-    return 'Draw';
-  }
-
-  String get wcSummary {
-    if (isKurmanji) return 'Kurte';
-    if (isSorani) return 'Ú©ÙˆØ±ØªÛ•';
-    return 'Summary';
-  }
-
-  String get wcRosters {
-    if (isKurmanji) return 'Kadro';
-    if (isSorani) return 'Ù¾ÛŽÚ©Ù‡Ø§ØªÛ•';
-    return 'Rosters';
-  }
-
-  String get wcTimeline {
-    if (isKurmanji) return 'RÃªzbÃ»yer';
-    if (isSorani) return 'Ú©Ø§ØªÛŒ Ú•ÙˆÙˆØ¯Ø§ÙˆÛ•Ú©Ø§Ù†';
-    return 'Timeline';
-  }
-
-  String get wcSubstitutes {
-    if (isKurmanji) return 'Yedek';
-    if (isSorani) return 'ÛŒÛ•Ø¯Û•Ú¯Û•Ú©Ø§Ù†';
-    return 'Substitutes';
-  }
-
-  String get wcManager {
-    if (isKurmanji) return 'RÃªvebir';
-    if (isSorani) return 'Ú•Ø§Ù‡ÛŽÙ†Û•Ø±';
-    return 'Manager';
-  }
-
-  String get wcSquadRoster {
-    if (isKurmanji) return 'KadroyÃª TÃ®mÃª';
-    if (isSorani) return 'Ù¾ÛŽÚ©Ù‡Ø§ØªÛ•ÛŒ ØªÛŒÙ…';
-    return 'Squad Roster';
-  }
-
-  String get wcGoalkeepers {
-    if (isKurmanji) return 'GoleparÃªz';
-    if (isSorani) return 'Ú¯Û†ÚµÙ¾Ø§Ø±ÛŽØ²Û•Ú©Ø§Ù†';
-    return 'Goalkeepers';
-  }
-
-  String get wcDefenders {
-    if (isKurmanji) return 'Parastvan';
-    if (isSorani) return 'Ø¨Û•Ø±Ú¯Ø±ÛŒÚ©Ø§Ø±Û•Ú©Ø§Ù†';
-    return 'Defenders';
-  }
-
-  String get wcMidfielders {
-    if (isKurmanji) return 'Navend';
-    if (isSorani) return 'ÛŒØ§Ø±ÛŒØ²Ø§Ù†Ø§Ù†ÛŒ Ù†Ø§ÙˆÛ•Ú•Ø§Ø³Øª';
-    return 'Midfielders';
-  }
-
-  String get wcForwards {
-    if (isKurmanji) return 'ÃŠrÃ®ÅŸber';
-    if (isSorani) return 'Ù‡ÛŽØ±Ø´Ø¨Û•Ø±Û•Ú©Ø§Ù†';
-    return 'Forwards';
-  }
-
-  String get wcNoRosterData {
-    if (isKurmanji) return 'DaneyÃªn kadro tune';
-    if (isSorani) return 'Ù‡ÛŒÚ† Ø¯Ø§ØªØ§ÛŒÛ•Ú©ÛŒ Ù¾ÛŽÚ©Ù‡Ø§ØªÛ• Ù†ÛŒÛŒÛ•';
-    return 'No roster data available';
-  }
   String get wcGoals {
-    if (isKurmanji) return 'Golan';
-    if (isSorani) return 'گۆڵەکان';
+    if (isKurmanji) return 'Gol';
+    if (isSorani) return 'گۆڵ';
     return 'Goals';
   }
 
@@ -919,51 +836,33 @@ class AppStrings {
     return 'Team';
   }
 
-  String get wcMatches {
-    if (isKurmanji) return 'Lîstok';
-    if (isSorani) return 'یارییەکان';
-    return 'MP';
-  }
-
-  String get wcPts {
-    if (isKurmanji) return 'Pûan';
-    if (isSorani) return 'خاڵەکان';
-    return 'Pts';
-  }
-
   String get wcNewsLabel {
-    if (isKurmanji) return 'Nûçe';
-    if (isSorani) return 'هەواڵ';
-    return 'News';
-  }
-
-  String get wcReadMore {
-    if (isKurmanji) return 'Bêtir Bixwîne';
-    if (isSorani) return 'زیاتر بخوێنەوە';
-    return 'Read More';
+    if (isKurmanji) return 'NÛÇE';
+    if (isSorani) return 'هەواڕ';
+    return 'NEWS';
   }
 
   String get wcRecently {
-    if (isKurmanji) return 'Demek nêz de';
-    if (isSorani) return 'مابەیەک لەمەوپێش';
+    if (isKurmanji) return 'Vêga';
+    if (isSorani) return 'دواواتر';
     return 'Recently';
   }
 
   String wcTimeAgo(int minutes) {
     if (minutes < 60) {
-      if (isKurmanji) return '$minutes deqe berê';
-      if (isSorani) return 'پێش $minutes خولەک';
+      if (isKurmanji) return '${minutes}d berê';
+      if (isSorani) return 'پێش ${minutes} خولەک';
       return '${minutes}m ago';
     }
     final hours = minutes ~/ 60;
     if (hours < 24) {
-      if (isKurmanji) return '$hours saet berê';
-      if (isSorani) return 'پێش $hours کاتژمێر';
+      if (isKurmanji) return '${hours}s berê';
+      if (isSorani) return 'پێش ${hours} کاتژمێر';
       return '${hours}h ago';
     }
     final days = hours ~/ 24;
-    if (isKurmanji) return '$days roj berê';
-    if (isSorani) return 'پێش $days ڕۆژ';
+    if (isKurmanji) return '${days}r berê';
+    if (isSorani) return 'پێش ${days} ڕۆژ';
     return '${days}d ago';
   }
 
@@ -978,7 +877,100 @@ class AppStrings {
     if (isSorani) return 'هیچ تیمێک نەدۆزرایەوە';
     return 'No teams found';
   }
+
+  String get wcTournamentStats {
+    if (isKurmanji) return 'Statîstîkên Tûrnûvayê';
+    if (isSorani) return 'ئامارەکانی پاڵەوانێتی';
+    return 'Tournament Stats';
+  }
+
+  String get wcStatsNotAvailable {
+    if (isKurmanji) return 'Statîstîk hê ne berdest in';
+    if (isSorani) return 'ئامارەکان هێشتا بەردەست نین';
+    return 'Stats not available yet';
+  }
+
+  String get wcCapacity {
+    if (isKurmanji) return 'Kapasîte';
+    if (isSorani) return 'توانای لەخۆگرتن';
+    return 'Capacity';
+  }
+
+  String get wcLiveWinProbability {
+    if (isKurmanji) return 'Îhtîmala Serkeftinê ya Zindî';
+    if (isSorani) return 'ئەگەری بردنەوەی ڕاستەوخۆ';
+    return 'Live Win Probability';
+  }
+
+  String get wcDraw {
+    if (isKurmanji) return 'Beramber';
+    if (isSorani) return 'یەکسانبوون';
+    return 'Draw';
+  }
+
+  String get wcSummary {
+    if (isKurmanji) return 'Kurte';
+    if (isSorani) return 'کورتە';
+    return 'Summary';
+  }
+
+  String get wcRosters {
+    if (isKurmanji) return 'Kadro';
+    if (isSorani) return 'پێکهاتە';
+    return 'Rosters';
+  }
+
+  String get wcTimeline {
+    if (isKurmanji) return 'Rêzbûyer';
+    if (isSorani) return 'کاتی ڕووداوەکان';
+    return 'Timeline';
+  }
+
+  String get wcSubstitutes {
+    if (isKurmanji) return 'Yedek';
+    if (isSorani) return 'یەدەگەکان';
+    return 'Substitutes';
+  }
+
+  String get wcManager {
+    if (isKurmanji) return 'Rêvebir';
+    if (isSorani) return 'ڕاهێنەر';
+    return 'Manager';
+  }
+
+  String get wcSquadRoster {
+    if (isKurmanji) return 'Kadroyê Tîmê';
+    if (isSorani) return 'پێکهاتەی تیم';
+    return 'Squad Roster';
+  }
+
+  String get wcGoalkeepers {
+    if (isKurmanji) return 'Goleparêz';
+    if (isSorani) return 'گۆڵپارێزەکان';
+    return 'Goalkeepers';
+  }
+
+  String get wcDefenders {
+    if (isKurmanji) return 'Parastvan';
+    if (isSorani) return 'بەرگریکارەکان';
+    return 'Defenders';
+  }
+
+  String get wcMidfielders {
+    if (isKurmanji) return 'Navend';
+    if (isSorani) return 'یاریزانانی ناوەڕاست';
+    return 'Midfielders';
+  }
+
+  String get wcForwards {
+    if (isKurmanji) return 'Êrîşber';
+    if (isSorani) return 'هێرشبەرەکان';
+    return 'Forwards';
+  }
+
+  String get wcNoRosterData {
+    if (isKurmanji) return 'Daneyên kadro tune';
+    if (isSorani) return 'هیچ داتایەکی پێکهاتە نییە';
+    return 'No roster data available';
+  }
 }
-
-
-
