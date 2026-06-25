@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../services/world_cup_service.dart';
 import '../../widgets/animated_gradient_border.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'match_details_screen.dart';
 
 class WorldCupScreen extends StatefulWidget {
@@ -15,16 +16,22 @@ class _WorldCupScreenState extends State<WorldCupScreen> with SingleTickerProvid
   List<dynamic> _games = [];
   List<dynamic> _groups = [];
   List<dynamic> _liveSoccer = [];
+  List<dynamic> _news = [];
+  List<dynamic> _scorers = [];
   bool _isLoading = true;
   bool _isLoadingLive = true;
+  bool _isLoadingNews = true;
+  bool _isLoadingScorers = true;
   int _selectedDayOffset = 0;
 
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 3, vsync: this);
+    _tabController = TabController(length: 5, vsync: this);
     _loadData();
     _loadLiveSoccer();
+    _loadNews();
+    _loadScorers();
   }
 
   Future<void> _loadData() async {
@@ -50,6 +57,28 @@ class _WorldCupScreenState extends State<WorldCupScreen> with SingleTickerProvid
       setState(() {
         _liveSoccer = liveSoccer;
         _isLoadingLive = false;
+      });
+    }
+  }
+
+  Future<void> _loadNews() async {
+    setState(() => _isLoadingNews = true);
+    final news = await WorldCupService.fetchNews();
+    if (mounted) {
+      setState(() {
+        _news = news;
+        _isLoadingNews = false;
+      });
+    }
+  }
+
+  Future<void> _loadScorers() async {
+    setState(() => _isLoadingScorers = true);
+    final scorers = await WorldCupService.fetchTopScorers();
+    if (mounted) {
+      setState(() {
+        _scorers = scorers;
+        _isLoadingScorers = false;
       });
     }
   }
@@ -83,6 +112,8 @@ class _WorldCupScreenState extends State<WorldCupScreen> with SingleTickerProvid
             Tab(text: 'ڕاستەوخۆ'),
             Tab(text: 'یارییەکان'),
             Tab(text: 'گروپەکان'),
+            Tab(text: 'هەواڵەکان'),
+            Tab(text: 'گۆڵکاران'),
           ],
         ),
       ),
@@ -94,6 +125,8 @@ class _WorldCupScreenState extends State<WorldCupScreen> with SingleTickerProvid
               _buildLiveSoccerTab(),
               _buildMatchesTab(),
               _buildGroupsTab(),
+              _buildNewsTab(),
+              _buildScorersTab(),
             ],
           ),
     );
@@ -206,7 +239,16 @@ class _WorldCupScreenState extends State<WorldCupScreen> with SingleTickerProvid
     bool finished = state == 'post';
 
     String timeLabel = shortDetail;
-    if (isLive && displayClock.isNotEmpty) timeLabel = displayClock;
+    if (isLive && displayClock.isNotEmpty) {
+      timeLabel = displayClock;
+    } else if (state == 'pre' && event['date'] != null) {
+      try {
+        final dt = DateTime.parse(event['date']).toLocal();
+        final hr = dt.hour.toString().padLeft(2, '0');
+        final mn = dt.minute.toString().padLeft(2, '0');
+        timeLabel = '$hr:$mn';
+      } catch (_) {}
+    }
 
     return GestureDetector(
       onTap: () {
@@ -582,6 +624,140 @@ class _WorldCupScreenState extends State<WorldCupScreen> with SingleTickerProvid
           Expanded(flex: 1, child: Text(pts.toString(), textAlign: TextAlign.center, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16))),
         ],
       ),
+    );
+  }
+
+  Widget _buildNewsTab() {
+    if (_isLoadingNews) return const Center(child: CircularProgressIndicator());
+    if (_news.isEmpty) return const Center(child: Text('هەواڵ بەردەست نییە', style: TextStyle(color: Colors.white70)));
+
+    return ListView.builder(
+      padding: const EdgeInsets.all(16).copyWith(bottom: 100),
+      itemCount: _news.length,
+      itemBuilder: (context, index) {
+        final article = _news[index];
+        final headline = article['headline'] ?? '';
+        final description = article['description'] ?? '';
+        final images = article['images'] as List<dynamic>? ?? [];
+        final imageUrl = images.isNotEmpty ? images.first['url'] : '';
+        final link = article['links']?['web']?['href'];
+
+        return GestureDetector(
+          onTap: () async {
+            if (link != null) {
+              final url = Uri.parse(link);
+              if (await canLaunchUrl(url)) {
+                await launchUrl(url, mode: LaunchMode.externalApplication);
+              }
+            }
+          },
+          child: Container(
+            margin: const EdgeInsets.only(bottom: 16),
+            decoration: BoxDecoration(
+              color: Colors.white.withOpacity(0.05),
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: Colors.white.withOpacity(0.1)),
+            ),
+            clipBehavior: Clip.antiAlias,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                if (imageUrl.isNotEmpty)
+                  Image.network(
+                    imageUrl,
+                    height: 180,
+                    width: double.infinity,
+                    fit: BoxFit.cover,
+                    errorBuilder: (ctx, err, stack) => Container(height: 180, color: Colors.white10),
+                  ),
+                Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(headline, style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
+                      const SizedBox(height: 8),
+                      Text(description, maxLines: 2, overflow: TextOverflow.ellipsis, style: TextStyle(color: Colors.white.withOpacity(0.7), fontSize: 13)),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildScorersTab() {
+    if (_isLoadingScorers) return const Center(child: CircularProgressIndicator());
+    if (_scorers.isEmpty) return const Center(child: Text('هیچ زانیارییەک بەردەست نییە', style: TextStyle(color: Colors.white70)));
+
+    return ListView.builder(
+      padding: const EdgeInsets.all(16).copyWith(bottom: 100),
+      itemCount: _scorers.length,
+      itemBuilder: (context, index) {
+        final scorer = _scorers[index];
+        final athlete = scorer['athlete'] ?? {};
+        final team = athlete['team'] ?? {};
+        
+        final name = athlete['displayName'] ?? 'Unknown';
+        final headshot = athlete['headshot']?['href'] ?? '';
+        final goals = scorer['value']?.toString() ?? '0';
+        final teamLogo = team['logos'] != null && (team['logos'] as List).isNotEmpty ? team['logos'][0]['href'] : '';
+        
+        final isTop = index == 0;
+
+        return Container(
+          margin: const EdgeInsets.only(bottom: 12),
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: isTop ? Colors.amber.withOpacity(0.15) : Colors.white.withOpacity(0.05),
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: isTop ? Colors.amber.withOpacity(0.5) : Colors.white.withOpacity(0.1)),
+          ),
+          child: Row(
+            children: [
+              Text('#${index + 1}', style: TextStyle(color: isTop ? Colors.amber : Colors.white54, fontSize: 18, fontWeight: FontWeight.bold)),
+              const SizedBox(width: 16),
+              if (headshot.isNotEmpty)
+                CircleAvatar(
+                  radius: 24,
+                  backgroundColor: Colors.white10,
+                  backgroundImage: NetworkImage(headshot),
+                  onBackgroundImageError: (e, s) {},
+                )
+              else
+                CircleAvatar(
+                  radius: 24,
+                  backgroundColor: Colors.white10,
+                  child: Icon(Icons.person, color: Colors.white.withOpacity(0.5)),
+                ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(name, style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: isTop ? FontWeight.bold : FontWeight.normal)),
+                    if (teamLogo.isNotEmpty)
+                      Padding(
+                        padding: const EdgeInsets.top(4),
+                        child: Image.network(teamLogo, height: 16, errorBuilder: (c, e, s) => const SizedBox()),
+                      ),
+                  ],
+                ),
+              ),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  Text(goals, style: const TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold)),
+                  Text('Goals', style: TextStyle(color: Colors.white.withOpacity(0.5), fontSize: 12)),
+                ],
+              ),
+            ],
+          ),
+        );
+      },
     );
   }
 }

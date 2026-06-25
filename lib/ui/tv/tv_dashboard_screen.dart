@@ -112,7 +112,7 @@ class _TvDashboardScreenState extends ConsumerState<TvDashboardScreen> {
           margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
           padding: EdgeInsets.symmetric(vertical: 12, horizontal: _sidebarHasFocus ? 16 : 12),
           decoration: BoxDecoration(
-            color: isFocused ? _accent : (isSelected ? Colors.white10 : Colors.transparent),
+            color: isFocused ? _accent.withOpacity(0.8) : (isSelected ? Colors.white10 : Colors.transparent),
             borderRadius: BorderRadius.circular(12),
             boxShadow: isFocused ? [BoxShadow(color: _accent.withOpacity(0.5), blurRadius: 12)] : [],
           ),

@@ -331,24 +331,36 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                         focusScale: 1.02,
                         borderRadius: BorderRadius.circular(16),
                         child: RadioListTile<String>(
-                        value: 'ckb',
-                        groupValue: uiLocale.languageCode,
-                        activeColor: AppTheme.accentColor(_data.gradientPreset),
-                        title: Text(s.langKurdishSorani),
-                        onChanged: (_) => ref.read(appLocaleProvider.notifier).setLocale(const Locale('ckb')),
-                      ),
+                          value: 'ckb',
+                          groupValue: uiLocale.languageCode,
+                          activeColor: AppTheme.accentColor(_data.gradientPreset),
+                          title: Text(s.langKurdishSorani),
+                          onChanged: (_) => ref.read(appLocaleProvider.notifier).setLocale(const Locale('ckb')),
+                        ),
                       ),
                       TVFocusable(
                         showFocusBorder: true,
                         focusScale: 1.02,
                         borderRadius: BorderRadius.circular(16),
                         child: RadioListTile<String>(
-                        value: 'en',
-                        groupValue: uiLocale.languageCode,
-                        activeColor: AppTheme.accentColor(_data.gradientPreset),
-                        title: Text(s.langEnglish),
-                        onChanged: (_) => ref.read(appLocaleProvider.notifier).setLocale(const Locale('en')),
+                          value: 'kmr',
+                          groupValue: uiLocale.languageCode,
+                          activeColor: AppTheme.accentColor(_data.gradientPreset),
+                          title: Text(s.langKurdishKurmanji),
+                          onChanged: (_) => ref.read(appLocaleProvider.notifier).setLocale(const Locale('kmr')),
+                        ),
                       ),
+                      TVFocusable(
+                        showFocusBorder: true,
+                        focusScale: 1.02,
+                        borderRadius: BorderRadius.circular(16),
+                        child: RadioListTile<String>(
+                          value: 'en',
+                          groupValue: uiLocale.languageCode,
+                          activeColor: AppTheme.accentColor(_data.gradientPreset),
+                          title: Text(s.langEnglish),
+                          onChanged: (_) => ref.read(appLocaleProvider.notifier).setLocale(const Locale('en')),
+                        ),
                       ),
                     ],
                   ),
@@ -712,63 +724,13 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 ),
                 const SizedBox(height: 24),
                 Text(
-                  s.sectionLanguage,
+                  'Support & Updates',
                   style: Theme.of(context).textTheme.titleMedium?.copyWith(
                         color: AppTheme.accentColor(_data.gradientPreset),
                         fontWeight: FontWeight.bold,
                       ),
                 ),
                 const SizedBox(height: 12),
-                _glassCard(
-                  child: Column(
-                    children: [
-                      RadioListTile<String>(
-                        value: 'ckb',
-                        groupValue: ref.watch(appLocaleProvider).languageCode,
-                        activeColor: AppTheme.accentColor(_data.gradientPreset),
-                        title: Text(s.langKurdishSorani),
-                        onChanged: (val) {
-                          if (val != null) ref.read(appLocaleProvider.notifier).setLocale(Locale(val));
-                        },
-                      ),
-                      RadioListTile<String>(
-                        value: 'kmr',
-                        groupValue: ref.watch(appLocaleProvider).languageCode,
-                        activeColor: AppTheme.accentColor(_data.gradientPreset),
-                        title: Text(s.langKurdishKurmanji),
-                        onChanged: (val) {
-                          if (val != null) ref.read(appLocaleProvider.notifier).setLocale(Locale(val));
-                        },
-                      ),
-                      RadioListTile<String>(
-                        value: 'en',
-                        groupValue: ref.watch(appLocaleProvider).languageCode,
-                        activeColor: AppTheme.accentColor(_data.gradientPreset),
-                        title: Text(s.langEnglish),
-                        onChanged: (val) {
-                          if (val != null) ref.read(appLocaleProvider.notifier).setLocale(Locale(val));
-                        },
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 24),
-                Text(
-                  s.sectionAbout,
-                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                        color: AppTheme.accentColor(_data.gradientPreset),
-                        fontWeight: FontWeight.bold,
-                      ),
-                ),
-                const SizedBox(height: 12),
-                _glassCard(
-                  child: ListTile(
-                    leading: Icon(Icons.info_outline, color: Colors.white.withOpacity(0.7)),
-                    title: Text(s.aboutTitle),
-                    subtitle: Text(s.aboutSub),
-                  ),
-                ),
-                const SizedBox(height: 8),
                 _glassCard(
                   child: ListTile(
                     leading: const Icon(Icons.update_rounded, color: Colors.greenAccent),

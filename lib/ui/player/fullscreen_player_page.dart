@@ -55,6 +55,7 @@ class _FullscreenPlayerPageState extends ConsumerState<FullscreenPlayerPage> {
   late int _currentIndex;
   late Channel _currentChannel;
   bool _overlayVisible = false;
+  ViewerService? _viewerService;
   Timer? _hideTimer;
   final List<StreamSubscription> _subscriptions = [];
 
@@ -105,7 +106,8 @@ class _FullscreenPlayerPageState extends ConsumerState<FullscreenPlayerPage> {
     if (widget.onChannelChanged == null) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (mounted) {
-          ref.read(viewerServiceProvider).joinChannel(_currentChannel.url, channelName: _currentChannel.name);
+          _viewerService = ref.read(viewerServiceProvider);
+          _viewerService?.joinChannel(_currentChannel.url, channelName: _currentChannel.name);
         }
       });
     }
@@ -123,7 +125,7 @@ class _FullscreenPlayerPageState extends ConsumerState<FullscreenPlayerPage> {
     WakelockPlus.disable();
     _scrollController.dispose();
     if (widget.onChannelChanged == null) {
-      ref.read(viewerServiceProvider).leaveChannel(_currentChannel.url);
+      _viewerService?.leaveChannel(_currentChannel.url);
       try {
         widget.player.stop();
       } catch (e) {
@@ -149,10 +151,11 @@ class _FullscreenPlayerPageState extends ConsumerState<FullscreenPlayerPage> {
     }
   }
 
-  void _zapTo(int index) {
+  void _zapTo(int index) async {
     if (index < 0 || index >= widget.channels.length) return;
     
     final oldChannel = _currentChannel;
+    final oldUrl = _currentChannel.url;
 
     setState(() {
       _currentIndex = index;
@@ -164,19 +167,26 @@ class _FullscreenPlayerPageState extends ConsumerState<FullscreenPlayerPage> {
     });
 
     final newChannel = _currentChannel;
+    final newUrl = _currentChannel.url;
+
     if (oldChannel.url != newChannel.url) {
       if (widget.onChannelChanged != null) {
         widget.onChannelChanged!(oldChannel, newChannel);
       } else {
-        ref.read(viewerServiceProvider).leaveChannel(oldChannel.url);
-        ref.read(viewerServiceProvider).joinChannel(newChannel.url, channelName: newChannel.name);
+        _viewerService?.leaveChannel(oldUrl);
+        _viewerService?.joinChannel(newUrl, channelName: _currentChannel.name);
       }
     }
 
-    widget.player.open(
-      _currentChannel.url,
-      headers: {'User-Agent': _currentChannel.userAgent ?? 'SmartIPTV'},
+    final validUrls = _currentChannel.streams ?? [_currentChannel.url];
+    await widget.player.open(
+      validUrls[widget.activeServerIndex],
+      headers: {
+        'User-Agent': _currentChannel.userAgent ?? 'SmartIPTV',
+        'X-Optic-Security-Token': 'k4k-secure-stream-99X',
+      },
     );
+    await widget.player.play();
     _resetHideTimer();
 
     WidgetsBinding.instance.addPostFrameCallback((_) {

@@ -111,4 +111,38 @@ class WorldCupService {
     }
     return null;
   }
+
+  /// Fetches FIFA World Cup News from ESPN API
+  static Future<List<dynamic>> fetchNews() async {
+    try {
+      final response = await http.get(Uri.parse('https://site.api.espn.com/apis/site/v2/sports/soccer/fifa.world/news'));
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        return data['articles'] as List<dynamic>? ?? [];
+      }
+    } catch (e) {
+      print('Error fetching ESPN news: $e');
+    }
+    return [];
+  }
+
+  /// Fetches Top Scorers from ESPN API
+  static Future<List<dynamic>> fetchTopScorers() async {
+    try {
+      final response = await http.get(Uri.parse('https://site.api.espn.com/apis/site/v2/sports/soccer/fifa.world/statistics'));
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        final stats = data['stats'] as List<dynamic>? ?? [];
+        if (stats.isNotEmpty) {
+          final goalsLeaders = stats.firstWhere((s) => s['name'] == 'goalsLeaders', orElse: () => null);
+          if (goalsLeaders != null) {
+            return goalsLeaders['leaders'] as List<dynamic>? ?? [];
+          }
+        }
+      }
+    } catch (e) {
+      print('Error fetching ESPN top scorers: $e');
+    }
+    return [];
+  }
 }

@@ -59,6 +59,7 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
   late String _selectedGroup;
   int _activeServerIndex = 0;
   AppSettingsData _settings = const AppSettingsData();
+  ViewerService? _viewerService;
   Timer? _clockTimer;
   bool _muted = false;
   bool _showEngineSplash = true;
@@ -151,11 +152,12 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
+      _viewerService = ref.read(viewerServiceProvider);
       ref.read(recentChannelsProvider.notifier).record(_current);
       _activePanel.addListener(_onPanelChanged);
       _configureNativePlayer();
       _startTechInfoTicker();
-      ref.read(viewerServiceProvider).joinChannel(_current.url, channelName: _current.name);
+      _viewerService?.joinChannel(_current.url, channelName: _current.name);
       MonitorService.updateActivity(_current.name);
     });
   }
@@ -267,6 +269,7 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
         'X-Optic-Security-Token': 'k4k-secure-stream-99X',
       },
     );
+    await p.play();
 
     if (mounted) setState(() => _showEngineSplash = false);
   }
@@ -290,7 +293,7 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
   @override
   void dispose() {
     WakelockPlus.disable();
-    ref.read(viewerServiceProvider).leaveChannel(_current.url);
+    _viewerService?.leaveChannel(_current.url);
     _clockTimer?.cancel();
     _bufferingOverlayTimer?.cancel();
     _fullscreenOverlayTimer?.cancel();
@@ -331,8 +334,8 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
     });
     final newUrl = _current.url;
     if (oldUrl != newUrl) {
-      ref.read(viewerServiceProvider).leaveChannel(oldUrl);
-      ref.read(viewerServiceProvider).joinChannel(newUrl, channelName: widget.channels[fullListIndex].name);
+      _viewerService?.leaveChannel(oldUrl);
+      _viewerService?.joinChannel(newUrl, channelName: widget.channels[fullListIndex].name);
       MonitorService.updateActivity(widget.channels[fullListIndex].name);
     }
     ref.read(recentChannelsProvider.notifier).record(_current);
@@ -393,6 +396,7 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
       validUrls[_activeServerIndex],
       headers: {'User-Agent': _current.userAgent ?? 'SmartIPTV'},
     );
+    await p.play();
   }
 
   // Subtitle search and VOD logic removed (Moved to MoviePlayerPage)
@@ -430,8 +434,8 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
                   _selectedGroup = newCh.group;
                 }
               });
-              ref.read(viewerServiceProvider).leaveChannel(oldCh.url);
-              ref.read(viewerServiceProvider).joinChannel(newCh.url, channelName: newCh.name);
+              _viewerService?.leaveChannel(oldCh.url);
+              _viewerService?.joinChannel(newCh.url, channelName: newCh.name);
             }
           },
         );
