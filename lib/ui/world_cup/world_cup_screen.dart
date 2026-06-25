@@ -1,19 +1,22 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../services/world_cup_service.dart';
 import '../../widgets/animated_gradient_border.dart';
 import '../../core/theme.dart';
+import '../../l10n/app_strings.dart';
+import '../../providers/app_locale_provider.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'match_details_screen.dart';
 
-class WorldCupScreen extends StatefulWidget {
+class WorldCupScreen extends ConsumerStatefulWidget {
   const WorldCupScreen({super.key});
 
   @override
-  State<WorldCupScreen> createState() => _WorldCupScreenState();
+  ConsumerState<WorldCupScreen> createState() => _WorldCupScreenState();
 }
 
-class _WorldCupScreenState extends State<WorldCupScreen> with SingleTickerProviderStateMixin {
+class _WorldCupScreenState extends ConsumerState<WorldCupScreen>
+    with SingleTickerProviderStateMixin {
   late TabController _tabController;
   List<dynamic> _games = [];
   List<dynamic> _groups = [];
@@ -40,7 +43,6 @@ class _WorldCupScreenState extends State<WorldCupScreen> with SingleTickerProvid
     setState(() => _isLoading = true);
     final games = await WorldCupService.fetchGames();
     final groups = await WorldCupService.fetchGroups();
-    
     if (mounted) {
       setState(() {
         _games = games;
@@ -54,7 +56,6 @@ class _WorldCupScreenState extends State<WorldCupScreen> with SingleTickerProvid
     setState(() => _isLoadingLive = true);
     final targetDate = DateTime.now().add(Duration(days: _selectedDayOffset));
     final liveSoccer = await WorldCupService.fetchLiveSoccerForDate(targetDate);
-    
     if (mounted) {
       setState(() {
         _liveSoccer = liveSoccer;
@@ -93,76 +94,93 @@ class _WorldCupScreenState extends State<WorldCupScreen> with SingleTickerProvid
 
   @override
   Widget build(BuildContext context) {
+    final locale = ref.watch(appLocaleProvider);
+    final s = AppStrings(locale);
+
     return Scaffold(
       backgroundColor: Colors.black,
       body: NestedScrollView(
         headerSliverBuilder: (context, innerBoxIsScrolled) {
           return [
             SliverAppBar(
-              expandedHeight: 180,
+              expandedHeight: 130,
               floating: false,
               pinned: true,
               backgroundColor: Colors.black,
               flexibleSpace: FlexibleSpaceBar(
                 background: Container(
-                  decoration: BoxDecoration(
+                  decoration: const BoxDecoration(
                     gradient: LinearGradient(
                       begin: Alignment.topLeft,
                       end: Alignment.bottomRight,
                       colors: [
-                        Colors.black,
-                        AppTheme.primaryGold.withOpacity(0.3),
-                        Colors.black,
+                        Color(0xFF0A0A0A),
+                        Color(0xFF1A1200),
+                        Color(0xFF0A0A0A),
                       ],
                     ),
                   ),
                   child: SafeArea(
                     child: Padding(
-                      padding: const EdgeInsets.all(24.0),
-                      child: Column(
+                      padding: const EdgeInsets.fromLTRB(20, 12, 20, 8),
+                      child: Row(
                         crossAxisAlignment: CrossAxisAlignment.center,
-                        mainAxisAlignment: MainAxisAlignment.center,
                         children: [
                           Container(
-                            padding: const EdgeInsets.all(16),
+                            padding: const EdgeInsets.all(10),
                             decoration: BoxDecoration(
-                              color: AppTheme.primaryGold.withOpacity(0.15),
-                              borderRadius: BorderRadius.circular(20),
+                              color: const Color(0xFFD4AF37).withOpacity(0.15),
+                              borderRadius: BorderRadius.circular(14),
                               border: Border.all(
-                                color: AppTheme.primaryGold.withOpacity(0.3),
-                                width: 1,
+                                color: const Color(0xFFD4AF37).withOpacity(0.35),
                               ),
                             ),
+                            child: const Icon(
+                              Icons.sports_soccer_rounded,
+                              color: Color(0xFFD4AF37),
+                              size: 28,
+                            ),
+                          ),
+                          const SizedBox(width: 14),
+                          Expanded(
                             child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              mainAxisAlignment: MainAxisAlignment.center,
                               children: [
-                                const Icon(
-                                  Icons.sports_soccer,
-                                  color: AppTheme.primaryGold,
-                                  size: 40,
-                                ),
-                                const SizedBox(height: 12),
                                 Text(
-                                  'FIFA World Cup',
-                                  style: TextStyle(
+                                  s.wcTitle,
+                                  style: const TextStyle(
                                     color: Colors.white70,
-                                    fontSize: 16,
+                                    fontSize: 13,
                                     fontWeight: FontWeight.w600,
-                                    letterSpacing: 3,
+                                    letterSpacing: 1.5,
                                   ),
                                 ),
-                                const SizedBox(height: 4),
-                                Text(
+                                const SizedBox(height: 2),
+                                const Text(
                                   '2026',
                                   style: TextStyle(
-                                    color: AppTheme.primaryGold,
-                                    fontSize: 42,
-                                    fontStyle: FontStyle.italic,
+                                    color: Color(0xFFD4AF37),
+                                    fontSize: 28,
                                     fontWeight: FontWeight.w900,
-                                    letterSpacing: 6,
+                                    letterSpacing: 3,
                                   ),
                                 ),
                               ],
                             ),
+                          ),
+                          // Refresh button
+                          IconButton(
+                            onPressed: () {
+                              _loadLiveSoccer();
+                              _loadData();
+                            },
+                            icon: const Icon(
+                              Icons.refresh_rounded,
+                              color: Color(0xFFD4AF37),
+                              size: 22,
+                            ),
+                            tooltip: 'Refresh',
                           ),
                         ],
                       ),
@@ -172,69 +190,84 @@ class _WorldCupScreenState extends State<WorldCupScreen> with SingleTickerProvid
               ),
               bottom: TabBar(
                 controller: _tabController,
-                indicatorColor: AppTheme.primaryGold,
+                indicatorColor: const Color(0xFFD4AF37),
                 indicatorWeight: 3,
                 labelColor: Colors.white,
-                unselectedLabelColor: Colors.white54,
+                unselectedLabelColor: Colors.white38,
                 isScrollable: true,
-                labelStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
-                tabs: const [
-                  Tab(text: 'ڕاستەوخۆ'),
-                  Tab(text: 'یارییەکان'),
-                  Tab(text: 'گروپەکان'),
-                  Tab(text: 'هەواڕەکان'),
-                  Tab(text: 'گۆڵکاران'),
+                labelStyle:
+                    const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                tabs: [
+                  Tab(text: s.wcTabLive),
+                  Tab(text: s.wcTabMatches),
+                  Tab(text: s.wcTabGroups),
+                  Tab(text: s.wcTabNews),
+                  Tab(text: s.wcTabScorers),
                 ],
               ),
             ),
           ];
         },
-        body: _isLoading 
-          ? const Center(child: CircularProgressIndicator(color: AppTheme.primaryGold))
-          : TabBarView(
-              controller: _tabController,
-              children: [
-                _buildLiveSoccerTab(),
-                _buildMatchesTab(),
-                _buildGroupsTab(),
-                _buildNewsTab(),
-                _buildScorersTab(),
-              ],
-            ),
+        body: _isLoading
+            ? const Center(
+                child: CircularProgressIndicator(color: Color(0xFFD4AF37)))
+            : TabBarView(
+                controller: _tabController,
+                children: [
+                  _buildLiveSoccerTab(s),
+                  _buildMatchesTab(s),
+                  _buildGroupsTab(s),
+                  _buildNewsTab(s),
+                  _buildScorersTab(s),
+                ],
+              ),
       ),
     );
   }
 
-  Widget _buildLiveSoccerTab() {
+  // ─── Live Soccer Tab ─────────────────────────────────────────
+
+  Widget _buildLiveSoccerTab(AppStrings s) {
     return Column(
       children: [
-        // Date Selector Toggle
+        // Date Selector
         Padding(
-          padding: const EdgeInsets.symmetric(vertical: 16.0, horizontal: 8.0),
+          padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 12),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              _buildDateToggle(0, 'ئەمڕۆ (Today)'),
+              _buildDateToggle(0, s.wcToday),
               const SizedBox(width: 8),
-              _buildDateToggle(1, 'سبەی (Tomorrow)'),
+              _buildDateToggle(1, s.wcTomorrow),
               const SizedBox(width: 8),
-              _buildDateToggle(2, 'دواتر (Next)'),
+              _buildDateToggle(2, s.wcAfterTomorrow),
             ],
           ),
         ),
-        
         Expanded(
           child: _isLoadingLive
-              ? const Center(child: CircularProgressIndicator())
+              ? const Center(
+                  child:
+                      CircularProgressIndicator(color: Color(0xFFD4AF37)))
               : _liveSoccer.isEmpty
-                  ? const Center(child: Text('هیچ یارییەک نییە لەم بەروارەدا', style: TextStyle(color: Colors.white70)))
-                  : ListView.builder(
-                      padding: const EdgeInsets.only(bottom: 100),
-                      itemCount: _liveSoccer.length,
-                      itemBuilder: (context, index) {
-                        final event = _liveSoccer[index];
-                        return _buildEspnMatchCard(event);
-                      },
+                  ? Center(
+                      child: Text(
+                        s.wcNoMatches,
+                        style: const TextStyle(color: Colors.white54),
+                      ),
+                    )
+                  : RefreshIndicator(
+                      color: const Color(0xFFD4AF37),
+                      backgroundColor: const Color(0xFF1A1A1A),
+                      onRefresh: _loadLiveSoccer,
+                      child: ListView.builder(
+                        padding: const EdgeInsets.only(bottom: 100),
+                        itemCount: _liveSoccer.length,
+                        itemBuilder: (context, index) {
+                          return _buildEspnMatchCard(
+                              _liveSoccer[index], s);
+                        },
+                      ),
                     ),
         ),
       ],
@@ -252,53 +285,64 @@ class _WorldCupScreenState extends State<WorldCupScreen> with SingleTickerProvid
       },
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 200),
-        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+        padding:
+            const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
         decoration: BoxDecoration(
-          gradient: isSelected 
-            ? LinearGradient(colors: [AppTheme.primaryGold, AppTheme.primaryGold.withOpacity(0.8)])
-            : null,
-          color: isSelected ? null : Colors.white.withOpacity(0.08),
-          borderRadius: BorderRadius.circular(24),
+          gradient: isSelected
+              ? const LinearGradient(
+                  colors: [Color(0xFFD4AF37), Color(0xFFB8960E)])
+              : null,
+          color: isSelected ? null : Colors.white.withOpacity(0.07),
+          borderRadius: BorderRadius.circular(22),
           border: Border.all(
-            color: isSelected ? AppTheme.primaryGold : Colors.white.withOpacity(0.15),
-            width: isSelected ? 2 : 1,
+            color: isSelected
+                ? const Color(0xFFD4AF37)
+                : Colors.white.withOpacity(0.12),
+            width: isSelected ? 1.5 : 1,
           ),
-          boxShadow: isSelected 
-            ? [BoxShadow(color: AppTheme.primaryGold.withOpacity(0.3), blurRadius: 12, offset: const Offset(0, 4))]
-            : null,
+          boxShadow: isSelected
+              ? [
+                  BoxShadow(
+                    color: const Color(0xFFD4AF37).withOpacity(0.25),
+                    blurRadius: 10,
+                    offset: const Offset(0, 3),
+                  )
+                ]
+              : null,
         ),
         child: Text(
           label,
           style: TextStyle(
-            color: isSelected ? Colors.black : Colors.white70,
-            fontWeight: isSelected ? FontWeight.w800 : FontWeight.w500,
+            color: isSelected ? Colors.black : Colors.white60,
+            fontWeight:
+                isSelected ? FontWeight.w800 : FontWeight.w500,
             fontSize: 13,
-            letterSpacing: 0.5,
           ),
         ),
       ),
     );
   }
 
-  Widget _buildEspnMatchCard(dynamic event) {
-    String homeTeam = 'Unknown';
-    String awayTeam = 'Unknown';
+  Widget _buildEspnMatchCard(dynamic event, AppStrings s) {
+    String homeTeam = '';
+    String awayTeam = '';
     String homeFlag = '';
     String awayFlag = '';
     String homeScore = '0';
     String awayScore = '0';
 
     try {
-      final competitions = event['competitions'] as List<dynamic>? ?? [];
+      final competitions =
+          event['competitions'] as List<dynamic>? ?? [];
       if (competitions.isNotEmpty) {
-        final competitors = competitions[0]['competitors'] as List<dynamic>? ?? [];
+        final competitors =
+            competitions[0]['competitors'] as List<dynamic>? ?? [];
         for (var c in competitors) {
           final isHome = c['homeAway'] == 'home';
           final team = c['team'] ?? {};
-          final name = team['shortDisplayName'] ?? team['name'] ?? 'Unknown';
+          final name = team['shortDisplayName'] ?? team['name'] ?? '';
           final logo = team['logo'] ?? '';
           final score = c['score'] ?? '0';
-          
           if (isHome) {
             homeTeam = name;
             homeFlag = logo;
@@ -317,9 +361,9 @@ class _WorldCupScreenState extends State<WorldCupScreen> with SingleTickerProvid
     final state = type['state'] ?? 'pre';
     final displayClock = status['displayClock'] ?? '';
     final shortDetail = type['shortDetail'] ?? '';
-    
-    bool isLive = state == 'in';
-    bool finished = state == 'post';
+
+    final bool isLive = state == 'in';
+    final bool finished = state == 'post';
 
     String timeLabel = shortDetail;
     if (isLive && displayClock.isNotEmpty) {
@@ -327,154 +371,152 @@ class _WorldCupScreenState extends State<WorldCupScreen> with SingleTickerProvid
     } else if (state == 'pre' && event['date'] != null) {
       try {
         final dt = DateTime.parse(event['date']).toLocal();
-        final hr = dt.hour.toString().padLeft(2, '0');
-        final mn = dt.minute.toString().padLeft(2, '0');
-        timeLabel = '$hr:$mn';
+        timeLabel =
+            '${dt.hour.toString().padLeft(2, '0')}:${dt.minute.toString().padLeft(2, '0')}';
       } catch (_) {}
     }
+
+    // Status badge colors
+    final Color badgeColor = finished
+        ? Colors.white.withOpacity(0.18)
+        : isLive
+            ? const Color(0xFFD4AF37).withOpacity(0.2)
+            : Colors.blue.withOpacity(0.18);
+    final Color badgeBorder = finished
+        ? Colors.white.withOpacity(0.25)
+        : isLive
+            ? const Color(0xFFD4AF37)
+            : Colors.blueAccent.withOpacity(0.6);
+    final Color badgeText = finished
+        ? Colors.white60
+        : isLive
+            ? const Color(0xFFD4AF37)
+            : Colors.blueAccent;
 
     return GestureDetector(
       onTap: () {
         if (event['id'] != null) {
-          Navigator.push(context, MaterialPageRoute(
-            builder: (_) => MatchDetailsScreen(
-              eventId: event['id'],
-              homeTeam: homeTeam,
-              awayTeam: awayTeam,
-              homeFlag: homeFlag,
-              awayFlag: awayFlag,
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (_) => MatchDetailsScreen(
+                eventId: event['id'],
+                homeTeam: homeTeam,
+                awayTeam: awayTeam,
+                homeFlag: homeFlag,
+                awayFlag: awayFlag,
+              ),
             ),
-          ));
+          );
         }
       },
       child: Container(
-        margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        margin: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
         decoration: BoxDecoration(
           gradient: LinearGradient(
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
             colors: [
-              isLive 
-                ? AppTheme.primaryGold.withOpacity(0.15)
-                : Colors.white.withOpacity(0.05),
+              isLive
+                  ? const Color(0xFFD4AF37).withOpacity(0.1)
+                  : Colors.white.withOpacity(0.04),
               Colors.white.withOpacity(0.02),
             ],
           ),
-          borderRadius: BorderRadius.circular(24),
+          borderRadius: BorderRadius.circular(20),
           border: Border.all(
-            color: isLive 
-              ? AppTheme.primaryGold 
-              : Colors.white.withOpacity(0.1),
-            width: isLive ? 2 : 1,
+            color: isLive
+                ? const Color(0xFFD4AF37).withOpacity(0.6)
+                : Colors.white.withOpacity(0.08),
+            width: isLive ? 1.5 : 1,
           ),
           boxShadow: [
             BoxShadow(
-              color: isLive 
-                ? AppTheme.primaryGold.withOpacity(0.2)
-                : Colors.black.withOpacity(0.3),
-              blurRadius: isLive ? 20 : 10,
+              color: isLive
+                  ? const Color(0xFFD4AF37).withOpacity(0.12)
+                  : Colors.black.withOpacity(0.25),
+              blurRadius: isLive ? 16 : 8,
               offset: const Offset(0, 4),
             ),
           ],
         ),
-        child: Container(
-          padding: const EdgeInsets.all(20),
+        child: Padding(
+          padding: const EdgeInsets.all(18),
           child: Column(
             children: [
-              if (event['name'] != null)
-                Padding(
-                  padding: const EdgeInsets.only(bottom: 16),
-                  child: Row(
-                    children: [
-                      if (isLive)
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                          decoration: BoxDecoration(
-                            color: Colors.redAccent,
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Container(
-                                width: 6,
-                                height: 6,
-                                decoration: const BoxDecoration(
-                                  color: Colors.white,
-                                  shape: BoxShape.circle,
-                                ),
-                              ),
-                              const SizedBox(width: 6),
-                              const Text(
-                                'LIVE',
-                                style: TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 10,
-                                  fontWeight: FontWeight.w800,
-                                  letterSpacing: 1,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: Text(
-                          event['shortName'] ?? event['name'],
-                          style: TextStyle(
-                            color: Colors.white.withOpacity(0.6),
-                            fontSize: 12,
-                            fontWeight: FontWeight.w600,
-                            letterSpacing: 0.5,
-                          ),
+              // Top bar: LIVE badge + match name
+              Row(
+                children: [
+                  if (isLive) ...[
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 8, vertical: 3),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFD4AF37).withOpacity(0.18),
+                        borderRadius: BorderRadius.circular(10),
+                        border: Border.all(
+                          color: const Color(0xFFD4AF37).withOpacity(0.7),
+                          width: 1,
                         ),
                       ),
-                    ],
-                  ),
-                ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Container(
+                            width: 5,
+                            height: 5,
+                            decoration: const BoxDecoration(
+                              color: Color(0xFFD4AF37),
+                              shape: BoxShape.circle,
+                            ),
+                          ),
+                          const SizedBox(width: 5),
+                          Text(
+                            s.wcLive,
+                            style: const TextStyle(
+                              color: Color(0xFFD4AF37),
+                              fontSize: 10,
+                              fontWeight: FontWeight.w800,
+                              letterSpacing: 0.8,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                  ],
+                  if (event['shortName'] != null || event['name'] != null)
+                    Expanded(
+                      child: Text(
+                        event['shortName'] ?? event['name'] ?? '',
+                        style: TextStyle(
+                          color: Colors.white.withOpacity(0.45),
+                          fontSize: 11,
+                          fontWeight: FontWeight.w500,
+                        ),
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                ],
+              ),
+              const SizedBox(height: 14),
+              // Teams row
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
+                  // Home team
                   Expanded(
                     child: Column(
                       children: [
-                        if (homeFlag.isNotEmpty)
-                          ClipRRect(
-                            borderRadius: BorderRadius.circular(12),
-                            child: Image.network(
-                              homeFlag,
-                              width: 48,
-                              height: 48,
-                              fit: BoxFit.contain,
-                              errorBuilder: (context, error, stackTrace) => Container(
-                                width: 48,
-                                height: 48,
-                                decoration: BoxDecoration(
-                                  color: Colors.white.withOpacity(0.1),
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
-                                child: const Icon(Icons.shield, color: Colors.white54),
-                              ),
-                            ),
-                          )
-                        else
-                          Container(
-                            width: 48,
-                            height: 48,
-                            decoration: BoxDecoration(
-                              color: Colors.white.withOpacity(0.1),
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            child: const Icon(Icons.shield, color: Colors.white54),
-                          ),
-                        const SizedBox(height: 12),
+                        _teamLogo(homeFlag),
+                        const SizedBox(height: 8),
                         Text(
                           homeTeam,
                           textAlign: TextAlign.center,
                           style: const TextStyle(
                             color: Colors.white,
                             fontWeight: FontWeight.w700,
-                            fontSize: 14,
+                            fontSize: 13,
                           ),
                           maxLines: 2,
                           overflow: TextOverflow.ellipsis,
@@ -482,95 +524,63 @@ class _WorldCupScreenState extends State<WorldCupScreen> with SingleTickerProvid
                       ],
                     ),
                   ),
+                  // Score / VS
                   Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 24),
+                    padding: const EdgeInsets.symmetric(horizontal: 20),
                     child: Column(
                       children: [
                         Text(
-                          state == 'pre' ? 'VS' : '$homeScore - $awayScore',
+                          state == 'pre'
+                              ? 'VS'
+                              : '$homeScore - $awayScore',
                           style: TextStyle(
-                            color: isLive ? AppTheme.primaryGold : Colors.white,
+                            color: isLive
+                                ? const Color(0xFFD4AF37)
+                                : Colors.white,
                             fontWeight: FontWeight.w900,
-                            fontSize: 32,
-                            letterSpacing: 2,
+                            fontSize: 28,
+                            letterSpacing: 1.5,
                           ),
                         ),
                         const SizedBox(height: 8),
                         Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 10, vertical: 4),
                           decoration: BoxDecoration(
-                            color: finished 
-                              ? Colors.white.withOpacity(0.1)
-                              : (state == 'pre' 
-                                  ? Colors.blue.withOpacity(0.2)
-                                  : Colors.red.withOpacity(0.2)),
-                            borderRadius: BorderRadius.circular(20),
+                            color: badgeColor,
+                            borderRadius: BorderRadius.circular(16),
                             border: Border.all(
-                              color: finished 
-                                ? Colors.white.withOpacity(0.2)
-                                : (state == 'pre' 
-                                    ? Colors.blue.withOpacity(0.5)
-                                    : Colors.red.withOpacity(0.5)),
-                              width: 1,
-                            ),
+                                color: badgeBorder, width: 1),
                           ),
                           child: Text(
-                            timeLabel,
+                            finished
+                                ? s.wcFinished
+                                : isLive
+                                    ? timeLabel
+                                    : timeLabel,
                             style: TextStyle(
-                              color: finished 
-                                ? Colors.white70
-                                : (state == 'pre' 
-                                    ? Colors.blueAccent
-                                    : Colors.redAccent),
+                              color: badgeText,
                               fontWeight: FontWeight.w700,
-                              fontSize: 12,
-                              letterSpacing: 0.5,
+                              fontSize: 11,
                             ),
                           ),
                         ),
                       ],
                     ),
                   ),
+                  // Away team
                   Expanded(
                     child: Column(
                       children: [
-                        if (awayFlag.isNotEmpty)
-                          ClipRRect(
-                            borderRadius: BorderRadius.circular(12),
-                            child: Image.network(
-                              awayFlag,
-                              width: 48,
-                              height: 48,
-                              fit: BoxFit.contain,
-                              errorBuilder: (context, error, stackTrace) => Container(
-                                width: 48,
-                                height: 48,
-                                decoration: BoxDecoration(
-                                  color: Colors.white.withOpacity(0.1),
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
-                                child: const Icon(Icons.shield, color: Colors.white54),
-                              ),
-                            ),
-                          )
-                        else
-                          Container(
-                            width: 48,
-                            height: 48,
-                            decoration: BoxDecoration(
-                              color: Colors.white.withOpacity(0.1),
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            child: const Icon(Icons.shield, color: Colors.white54),
-                          ),
-                        const SizedBox(height: 12),
+                        _teamLogo(awayFlag),
+                        const SizedBox(height: 8),
                         Text(
                           awayTeam,
                           textAlign: TextAlign.center,
                           style: const TextStyle(
                             color: Colors.white,
                             fontWeight: FontWeight.w700,
-                            fontSize: 14,
+                            fontSize: 13,
                           ),
                           maxLines: 2,
                           overflow: TextOverflow.ellipsis,
@@ -587,247 +597,386 @@ class _WorldCupScreenState extends State<WorldCupScreen> with SingleTickerProvid
     );
   }
 
-  Widget _buildMatchesTab() {
-    if (_games.isEmpty) {
-      return const Center(child: Text('No matches found.', style: TextStyle(color: Colors.white70)));
+  Widget _teamLogo(String url) {
+    if (url.isEmpty) {
+      return Container(
+        width: 48,
+        height: 48,
+        decoration: BoxDecoration(
+          color: Colors.white.withOpacity(0.08),
+          borderRadius: BorderRadius.circular(10),
+        ),
+        child: const Icon(Icons.shield_rounded,
+            color: Colors.white24, size: 24),
+      );
     }
-    
-    return ListView.builder(
-      padding: const EdgeInsets.only(top: 16, bottom: 100),
-      itemCount: _games.length,
-      itemBuilder: (context, index) {
-        final game = _games[index];
-        return _buildMatchCard(game);
-      },
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(10),
+      child: Image.network(
+        url,
+        width: 48,
+        height: 48,
+        fit: BoxFit.contain,
+        errorBuilder: (_, __, ___) => Container(
+          width: 48,
+          height: 48,
+          decoration: BoxDecoration(
+            color: Colors.white.withOpacity(0.08),
+            borderRadius: BorderRadius.circular(10),
+          ),
+          child: const Icon(Icons.shield_rounded,
+              color: Colors.white24, size: 24),
+        ),
+      ),
     );
   }
 
-  Widget _buildMatchCard(dynamic game) {
-    final homeTeam = game['home_team_name_en'] ?? game['home_team_label'] ?? 'Unknown';
-    final awayTeam = game['away_team_name_en'] ?? game['away_team_label'] ?? 'Unknown';
+  // ─── Matches Tab (worldcup26.ir) ─────────────────────────────
+
+  Widget _buildMatchesTab(AppStrings s) {
+    if (_games.isEmpty) {
+      return Center(
+        child: Text(s.wcNoMatchesFound,
+            style: const TextStyle(color: Colors.white54)));
+    }
+    return RefreshIndicator(
+      color: const Color(0xFFD4AF37),
+      backgroundColor: const Color(0xFF1A1A1A),
+      onRefresh: _loadData,
+      child: ListView.builder(
+        padding: const EdgeInsets.only(top: 12, bottom: 100),
+        itemCount: _games.length,
+        itemBuilder: (context, index) {
+          return _buildMatchCard(_games[index], s);
+        },
+      ),
+    );
+  }
+
+  Widget _buildMatchCard(dynamic game, AppStrings s) {
+    final homeTeam =
+        game['home_team_name_en'] ?? game['home_team_label'] ?? '';
+    final awayTeam =
+        game['away_team_name_en'] ?? game['away_team_label'] ?? '';
     final homeFlag = game['home_team_flag'];
     final awayFlag = game['away_team_flag'];
     final homeScore = game['home_score']?.toString() ?? '0';
     final awayScore = game['away_score']?.toString() ?? '0';
     final time = game['time_elapsed'] ?? '';
-    final finished = game['finished'] == 'TRUE' || game['finished'] == true;
+    final finished =
+        game['finished'] == 'TRUE' || game['finished'] == true;
+    final isLive = !finished && time != 'notstarted' && time.isNotEmpty;
 
-    return GestureDetector(
-      onTap: () {
-        // worldcup26.ir doesn't have a reliable match summary endpoint in ESPN, 
-        // but if we had the ESPN ID here, we could pass it. 
-        // For now, we will just open the MatchDetailsScreen which might say "Data not available" if eventId isn't found in ESPN.
-      },
-      child: Container(
-        margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-        child: AnimatedGradientBorder(
-          borderWidth: 1.5,
-          borderRadius: BorderRadius.circular(20),
-          child: Container(
-            padding: const EdgeInsets.all(20),
-            decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.05),
-              borderRadius: BorderRadius.circular(20),
-            ),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Expanded(
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.end,
-              children: [
-                Expanded(
-                  child: Text(
-                    homeTeam,
-                    textAlign: TextAlign.end,
-                    style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16),
-                  ),
-                ),
-                const SizedBox(width: 12),
-                if (homeFlag != null)
-                  ClipRRect(
-                    borderRadius: BorderRadius.circular(4),
-                    child: Image.network(homeFlag, width: 32, height: 24, fit: BoxFit.cover,
-                      errorBuilder: (context, error, stackTrace) => const Icon(Icons.flag, color: Colors.white54),
-                    ),
-                  )
-                else
-                  const SizedBox(width: 32),
-              ],
-            ),
+    // Badge styling
+    final Color badgeBg = finished
+        ? Colors.white.withOpacity(0.1)
+        : isLive
+            ? const Color(0xFFD4AF37).withOpacity(0.15)
+            : Colors.blue.withOpacity(0.15);
+    final Color badgeText = finished
+        ? Colors.white54
+        : isLive
+            ? const Color(0xFFD4AF37)
+            : Colors.blueAccent;
+
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
+      child: AnimatedGradientBorder(
+        borderWidth: 1.2,
+        borderRadius: BorderRadius.circular(18),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 18),
+          decoration: BoxDecoration(
+            color: isLive
+                ? const Color(0xFFD4AF37).withOpacity(0.05)
+                : Colors.white.withOpacity(0.04),
+            borderRadius: BorderRadius.circular(18),
           ),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 20),
-            child: Column(
-              children: [
-                Text(
-                  time == 'notstarted' ? 'VS' : '$homeScore - $awayScore',
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.w900,
-                    fontSize: 26,
-                  ),
-                ),
-                const SizedBox(height: 6),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: finished ? Colors.white24 : (time == 'notstarted' ? Colors.blueAccent.withOpacity(0.3) : Colors.redAccent.withOpacity(0.3)),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Text(
-                    finished ? 'FT' : (time == 'notstarted' ? 'Upcoming' : time),
-                    style: TextStyle(
-                      color: finished ? Colors.white : (time == 'notstarted' ? Colors.blueAccent : Colors.redAccent),
-                      fontWeight: FontWeight.bold,
-                      fontSize: 11,
+          child: Row(
+            children: [
+              // Home
+              Expanded(
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  children: [
+                    Expanded(
+                      child: Text(
+                        homeTeam,
+                        textAlign: TextAlign.end,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 15,
+                        ),
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                      ),
                     ),
-                  ),
+                    const SizedBox(width: 10),
+                    if (homeFlag != null)
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(4),
+                        child: Image.network(
+                          homeFlag,
+                          width: 30,
+                          height: 22,
+                          fit: BoxFit.cover,
+                          errorBuilder: (_, __, ___) => const Icon(
+                              Icons.flag_rounded,
+                              color: Colors.white24,
+                              size: 20),
+                        ),
+                      )
+                    else
+                      const SizedBox(width: 30),
+                  ],
                 ),
-              ],
-            ),
-          ),
-          Expanded(
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.start,
-              children: [
-                if (awayFlag != null)
-                  ClipRRect(
-                    borderRadius: BorderRadius.circular(4),
-                    child: Image.network(awayFlag, width: 32, height: 24, fit: BoxFit.cover,
-                      errorBuilder: (context, error, stackTrace) => const Icon(Icons.flag, color: Colors.white54),
+              ),
+              // Score
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: Column(
+                  children: [
+                    Text(
+                      time == 'notstarted'
+                          ? 'VS'
+                          : '$homeScore - $awayScore',
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w900,
+                        fontSize: 24,
+                      ),
                     ),
-                  )
-                else
-                  const SizedBox(width: 32),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Text(
-                    awayTeam,
-                    textAlign: TextAlign.start,
-                    style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16),
-                  ),
+                    const SizedBox(height: 6),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 8, vertical: 3),
+                      decoration: BoxDecoration(
+                        color: badgeBg,
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Text(
+                        finished
+                            ? s.wcFinished
+                            : (time == 'notstarted'
+                                ? s.wcUpcoming
+                                : time),
+                        style: TextStyle(
+                          color: badgeText,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 11,
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
-              ],
-            ),
-          ),
-              ],
-            ),
+              ),
+              // Away
+              Expanded(
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.start,
+                  children: [
+                    if (awayFlag != null)
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(4),
+                        child: Image.network(
+                          awayFlag,
+                          width: 30,
+                          height: 22,
+                          fit: BoxFit.cover,
+                          errorBuilder: (_, __, ___) => const Icon(
+                              Icons.flag_rounded,
+                              color: Colors.white24,
+                              size: 20),
+                        ),
+                      )
+                    else
+                      const SizedBox(width: 30),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Text(
+                        awayTeam,
+                        textAlign: TextAlign.start,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 15,
+                        ),
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
           ),
         ),
       ),
     );
   }
 
-  Widget _buildGroupsTab() {
-    if (_groups.isEmpty) {
-      return const Center(child: Text('No groups found.', style: TextStyle(color: Colors.white70)));
-    }
+  // ─── Groups Tab ──────────────────────────────────────────────
 
+  Widget _buildGroupsTab(AppStrings s) {
+    if (_groups.isEmpty) {
+      return Center(
+          child: Text(s.wcNoGroups,
+              style: const TextStyle(color: Colors.white54)));
+    }
     return ListView.builder(
-      padding: const EdgeInsets.all(16).copyWith(bottom: 100),
+      padding: const EdgeInsets.all(14).copyWith(bottom: 100),
       itemCount: _groups.length,
       itemBuilder: (context, index) {
         final group = _groups[index];
         final groupName = group['name'] ?? 'Group';
         final teams = group['teams'] as List<dynamic>? ?? [];
-
-        return Container(
-          margin: const EdgeInsets.only(bottom: 20),
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: [
-                Colors.white.withOpacity(0.08),
-                Colors.white.withOpacity(0.02),
-              ],
-            ),
-            borderRadius: BorderRadius.circular(24),
-            border: Border.all(color: Colors.white.withOpacity(0.1), width: 1),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withOpacity(0.3),
-                blurRadius: 20,
-                offset: const Offset(0, 8),
-              )
-            ],
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Container(
-                padding: const EdgeInsets.all(20),
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: [AppTheme.primaryGold.withOpacity(0.2), AppTheme.primaryGold.withOpacity(0.05)],
-                  ),
-                  borderRadius: const BorderRadius.only(
-                    topLeft: Radius.circular(24),
-                    topRight: Radius.circular(24),
-                  ),
-                ),
-                child: Row(
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.all(12),
-                      decoration: BoxDecoration(
-                        color: AppTheme.primaryGold,
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Text(
-                        groupName,
-                        style: const TextStyle(
-                          color: Colors.black,
-                          fontWeight: FontWeight.w900,
-                          fontSize: 18,
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 16),
-                    const Text(
-                      'Group Standings',
-                      style: TextStyle(
-                        color: Colors.white70,
-                        fontSize: 14,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              // Table header
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-                decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.05),
-                ),
-                child: const Row(
-                  children: [
-                    Expanded(flex: 4, child: Text('Team', style: TextStyle(color: Colors.white54, fontSize: 12, fontWeight: FontWeight.w600))),
-                    Expanded(flex: 1, child: Text('MP', textAlign: TextAlign.center, style: TextStyle(color: Colors.white54, fontSize: 12, fontWeight: FontWeight.w600))),
-                    Expanded(flex: 1, child: Text('W', textAlign: TextAlign.center, style: TextStyle(color: Colors.white54, fontSize: 12, fontWeight: FontWeight.w600))),
-                    Expanded(flex: 1, child: Text('D', textAlign: TextAlign.center, style: TextStyle(color: Colors.white54, fontSize: 12, fontWeight: FontWeight.w600))),
-                    Expanded(flex: 1, child: Text('L', textAlign: TextAlign.center, style: TextStyle(color: Colors.white54, fontSize: 12, fontWeight: FontWeight.w600))),
-                    Expanded(flex: 1, child: Text('Pts', textAlign: TextAlign.center, style: TextStyle(color: AppTheme.primaryGold, fontSize: 12, fontWeight: FontWeight.w800))),
-                  ],
-                ),
-              ),
-              ...teams.asMap().entries.map((entry) {
-                final idx = entry.key;
-                final t = entry.value;
-                final isTop = idx < 2; // Top 2 teams qualify
-                return _buildTeamRow(t, isTop);
-              }).toList(),
-            ],
-          ),
-        );
+        return _buildGroupCard(groupName, teams, s);
       },
     );
   }
 
+  Widget _buildGroupCard(
+      String groupName, List<dynamic> teams, AppStrings s) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 18),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            Colors.white.withOpacity(0.07),
+            Colors.white.withOpacity(0.02),
+          ],
+        ),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(
+            color: Colors.white.withOpacity(0.09), width: 1),
+        boxShadow: [
+          BoxShadow(
+              color: Colors.black.withOpacity(0.3),
+              blurRadius: 16,
+              offset: const Offset(0, 6)),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Group header
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: [
+                  const Color(0xFFD4AF37).withOpacity(0.15),
+                  const Color(0xFFD4AF37).withOpacity(0.04)
+                ],
+              ),
+              borderRadius: const BorderRadius.only(
+                topLeft: Radius.circular(20),
+                topRight: Radius.circular(20),
+              ),
+            ),
+            child: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 12, vertical: 8),
+                  decoration: BoxDecoration(
+                    gradient: const LinearGradient(
+                      colors: [Color(0xFFD4AF37), Color(0xFFB8960E)],
+                    ),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Text(
+                    groupName,
+                    style: const TextStyle(
+                      color: Colors.black,
+                      fontWeight: FontWeight.w900,
+                      fontSize: 16,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Text(
+                  s.wcGroupStandings,
+                  style: TextStyle(
+                    color: Colors.white.withOpacity(0.6),
+                    fontSize: 13,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          // Table header
+          Container(
+            padding:
+                const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
+            decoration: BoxDecoration(
+                color: Colors.white.withOpacity(0.04)),
+            child: Row(
+              children: [
+                Expanded(
+                    flex: 4,
+                    child: Text(s.wcTeam,
+                        style: const TextStyle(
+                            color: Colors.white38,
+                            fontSize: 11,
+                            fontWeight: FontWeight.w600))),
+                const Expanded(
+                    flex: 1,
+                    child: Text('MP',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                            color: Colors.white38,
+                            fontSize: 11,
+                            fontWeight: FontWeight.w600))),
+                const Expanded(
+                    flex: 1,
+                    child: Text('W',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                            color: Colors.white38,
+                            fontSize: 11,
+                            fontWeight: FontWeight.w600))),
+                const Expanded(
+                    flex: 1,
+                    child: Text('D',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                            color: Colors.white38,
+                            fontSize: 11,
+                            fontWeight: FontWeight.w600))),
+                const Expanded(
+                    flex: 1,
+                    child: Text('L',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                            color: Colors.white38,
+                            fontSize: 11,
+                            fontWeight: FontWeight.w600))),
+                const Expanded(
+                    flex: 1,
+                    child: Text('Pts',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                            color: Color(0xFFD4AF37),
+                            fontSize: 11,
+                            fontWeight: FontWeight.w800))),
+              ],
+            ),
+          ),
+          ...teams.asMap().entries.map((entry) {
+            return _buildTeamRow(entry.value, entry.key < 2);
+          }),
+        ],
+      ),
+    );
+  }
+
   Widget _buildTeamRow(dynamic team, bool isTop) {
-    final name = team['team_name_en'] ?? 'Unknown';
+    final name = team['team_name_en'] ?? '';
     final flag = team['team_flag'];
     final mp = team['mp'] ?? '0';
     final w = team['w'] ?? '0';
@@ -836,77 +985,97 @@ class _WorldCupScreenState extends State<WorldCupScreen> with SingleTickerProvid
     final pts = team['pts'] ?? '0';
 
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+      padding:
+          const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
       decoration: BoxDecoration(
-        color: isTop ? AppTheme.primaryGold.withOpacity(0.1) : Colors.transparent,
-        border: isTop 
-          ? Border(left: BorderSide(color: AppTheme.primaryGold, width: 3))
-          : null,
+        color: isTop
+            ? const Color(0xFFD4AF37).withOpacity(0.08)
+            : Colors.transparent,
+        border: isTop
+            ? const Border(
+                left: BorderSide(color: Color(0xFFD4AF37), width: 3))
+            : null,
       ),
       child: Row(
         children: [
           Expanded(
-            flex: 4, 
+            flex: 4,
             child: Row(
               children: [
                 if (isTop)
-                  Container(
-                    margin: const EdgeInsets.only(right: 8),
-                    child: Icon(
-                      Icons.arrow_upward,
-                      color: AppTheme.primaryGold,
-                      size: 16,
-                    ),
+                  const Padding(
+                    padding: EdgeInsets.only(right: 6),
+                    child: Icon(Icons.arrow_upward_rounded,
+                        color: Color(0xFFD4AF37), size: 14),
                   ),
                 if (flag != null)
                   ClipRRect(
-                    borderRadius: BorderRadius.circular(6),
+                    borderRadius: BorderRadius.circular(4),
                     child: Image.network(
-                      flag, 
-                      width: 28, 
-                      height: 20, 
+                      flag,
+                      width: 26,
+                      height: 18,
                       fit: BoxFit.cover,
-                      errorBuilder: (context, error, stackTrace) => Container(
-                        width: 28,
-                        height: 20,
-                        decoration: BoxDecoration(
-                          color: Colors.white.withOpacity(0.1),
-                          borderRadius: BorderRadius.circular(6),
-                        ),
-                        child: const Icon(Icons.flag, color: Colors.white54, size: 14),
-                      ),
+                      errorBuilder: (_, __, ___) => const Icon(
+                          Icons.flag_rounded,
+                          color: Colors.white24,
+                          size: 16),
                     ),
                   )
                 else
-                  const SizedBox(width: 28),
-                const SizedBox(width: 10),
+                  const SizedBox(width: 26),
+                const SizedBox(width: 8),
                 Expanded(
                   child: Text(
-                    name, 
+                    name,
                     style: TextStyle(
-                      color: isTop ? AppTheme.primaryGold : Colors.white,
-                      fontWeight: isTop ? FontWeight.w800 : FontWeight.w600,
-                      fontSize: 14,
-                    ), 
+                      color: isTop
+                          ? const Color(0xFFD4AF37)
+                          : Colors.white,
+                      fontWeight: isTop
+                          ? FontWeight.w800
+                          : FontWeight.w500,
+                      fontSize: 13,
+                    ),
                     overflow: TextOverflow.ellipsis,
                   ),
                 ),
               ],
-            )
+            ),
           ),
-          Expanded(flex: 1, child: Text(mp.toString(), textAlign: TextAlign.center, style: const TextStyle(color: Colors.white70, fontSize: 13))),
-          Expanded(flex: 1, child: Text(w.toString(), textAlign: TextAlign.center, style: const TextStyle(color: Colors.white70, fontSize: 13))),
-          Expanded(flex: 1, child: Text(d.toString(), textAlign: TextAlign.center, style: const TextStyle(color: Colors.white70, fontSize: 13))),
-          Expanded(flex: 1, child: Text(l.toString(), textAlign: TextAlign.center, style: const TextStyle(color: Colors.white70, fontSize: 13))),
           Expanded(
-            flex: 1, 
+              flex: 1,
+              child: Text(mp.toString(),
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(
+                      color: Colors.white60, fontSize: 13))),
+          Expanded(
+              flex: 1,
+              child: Text(w.toString(),
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(
+                      color: Colors.white60, fontSize: 13))),
+          Expanded(
+              flex: 1,
+              child: Text(d.toString(),
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(
+                      color: Colors.white60, fontSize: 13))),
+          Expanded(
+              flex: 1,
+              child: Text(l.toString(),
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(
+                      color: Colors.white60, fontSize: 13))),
+          Expanded(
+            flex: 1,
             child: Text(
-              pts.toString(), 
-              textAlign: TextAlign.center, 
+              pts.toString(),
+              textAlign: TextAlign.center,
               style: TextStyle(
-                color: isTop ? AppTheme.primaryGold : Colors.white,
-                fontWeight: FontWeight.w900, 
-                fontSize: 16,
+                color: isTop ? const Color(0xFFD4AF37) : Colors.white,
+                fontWeight: FontWeight.w900,
+                fontSize: 15,
               ),
             ),
           ),
@@ -915,385 +1084,408 @@ class _WorldCupScreenState extends State<WorldCupScreen> with SingleTickerProvid
     );
   }
 
-  Widget _buildNewsTab() {
-    if (_isLoadingNews) return const Center(child: CircularProgressIndicator(color: AppTheme.primaryGold));
-    if (_news.isEmpty) return const Center(child: Text('هەواڕ بەردەست نییە', style: TextStyle(color: Colors.white70)));
+  // ─── News Tab ────────────────────────────────────────────────
 
-    return ListView.builder(
-      padding: const EdgeInsets.all(16).copyWith(bottom: 100),
-      itemCount: _news.length,
-      itemBuilder: (context, index) {
-        final article = _news[index];
-        final headline = article['headline'] ?? '';
-        final description = article['description'] ?? '';
-        final images = article['images'] as List<dynamic>? ?? [];
-        final imageUrl = images.isNotEmpty ? images.first['url'] : '';
-        final link = article['links']?['web']?['href'];
-        final published = article['published'] ?? '';
-
-        return GestureDetector(
-          onTap: () async {
-            if (link != null) {
-              final url = Uri.parse(link);
-              if (await canLaunchUrl(url)) {
-                await launchUrl(url, mode: LaunchMode.externalApplication);
-              }
-            }
-          },
-          child: Container(
-            margin: const EdgeInsets.only(bottom: 20),
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: [
-                  Colors.white.withOpacity(0.08),
-                  Colors.white.withOpacity(0.02),
-                ],
-              ),
-              borderRadius: BorderRadius.circular(20),
-              border: Border.all(color: Colors.white.withOpacity(0.1), width: 1),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withOpacity(0.2),
-                  blurRadius: 15,
-                  offset: const Offset(0, 6),
-                )
-              ],
-            ),
-            clipBehavior: Clip.antiAlias,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                if (imageUrl.isNotEmpty)
-                  Stack(
-                    children: [
-                      Image.network(
-                        imageUrl,
-                        height: 200,
-                        width: double.infinity,
-                        fit: BoxFit.cover,
-                        errorBuilder: (ctx, err, stack) => Container(
-                          height: 200,
-                          decoration: BoxDecoration(
-                            gradient: LinearGradient(
-                              colors: [Colors.white.withOpacity(0.1), Colors.white.withOpacity(0.05)],
-                            ),
-                          ),
-                          child: const Icon(Icons.article, color: Colors.white24, size: 48),
-                        ),
-                      ),
-                      Positioned(
-                        top: 12,
-                        left: 12,
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                          decoration: BoxDecoration(
-                            color: AppTheme.primaryGold,
-                            borderRadius: BorderRadius.circular(20),
-                          ),
-                          child: const Text(
-                            'NEWS',
-                            style: TextStyle(
-                              color: Colors.black,
-                              fontSize: 10,
-                              fontWeight: FontWeight.w800,
-                              letterSpacing: 1,
-                            ),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                Padding(
-                  padding: const EdgeInsets.all(20),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        headline, 
-                        style: const TextStyle(
-                          color: Colors.white, 
-                          fontSize: 18, 
-                          fontWeight: FontWeight.w700,
-                          height: 1.3,
-                        ),
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                      const SizedBox(height: 12),
-                      Text(
-                        description, 
-                        maxLines: 3, 
-                        overflow: TextOverflow.ellipsis, 
-                        style: TextStyle(
-                          color: Colors.white.withOpacity(0.6), 
-                          fontSize: 14,
-                          height: 1.5,
-                        ),
-                      ),
-                      const SizedBox(height: 16),
-                      Row(
-                        children: [
-                          const Icon(
-                            Icons.access_time,
-                            color: Colors.white38,
-                            size: 14,
-                          ),
-                          const SizedBox(width: 6),
-                          Text(
-                            published.isNotEmpty 
-                              ? _formatNewsDate(published)
-                              : 'Recently',
-                            style: const TextStyle(
-                              color: Colors.white38,
-                              fontSize: 12,
-                            ),
-                          ),
-                          const Spacer(),
-                          Icon(
-                            Icons.arrow_forward,
-                            color: AppTheme.primaryGold.withOpacity(0.7),
-                            size: 18,
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ),
-        );
-      },
+  Widget _buildNewsTab(AppStrings s) {
+    if (_isLoadingNews) {
+      return const Center(
+          child: CircularProgressIndicator(color: Color(0xFFD4AF37)));
+    }
+    if (_news.isEmpty) {
+      return Center(
+          child: Text(s.wcNoNews,
+              style: const TextStyle(color: Colors.white54)));
+    }
+    return RefreshIndicator(
+      color: const Color(0xFFD4AF37),
+      backgroundColor: const Color(0xFF1A1A1A),
+      onRefresh: _loadNews,
+      child: ListView.builder(
+        padding: const EdgeInsets.all(14).copyWith(bottom: 100),
+        itemCount: _news.length,
+        itemBuilder: (context, index) {
+          return _buildNewsCard(_news[index], s);
+        },
+      ),
     );
   }
 
-  String _formatNewsDate(String dateStr) {
+  Widget _buildNewsCard(dynamic article, AppStrings s) {
+    final headline = article['headline'] ?? '';
+    final description = article['description'] ?? '';
+    final images = article['images'] as List<dynamic>? ?? [];
+    final imageUrl = images.isNotEmpty ? images.first['url'] : '';
+    final link = article['links']?['web']?['href'];
+    final published = article['published'] ?? '';
+
+    return GestureDetector(
+      onTap: () async {
+        if (link != null) {
+          final url = Uri.parse(link);
+          if (await canLaunchUrl(url)) {
+            await launchUrl(url, mode: LaunchMode.externalApplication);
+          }
+        }
+      },
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 18),
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [
+              Colors.white.withOpacity(0.07),
+              Colors.white.withOpacity(0.02),
+            ],
+          ),
+          borderRadius: BorderRadius.circular(18),
+          border: Border.all(
+              color: Colors.white.withOpacity(0.08), width: 1),
+          boxShadow: [
+            BoxShadow(
+                color: Colors.black.withOpacity(0.2),
+                blurRadius: 12,
+                offset: const Offset(0, 5)),
+          ],
+        ),
+        clipBehavior: Clip.antiAlias,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            if (imageUrl.isNotEmpty)
+              Stack(
+                children: [
+                  Image.network(
+                    imageUrl,
+                    height: 180,
+                    width: double.infinity,
+                    fit: BoxFit.cover,
+                    errorBuilder: (_, __, ___) => Container(
+                      height: 100,
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          colors: [
+                            Colors.white.withOpacity(0.08),
+                            Colors.white.withOpacity(0.03)
+                          ],
+                        ),
+                      ),
+                      child: const Icon(Icons.article_rounded,
+                          color: Colors.white12, size: 36),
+                    ),
+                  ),
+                  Positioned(
+                    top: 10,
+                    left: 10,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 9, vertical: 4),
+                      decoration: BoxDecoration(
+                        gradient: const LinearGradient(
+                          colors: [Color(0xFFD4AF37), Color(0xFFB8960E)],
+                        ),
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                      child: Text(
+                        s.wcNewsLabel,
+                        style: const TextStyle(
+                          color: Colors.black,
+                          fontSize: 10,
+                          fontWeight: FontWeight.w800,
+                          letterSpacing: 0.8,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    headline,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 16,
+                      fontWeight: FontWeight.w700,
+                      height: 1.3,
+                    ),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  if (description.isNotEmpty) ...[
+                    const SizedBox(height: 8),
+                    Text(
+                      description,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        color: Colors.white.withOpacity(0.55),
+                        fontSize: 13,
+                        height: 1.4,
+                      ),
+                    ),
+                  ],
+                  const SizedBox(height: 12),
+                  Row(
+                    children: [
+                      const Icon(Icons.access_time_rounded,
+                          color: Colors.white30, size: 13),
+                      const SizedBox(width: 5),
+                      Text(
+                        published.isNotEmpty
+                            ? _formatNewsDate(published, s)
+                            : s.wcRecently,
+                        style: const TextStyle(
+                          color: Colors.white30,
+                          fontSize: 11,
+                        ),
+                      ),
+                      const Spacer(),
+                      Icon(Icons.arrow_forward_rounded,
+                          color: const Color(0xFFD4AF37).withOpacity(0.6),
+                          size: 16),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  String _formatNewsDate(String dateStr, AppStrings s) {
     try {
       final date = DateTime.parse(dateStr);
-      final now = DateTime.now();
-      final diff = now.difference(date);
-      
-      if (diff.inHours < 1) {
-        return '${diff.inMinutes}m ago';
-      } else if (diff.inHours < 24) {
-        return '${diff.inHours}h ago';
-      } else {
-        return '${diff.inDays}d ago';
-      }
+      final diff = DateTime.now().difference(date);
+      return s.wcTimeAgo(diff.inMinutes);
     } catch (_) {
-      return 'Recently';
+      return s.wcRecently;
     }
   }
 
-  Widget _buildScorersTab() {
-    if (_isLoadingScorers) return const Center(child: CircularProgressIndicator(color: AppTheme.primaryGold));
-    if (_scorers.isEmpty) return const Center(child: Text('هیچ زانیارییەک بەردەست نییە', style: TextStyle(color: Colors.white70)));
+  // ─── Scorers Tab ─────────────────────────────────────────────
 
-    return ListView.builder(
-      padding: const EdgeInsets.all(16).copyWith(bottom: 100),
-      itemCount: _scorers.length,
-      itemBuilder: (context, index) {
-        final scorer = _scorers[index];
-        final athlete = scorer['athlete'] ?? {};
-        final team = athlete['team'] ?? {};
-        
-        final name = athlete['displayName'] ?? 'Unknown';
-        final headshot = athlete['headshot']?['href'] ?? '';
-        final goals = scorer['value']?.toString() ?? '0';
-        final teamLogo = team['logos'] != null && (team['logos'] as List).isNotEmpty ? team['logos'][0]['href'] : '';
-        
-        final isTop3 = index < 3;
-        final rankColor = index == 0 
-          ? AppTheme.primaryGold 
-          : (index == 1 ? Colors.grey[400] : Colors.brown[400]);
+  Widget _buildScorersTab(AppStrings s) {
+    if (_isLoadingScorers) {
+      return const Center(
+          child: CircularProgressIndicator(color: Color(0xFFD4AF37)));
+    }
+    if (_scorers.isEmpty) {
+      return Center(
+          child: Text(s.wcNoScorers,
+              style: const TextStyle(color: Colors.white54)));
+    }
+    return RefreshIndicator(
+      color: const Color(0xFFD4AF37),
+      backgroundColor: const Color(0xFF1A1A1A),
+      onRefresh: _loadScorers,
+      child: ListView.builder(
+        padding: const EdgeInsets.all(14).copyWith(bottom: 100),
+        itemCount: _scorers.length,
+        itemBuilder: (context, index) {
+          return _buildScorerCard(_scorers[index], index, s);
+        },
+      ),
+    );
+  }
 
-        return Container(
-          margin: const EdgeInsets.only(bottom: 16),
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: isTop3
-                ? [
-                    rankColor!.withOpacity(0.2),
-                    rankColor.withOpacity(0.05),
-                  ]
-                : [
-                    Colors.white.withOpacity(0.05),
-                    Colors.white.withOpacity(0.02),
-                  ],
-            ),
-            borderRadius: BorderRadius.circular(20),
-            border: Border.all(
-              color: isTop3 
-                ? rankColor!.withOpacity(0.5)
-                : Colors.white.withOpacity(0.1),
-              width: isTop3 ? 2 : 1,
-            ),
-            boxShadow: isTop3
-              ? [
-                  BoxShadow(
-                    color: rankColor!.withOpacity(0.2),
-                    blurRadius: 15,
-                    offset: const Offset(0, 4),
-                  )
-                ]
-              : null,
-          ),
-          child: Padding(
-            padding: const EdgeInsets.all(16),
-            child: Row(
-              children: [
-                // Rank Badge
-                Container(
-                  width: 40,
-                  height: 40,
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      colors: isTop3 
-                        ? [rankColor!, rankColor.withOpacity(0.6)]
-                        : [Colors.white.withOpacity(0.1), Colors.white.withOpacity(0.05)],
-                    ),
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(
-                      color: isTop3 ? rankColor! : Colors.white.withOpacity(0.2),
-                      width: 1,
-                    ),
-                  ),
-                  child: Center(
-                    child: Text(
-                      '#${index + 1}',
-                      style: TextStyle(
-                        color: isTop3 ? Colors.black : Colors.white70,
-                        fontSize: 16,
-                        fontWeight: FontWeight.w900,
-                      ),
-                    ),
+  Widget _buildScorerCard(
+      dynamic scorer, int index, AppStrings s) {
+    final athlete = scorer['athlete'] ?? {};
+    final team = athlete['team'] ?? {};
+    final name = athlete['displayName'] ?? '';
+    final headshot = athlete['headshot']?['href'] ?? '';
+    final goals = scorer['value']?.toString() ?? '0';
+    final teamLogo =
+        team['logos'] != null && (team['logos'] as List).isNotEmpty
+            ? team['logos'][0]['href']
+            : '';
+
+    final isTop3 = index < 3;
+    final Color rankColor = index == 0
+        ? const Color(0xFFD4AF37)
+        : (index == 1
+            ? const Color(0xFFB0B0B0)
+            : const Color(0xFFCD7F32));
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 14),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: isTop3
+              ? [rankColor.withOpacity(0.15), rankColor.withOpacity(0.04)]
+              : [
+                  Colors.white.withOpacity(0.05),
+                  Colors.white.withOpacity(0.02)
+                ],
+        ),
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(
+          color: isTop3
+              ? rankColor.withOpacity(0.4)
+              : Colors.white.withOpacity(0.08),
+          width: isTop3 ? 1.5 : 1,
+        ),
+        boxShadow: isTop3
+            ? [
+                BoxShadow(
+                  color: rankColor.withOpacity(0.15),
+                  blurRadius: 12,
+                  offset: const Offset(0, 4),
+                )
+              ]
+            : null,
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(14),
+        child: Row(
+          children: [
+            // Rank
+            Container(
+              width: 38,
+              height: 38,
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  colors: isTop3
+                      ? [rankColor, rankColor.withOpacity(0.6)]
+                      : [
+                          Colors.white.withOpacity(0.08),
+                          Colors.white.withOpacity(0.04)
+                        ],
+                ),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Center(
+                child: Text(
+                  '#${index + 1}',
+                  style: TextStyle(
+                    color: isTop3 ? Colors.black : Colors.white60,
+                    fontSize: 14,
+                    fontWeight: FontWeight.w900,
                   ),
                 ),
-                const SizedBox(width: 16),
-                // Player Avatar
-                if (headshot.isNotEmpty)
-                  Container(
-                    width: 56,
-                    height: 56,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      border: Border.all(
-                        color: isTop3 ? rankColor! : Colors.white.withOpacity(0.2),
-                        width: 2,
-                      ),
-                    ),
-                    child: ClipOval(
-                      child: Image.network(
+              ),
+            ),
+            const SizedBox(width: 12),
+            // Avatar
+            Container(
+              width: 52,
+              height: 52,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                border: Border.all(
+                  color: isTop3 ? rankColor : Colors.white.withOpacity(0.15),
+                  width: 2,
+                ),
+              ),
+              child: ClipOval(
+                child: headshot.isNotEmpty
+                    ? Image.network(
                         headshot,
                         fit: BoxFit.cover,
-                        errorBuilder: (context, error, stackTrace) => Container(
-                          decoration: BoxDecoration(
-                            color: Colors.white.withOpacity(0.1),
-                            shape: BoxShape.circle,
-                          ),
-                          child: const Icon(Icons.person, color: Colors.white54),
-                        ),
-                      ),
-                    ),
-                  )
-                else
-                  Container(
-                    width: 56,
-                    height: 56,
-                    decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.1),
-                      shape: BoxShape.circle,
-                      border: Border.all(color: Colors.white.withOpacity(0.2)),
-                    ),
-                    child: const Icon(Icons.person, color: Colors.white54),
-                  ),
-                const SizedBox(width: 16),
-                // Player Info
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        name, 
-                        style: TextStyle(
-                          color: isTop3 ? rankColor : Colors.white,
-                          fontSize: 16,
-                          fontWeight: isTop3 ? FontWeight.w800 : FontWeight.w600,
-                        ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                      const SizedBox(height: 6),
-                      if (teamLogo.isNotEmpty)
-                        Row(
-                          children: [
-                            Image.network(
-                              teamLogo,
-                              height: 18,
-                              errorBuilder: (c, e, s) => const SizedBox(),
-                            ),
-                            const SizedBox(width: 8),
-                            Text(
-                              team['displayName'] ?? '',
-                              style: TextStyle(
-                                color: Colors.white.withOpacity(0.5),
-                                fontSize: 12,
-                              ),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                          ],
-                        ),
-                    ],
-                  ),
-                ),
-                // Goals
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      colors: [AppTheme.primaryGold, AppTheme.primaryGold.withOpacity(0.8)],
-                    ),
-                    borderRadius: BorderRadius.circular(16),
-                    boxShadow: [
-                      BoxShadow(
-                        color: AppTheme.primaryGold.withOpacity(0.3),
-                        blurRadius: 10,
-                        offset: const Offset(0, 4),
+                        errorBuilder: (_, __, ___) => const Icon(
+                            Icons.person_rounded,
+                            color: Colors.white24),
                       )
-                    ],
-                  ),
-                  child: Column(
-                    children: [
-                      Text(
-                        goals,
-                        style: const TextStyle(
-                          color: Colors.black,
-                          fontSize: 24,
-                          fontWeight: FontWeight.w900,
-                        ),
-                      ),
-                      const Text(
-                        'Goals',
-                        style: TextStyle(
-                          color: Colors.black54,
-                          fontSize: 10,
-                          fontWeight: FontWeight.w600,
-                          letterSpacing: 0.5,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
+                    : const Icon(Icons.person_rounded,
+                        color: Colors.white24),
+              ),
             ),
-          ),
-        );
-      },
+            const SizedBox(width: 12),
+            // Info
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    name,
+                    style: TextStyle(
+                      color: isTop3 ? rankColor : Colors.white,
+                      fontSize: 15,
+                      fontWeight: isTop3
+                          ? FontWeight.w800
+                          : FontWeight.w600,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  if (teamLogo.isNotEmpty) ...[
+                    const SizedBox(height: 4),
+                    Row(
+                      children: [
+                        Image.network(
+                          teamLogo,
+                          height: 16,
+                          errorBuilder: (_, __, ___) =>
+                              const SizedBox(),
+                        ),
+                        const SizedBox(width: 6),
+                        Expanded(
+                          child: Text(
+                            team['displayName'] ?? '',
+                            style: TextStyle(
+                              color: Colors.white.withOpacity(0.45),
+                              fontSize: 11,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ],
+              ),
+            ),
+            // Goals badge
+            Container(
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+              decoration: BoxDecoration(
+                gradient: const LinearGradient(
+                  colors: [Color(0xFFD4AF37), Color(0xFFB8960E)],
+                ),
+                borderRadius: BorderRadius.circular(14),
+                boxShadow: [
+                  BoxShadow(
+                    color: const Color(0xFFD4AF37).withOpacity(0.25),
+                    blurRadius: 8,
+                    offset: const Offset(0, 3),
+                  )
+                ],
+              ),
+              child: Column(
+                children: [
+                  Text(
+                    goals,
+                    style: const TextStyle(
+                      color: Colors.black,
+                      fontSize: 22,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                  Text(
+                    s.wcGoals,
+                    style: const TextStyle(
+                      color: Colors.black54,
+                      fontSize: 9,
+                      fontWeight: FontWeight.w700,
+                      letterSpacing: 0.4,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }

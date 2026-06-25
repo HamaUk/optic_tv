@@ -695,4 +695,162 @@ class AppStrings {
     if (isSorani) return 'سڕینەوەی کاش و پۆستەرەکان بە ئاسانی';
     return 'Clear cache and posters easily';
   }
+
+  // ─── World Cup ────────────────────────────────────────────────
+
+  String get wcTitle {
+    if (isKurmanji) return 'Kûpaya Cîhanê FIFA';
+    if (isSorani) return 'جامجهانی FIFA';
+    return 'FIFA World Cup';
+  }
+
+  String get wcTabLive {
+    if (isKurmanji) return 'Zindî';
+    if (isSorani) return 'ڕاستەوخۆ';
+    return 'Live';
+  }
+
+  String get wcTabMatches {
+    if (isKurmanji) return 'Maç';
+    if (isSorani) return 'یارییەکان';
+    return 'Matches';
+  }
+
+  String get wcTabGroups {
+    if (isKurmanji) return 'Kom';
+    if (isSorani) return 'گروپەکان';
+    return 'Groups';
+  }
+
+  String get wcTabNews {
+    if (isKurmanji) return 'Nûçe';
+    if (isSorani) return 'هەواڕەکان';
+    return 'News';
+  }
+
+  String get wcTabScorers {
+    if (isKurmanji) return 'Golkar';
+    if (isSorani) return 'گۆڵکاران';
+    return 'Scorers';
+  }
+
+  String get wcToday {
+    if (isKurmanji) return 'Îro';
+    if (isSorani) return 'ئەمڕۆ';
+    return 'Today';
+  }
+
+  String get wcTomorrow {
+    if (isKurmanji) return 'Sibê';
+    if (isSorani) return 'سبەی';
+    return 'Tomorrow';
+  }
+
+  String get wcAfterTomorrow {
+    if (isKurmanji) return 'Duyê sibê';
+    if (isSorani) return 'دواتر';
+    return 'Next';
+  }
+
+  String get wcNoMatches {
+    if (isKurmanji) return 'Maç tune ye di vê rojê de';
+    if (isSorani) return 'هیچ یارییەک نییە لەم بەروارەدا';
+    return 'No matches on this date';
+  }
+
+  String get wcNoMatchesFound {
+    if (isKurmanji) return 'Maç nehat dîtin';
+    if (isSorani) return 'هیچ یاری نەدۆزرایەوە';
+    return 'No matches found';
+  }
+
+  String get wcGroupStandings {
+    if (isKurmanji) return 'Rêzika Komê';
+    if (isSorani) return 'خشتەی گروپ';
+    return 'Group Standings';
+  }
+
+  String get wcNoGroups {
+    if (isKurmanji) return 'Kom nehat dîtin';
+    if (isSorani) return 'هیچ گروپێک نەدۆزرایەوە';
+    return 'No groups found';
+  }
+
+  String get wcNoNews {
+    if (isKurmanji) return 'Nûçe tune ye';
+    if (isSorani) return 'هەواڕ بەردەست نییە';
+    return 'No news available';
+  }
+
+  String get wcNoScorers {
+    if (isKurmanji) return 'Agahî tune ye';
+    if (isSorani) return 'هیچ زانیارییەک بەردەست نییە';
+    return 'No data available';
+  }
+
+  String get wcLive {
+    if (isKurmanji) return 'ZINDÎ';
+    if (isSorani) return 'ڕاستەوخۆ';
+    return 'LIVE';
+  }
+
+  String get wcUpcoming {
+    if (isKurmanji) return 'Bê';
+    if (isSorani) return 'داهاتوو';
+    return 'Upcoming';
+  }
+
+  String get wcFinished {
+    if (isKurmanji) return 'KU';
+    if (isSorani) return 'کۆتایی';
+    return 'FT';
+  }
+
+  String get wcGoals {
+    if (isKurmanji) return 'Gol';
+    if (isSorani) return 'گۆڵ';
+    return 'Goals';
+  }
+
+  String get wcTeam {
+    if (isKurmanji) return 'Tîm';
+    if (isSorani) return 'تیم';
+    return 'Team';
+  }
+
+  String get wcNewsLabel {
+    if (isKurmanji) return 'NÛÇE';
+    if (isSorani) return 'هەواڕ';
+    return 'NEWS';
+  }
+
+  String get wcRecently {
+    if (isKurmanji) return 'Vêga';
+    if (isSorani) return 'دواواتر';
+    return 'Recently';
+  }
+
+  String wcTimeAgo(int minutes) {
+    if (minutes < 60) {
+      if (isKurmanji) return '${minutes}d berê';
+      if (isSorani) return 'پێش ${minutes} خولەک';
+      return '${minutes}m ago';
+    }
+    final hours = minutes ~/ 60;
+    if (hours < 24) {
+      if (isKurmanji) return '${hours}s berê';
+      if (isSorani) return 'پێش ${hours} کاتژمێر';
+      return '${hours}h ago';
+    }
+    final days = hours ~/ 24;
+    if (isKurmanji) return '${days}r berê';
+    if (isSorani) return 'پێش ${days} ڕۆژ';
+    return '${days}d ago';
+  }
+
+  String get wcViewers {
+    if (isKurmanji) return 'temaşevan';
+    if (isSorani) return 'بینەر';
+    return 'viewers';
+  }
 }

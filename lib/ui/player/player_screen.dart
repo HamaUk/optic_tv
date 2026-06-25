@@ -196,6 +196,7 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
   }
 
   Future<void> _initFlow() async {
+    // Load settings and start player init in parallel to reduce startup time
     final s = await AppSettingsData.load();
     if (!mounted) return;
     setState(() => _settings = s);
@@ -285,7 +286,7 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
 
   @override
   void deactivate() {
-    // Immediately stop playback when navigating away (prevents audio leak)
+    // Stop playback when navigating away
     _player?.stop();
     super.deactivate();
   }
@@ -554,24 +555,25 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
             Positioned(
               top: 16,
               left: 16,
-              child: StreamBuilder<int>(
-                stream: ref.watch(viewerServiceProvider).getViewersStream(_current.url),
-                builder: (context, snapshot) {
-                  final viewers = snapshot.data ?? 0;
+              child: Builder(
+                builder: (context) {
+                  final viewersAsync = ref.watch(channelViewersProvider(_current.url));
+                  final viewers = viewersAsync.value ?? 0;
                   if (viewers == 0) return const SizedBox.shrink();
-                  
                   return Container(
                     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                     decoration: BoxDecoration(
-                      color: Colors.black.withOpacity(0.5),
-                      borderRadius: BorderRadius.circular(6),
-                      border: Border.all(color: Colors.redAccent.withOpacity(0.5), width: 1),
+                      color: Colors.black.withOpacity(0.55),
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(
+                          color: const Color(0xFFD4AF37).withOpacity(0.6), width: 1),
                     ),
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        const Icon(Icons.remove_red_eye_rounded, color: Colors.redAccent, size: 14),
-                        const SizedBox(width: 4),
+                        const Icon(Icons.remove_red_eye_rounded,
+                            color: Color(0xFFD4AF37), size: 13),
+                        const SizedBox(width: 5),
                         Text(
                           '$viewers',
                           style: const TextStyle(
@@ -688,29 +690,32 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
                                   overflow: TextOverflow.ellipsis,
                                 ),
                               ),
-                              StreamBuilder<int>(
-                                stream: ref.watch(viewerServiceProvider).getViewersStream(_current.url),
-                                builder: (context, snapshot) {
-                                  final viewers = snapshot.data ?? 0;
+                              Builder(
+                                builder: (context) {
+                                  final viewersAsync = ref.watch(channelViewersProvider(_current.url));
+                                  final viewers = viewersAsync.value ?? 0;
                                   if (viewers == 0) return const SizedBox.shrink();
-                                  
                                   return Container(
-                                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                                    padding: const EdgeInsets.symmetric(
+                                        horizontal: 12, vertical: 6),
                                     decoration: BoxDecoration(
                                       color: Colors.black.withOpacity(0.6),
-                                      borderRadius: BorderRadius.circular(8),
-                                      border: Border.all(color: Colors.redAccent.withOpacity(0.6), width: 1.5),
+                                      borderRadius: BorderRadius.circular(10),
+                                      border: Border.all(
+                                          color: const Color(0xFFD4AF37).withOpacity(0.7),
+                                          width: 1.5),
                                     ),
                                     child: Row(
                                       mainAxisSize: MainAxisSize.min,
                                       children: [
-                                        const Icon(Icons.remove_red_eye_rounded, color: Colors.redAccent, size: 18),
-                                        const SizedBox(width: 8),
+                                        const Icon(Icons.remove_red_eye_rounded,
+                                            color: Color(0xFFD4AF37), size: 17),
+                                        const SizedBox(width: 7),
                                         Text(
                                           '$viewers',
                                           style: const TextStyle(
                                             color: Colors.white,
-                                            fontSize: 16,
+                                            fontSize: 15,
                                             fontWeight: FontWeight.bold,
                                           ),
                                         ),

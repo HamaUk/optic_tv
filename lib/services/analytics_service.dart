@@ -8,44 +8,21 @@ class AnalyticsService {
   final FirebaseDatabase _db = FirebaseDatabase.instance;
 
   Stream<int> getLiveUsersStream() {
-    return _db.ref('sync/global/activeSessions').onValue.map((event) {
+    return _db.ref('live_viewers').onValue.map((event) {
       if (event.snapshot.value == null) return 0;
+      
+      int totalActive = 0;
       final data = event.snapshot.value as Map<dynamic, dynamic>;
-      // Filter out stale sessions (older than 3 minutes)
-      final now = DateTime.now().millisecondsSinceEpoch;
-      int active = 0;
-      data.forEach((key, value) {
-        if (value is Map && value.containsKey('lastSeen')) {
-          try {
-            final lastSeen = (value['lastSeen'] as num).toInt();
-            if (now - lastSeen < 3 * 60 * 1000) {
-              active++;
-            }
-          } catch (_) {}
+      
+      // Iterate through all channel nodes
+      data.forEach((channelKey, channelData) {
+        if (channelData is Map) {
+          // Count the number of active device IDs in this channel
+          totalActive += channelData.length;
         }
       });
-      return active;
-    });
-  }
-
-  Stream<int> getLiveChannelViewersStream(String channelName) {
-    return _db.ref('sync/global/activeSessions').onValue.map((event) {
-      if (event.snapshot.value == null) return 0;
-      final data = event.snapshot.value as Map<dynamic, dynamic>;
-      final now = DateTime.now().millisecondsSinceEpoch;
-      int active = 0;
-      data.forEach((key, value) {
-        if (value is Map && value.containsKey('lastSeen')) {
-          try {
-            final lastSeen = (value['lastSeen'] as num).toInt();
-            final channel = value['channel']?.toString();
-            if (now - lastSeen < 3 * 60 * 1000 && channel == channelName) {
-              active++;
-            }
-          } catch (_) {}
-        }
-      });
-      return active;
+      
+      return totalActive;
     });
   }
 
