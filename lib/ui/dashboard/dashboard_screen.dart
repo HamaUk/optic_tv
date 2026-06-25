@@ -12,6 +12,7 @@ import 'package:animations/animations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:dpad/dpad.dart';
 import 'package:lottie/lottie.dart';
+import 'package:video_player/video_player.dart';
 
 import '../world_cup/world_cup_screen.dart';
 import '../../core/theme.dart';
@@ -2411,16 +2412,20 @@ class _FeaturedCarousel extends StatefulWidget {
   State<_FeaturedCarousel> createState() => _FeaturedCarouselState();
 }
 
-class _FeaturedCarouselState extends State<_FeaturedCarousel> {
+class _FeaturedCarouselState extends State<_FeaturedCarousel> with TickerProviderStateMixin {
   static const _autoAdvance = Duration(seconds: 8);
   late final PageController _pageController;
+  late final AnimationController _pulseController;
   Timer? _autoTimer;
+  Timer? _idleTimer;
   int _index = 0;
+  bool _showPreview = false;
 
   @override
   void initState() {
     super.initState();
     _pageController = PageController();
+    _pulseController = AnimationController(vsync: this, duration: const Duration(milliseconds: 1000))..repeat(reverse: true);
     _armAutoAdvance();
   }
 
@@ -2429,7 +2434,9 @@ class _FeaturedCarouselState extends State<_FeaturedCarousel> {
     super.didUpdateWidget(old);
     if (!_sameSlideOrder(old.slides, widget.slides)) {
       _autoTimer?.cancel();
+      _idleTimer?.cancel();
       _index = 0;
+      _showPreview = false;
       if (_pageController.hasClients) _pageController.jumpToPage(0);
       setState(() {});
       _armAutoAdvance();
@@ -2446,7 +2453,14 @@ class _FeaturedCarouselState extends State<_FeaturedCarousel> {
 
   void _armAutoAdvance() {
     _autoTimer?.cancel();
-    if (widget.slides.length <= 1) return;
+    _idleTimer?.cancel();
+    setState(() => _showPreview = false);
+
+    if (widget.slides.length <= 1) {
+      _startIdleTimer();
+      return;
+    }
+
     _autoTimer = Timer.periodic(_autoAdvance, (_) {
       if (!mounted || !_pageController.hasClients) return;
       final next = (_index + 1) % widget.slides.length;
@@ -2456,17 +2470,30 @@ class _FeaturedCarouselState extends State<_FeaturedCarousel> {
         curve: Curves.easeInOut,
       );
     });
+
+    _startIdleTimer();
+  }
+
+  void _startIdleTimer() {
+    _idleTimer = Timer(const Duration(milliseconds: 1500), () {
+      if (mounted) setState(() => _showPreview = true);
+    });
   }
 
   void _onPageChanged(int i) {
-    setState(() => _index = i);
+    setState(() {
+      _index = i;
+      _showPreview = false;
+    });
     _armAutoAdvance();
   }
 
   @override
   void dispose() {
     _autoTimer?.cancel();
+    _idleTimer?.cancel();
     _pageController.dispose();
+    _pulseController.dispose();
     super.dispose();
   }
 
@@ -2532,8 +2559,10 @@ class _FeaturedCarouselState extends State<_FeaturedCarousel> {
                   child: Stack(
                     fit: StackFit.expand,
                     children: [
-                      // ── Backdrop image ─────────────────────────────────
-                      if (hasBackdrop)
+                      // ── Backdrop image or Inline Video ─────────────────
+                      if (_showPreview && _index == i)
+                        _SilentPreviewPlayer(url: ch.url)
+                      else if (hasBackdrop)
                         ChannelLogoImage(
                           logo: ch.backdrop,
                           width: double.infinity,
@@ -2544,85 +2573,122 @@ class _FeaturedCarouselState extends State<_FeaturedCarousel> {
                       else
                         _heroFallback(),
 
-                      // ── Vignette gradient ──────────────────────────────
-                      Positioned.fill(
+                      // ── Vignette gradient (top only) ──────────────────────
+                      Positioned(
+                        top: 0, left: 0, right: 0,
+                        height: 60,
                         child: DecoratedBox(
                           decoration: BoxDecoration(
                             gradient: LinearGradient(
-                              begin: Alignment.bottomCenter,
-                              end: Alignment.topCenter,
-                              colors: [
-                                Colors.black.withOpacity(0.92),
-                                Colors.black.withOpacity(0.3),
-                                Colors.transparent,
-                              ],
-                              stops: const [0, 0.5, 1.0],
+                              begin: Alignment.topCenter,
+                              end: Alignment.bottomCenter,
+                              colors: [Colors.black.withOpacity(0.5), Colors.transparent],
                             ),
                           ),
                         ),
                       ),
 
-                      // ── Content ────────────────────────────────────────
-                      Padding(
-                        padding: const EdgeInsets.fromLTRB(18, 14, 18, 14),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            const Spacer(),
-                            Text(
-                              ch.name,
-                              maxLines: 2,
-                              overflow: TextOverflow.ellipsis,
-                              style: AppTheme.withRabarIfKurdish(
-                                s.locale,
-                                const TextStyle(
-                                  fontSize: 20,
-                                  fontWeight: FontWeight.w900,
-                                  color: Colors.white,
-                                  height: 1.1,
-                                  letterSpacing: -0.5,
-                                  shadows: [Shadow(color: Colors.black54, blurRadius: 12)],
-                                ),
+                      // ── Floating Glassmorphic Panel (Option 1) ─────────
+                      Positioned(
+                        bottom: 12,
+                        left: 12,
+                        right: 12,
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(18),
+                          child: BackdropFilter(
+                            filter: ImageFilter.blur(sigmaX: 16, sigmaY: 16),
+                            child: Container(
+                              padding: const EdgeInsets.fromLTRB(16, 12, 12, 12),
+                              decoration: BoxDecoration(
+                                color: Colors.black.withOpacity(0.4),
+                                borderRadius: BorderRadius.circular(18),
+                                border: Border.all(color: Colors.white.withOpacity(0.12), width: 1),
                               ),
-                            ),
-                            const SizedBox(height: 12),
-                            GestureDetector(
-                              onTap: () => widget.onWatch(ch),
-                              child: Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-                                decoration: BoxDecoration(
-                                  gradient: LinearGradient(
-                                    colors: [accent, accent.withOpacity(0.75)],
+                              child: Row(
+                                children: [
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        // ── Live Badge ──
+                                        Row(
+                                          children: [
+                                            AnimatedBuilder(
+                                              animation: _pulseController,
+                                              builder: (context, child) {
+                                                return Transform.scale(
+                                                  scale: 0.8 + (_pulseController.value * 0.3),
+                                                  child: Opacity(
+                                                    opacity: 0.4 + (_pulseController.value * 0.6),
+                                                    child: child,
+                                                  ),
+                                                );
+                                              },
+                                              child: Container(
+                                                width: 8,
+                                                height: 8,
+                                                decoration: const BoxDecoration(
+                                                  color: Colors.redAccent,
+                                                  shape: BoxShape.circle,
+                                                  boxShadow: [
+                                                    BoxShadow(color: Colors.redAccent, blurRadius: 6, spreadRadius: 2)
+                                                  ]
+                                                ),
+                                              ),
+                                            ),
+                                            const SizedBox(width: 6),
+                                            const Text(
+                                              'LIVE NOW', 
+                                              style: TextStyle(color: Colors.redAccent, fontSize: 10, fontWeight: FontWeight.bold, letterSpacing: 1.2)
+                                            ),
+                                          ],
+                                        ),
+                                        const SizedBox(height: 6),
+                                        Text(
+                                          ch.name,
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
+                                          style: AppTheme.withRabarIfKurdish(
+                                            s.locale,
+                                            const TextStyle(
+                                              fontSize: 18,
+                                              fontWeight: FontWeight.w900,
+                                              color: Colors.white,
+                                              height: 1.1,
+                                            ),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
                                   ),
-                                  borderRadius: BorderRadius.circular(14),
-                                  boxShadow: [
-                                    BoxShadow(
-                                      color: accent.withOpacity(0.45),
-                                      blurRadius: 16,
-                                      spreadRadius: -2,
-                                      offset: const Offset(0, 4),
-                                    ),
-                                  ],
-                                ),
-                                child: Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    const Icon(Icons.play_arrow_rounded, color: Colors.white, size: 20),
-                                    const SizedBox(width: 6),
-                                    Text(
-                                      s.watchNow,
-                                      style: const TextStyle(
-                                        color: Colors.white,
-                                        fontSize: 14,
-                                        fontWeight: FontWeight.w900,
-                                        letterSpacing: 0.2,
+                                  const SizedBox(width: 12),
+                                  // ── Watch Now Button ──
+                                  GestureDetector(
+                                    onTap: () => widget.onWatch(ch),
+                                    child: Container(
+                                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                                      decoration: BoxDecoration(
+                                        gradient: LinearGradient(
+                                          colors: [accent, accent.withOpacity(0.75)],
+                                        ),
+                                        borderRadius: BorderRadius.circular(14),
+                                        boxShadow: [
+                                          BoxShadow(
+                                            color: accent.withOpacity(0.45),
+                                            blurRadius: 12,
+                                            spreadRadius: -2,
+                                            offset: const Offset(0, 4),
+                                          ),
+                                        ],
                                       ),
+                                      child: const Icon(Icons.play_arrow_rounded, color: Colors.white, size: 24),
                                     ),
-                                  ],
-                                ),
+                                  ),
+                                ],
                               ),
                             ),
-                          ],
+                          ),
                         ),
                       ),
                     ],
@@ -2682,6 +2748,76 @@ class _FeaturedCarouselState extends State<_FeaturedCarousel> {
     );
   }
 }
+
+class _SilentPreviewPlayer extends StatefulWidget {
+  const _SilentPreviewPlayer({required this.url});
+  final String url;
+
+  @override
+  State<_SilentPreviewPlayer> createState() => _SilentPreviewPlayerState();
+}
+
+class _SilentPreviewPlayerState extends State<_SilentPreviewPlayer> {
+  late VideoPlayerController _controller;
+  bool _initialized = false;
+  bool _error = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = VideoPlayerController.networkUrl(Uri.parse(widget.url))
+      ..initialize().then((_) {
+        if (!mounted) return;
+        setState(() => _initialized = true);
+        _controller.setVolume(0.0);
+        _controller.setLooping(true);
+        _controller.play();
+      }).catchError((e) {
+        if (!mounted) return;
+        setState(() => _error = true);
+      });
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (_error) {
+      return Container(
+        color: Colors.black,
+        child: const Center(
+          child: Icon(Icons.error_outline_rounded, color: Colors.white24, size: 48),
+        ),
+      );
+    }
+    if (!_initialized) {
+      return Container(
+        color: Colors.black,
+        child: const Center(
+          child: CircularProgressIndicator(color: AppTheme.primaryGold),
+        ),
+      );
+    }
+    return Container(
+      color: Colors.black,
+      child: SizedBox.expand(
+        child: FittedBox(
+          fit: BoxFit.cover,
+          child: SizedBox(
+            width: _controller.value.size.width,
+            height: _controller.value.size.height,
+            child: VideoPlayer(_controller),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 
 
 
