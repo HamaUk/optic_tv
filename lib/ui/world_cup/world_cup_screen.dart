@@ -1,10 +1,10 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../services/world_cup_service.dart';
 import '../../widgets/animated_gradient_border.dart';
 import '../../core/theme.dart';
 import '../../l10n/app_strings.dart';
-import '../../providers/locale_provider.dart';
+import '../../providers/app_locale_provider.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'match_details_screen.dart';
 import 'team_details_screen.dart';
@@ -20,23 +20,68 @@ class _WorldCupScreenState extends ConsumerState<WorldCupScreen>
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
   DateTime _selectedDate = DateTime(2026, 6, 11);
+  List<dynamic> _games = [];
+  List<dynamic> _groups = [];
   List<dynamic> _liveSoccer = [];
+  List<dynamic> _news = [];
+  List<dynamic> _scorers = [];
+  bool _isLoading = true;
   bool _isLoadingLive = true;
+  bool _isLoadingNews = true;
+  bool _isLoadingScorers = true;
 
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 7, vsync: this);
+    _loadData();
     _loadLiveSoccer();
+    _loadNews();
+    _loadScorers();
+  }
+
+  Future<void> _loadData() async {
+    setState(() => _isLoading = true);
+    final games = await WorldCupService.fetchGames();
+    final groups = await WorldCupService.fetchGroups();
+    if (mounted) {
+      setState(() {
+        _games = games;
+        _groups = groups;
+        _isLoading = false;
+      });
+    }
   }
 
   Future<void> _loadLiveSoccer() async {
     setState(() => _isLoadingLive = true);
-    final data = await WorldCupService.fetchMatchesByDate(0);
+    final data = await WorldCupService.fetchGames(); // Fallback for live
     if (mounted) {
       setState(() {
         _liveSoccer = data;
         _isLoadingLive = false;
+      });
+    }
+  }
+
+  Future<void> _loadNews() async {
+    setState(() => _isLoadingNews = true);
+    final news = await WorldCupService.fetchNews();
+    if (mounted) {
+      setState(() {
+        _news = news;
+        _isLoadingNews = false;
+      });
+    }
+  }
+
+  Future<void> _loadScorers() async {
+    setState(() => _isLoadingScorers = true);
+    final scorers = await WorldCupService.fetchTopScorers();
+    if (mounted) {
+      setState(() {
+        _scorers = scorers;
+        _isLoadingScorers = false;
       });
     }
   }
@@ -100,7 +145,7 @@ class _WorldCupScreenState extends ConsumerState<WorldCupScreen>
     );
   }
 
-  // â”€â”€â”€ Live Soccer Tab â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬ Live Soccer Tab Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
 
   Widget _buildLiveSoccerTab(AppStrings s) {
     final startDate = DateTime(2026, 6, 11);
@@ -487,7 +532,7 @@ class _WorldCupScreenState extends ConsumerState<WorldCupScreen>
     );
   }
 
-  // â”€â”€â”€ Matches Tab (worldcup26.ir) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬ Matches Tab (worldcup26.ir) Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
 
   Widget _buildMatchesTab(AppStrings s) {
     if (_games.isEmpty) {
@@ -672,7 +717,7 @@ class _WorldCupScreenState extends ConsumerState<WorldCupScreen>
     );
   }
 
-  // â”€â”€â”€ Groups Tab â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬ Groups Tab Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
 
   Widget _buildGroupsTab(AppStrings s) {
     if (_groups.isEmpty) {
@@ -940,7 +985,7 @@ class _WorldCupScreenState extends ConsumerState<WorldCupScreen>
     );
   }
 
-  // â”€â”€â”€ News Tab â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬ News Tab Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
 
   Widget _buildNewsTab(AppStrings s) {
     if (_isLoadingNews) {
@@ -1124,7 +1169,7 @@ class _WorldCupScreenState extends ConsumerState<WorldCupScreen>
     }
   }
 
-  // â”€â”€â”€ Scorers Tab â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬ Scorers Tab Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
 
   Widget _buildScorersTab(AppStrings s) {
     if (_isLoadingScorers) {
@@ -1342,6 +1387,117 @@ class _WorldCupScreenState extends ConsumerState<WorldCupScreen>
           ],
         ),
       ),
+    );
+  }
+  Widget _buildTeamsTab(AppStrings s) {
+    return FutureBuilder<List<dynamic>>(
+      future: WorldCupService.fetchTeamsList(),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Center(child: CircularProgressIndicator(color: Color(0xFFD4AF37)));
+        }
+        final teams = snapshot.data ?? [];
+        if (teams.isEmpty) return Center(child: Text(s.wcNoTeams, style: const TextStyle(color: Colors.white54)));
+
+        return GridView.builder(
+          padding: const EdgeInsets.all(16),
+          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+            crossAxisCount: 3,
+            crossAxisSpacing: 16,
+            mainAxisSpacing: 16,
+            childAspectRatio: 0.8,
+          ),
+          itemCount: teams.length,
+          itemBuilder: (context, index) {
+            final team = teams[index]['team'] ?? {};
+            final id = team['id'] ?? '';
+            final name = team['shortDisplayName'] ?? '';
+            final logo = team['logos'] != null && team['logos'].isNotEmpty ? team['logos'][0]['href'] : '';
+
+            return GestureDetector(
+              onTap: () {
+                Navigator.push(context, MaterialPageRoute(builder: (_) => TeamDetailsScreen(
+                  teamId: id, teamName: name, teamFlag: logo
+                )));
+              },
+              child: Container(
+                decoration: BoxDecoration(
+                  color: const Color(0xFF1A1A1A),
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: Colors.white10),
+                ),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Hero(
+                      tag: 'team_logo_$id',
+                      child: logo.isNotEmpty 
+                          ? Image.network(logo, width: 48, height: 48, errorBuilder: (_,__,___) => const Icon(Icons.flag, color: Colors.white54))
+                          : const Icon(Icons.flag, color: Colors.white54, size: 48),
+                    ),
+                    const SizedBox(height: 12),
+                    Text(name, textAlign: TextAlign.center, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12)),
+                  ],
+                ),
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  Widget _buildVenuesTab(AppStrings s) {
+    final venues = [
+      {'name': 'Estadio Azteca', 'city': 'Mexico City', 'cap': '83,264', 'img': 'https://a.espncdn.com/i/venues/soccer/day/87.jpg'},
+      {'name': 'MetLife Stadium', 'city': 'New York / New Jersey', 'cap': '82,500', 'img': 'https://a.espncdn.com/i/venues/soccer/day/259.jpg'},
+      {'name': 'AT&T Stadium', 'city': 'Dallas', 'cap': '80,000', 'img': 'https://a.espncdn.com/i/venues/nfl/day/211.jpg'},
+      {'name': 'Arrowhead Stadium', 'city': 'Kansas City', 'cap': '76,416', 'img': 'https://a.espncdn.com/i/venues/nfl/day/3494.jpg'},
+      {'name': 'NRG Stadium', 'city': 'Houston', 'cap': '72,220', 'img': 'https://a.espncdn.com/i/venues/nfl/day/3482.jpg'},
+      {'name': 'Mercedes-Benz Stadium', 'city': 'Atlanta', 'cap': '71,000', 'img': 'https://a.espncdn.com/i/venues/nfl/day/3482.jpg'},
+      {'name': 'SoFi Stadium', 'city': 'Los Angeles', 'cap': '70,240', 'img': 'https://a.espncdn.com/i/venues/nfl/day/259.jpg'},
+      {'name': 'Lincoln Financial Field', 'city': 'Philadelphia', 'cap': '69,796', 'img': 'https://a.espncdn.com/i/venues/nfl/day/3482.jpg'},
+      {'name': 'Lumen Field', 'city': 'Seattle', 'cap': '69,000', 'img': 'https://a.espncdn.com/i/venues/nfl/day/3494.jpg'},
+      {'name': 'Levi\\'s Stadium', 'city': 'San Francisco', 'cap': '68,500', 'img': 'https://a.espncdn.com/i/venues/nfl/day/259.jpg'},
+      {'name': 'Gillette Stadium', 'city': 'Boston', 'cap': '65,878', 'img': 'https://a.espncdn.com/i/venues/nfl/day/3494.jpg'},
+      {'name': 'Hard Rock Stadium', 'city': 'Miami', 'cap': '64,767', 'img': 'https://a.espncdn.com/i/venues/nfl/day/259.jpg'},
+      {'name': 'BC Place', 'city': 'Vancouver', 'cap': '54,500', 'img': 'https://a.espncdn.com/i/venues/soccer/day/87.jpg'},
+      {'name': 'Estadio BBVA', 'city': 'Monterrey', 'cap': '53,500', 'img': 'https://a.espncdn.com/i/venues/soccer/day/87.jpg'},
+      {'name': 'Estadio Akron', 'city': 'Guadalajara', 'cap': '49,850', 'img': 'https://a.espncdn.com/i/venues/soccer/day/87.jpg'},
+      {'name': 'BMO Field', 'city': 'Toronto', 'cap': '30,000', 'img': 'https://a.espncdn.com/i/venues/soccer/day/87.jpg'},
+    ];
+
+    return ListView.builder(
+      padding: const EdgeInsets.all(16),
+      itemCount: venues.length,
+      itemBuilder: (context, index) {
+        final v = venues[index];
+        return Container(
+          margin: const EdgeInsets.only(bottom: 20),
+          height: 200,
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(24),
+            image: DecorationImage(
+              image: NetworkImage(v['img']!),
+              fit: BoxFit.cover,
+              colorFilter: ColorFilter.mode(Colors.black.withOpacity(0.4), BlendMode.darken),
+            ),
+          ),
+          alignment: Alignment.bottomLeft,
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(v['city']!, style: const TextStyle(color: Color(0xFFD4AF37), fontWeight: FontWeight.bold, letterSpacing: 1.5, fontSize: 12)),
+              const SizedBox(height: 4),
+              Text(v['name']!, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 24)),
+              const SizedBox(height: 4),
+              Text(s.wcCapacity + ": ${v['cap']}", style: const TextStyle(color: Colors.white70, fontSize: 14)),
+            ],
+          ),
+        );
+      },
     );
   }
 }

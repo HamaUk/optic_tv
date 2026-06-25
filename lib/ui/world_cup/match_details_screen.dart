@@ -346,7 +346,7 @@ class _MatchDetailsScreenState extends ConsumerState<MatchDetailsScreen> with Si
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         winProbWidget,
-        Row(        Row(
+        Row(
           children: [
             Expanded(child: _buildInfoCard(Icons.stadium, "Venue", venueName)),
             const SizedBox(width: 16),
@@ -554,6 +554,7 @@ class _MatchDetailsScreenState extends ConsumerState<MatchDetailsScreen> with Si
     );
   }
 }
+
 
 
 
