@@ -599,6 +599,9 @@ class _WorldCupScreenState extends ConsumerState<WorldCupScreen>
   }
 
   Widget _buildGroupsTab(AppStrings s) {
+    if (_isLoading) {
+      return const Center(child: CircularProgressIndicator(color: Color(0xFFD4AF37)));
+    }
     if (_groups.isEmpty) {
       return Center(
         child: Text(s.wcNoGroups, style: const TextStyle(color: Colors.white54))
@@ -939,6 +942,9 @@ class _WorldCupScreenState extends ConsumerState<WorldCupScreen>
   }
 
   Widget _buildScorersTab(AppStrings s) {
+    if (_isLoadingScorers) {
+      return const Center(child: CircularProgressIndicator(color: Color(0xFFD4AF37)));
+    }
     if (_scorers.isEmpty) {
       return Center(
         child: Text(s.wcNoScorers, style: const TextStyle(color: Colors.white54))
