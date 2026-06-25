@@ -1,6 +1,6 @@
 name: optic_tv
 description: A premium, professional IPTV application built from scratch.
-version: 1.1.0+3
+version: 1.1.0+4
 
 environment:
   sdk: '>=3.7.0 <4.0.0'
