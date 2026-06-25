@@ -800,8 +800,12 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
                       child: ListView.builder(
                         scrollDirection: Axis.horizontal,
                         padding: const EdgeInsets.symmetric(horizontal: 48),
-                        itemCount: widget.channels.length,
-                        itemBuilder: (context, idx) => _buildTvChannelCarouselItem(idx, _accent),
+                        itemCount: _channelsInSelectedGroup.length,
+                        itemBuilder: (context, idx) {
+                          final channel = _channelsInSelectedGroup[idx];
+                          final globalIdx = widget.channels.indexOf(channel);
+                          return _buildTvChannelCarouselItem(globalIdx, _accent);
+                        },
                       ),
                     ),
                   ),
