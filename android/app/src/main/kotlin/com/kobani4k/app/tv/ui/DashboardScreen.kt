@@ -1,4 +1,4 @@
-package com.kobani4k.tv.ui
+package com.kobani4k.app.tv.ui
 
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.background
@@ -20,8 +20,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.tv.material3.*
 import coil.compose.AsyncImage
-import com.kobani4k.tv.data.FirebaseRepository
-import com.kobani4k.tv.data.TvChannel
+import com.kobani4k.app.tv.data.FirebaseRepository
+import com.kobani4k.app.tv.data.TvChannel
 
 // Theme Colors matching StreamVault
 private val CanvasColor = Color(0xFF07111B)

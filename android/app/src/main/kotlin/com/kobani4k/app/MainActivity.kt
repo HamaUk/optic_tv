@@ -22,6 +22,11 @@ class MainActivity: FlutterActivity() {
 
     override fun onCreate(savedInstanceState: android.os.Bundle?) {
         super.onCreate(savedInstanceState)
+        if (isTelevisionDevice()) {
+            val intent = android.content.Intent(this, com.kobani4k.app.tv.TvMainActivity::class.java)
+            startActivity(intent)
+            finish()
+        }
     }
 
     /// Many STBs / TV boxes still report [Configuration.UI_MODE_TYPE_NORMAL] while exposing

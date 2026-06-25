@@ -1,4 +1,4 @@
-package com.kobani4k.tv.ui
+package com.kobani4k.app.tv.ui
 
 import android.net.Uri
 import android.view.KeyEvent
@@ -37,8 +37,8 @@ import androidx.media3.exoplayer.source.DefaultMediaSourceFactory
 import androidx.media3.ui.PlayerView
 import androidx.tv.material3.*
 import coil.compose.AsyncImage
-import com.kobani4k.tv.data.FirebaseRepository
-import com.kobani4k.tv.data.TvChannel
+import com.kobani4k.app.tv.data.FirebaseRepository
+import com.kobani4k.app.tv.data.TvChannel
 import kotlinx.coroutines.delay
 
 // Colors matching StreamVault

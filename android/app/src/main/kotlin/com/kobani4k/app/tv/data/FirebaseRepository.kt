@@ -1,4 +1,4 @@
-package com.kobani4k.tv.data
+package com.kobani4k.app.tv.data
 
 import com.google.firebase.database.FirebaseDatabase
 import kotlinx.coroutines.tasks.await
@@ -20,22 +20,39 @@ class FirebaseRepository {
      * Returns true if successful, false otherwise.
      */
     suspend fun verifyLoginCode(code: String): Boolean {
+        val normalizedInput = code.replace("\\s+".toRegex(), "").lowercase()
+        if (normalizedInput.isEmpty()) return false
+
         return try {
             val snapshot = db.child("sync/global/loginCodes")
-                .orderByChild("code")
-                .equalTo(code)
                 .get()
                 .await()
 
             if (snapshot.exists()) {
                 for (child in snapshot.children) {
-                    val active = child.child("active").getValue(Boolean::class.java) ?: false
-                    if (!active) continue
+                    val activeValue = child.child("active").value
+                    val active = activeValue != false
 
-                    val expiresAt = child.child("expiresAt").getValue(String::class.java)
-                    if (expiresAt != null) {
+                    val rawCode = child.child("code").value ?: continue
+                    var normalizedDbCode = rawCode.toString().trim()
+                    if (normalizedDbCode.endsWith(".0")) {
+                        normalizedDbCode = normalizedDbCode.substring(0, normalizedDbCode.length - 2)
+                    }
+                    normalizedDbCode = normalizedDbCode.replace("\\s+".toRegex(), "").lowercase()
+
+                    if (!active || normalizedDbCode.isEmpty() || normalizedDbCode != normalizedInput) {
+                        continue
+                    }
+
+                    val expiresAtRaw = child.child("expiresAt").value
+                    if (expiresAtRaw != null) {
                         try {
-                            val expireTime = java.time.Instant.parse(expiresAt)
+                            val expiresAtStr = expiresAtRaw.toString()
+                            val expireTime = try {
+                                java.time.OffsetDateTime.parse(expiresAtStr).toInstant()
+                            } catch (e: Exception) {
+                                java.time.Instant.parse(expiresAtStr)
+                            }
                             val now = java.time.Instant.now()
                             if (now.isAfter(expireTime)) {
                                 continue // This specific code entry is expired

@@ -40,7 +40,7 @@
             </intent-filter>
         </activity>
         <activity
-            android:name="com.kobani4k.tv.TvMainActivity"
+            android:name="com.kobani4k.app.tv.TvMainActivity"
             android:exported="true"
             android:theme="@style/Theme.AppCompat.NoActionBar"
             android:launchMode="singleTask"

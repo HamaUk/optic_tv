@@ -1,4 +1,4 @@
-package com.kobani4k.tv
+package com.kobani4k.app.tv
 
 import android.os.Bundle
 import androidx.activity.ComponentActivity
@@ -13,9 +13,9 @@ import androidx.navigation.compose.rememberNavController
 import androidx.tv.material3.ExperimentalTvMaterial3Api
 import androidx.tv.material3.MaterialTheme
 import androidx.tv.material3.darkColorScheme
-import com.kobani4k.tv.ui.DashboardScreen
-import com.kobani4k.tv.ui.LoginScreen
-import com.kobani4k.tv.ui.PlayerScreen
+import com.kobani4k.app.tv.ui.DashboardScreen
+import com.kobani4k.app.tv.ui.LoginScreen
+import com.kobani4k.app.tv.ui.PlayerScreen
 import java.net.URLDecoder
 import java.net.URLEncoder
 

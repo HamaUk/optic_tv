@@ -1,4 +1,4 @@
-package com.kobani4k.tv.ui
+package com.kobani4k.app.tv.ui
 
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.animateFloatAsState
@@ -18,7 +18,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.tv.material3.*
-import com.kobani4k.tv.data.FirebaseRepository
+import com.kobani4k.app.tv.data.FirebaseRepository
 import kotlinx.coroutines.launch
 
 // Refined Premium Palette
