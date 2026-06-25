@@ -462,4 +462,237 @@ class AppStrings {
     }
     return AppSettingsData.labelForFit(fit);
   }
+  String get sectionStorage {
+    if (isKurmanji) return 'Bîrge û Kaş';
+    if (isSorani) return 'بیرگە و کاش';
+    return 'Storage & Cache';
+  }
+
+  String get storagePosters {
+    if (isKurmanji) return 'Posterên Fîlm û Rêzefîlman';
+    if (isSorani) return 'پۆستەری فیلم و زنجیرەکان';
+    return 'Movie & Series Posters';
+  }
+
+  String get storageEpg {
+    if (isKurmanji) return 'Daneyên Rêberê TV EPG';
+    if (isSorani) return 'داتای ڕێبەری تەلەفزیۆنی EPG';
+    return 'EPG TV Guide Data';
+  }
+
+  String get storageLogs {
+    if (isKurmanji) return 'Daneyên Demkî û Log';
+    if (isSorani) return 'داتای کاتی و لۆگەکان';
+    return 'Temporary Logs & Data';
+  }
+
+  String get calculating {
+    if (isKurmanji) return 'Tê hesibandin...';
+    if (isSorani) return 'لە هەژمارکردندایە...';
+    return 'Calculating...';
+  }
+
+  String get sectionSubtitles {
+    if (isKurmanji) return 'Vebijarkên Binnivîsê (VOD)';
+    if (isSorani) return 'هەڵبژاردەکانی ژێرنووس (VOD)';
+    return 'Subtitle Preferences (VOD)';
+  }
+
+  String get subtitleCaption {
+    if (isKurmanji) return 'Xuyabûna binnivîsan di fîlm û rêzefîlman de sererast bike';
+    if (isSorani) return 'شێوازی دەرکەوتنی ژێرنووس لە فیلم و زنجیرەکاندا ڕێکبخە';
+    return 'Customize how subtitles look in movies and series';
+  }
+
+  String get subtitleFontSize {
+    if (isKurmanji) return 'Mezinahiya Fontê';
+    if (isSorani) return 'قەبارەی فۆنت';
+    return 'Font Size';
+  }
+
+  String get subtitleColor {
+    if (isKurmanji) return 'Rengê Nivîsê';
+    if (isSorani) return 'ڕەنگی دەق';
+    return 'Text Color';
+  }
+
+  String get subtitleBgOpacity {
+    if (isKurmanji) return 'Tîrêjiya Paşxanê';
+    if (isSorani) return 'ڕوونی پاشبنە';
+    return 'Background Opacity';
+  }
+
+  String get subtitleBgOff {
+    if (isKurmanji) return 'Girtî';
+    if (isSorani) return 'کوژاوە';
+    return 'Off';
+  }
+
+  String get subtitleBgSemi {
+    return '45%';
+  }
+
+  String get subtitleBgSolid {
+    if (isKurmanji) return 'Tîr';
+    if (isSorani) return 'تۆخ';
+    return 'Solid';
+  }
+
+  String get subtitleSample {
+    if (isKurmanji) return 'Mînaka Nivîsa Binnivîsê';
+    if (isSorani) return 'نموونەی دەقی ژێرنووس';
+    return 'Sample Subtitle Text';
+  }
+
+  String get sectionPlaybackNetwork {
+    if (isKurmanji) return 'Lêdan û Înternet';
+    if (isSorani) return 'پەخشکردن و ئینتەرنێت';
+    return 'Playback & Network';
+  }
+
+  String get hardwareAccel {
+    if (isKurmanji) return 'Lezkirina Hardware';
+    if (isSorani) return 'خێراکردنی ڕەقەکاڵا';
+    return 'Hardware Acceleration';
+  }
+
+  String get hardwareAccelSub {
+    if (isKurmanji) return 'Dekodkirina hardware bi kar bîne (ji bo çareserkirina sekinînê di cîhazên kevn de bigire)';
+    if (isSorani) return 'بەکارهێنانی دیـکۆدینگی ڕەقەکاڵا (بیکوژێنەوە بۆ چارەسەری وەستان لە ئامێرە کۆنەکاندا)';
+    return 'Use hardware decoding (turn off to fix stuttering on older devices)';
+  }
+
+  String get dataSaver {
+    if (isKurmanji) return 'Moda Parastina Daneyê';
+    if (isSorani) return 'مۆدی پاشەکەوتکردنی داتا';
+    return 'Data Saver Mode';
+  }
+
+  String get dataSaverSub {
+    if (isKurmanji) return 'Bi awayekî otomatîk daxwaza weşanên qalîteya nizm li ser torên mobîl dike';
+    if (isSorani) return 'بەشێوەیەکی ئۆتۆماتیکی داوای کوالێتی نزمتر دەکات لەسەر تۆڕەکانی مۆبایل';
+    return 'Automatically request lower quality streams on mobile networks';
+  }
+
+  String get sectionDiagnostics {
+    if (isKurmanji) return 'Kontrola Cîhaz û Torê';
+    if (isSorani) return 'پشکنینی ئامێر و ئینتەرنێت';
+    return 'Device & Network Diagnostics';
+  }
+
+  String get displayOutput {
+    if (isKurmanji) return 'Derketina Dîmenderê';
+    if (isSorani) return 'دەرچەی شاشە';
+    return 'Display Output';
+  }
+
+  String get display4k {
+    if (isKurmanji) return 'Piştgiriya 4K Ultra HD dike';
+    if (isSorani) return 'پشتگیری 4K Ultra HD دەکات';
+    return '4K Ultra HD Capable';
+  }
+
+  String get display1080p {
+    return '1080p Full HD';
+  }
+
+  String get display720p {
+    return '720p HD Ready';
+  }
+
+  String get speedTest {
+    if (isKurmanji) return 'Testa Leza Înternetê';
+    if (isSorani) return 'پشکنینی خێرایی ئینتەرنێت';
+    return 'Internet Speed Test';
+  }
+
+  String get speedTestSub {
+    if (isKurmanji) return 'Leza girêdana xwe ji bo weşana 4K/HD biceribîne';
+    if (isSorani) return 'خێرایی ئینتەرنێتەکەت بپشکنە بۆ پەخشی 4K/HD';
+    return 'Test your connection speed for 4K/HD streaming';
+  }
+
+  String speedTestResult(String speed) {
+    if (isKurmanji) return 'Encama dawî: $speed Mbps';
+    if (isSorani) return 'کۆتا ئەنجام: $speed مێگابایت';
+    return 'Last result: $speed Mbps';
+  }
+
+  String get runTest {
+    if (isKurmanji) return 'TEST BIKIN';
+    if (isSorani) return 'پشکنین بکە';
+    return 'RUN TEST';
+  }
+
+  String get sectionSupport {
+    if (isKurmanji) return 'Piştgirî û Nûvekirin';
+    if (isSorani) return 'پشتگیری و نوێکردنەوەکان';
+    return 'Support & Updates';
+  }
+
+  String get checkUpdates {
+    if (isKurmanji) return 'Kontrola Nûvekirinê';
+    if (isSorani) return 'پشکنین بۆ نوێکردنەوە';
+    return 'Check for Updates';
+  }
+
+  String get checkUpdatesSub {
+    if (isKurmanji) return 'Piştrast be ku taybetmendiyên herî nû li cem te ne';
+    if (isSorani) return 'دڵنیابە لەوەی نوێترین تایبەتمەندییەکانت هەیە';
+    return 'Ensure you have the latest features';
+  }
+
+  String get joinTelegram {
+    if (isKurmanji) return 'Tevlî Telegrama me bibe';
+    if (isSorani) return 'بەشداربە لە تێلیگرامەکەمان';
+    return 'Join our Telegram';
+  }
+
+  String get joinTelegramSub {
+    if (isKurmanji) return 'Piştgirî û nûçeyên herî nû bistîne';
+    if (isSorani) return 'پشتگیری و نوێترین هەواڵەکان وەربگرە';
+    return 'Get support and latest news';
+  }
+
+  String get whatsNew {
+    if (isKurmanji) return 'Çi Nû ye?';
+    if (isSorani) return 'چی نوێیە؟';
+    return 'What\'s New?';
+  }
+
+  String get whatsNewKurdish {
+    if (isKurmanji) return 'Wergerê Kurdî';
+    if (isSorani) return 'وەرگێڕی کوردی';
+    return 'Kurdish Translator';
+  }
+
+  String get whatsNewKurdishSub {
+    if (isKurmanji) return 'Piştgiriya tam a Kurdiya Kurmancî hat zêdekirin';
+    if (isSorani) return 'پشتگیری تەواوی کوردی کرمانجی زیادکرا';
+    return 'Added full Kurdish Kurmanji support';
+  }
+
+  String get whatsNewDataSaver {
+    if (isKurmanji) return 'Parastina Daneyê';
+    if (isSorani) return 'پاشەکەوتکردنی داتا';
+    return 'Data Saver';
+  }
+
+  String get whatsNewDataSaverSub {
+    if (isKurmanji) return 'Parastina înternetê li ser torên mobîl';
+    if (isSorani) return 'پاشەکەوتکردنی ئینتەرنێت لەسەر تۆڕەکانی مۆبایل';
+    return 'Save bandwidth on mobile networks';
+  }
+
+  String get whatsNewStorage {
+    if (isKurmanji) return 'Rêveberê Bîrgeyê';
+    if (isSorani) return 'بەڕێوەبەری بیرگە';
+    return 'Storage Manager';
+  }
+
+  String get whatsNewStorageSub {
+    if (isKurmanji) return 'Paqijkirina kaş û posteran bi hêsanî';
+    if (isSorani) return 'سڕینەوەی کاش و پۆستەرەکان بە ئاسانی';
+    return 'Clear cache and posters easily';
+  }
 }

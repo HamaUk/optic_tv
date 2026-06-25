@@ -741,7 +741,7 @@ class _WorldCupScreenState extends State<WorldCupScreen> with SingleTickerProvid
                     Text(name, style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: isTop ? FontWeight.bold : FontWeight.normal)),
                     if (teamLogo.isNotEmpty)
                       Padding(
-                        padding: const EdgeInsets.top(4),
+                        padding: const EdgeInsets.only(top: 4),
                         child: Image.network(teamLogo, height: 16, errorBuilder: (c, e, s) => const SizedBox()),
                       ),
                   ],

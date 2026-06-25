@@ -178,7 +178,7 @@ class _FullscreenPlayerPageState extends ConsumerState<FullscreenPlayerPage> {
       }
     }
 
-    final validUrls = _currentChannel.streams ?? [_currentChannel.url];
+    final validUrls = [_currentChannel.url, if (_currentChannel.url2 != null) _currentChannel.url2!, if (_currentChannel.url3 != null) _currentChannel.url3!];
     await widget.player.open(
       validUrls[widget.activeServerIndex],
       headers: {

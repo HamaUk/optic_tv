@@ -419,7 +419,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 ),
                 const SizedBox(height: 24),
                 Text(
-                  "Storage & Cache",
+                  s.sectionStorage,
                   style: Theme.of(context).textTheme.titleMedium?.copyWith(
                         color: AppTheme.accentColor(_data.gradientPreset),
                         fontWeight: FontWeight.bold,
@@ -431,8 +431,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                     children: [
                       ListTile(
                         leading: const Icon(Icons.image_rounded, color: Colors.blueAccent),
-                        title: const Text("Movie & Series Posters"),
-                        subtitle: Text(_calculatingStorage ? "Calculating..." : "${(_posterCacheBytes / (1024 * 1024)).toStringAsFixed(1)} MB"),
+                        title: Text(s.storagePosters),
+                        subtitle: Text(_calculatingStorage ? s.calculating : "${(_posterCacheBytes / (1024 * 1024)).toStringAsFixed(1)} MB"),
                         trailing: IconButton(
                           icon: const Icon(Icons.delete_outline),
                           onPressed: () => _clearSpecificCache('posters'),
@@ -441,8 +441,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                       const Divider(color: Colors.white12, height: 1),
                       ListTile(
                         leading: const Icon(Icons.list_alt_rounded, color: Colors.greenAccent),
-                        title: const Text("EPG TV Guide Data"),
-                        subtitle: Text(_calculatingStorage ? "Calculating..." : "${(_epgCacheBytes / (1024 * 1024)).toStringAsFixed(1)} MB"),
+                        title: Text(s.storageEpg),
+                        subtitle: Text(_calculatingStorage ? s.calculating : "${(_epgCacheBytes / (1024 * 1024)).toStringAsFixed(1)} MB"),
                         trailing: IconButton(
                           icon: const Icon(Icons.delete_outline),
                           onPressed: () => _clearSpecificCache('epg'),
@@ -451,8 +451,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                       const Divider(color: Colors.white12, height: 1),
                       ListTile(
                         leading: const Icon(Icons.bug_report_rounded, color: Colors.orangeAccent),
-                        title: const Text("Temporary Logs & Data"),
-                        subtitle: Text(_calculatingStorage ? "Calculating..." : "${(_logsCacheBytes / (1024 * 1024)).toStringAsFixed(1)} MB"),
+                        title: Text(s.storageLogs),
+                        subtitle: Text(_calculatingStorage ? s.calculating : "${(_logsCacheBytes / (1024 * 1024)).toStringAsFixed(1)} MB"),
                         trailing: IconButton(
                           icon: const Icon(Icons.delete_outline),
                           onPressed: () => _clearSpecificCache('logs'),
@@ -463,14 +463,14 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 ),
                 const SizedBox(height: 24),
                 Text(
-                  "Subtitle Preferences (VOD)",
+                  s.sectionSubtitles,
                   style: Theme.of(context).textTheme.titleMedium?.copyWith(
                         color: AppTheme.accentColor(_data.gradientPreset),
                         fontWeight: FontWeight.bold,
                       ),
                 ),
                 const SizedBox(height: 8),
-                Text("Customize how subtitles look in movies and series", style: TextStyle(color: Colors.white.withOpacity(0.45), fontSize: 13)),
+                Text(s.subtitleCaption, style: TextStyle(color: Colors.white.withOpacity(0.45), fontSize: 13)),
                 const SizedBox(height: 12),
                 _glassCard(
                   child: Padding(
@@ -478,7 +478,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Text("Font Size"),
+                        Text(s.subtitleFontSize),
                         Slider(
                           value: _data.subtitleFontSize,
                           min: 10,
@@ -487,7 +487,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                           onChanged: (v) => _apply(_data.copyWith(subtitleFontSize: v)),
                         ),
                         const SizedBox(height: 16),
-                        const Text("Text Color"),
+                        Text(s.subtitleColor),
                         const SizedBox(height: 8),
                         Row(
                           mainAxisAlignment: MainAxisAlignment.spaceEvenly,
@@ -498,14 +498,14 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                           ],
                         ),
                         const SizedBox(height: 16),
-                        const Text("Background Opacity"),
+                        Text(s.subtitleBgOpacity),
                         const SizedBox(height: 8),
                         Row(
                           mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                           children: [
-                            _bgCircle(0x00000000, _data.subtitleBgColor, "Off"), // Transparent
-                            _bgCircle(0x73000000, _data.subtitleBgColor, "45%"), // Semi
-                            _bgCircle(0xFF000000, _data.subtitleBgColor, "Solid"), // Solid
+                            _bgCircle(0x00000000, _data.subtitleBgColor, s.subtitleBgOff), // Transparent
+                            _bgCircle(0x73000000, _data.subtitleBgColor, s.subtitleBgSemi), // Semi
+                            _bgCircle(0xFF000000, _data.subtitleBgColor, s.subtitleBgSolid), // Solid
                           ],
                         ),
                         const SizedBox(height: 24),
@@ -521,7 +521,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
                               color: Color(_data.subtitleBgColor),
                               child: Text(
-                                "Sample Subtitle Text",
+                                s.subtitleSample,
                                 style: TextStyle(
                                   color: Color(_data.subtitleColor),
                                   fontSize: _data.subtitleFontSize,
@@ -570,7 +570,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 ),
                 const SizedBox(height: 24),
                 Text(
-                  "Playback & Network",
+                  s.sectionPlaybackNetwork,
                   style: Theme.of(context).textTheme.titleMedium?.copyWith(
                         color: AppTheme.accentColor(_data.gradientPreset),
                         fontWeight: FontWeight.bold,
@@ -579,8 +579,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 const SizedBox(height: 12),
                 _glassCard(
                   child: SwitchListTile(
-                    title: const Text("Hardware Acceleration"),
-                    subtitle: const Text("Use hardware decoding (turn off to fix stuttering on older devices)"),
+                    title: Text(s.hardwareAccel),
+                    subtitle: Text(s.hardwareAccelSub),
                     value: _data.hardwareAcceleration,
                     activeTrackColor: AppTheme.accentColor(_data.gradientPreset).withOpacity(0.45),
                     activeColor: AppTheme.accentColor(_data.gradientPreset),
@@ -590,8 +590,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 const SizedBox(height: 8),
                 _glassCard(
                   child: SwitchListTile(
-                    title: const Text("Data Saver Mode"),
-                    subtitle: const Text("Automatically request lower quality streams on mobile networks"),
+                    title: Text(s.dataSaver),
+                    subtitle: Text(s.dataSaverSub),
                     value: _data.dataSaverMode,
                     activeTrackColor: AppTheme.accentColor(_data.gradientPreset).withOpacity(0.45),
                     activeColor: AppTheme.accentColor(_data.gradientPreset),
@@ -653,7 +653,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 ),
                 const SizedBox(height: 24),
                 Text(
-                  'Device & Network Diagnostics',
+                  s.sectionDiagnostics,
                   style: Theme.of(context).textTheme.titleMedium?.copyWith(
                         color: AppTheme.accentColor(_data.gradientPreset),
                         fontWeight: FontWeight.bold,
@@ -669,13 +669,13 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                         borderRadius: BorderRadius.circular(16),
                         child: ListTile(
                           leading: const Icon(Icons.tv_rounded, color: Colors.amberAccent),
-                          title: const Text('Display Output'),
+                          title: Text(s.displayOutput),
                           subtitle: Builder(
                             builder: (ctx) {
                               final w = MediaQuery.sizeOf(ctx).width * MediaQuery.devicePixelRatioOf(ctx);
-                              if (w >= 3800) return const Text('4K Ultra HD Capable');
-                              if (w >= 1900) return const Text('1080p Full HD');
-                              return const Text('720p HD Ready');
+                              if (w >= 3800) return Text(s.display4k);
+                              if (w >= 1900) return Text(s.display1080p);
+                              return Text(s.display720p);
                             },
                           ),
                         ),
@@ -687,11 +687,11 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                         borderRadius: BorderRadius.circular(16),
                         child: ListTile(
                         leading: const Icon(Icons.speed_rounded, color: AppTheme.accentTeal),
-                        title: const Text('Internet Speed Test'),
+                        title: Text(s.speedTest),
                         subtitle: Text(
                           _lastSpeedMbps != null
-                              ? 'Last result: ${_lastSpeedMbps!.toStringAsFixed(1)} Mbps'
-                              : 'Test your connection speed for 4K/HD streaming',
+                              ? s.speedTestResult(_lastSpeedMbps!.toStringAsFixed(1))
+                              : s.speedTestSub,
                         ),
                         trailing: _testingSpeed
                             ? SizedBox(
@@ -705,7 +705,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                               )
                             : TextButton(
                                 onPressed: _runSpeedTest,
-                                child: Text('RUN TEST', style: TextStyle(color: AppTheme.accentColor(_data.gradientPreset), fontWeight: FontWeight.bold)),
+                                child: Text(s.runTest, style: TextStyle(color: AppTheme.accentColor(_data.gradientPreset), fontWeight: FontWeight.bold)),
                               ),
                       ),
                       ),
@@ -724,7 +724,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 ),
                 const SizedBox(height: 24),
                 Text(
-                  'Support & Updates',
+                  s.sectionSupport,
                   style: Theme.of(context).textTheme.titleMedium?.copyWith(
                         color: AppTheme.accentColor(_data.gradientPreset),
                         fontWeight: FontWeight.bold,
@@ -734,8 +734,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 _glassCard(
                   child: ListTile(
                     leading: const Icon(Icons.update_rounded, color: Colors.greenAccent),
-                    title: const Text('Check for Updates'),
-                    subtitle: const Text('Ensure you have the latest features'),
+                    title: Text(s.checkUpdates),
+                    subtitle: Text(s.checkUpdatesSub),
                     onTap: () {
                       final updateData = ref.read(updateManagerProvider).asData?.value;
                       final localVersionCode = ref.read(appVersionCodeProvider).asData?.value ?? 0;
@@ -751,8 +751,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 _glassCard(
                   child: ListTile(
                     leading: const Icon(Icons.telegram_rounded, color: Colors.blueAccent),
-                    title: const Text('Join our Telegram'),
-                    subtitle: const Text('Get support and latest news'),
+                    title: Text(s.joinTelegram),
+                    subtitle: Text(s.joinTelegramSub),
                     onTap: () async {
                       final url = Uri.parse('https://t.me/KOBANI4K');
                       if (await canLaunchUrl(url)) {
@@ -763,7 +763,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 ),
                 const SizedBox(height: 24),
                 Text(
-                  'What\'s New?',
+                  s.whatsNew,
                   style: Theme.of(context).textTheme.titleMedium?.copyWith(
                         color: AppTheme.accentColor(_data.gradientPreset),
                         fontWeight: FontWeight.bold,
@@ -779,22 +779,22 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                       _changelogCard(
                         icon: Icons.translate_rounded,
                         color: Colors.purpleAccent,
-                        title: 'Kurdish Translator',
-                        subtitle: 'Added full Kurdish Kurmanji support',
+                        title: s.whatsNewKurdish,
+                        subtitle: s.whatsNewKurdishSub,
                       ),
                       const SizedBox(width: 12),
                       _changelogCard(
                         icon: Icons.data_saver_on_rounded,
                         color: Colors.orangeAccent,
-                        title: 'Data Saver',
-                        subtitle: 'Save bandwidth on mobile networks',
+                        title: s.whatsNewDataSaver,
+                        subtitle: s.whatsNewDataSaverSub,
                       ),
                       const SizedBox(width: 12),
                       _changelogCard(
                         icon: Icons.storage_rounded,
                         color: Colors.tealAccent,
-                        title: 'Storage Manager',
-                        subtitle: 'Clear cache and posters easily',
+                        title: s.whatsNewStorage,
+                        subtitle: s.whatsNewStorageSub,
                       ),
                     ],
                   ),
