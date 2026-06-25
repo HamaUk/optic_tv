@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../services/world_cup_service.dart';
+import '../../widgets/animated_gradient_border.dart';
+import 'match_details_screen.dart';
 
 class WorldCupScreen extends StatefulWidget {
   const WorldCupScreen({super.key});
@@ -52,7 +54,7 @@ class _WorldCupScreenState extends State<WorldCupScreen> with SingleTickerProvid
         backgroundColor: Colors.transparent,
         elevation: 0,
         title: const Text(
-          'Live Football ⚽',
+          'جامی جیهانی 2026',
           style: TextStyle(fontWeight: FontWeight.w900, color: Colors.white, fontSize: 24),
         ),
         bottom: TabBar(
@@ -64,9 +66,9 @@ class _WorldCupScreenState extends State<WorldCupScreen> with SingleTickerProvid
           isScrollable: true,
           labelStyle: const TextStyle(fontWeight: FontWeight.bold),
           tabs: const [
-            Tab(text: 'LIVE SOCCER'),
-            Tab(text: 'WC MATCHES'),
-            Tab(text: 'WC GROUPS'),
+            Tab(text: 'ڕاستەوخۆ'),
+            Tab(text: 'یارییەکان'),
+            Tab(text: 'گروپەکان'),
           ],
         ),
       ),
@@ -142,23 +144,33 @@ class _WorldCupScreenState extends State<WorldCupScreen> with SingleTickerProvid
     String timeLabel = shortDetail;
     if (isLive && displayClock.isNotEmpty) timeLabel = displayClock;
 
-    return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.05),
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: isLive ? Colors.redAccent.withOpacity(0.5) : Colors.white.withOpacity(0.1), width: isLive ? 2.0 : 1.5),
-        boxShadow: [
-          BoxShadow(
-            color: isLive ? Colors.redAccent.withOpacity(0.1) : Colors.black.withOpacity(0.2),
-            blurRadius: 15,
-            offset: const Offset(0, 4),
-          )
-        ],
-      ),
-      child: Column(
-        children: [
+    return GestureDetector(
+      onTap: () {
+        if (event['id'] != null) {
+          Navigator.push(context, MaterialPageRoute(
+            builder: (_) => MatchDetailsScreen(
+              eventId: event['id'],
+              homeTeam: homeTeam,
+              awayTeam: awayTeam,
+              homeFlag: homeFlag,
+              awayFlag: awayFlag,
+            ),
+          ));
+        }
+      },
+      child: Container(
+        margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        child: AnimatedGradientBorder(
+          borderWidth: isLive ? 3.0 : 1.5,
+          borderRadius: BorderRadius.circular(20),
+          child: Container(
+            padding: const EdgeInsets.all(20),
+            decoration: BoxDecoration(
+              color: Colors.white.withOpacity(0.05),
+              borderRadius: BorderRadius.circular(20),
+            ),
+            child: Column(
+              children: [
           if (event['name'] != null)
             Padding(
               padding: const EdgeInsets.only(bottom: 12),
@@ -253,6 +265,9 @@ class _WorldCupScreenState extends State<WorldCupScreen> with SingleTickerProvid
           ),
         ],
       ),
+    ),
+  ),
+),
     );
   }
 
@@ -281,23 +296,25 @@ class _WorldCupScreenState extends State<WorldCupScreen> with SingleTickerProvid
     final time = game['time_elapsed'] ?? '';
     final finished = game['finished'] == 'TRUE' || game['finished'] == true;
 
-    return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.05),
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: Colors.white.withOpacity(0.1), width: 1.5),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.2),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          )
-        ],
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+    return GestureDetector(
+      onTap: () {
+        // worldcup26.ir doesn't have a reliable match summary endpoint in ESPN, 
+        // but if we had the ESPN ID here, we could pass it. 
+        // For now, we will just open the MatchDetailsScreen which might say "Data not available" if eventId isn't found in ESPN.
+      },
+      child: Container(
+        margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        child: AnimatedGradientBorder(
+          borderWidth: 1.5,
+          borderRadius: BorderRadius.circular(20),
+          child: Container(
+            padding: const EdgeInsets.all(20),
+            decoration: BoxDecoration(
+              color: Colors.white.withOpacity(0.05),
+              borderRadius: BorderRadius.circular(20),
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           Expanded(
             child: Row(
@@ -378,7 +395,10 @@ class _WorldCupScreenState extends State<WorldCupScreen> with SingleTickerProvid
               ],
             ),
           ),
-        ],
+              ],
+            ),
+          ),
+        ),
       ),
     );
   }

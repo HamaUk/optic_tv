@@ -84,10 +84,10 @@ class WorldCupService {
     return [];
   }
 
-  /// Fetches Live Soccer games from ESPN API (Free, No Key)
+  /// Fetches Live Soccer games from ESPN API (FIFA World Cup Only)
   static Future<List<dynamic>> fetchLiveSoccer() async {
     try {
-      final response = await http.get(Uri.parse('https://site.api.espn.com/apis/site/v2/sports/soccer/all/scoreboard'));
+      final response = await http.get(Uri.parse('https://site.api.espn.com/apis/site/v2/sports/soccer/fifa.world/scoreboard'));
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
         return data['events'] as List<dynamic>? ?? [];
@@ -96,5 +96,18 @@ class WorldCupService {
       print('Error fetching ESPN live soccer: $e');
     }
     return [];
+  }
+
+  /// Fetches Match Summary (Commentary, Lineups, Venue) from ESPN API
+  static Future<Map<String, dynamic>?> fetchMatchSummary(String eventId) async {
+    try {
+      final response = await http.get(Uri.parse('https://site.api.espn.com/apis/site/v2/sports/soccer/fifa.world/summary?event=$eventId'));
+      if (response.statusCode == 200) {
+        return json.decode(response.body);
+      }
+    } catch (e) {
+      print('Error fetching ESPN match summary: $e');
+    }
+    return null;
   }
 }
