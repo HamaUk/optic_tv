@@ -228,6 +228,14 @@ class NativeExoPlayer(
     // ─── Player Operations ───────────────────────────────────────────────
 
     private fun open(url: String, headers: Map<String, String>) {
+        // Recreate texture to ensure clean state when opening new stream
+        // This fixes black screen issue when navigating between tabs
+        textureEntry?.release()
+        textureEntry = null
+        surface?.release()
+        surface = null
+        setupTexture()
+
         // Apply custom User-Agent from headers
         val userAgent = headers["User-Agent"] ?: "SmartIPTV"
         httpDataSourceFactory.setUserAgent(userAgent)

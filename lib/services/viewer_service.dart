@@ -17,8 +17,8 @@ class ViewerService {
   
   // Heartbeat timer to keep presence alive and clean stale entries
   final Map<String, Timer> _heartbeatTimers = {};
-  static const _heartbeatInterval = Duration(seconds: 30);
-  static const _staleTimeout = Duration(seconds: 90);
+  static const _heartbeatInterval = Duration(seconds: 15);
+  static const _staleTimeout = Duration(seconds: 60);
 
   /// Join a channel to be counted as a viewer
   Future<void> joinChannel(String channelUrl, {String? channelName}) async {
