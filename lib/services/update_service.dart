@@ -41,9 +41,9 @@ final updateManagerProvider = StreamProvider<AppUpdateData>((ref) {
 final appVersionCodeProvider = FutureProvider<int>((ref) async {
   try {
     final packageInfo = await PackageInfo.fromPlatform();
-    return int.tryParse(packageInfo.buildNumber) ?? 0;
+    return int.tryParse(packageInfo.buildNumber) ?? 14;
   } catch (e) {
-    return 3; // Fallback to current hardcoded if package_info fails
+    return 14; // Fallback to current version (1.2.0+14) if package_info fails
   }
 });
 
