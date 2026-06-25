@@ -1,4 +1,4 @@
-﻿import 'dart:convert';
+import 'dart:convert';
 import 'package:http/http.dart' as http;
 
 class WorldCupService {
@@ -255,6 +255,23 @@ class WorldCupService {
       print('Error fetching ESPN top scorers: $e');
     }
     return [];
+  }
+
+  static List<dynamic>? _eventVideosCache;
+
+  static Future<List<dynamic>> fetchEventVideos({int page = 1, int limit = 100}) async {
+    try {
+      final response = await http.get(Uri.parse('https://admin.dramaramadan.net/api/matches/event_videos.php?page=$page&limit=$limit'));
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        final list = data['data'] as List<dynamic>? ?? [];
+        _eventVideosCache = list;
+        return list;
+      }
+    } catch (e) {
+      print('Error fetching event videos: $e');
+    }
+    return _eventVideosCache ?? [];
   }
 }
 

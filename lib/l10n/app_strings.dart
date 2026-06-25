@@ -716,6 +716,37 @@ class AppStrings {
     return 'Matches';
   }
 
+  String get wcTabHighlights {
+    if (isKurmanji) return 'Kurte';
+    if (isSorani) return 'کورتەکان';
+    return 'Highlights';
+  }
+
+  String get wcNoHighlights {
+    if (isKurmanji) return 'Kurteyên maçan nehatin dîtin';
+    if (isSorani) return 'هیچ کورتەیەکی یاری نەدۆزرایەوە';
+    return 'No match highlights found';
+  }
+
+  String get wcAllVideos {
+    if (isKurmanji) return 'Hemî';
+    if (isSorani) return 'هەمووی';
+    return 'All Videos';
+  }
+
+  String get wcGoalsOnly {
+    if (isKurmanji) return 'Tenê Gol';
+    if (isSorani) return 'تەنها گۆڵەکان';
+    return 'Goals Only';
+  }
+
+  String get wcHighlightsOnly {
+    if (isKurmanji) return 'Tenê Kurte';
+    if (isSorani) return 'تەنها کورتەکان';
+    return 'Highlights Only';
+  }
+
+
   String get wcTabGroups {
     if (isKurmanji) return 'Kom';
     if (isSorani) return 'گروپەکان';

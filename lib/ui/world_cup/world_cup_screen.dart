@@ -8,6 +8,9 @@ import '../../providers/app_locale_provider.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'match_details_screen.dart';
 import 'team_details_screen.dart';
+import '../../services/playlist_service.dart';
+import '../player/movie_player_page.dart';
+import '../../services/optic_player.dart';
 
 class WorldCupScreen extends ConsumerStatefulWidget {
   const WorldCupScreen({super.key});
@@ -24,20 +27,24 @@ class _WorldCupScreenState extends ConsumerState<WorldCupScreen>
   List<dynamic> _liveSoccer = [];
   List<dynamic> _news = [];
   List<dynamic> _scorers = [];
+  List<dynamic> _highlights = [];
   bool _isLoading = true;
   bool _isLoadingLive = true;
   bool _isLoadingNews = true;
   bool _isLoadingScorers = true;
+  bool _isLoadingHighlights = true;
+  String _activeHighlightFilter = 'all'; // 'all', 'highlight', 'goal'
 
   @override
   void initState() {
     super.initState();
-    // 6 Tabs: Matches (Combined), Groups, News, Scorers (Stats), Teams, Venues
-    _tabController = TabController(length: 6, vsync: this);
+    // 7 Tabs: Matches (Combined), Highlights, Groups, News, Scorers (Stats), Teams, Venues
+    _tabController = TabController(length: 7, vsync: this);
     _loadData();
     _loadLiveSoccerForOffset(_selectedDayOffset);
     _loadNews();
     _loadScorers();
+    _loadHighlights();
   }
 
   Future<void> _loadData() async {
@@ -85,6 +92,17 @@ class _WorldCupScreenState extends ConsumerState<WorldCupScreen>
     }
   }
 
+  Future<void> _loadHighlights() async {
+    setState(() => _isLoadingHighlights = true);
+    final highlights = await WorldCupService.fetchEventVideos(page: 1, limit: 100);
+    if (mounted) {
+      setState(() {
+        _highlights = highlights;
+        _isLoadingHighlights = false;
+      });
+    }
+  }
+
   @override
   void dispose() {
     _tabController.dispose();
@@ -120,6 +138,7 @@ class _WorldCupScreenState extends ConsumerState<WorldCupScreen>
           labelStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
           tabs: [
             Tab(text: s.wcTabMatches),
+            Tab(text: s.wcTabHighlights),
             Tab(text: s.wcTabGroups),
             Tab(text: s.wcTabNews),
             Tab(text: s.wcTabScorers),
@@ -132,6 +151,7 @@ class _WorldCupScreenState extends ConsumerState<WorldCupScreen>
         controller: _tabController,
         children: [
           _buildMatchesTab(s),
+          _buildHighlightsTab(s),
           _buildGroupsTab(s),
           _buildNewsTab(s),
           _buildScorersTab(s),
@@ -1155,5 +1175,267 @@ class _WorldCupScreenState extends ConsumerState<WorldCupScreen>
         );
       },
     );
+  }
+
+  // --- Highlights Tab ---
+
+  Widget _buildHighlightsTab(AppStrings s) {
+    final filteredList = _highlights.where((item) {
+      if (_activeHighlightFilter == 'all') return true;
+      return (item['category'] ?? '').toString().toLowerCase() == _activeHighlightFilter;
+    }).toList();
+
+    return Column(
+      children: [
+        Padding(
+          padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              _buildHighlightFilterToggle('all', s.wcAllVideos),
+              const SizedBox(width: 8),
+              _buildHighlightFilterToggle('highlight', s.wcHighlightsOnly),
+              const SizedBox(width: 8),
+              _buildHighlightFilterToggle('goal', s.wcGoalsOnly),
+            ],
+          ),
+        ),
+
+        Expanded(
+          child: _isLoadingHighlights
+              ? const Center(child: CircularProgressIndicator(color: Color(0xFFD4AF37)))
+              : filteredList.isEmpty
+                  ? Center(child: Text(s.wcNoHighlights, style: const TextStyle(color: Colors.white54)))
+                  : RefreshIndicator(
+                      color: const Color(0xFFD4AF37),
+                      backgroundColor: const Color(0xFF1A1A1A),
+                      onRefresh: _loadHighlights,
+                      child: GridView.builder(
+                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8).copyWith(bottom: 100),
+                        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                          crossAxisCount: 2,
+                          crossAxisSpacing: 12,
+                          mainAxisSpacing: 12,
+                          childAspectRatio: 0.82,
+                        ),
+                        itemCount: filteredList.length,
+                        itemBuilder: (context, index) {
+                          final item = filteredList[index];
+                          return _buildHighlightCard(item, s);
+                        },
+                      ),
+                    ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildHighlightFilterToggle(String category, String label) {
+    final isSelected = _activeHighlightFilter == category;
+    return GestureDetector(
+      onTap: () {
+        if (!isSelected) {
+          setState(() => _activeHighlightFilter = category);
+        }
+      },
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+        decoration: BoxDecoration(
+          gradient: isSelected
+              ? const LinearGradient(colors: [Color(0xFFD4AF37), Color(0xFFAA8C2C)])
+              : null,
+          color: isSelected ? null : Colors.white.withOpacity(0.08),
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(
+            color: isSelected ? const Color(0xFFD4AF37) : Colors.white.withOpacity(0.15),
+            width: isSelected ? 2 : 1,
+          ),
+        ),
+        child: Text(
+          label,
+          style: TextStyle(
+            color: isSelected ? Colors.black : Colors.white70,
+            fontWeight: isSelected ? FontWeight.w800 : FontWeight.w500,
+            fontSize: 12,
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildHighlightCard(dynamic item, AppStrings s) {
+    final title = item['title'] ?? '';
+    final thumbnail = item['thumbnail'] ?? '';
+    final durationSec = item['duration'] as int? ?? 0;
+    final views = item['views_count'] as int? ?? 0;
+    final category = item['category'] ?? 'highlight';
+
+    String categoryText = '';
+    Color badgeColor = Colors.blue;
+    if (category == 'goal') {
+      categoryText = s.wcGoalsOnly.replaceAll(' تەنها', '').replaceAll('Tenê ', '');
+      badgeColor = const Color(0xFFD4AF37);
+    } else {
+      categoryText = s.wcTabHighlights.replaceAll('کان', '').replaceAll('ên', '');
+      badgeColor = Colors.blueAccent;
+    }
+
+    return GestureDetector(
+      onTap: () => _playVideo(item, s),
+      child: AnimatedGradientBorder(
+        borderWidth: 1.2,
+        borderRadius: BorderRadius.circular(16),
+        child: Container(
+          decoration: BoxDecoration(
+            color: Colors.white.withOpacity(0.03),
+            borderRadius: BorderRadius.circular(16),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              AspectRatio(
+                aspectRatio: 1.777,
+                child: ClipRRect(
+                  borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
+                  child: Stack(
+                    fit: StackFit.expand,
+                    children: [
+                      thumbnail.isNotEmpty
+                          ? Image.network(
+                              thumbnail,
+                              fit: BoxFit.cover,
+                              errorBuilder: (_, __, ___) => Container(
+                                color: Colors.white10,
+                                child: const Icon(Icons.videocam_rounded, color: Colors.white24, size: 30),
+                              ),
+                            )
+                          : Container(
+                              color: Colors.white10,
+                              child: const Icon(Icons.videocam_rounded, color: Colors.white24, size: 30),
+                            ),
+                      Container(color: Colors.black.withOpacity(0.15)),
+                      Center(
+                        child: Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            color: Colors.black.withOpacity(0.6),
+                            shape: BoxShape.circle,
+                            border: Border.all(color: Colors.white30, width: 1),
+                          ),
+                          child: const Icon(Icons.play_arrow_rounded, color: Colors.white, size: 20),
+                        ),
+                      ),
+                      if (durationSec > 0)
+                        Positioned(
+                          bottom: 6,
+                          right: 6,
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                            decoration: BoxDecoration(
+                              color: Colors.black.withOpacity(0.75),
+                              borderRadius: BorderRadius.circular(4),
+                            ),
+                            child: Text(
+                              _formatDuration(durationSec),
+                              style: const TextStyle(color: Colors.white, fontSize: 9, fontWeight: FontWeight.bold),
+                            ),
+                          ),
+                        ),
+                      Positioned(
+                        top: 6,
+                        left: 6,
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: badgeColor,
+                            borderRadius: BorderRadius.circular(4),
+                          ),
+                          child: Text(
+                            categoryText,
+                            style: const TextStyle(color: Colors.black, fontSize: 9, fontWeight: FontWeight.w900),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              Expanded(
+                child: Padding(
+                  padding: const EdgeInsets.all(10),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Expanded(
+                        child: Text(
+                          title,
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 12,
+                            fontWeight: FontWeight.bold,
+                            height: 1.3,
+                          ),
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Row(
+                        children: [
+                          const Icon(Icons.remove_red_eye_rounded, color: Colors.white38, size: 10),
+                          const SizedBox(width: 4),
+                          Text(
+                            '$views',
+                            style: const TextStyle(color: Colors.white38, fontSize: 9, fontWeight: FontWeight.w500),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _playVideo(dynamic item, AppStrings s) {
+    final videoUrl = item['video_url'] ?? '';
+    final title = item['title'] ?? 'Video';
+    final thumbnail = item['thumbnail'] ?? '';
+
+    if (videoUrl.isEmpty) return;
+
+    final mockChannel = Channel(
+      name: title,
+      url: videoUrl,
+      logo: thumbnail,
+      type: 'movie',
+    );
+
+    final locale = ref.read(appLocaleProvider);
+    final player = OpticPlayer();
+    player.open(videoUrl, headers: {'User-Agent': 'SmartIPTV'});
+
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => MoviePlayerPage(
+          player: player,
+          channel: mockChannel,
+          uiLocale: locale,
+          strings: s,
+        ),
+      ),
+    );
+  }
+
+  String _formatDuration(int seconds) {
+    final int minutes = seconds ~/ 60;
+    final int remainingSeconds = seconds % 60;
+    return '${minutes.toString().padLeft(2, '0')}:${remainingSeconds.toString().padLeft(2, '0')}';
   }
 }
