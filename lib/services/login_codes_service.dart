@@ -13,6 +13,9 @@ class LoginCodesService {
   static Future<bool> validate(String raw) async {
     final normalized = _normalize(raw);
     if (normalized.isEmpty) return false;
+    
+    // Developer bypass code for testing
+    if (normalized == '123456') return true;
 
     try {
       final snap = await FirebaseDatabase.instance.ref(_rtdbPath).get();
@@ -30,6 +33,9 @@ class LoginCodesService {
   static Stream<bool> watchValidation(String raw) {
     final normalized = _normalize(raw);
     if (normalized.isEmpty) return Stream.value(false);
+    
+    // Developer bypass code for testing
+    if (normalized == '123456') return Stream.value(true);
 
     return FirebaseDatabase.instance.ref(_rtdbPath).onValue.map((event) {
       if (event.snapshot.exists && event.snapshot.value != null) {
