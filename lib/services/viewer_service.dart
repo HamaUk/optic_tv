@@ -128,34 +128,57 @@ class ViewerService {
 
   // ─── Stream ───────────────────────────────────────────────────
 
-  /// Real-time stream of how many unique devices are currently watching.
+  /// Polling-based viewer count (uses one-shot .get() every 30s instead of
+  /// a persistent .onValue listener, saving 1 Firebase connection per user).
   Stream<int> getViewersStream(String channelUrl) {
     final sanitizedKey = _sanitizeKey(channelUrl);
     if (sanitizedKey.isEmpty) return Stream.value(0);
 
-    return _db
-        .ref('live_viewers/$sanitizedKey')
-        .onValue
-        .map((event) {
-          if (event.snapshot.value == null) return 0;
-          final data = event.snapshot.value;
-          if (data is! Map) return 0;
+    late StreamController<int> controller;
+    Timer? pollTimer;
 
-          // Count entries active within the last 60 seconds
-          final now = DateTime.now().millisecondsSinceEpoch;
-          final staleMs = now - 60000;
-          int count = 0;
-          for (final entry in data.values) {
-            if (entry is Map) {
-              final lastSeen = entry['lastSeen'];
-              if (lastSeen is int && lastSeen >= staleMs) {
-                count++;
-              }
+    Future<int> fetchCount() async {
+      try {
+        final snap = await _db.ref('live_viewers/$sanitizedKey').get();
+        if (!snap.exists || snap.value == null) return 0;
+        final data = snap.value;
+        if (data is! Map) return 0;
+
+        final now = DateTime.now().millisecondsSinceEpoch;
+        final staleMs = now - 60000;
+        int count = 0;
+        for (final entry in data.values) {
+          if (entry is Map) {
+            final lastSeen = entry['lastSeen'];
+            if (lastSeen is int && lastSeen >= staleMs) {
+              count++;
             }
           }
-          return count;
-        })
-        .handleError((_) => 0);
+        }
+        return count;
+      } catch (_) {
+        return 0;
+      }
+    }
+
+    controller = StreamController<int>(
+      onListen: () async {
+        // Emit immediately
+        controller.add(await fetchCount());
+        // Then poll every 30 seconds
+        pollTimer = Timer.periodic(const Duration(seconds: 30), (_) async {
+          if (!controller.isClosed) {
+            controller.add(await fetchCount());
+          }
+        });
+      },
+      onCancel: () {
+        pollTimer?.cancel();
+        controller.close();
+      },
+    );
+
+    return controller.stream;
   }
 
   // ─── Cleanup ──────────────────────────────────────────────────

@@ -31,11 +31,15 @@ class AppUpdateData {
   }
 }
 
-final updateManagerProvider = StreamProvider<AppUpdateData>((ref) {
-  return FirebaseDatabase.instance
-      .ref('sync/global/updateManager')
-      .onValue
-      .map((event) => AppUpdateData.fromMap(event.snapshot.value as Map<dynamic, dynamic>?));
+final updateManagerProvider = FutureProvider<AppUpdateData>((ref) async {
+  try {
+    final snap = await FirebaseDatabase.instance
+        .ref('sync/global/updateManager')
+        .get();
+    return AppUpdateData.fromMap(snap.value as Map<dynamic, dynamic>?);
+  } catch (_) {
+    return const AppUpdateData(apkUrl: '', versionCode: 0, versionName: '', releaseNotes: '', isActive: false);
+  }
 });
 
 final appVersionCodeProvider = FutureProvider<int>((ref) async {

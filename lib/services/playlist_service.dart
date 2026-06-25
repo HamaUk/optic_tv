@@ -151,23 +151,19 @@ final channelsProvider = StreamProvider<List<Channel>>((ref) {
     }
   });
 
-  // Step 2 — subscribe to Firebase; update UI and save new cache when it arrives
+  // Step 2 — fetch from Firebase once (one-shot .get() instead of persistent .onValue)
   final dbRef = FirebaseDatabase.instance.ref('sync/global/managedPlaylist');
-  final sub = dbRef.onValue.listen(
-    (event) {
-      final channels = _parseChannelData(event.snapshot.value);
-      if (!controller.isClosed) {
-        controller.add(channels);
-        _saveChannelCache(channels); // persist for next launch
-      }
-    },
-    onError: (Object e) {
-      if (!controller.isClosed) controller.addError(e);
-    },
-  );
+  dbRef.get().then((snapshot) {
+    final channels = _parseChannelData(snapshot.value);
+    if (!controller.isClosed) {
+      controller.add(channels);
+      _saveChannelCache(channels); // persist for next launch
+    }
+  }).catchError((Object e) {
+    if (!controller.isClosed) controller.addError(e);
+  });
 
   ref.onDispose(() {
-    sub.cancel();
     controller.close();
   });
 
@@ -194,11 +190,12 @@ class ChannelGroup {
   }
 }
 
-final groupsProvider = StreamProvider<List<ChannelGroup>>((ref) {
+final groupsProvider = FutureProvider<List<ChannelGroup>>((ref) async {
   final dbRef = FirebaseDatabase.instance.ref('sync/global/channelGroups');
 
-  return dbRef.onValue.map((event) {
-    final data = event.snapshot.value;
+  try {
+    final snapshot = await dbRef.get();
+    final data = snapshot.value;
     if (data is! Map) return [];
 
     final list = data.entries.map((e) {
@@ -211,7 +208,9 @@ final groupsProvider = StreamProvider<List<ChannelGroup>>((ref) {
     });
 
     return list;
-  });
+  } catch (_) {
+    return [];
+  }
 });
 
 

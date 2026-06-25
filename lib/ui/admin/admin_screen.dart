@@ -1947,12 +1947,12 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
               const SizedBox(height: 24),
               
               // Key Metrics Row
-              StreamBuilder<int>(
-                stream: analyticsService.getLiveUsersStream(),
+              FutureBuilder<int>(
+                future: analyticsService.getLiveUsersCount(),
                 builder: (context, snapshot) {
                   final liveUsers = snapshot.data ?? 0;
-                  return StreamBuilder<int>(
-                    stream: analyticsService.getTotalViewsStream(),
+                  return FutureBuilder<int>(
+                    future: analyticsService.getTotalViews(),
                     builder: (context, totalSnap) {
                       final totalViews = totalSnap.data ?? 0;
                       return Row(
@@ -1991,8 +1991,8 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
               _card(
                 child: SizedBox(
                   height: 300,
-                  child: StreamBuilder<Map<String, int>>(
-                    stream: analyticsService.getDailyViewsStream(),
+                  child: FutureBuilder<Map<String, int>>(
+                    future: analyticsService.getDailyViews(),
                     builder: (context, snapshot) {
                       if (!snapshot.hasData) {
                         return const Center(child: CircularProgressIndicator(color: AppTheme.primaryGold));
@@ -2084,8 +2084,8 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
               ),
               const SizedBox(height: 12),
               _card(
-                child: StreamBuilder<List<Map<String, dynamic>>>(
-                  stream: analyticsService.getTopChannelsStream(),
+                child: FutureBuilder<List<Map<String, dynamic>>>(
+                  future: analyticsService.getTopChannels(),
                   builder: (context, snapshot) {
                     if (!snapshot.hasData) {
                       return const Center(child: CircularProgressIndicator(color: AppTheme.primaryGold));

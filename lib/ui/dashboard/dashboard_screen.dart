@@ -2829,13 +2829,13 @@ class _GlobalAnnouncementTicker extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final settings = ref.watch(appUiSettingsProvider).asData?.value ?? const AppSettingsData();
     final accent = AppTheme.accentColor(settings.gradientPreset);
-    return StreamBuilder<DatabaseEvent>(
-      stream: FirebaseDatabase.instance.ref('sync/global/announcement').onValue,
+    return FutureBuilder<DataSnapshot>(
+      future: FirebaseDatabase.instance.ref('sync/global/announcement').get(),
       builder: (context, snapshot) {
-        if (!snapshot.hasData || snapshot.data?.snapshot.value == null) {
+        if (!snapshot.hasData || snapshot.data?.value == null) {
           return const SizedBox.shrink();
         }
-        final data = snapshot.data!.snapshot.value;
+        final data = snapshot.data!.value;
         if (data is! Map) return const SizedBox.shrink();
 
         final active = data['active'] == true;
