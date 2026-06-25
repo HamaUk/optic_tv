@@ -1,4 +1,4 @@
-﻿import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../l10n/app_strings.dart';
 import '../../providers/app_locale_provider.dart';
 import 'package:flutter/material.dart';
@@ -85,7 +85,7 @@ class _MatchDetailsScreenState extends ConsumerState<MatchDetailsScreen> with Si
                     const SizedBox(height: 20),
                     _buildScoreCard(),
                     const SizedBox(height: 20),
-                    _buildTabs(),
+                    _buildTabs(s),
                   ],
                 ),
               ),
@@ -236,7 +236,7 @@ class _MatchDetailsScreenState extends ConsumerState<MatchDetailsScreen> with Si
     );
   }
 
-  Widget _buildTabs() {
+  Widget _buildTabs(AppStrings s) {
     return SingleChildScrollView(
       scrollDirection: Axis.horizontal,
       padding: const EdgeInsets.symmetric(horizontal: 20),
@@ -274,7 +274,7 @@ class _MatchDetailsScreenState extends ConsumerState<MatchDetailsScreen> with Si
     );
   }
 
-  Widget _buildActiveTabContent() {
+  Widget _buildActiveTabContent(AppStrings s) {
     switch (_activeTab) {
       case 0: return _buildSummaryTab(s);
       case 1: return _buildStatsTab(s);

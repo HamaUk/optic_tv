@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 
 import '../services/settings_service.dart';
 
@@ -906,6 +906,77 @@ class AppStrings {
     if (isKurmanji) return 'DaneyÃªn kadro tune';
     if (isSorani) return 'Ù‡ÛŒÚ† Ø¯Ø§ØªØ§ÛŒÛ•Ú©ÛŒ Ù¾ÛŽÚ©Ù‡Ø§ØªÛ• Ù†ÛŒÛŒÛ•';
     return 'No roster data available';
+  }
+  String get wcGoals {
+    if (isKurmanji) return 'Golan';
+    if (isSorani) return 'گۆڵەکان';
+    return 'Goals';
+  }
+
+  String get wcTeam {
+    if (isKurmanji) return 'Tîm';
+    if (isSorani) return 'تیم';
+    return 'Team';
+  }
+
+  String get wcMatches {
+    if (isKurmanji) return 'Lîstok';
+    if (isSorani) return 'یارییەکان';
+    return 'MP';
+  }
+
+  String get wcPts {
+    if (isKurmanji) return 'Pûan';
+    if (isSorani) return 'خاڵەکان';
+    return 'Pts';
+  }
+
+  String get wcNewsLabel {
+    if (isKurmanji) return 'Nûçe';
+    if (isSorani) return 'هەواڵ';
+    return 'News';
+  }
+
+  String get wcReadMore {
+    if (isKurmanji) return 'Bêtir Bixwîne';
+    if (isSorani) return 'زیاتر بخوێنەوە';
+    return 'Read More';
+  }
+
+  String get wcRecently {
+    if (isKurmanji) return 'Demek nêz de';
+    if (isSorani) return 'مابەیەک لەمەوپێش';
+    return 'Recently';
+  }
+
+  String wcTimeAgo(int minutes) {
+    if (minutes < 60) {
+      if (isKurmanji) return '$minutes deqe berê';
+      if (isSorani) return 'پێش $minutes خولەک';
+      return '${minutes}m ago';
+    }
+    final hours = minutes ~/ 60;
+    if (hours < 24) {
+      if (isKurmanji) return '$hours saet berê';
+      if (isSorani) return 'پێش $hours کاتژمێر';
+      return '${hours}h ago';
+    }
+    final days = hours ~/ 24;
+    if (isKurmanji) return '$days roj berê';
+    if (isSorani) return 'پێش $days ڕۆژ';
+    return '${days}d ago';
+  }
+
+  String get wcViewers {
+    if (isKurmanji) return 'temaşevan';
+    if (isSorani) return 'بینەر';
+    return 'viewers';
+  }
+
+  String get wcNoTeams {
+    if (isKurmanji) return 'Tîm nehatin dîtin';
+    if (isSorani) return 'هیچ تیمێک نەدۆزرایەوە';
+    return 'No teams found';
   }
 }
 
