@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:video_player/video_player.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:translator/translator.dart';
 import '../../services/optic_player.dart';
 
 import '../../core/theme.dart';
@@ -44,6 +45,10 @@ class _MovieDetailsScreenState extends ConsumerState<MovieDetailsScreen>
   // Background Preview Player (video_player / ExoPlayer)
   VideoPlayerController? _bgController;
   bool _bgPlaying = false;
+
+  // Auto-Translation State
+  String? _translatedOverview;
+  bool _isTranslating = false;
 
   // Dynamic palette state
   ImagePalette _palette = ImagePalette.fallback;
@@ -102,6 +107,11 @@ class _MovieDetailsScreenState extends ConsumerState<MovieDetailsScreen>
       if (mounted) setState(() => _palette = palette);
     }
 
+    // Auto-translate overview
+    if (_movie != null && _movie!.overview.isNotEmpty) {
+      _translateOverview(_movie!.overview);
+    }
+
     if (_movie != null) {
       // Fetch all enrichment data in parallel
       final results = await Future.wait([
@@ -119,6 +129,30 @@ class _MovieDetailsScreenState extends ConsumerState<MovieDetailsScreen>
       }
     } else {
       if (mounted) setState(() => _loading = false);
+    }
+  }
+
+  Future<void> _translateOverview(String text) async {
+    if (text.isEmpty || text == 'No description available.') return;
+    if (!mounted) return;
+    
+    setState(() => _isTranslating = true);
+    
+    try {
+      final translator = GoogleTranslator();
+      // Translate to Central Kurdish (ku)
+      final translation = await translator.translate(text, to: 'ku');
+      if (mounted) {
+        setState(() {
+          _translatedOverview = translation.text;
+          _isTranslating = false;
+        });
+      }
+    } catch (e) {
+      // Fallback to English if translation fails (e.g., rate limit)
+      if (mounted) {
+        setState(() => _isTranslating = false);
+      }
     }
   }
 
@@ -286,15 +320,34 @@ class _MovieDetailsScreenState extends ConsumerState<MovieDetailsScreen>
                       const SizedBox(height: 36),
                       _buildSectionTitle('Overview', accent),
                       const SizedBox(height: 12),
-                      Text(
-                        _movie?.overview ??
-                            widget.channel.description ??
-                            'Cinematic details for this title are being retrieved. Enjoy the high-quality stream.',
-                        style: TextStyle(
-                          color: Colors.white.withOpacity(0.8),
-                          fontSize: 16,
-                          height: 1.6,
-                          letterSpacing: 0.2,
+                      AnimatedCrossFade(
+                        duration: const Duration(milliseconds: 400),
+                        crossFadeState: _isTranslating 
+                            ? CrossFadeState.showFirst 
+                            : CrossFadeState.showSecond,
+                        firstChild: Opacity(
+                          opacity: 0.5,
+                          child: Text(
+                            _movie?.overview ?? widget.channel.description ?? 'Loading...',
+                            style: TextStyle(
+                              color: Colors.white.withOpacity(0.8),
+                              fontSize: 16,
+                              height: 1.6,
+                              letterSpacing: 0.2,
+                            ),
+                          ),
+                        ),
+                        secondChild: Text(
+                          _translatedOverview ?? 
+                          _movie?.overview ??
+                          widget.channel.description ??
+                          'Cinematic details for this title are being retrieved. Enjoy the high-quality stream.',
+                          style: TextStyle(
+                            color: Colors.white.withOpacity(0.8),
+                            fontSize: 16,
+                            height: 1.6,
+                            letterSpacing: 0.2,
+                          ),
                         ),
                       ),
                       const SizedBox(height: 40),

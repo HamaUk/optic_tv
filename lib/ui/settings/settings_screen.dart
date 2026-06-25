@@ -13,6 +13,8 @@ import '../../providers/ui_settings_provider.dart';
 import '../../services/settings_service.dart';
 import 'package:dio/dio.dart';
 import 'dart:math' as math;
+import 'dart:io';
+import 'package:path_provider/path_provider.dart';
 
 class SettingsScreen extends ConsumerStatefulWidget {
   const SettingsScreen({super.key});
@@ -29,6 +31,12 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   bool _testingSpeed = false;
   double? _lastSpeedMbps;
   double _testProgress = 0;
+
+  // Storage Manager state
+  bool _calculatingStorage = true;
+  int _posterCacheBytes = 0;
+  int _epgCacheBytes = 0;
+  int _logsCacheBytes = 0;
 
   static const _fitChoices = <BoxFit>[
     BoxFit.contain,
@@ -51,6 +59,69 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         _data = data;
         _loading = false;
       });
+      _calculateStorage();
+    }
+  }
+
+  Future<void> _calculateStorage() async {
+    if (!mounted) return;
+    setState(() => _calculatingStorage = true);
+    
+    int posters = 0;
+    int epg = 0;
+    int logs = 0;
+    
+    try {
+      final cacheDir = await getTemporaryDirectory();
+      // Heuristic directories for the example
+      final posterDir = Directory('${cacheDir.path}/libCachedImageData');
+      final epgDir = Directory('${cacheDir.path}/epg_data');
+      final logDir = Directory('${cacheDir.path}/logs');
+      
+      posters = await _getDirSize(posterDir);
+      epg = await _getDirSize(epgDir);
+      logs = await _getDirSize(logDir);
+    } catch (_) {}
+    
+    if (mounted) {
+      setState(() {
+        _posterCacheBytes = posters;
+        _epgCacheBytes = epg;
+        _logsCacheBytes = logs;
+        _calculatingStorage = false;
+      });
+    }
+  }
+
+  Future<int> _getDirSize(Directory dir) async {
+    int total = 0;
+    if (await dir.exists()) {
+      await for (final file in dir.list(recursive: true, followLinks: false)) {
+        if (file is File) {
+          total += await file.length();
+        }
+      }
+    }
+    return total;
+  }
+
+  Future<void> _clearSpecificCache(String type) async {
+    final cacheDir = await getTemporaryDirectory();
+    try {
+      if (type == 'posters') {
+        final dir = Directory('${cacheDir.path}/libCachedImageData');
+        if (await dir.exists()) await dir.delete(recursive: true);
+      } else if (type == 'epg') {
+        final dir = Directory('${cacheDir.path}/epg_data');
+        if (await dir.exists()) await dir.delete(recursive: true);
+      } else if (type == 'logs') {
+        final dir = Directory('${cacheDir.path}/logs');
+        if (await dir.exists()) await dir.delete(recursive: true);
+      }
+    } catch (_) {}
+    await _calculateStorage();
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Cleared \$type cache')));
     }
   }
 
@@ -333,6 +404,132 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 ),
                 const SizedBox(height: 24),
                 Text(
+                  "Storage & Cache",
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                        color: AppTheme.accentColor(_data.gradientPreset),
+                        fontWeight: FontWeight.bold,
+                      ),
+                ),
+                const SizedBox(height: 12),
+                _glassCard(
+                  child: Column(
+                    children: [
+                      ListTile(
+                        leading: const Icon(Icons.image_rounded, color: Colors.blueAccent),
+                        title: const Text("Movie & Series Posters"),
+                        subtitle: Text(_calculatingStorage ? "Calculating..." : "${(_posterCacheBytes / (1024 * 1024)).toStringAsFixed(1)} MB"),
+                        trailing: IconButton(
+                          icon: const Icon(Icons.delete_outline),
+                          onPressed: () => _clearSpecificCache('posters'),
+                        ),
+                      ),
+                      const Divider(color: Colors.white12, height: 1),
+                      ListTile(
+                        leading: const Icon(Icons.list_alt_rounded, color: Colors.greenAccent),
+                        title: const Text("EPG TV Guide Data"),
+                        subtitle: Text(_calculatingStorage ? "Calculating..." : "${(_epgCacheBytes / (1024 * 1024)).toStringAsFixed(1)} MB"),
+                        trailing: IconButton(
+                          icon: const Icon(Icons.delete_outline),
+                          onPressed: () => _clearSpecificCache('epg'),
+                        ),
+                      ),
+                      const Divider(color: Colors.white12, height: 1),
+                      ListTile(
+                        leading: const Icon(Icons.bug_report_rounded, color: Colors.orangeAccent),
+                        title: const Text("Temporary Logs & Data"),
+                        subtitle: Text(_calculatingStorage ? "Calculating..." : "${(_logsCacheBytes / (1024 * 1024)).toStringAsFixed(1)} MB"),
+                        trailing: IconButton(
+                          icon: const Icon(Icons.delete_outline),
+                          onPressed: () => _clearSpecificCache('logs'),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 24),
+                Text(
+                  "Subtitle Preferences (VOD)",
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                        color: AppTheme.accentColor(_data.gradientPreset),
+                        fontWeight: FontWeight.bold,
+                      ),
+                ),
+                const SizedBox(height: 8),
+                Text("Customize how subtitles look in movies and series", style: TextStyle(color: Colors.white.withOpacity(0.45), fontSize: 13)),
+                const SizedBox(height: 12),
+                _glassCard(
+                  child: Padding(
+                    padding: const EdgeInsets.all(16.0),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text("Font Size"),
+                        Slider(
+                          value: _data.subtitleFontSize,
+                          min: 10,
+                          max: 40,
+                          activeColor: AppTheme.accentColor(_data.gradientPreset),
+                          onChanged: (v) => _apply(_data.copyWith(subtitleFontSize: v)),
+                        ),
+                        const SizedBox(height: 16),
+                        const Text("Text Color"),
+                        const SizedBox(height: 8),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                          children: [
+                            _colorCircle(0xFFFFFFFF, _data.subtitleColor), // White
+                            _colorCircle(0xFFFFFF00, _data.subtitleColor), // Yellow
+                            _colorCircle(0xFF00FFFF, _data.subtitleColor), // Cyan
+                          ],
+                        ),
+                        const SizedBox(height: 16),
+                        const Text("Background Opacity"),
+                        const SizedBox(height: 8),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                          children: [
+                            _bgCircle(0x00000000, _data.subtitleBgColor, "Off"), // Transparent
+                            _bgCircle(0x73000000, _data.subtitleBgColor, "45%"), // Semi
+                            _bgCircle(0xFF000000, _data.subtitleBgColor, "Solid"), // Solid
+                          ],
+                        ),
+                        const SizedBox(height: 24),
+                        Container(
+                          width: double.infinity,
+                          padding: const EdgeInsets.symmetric(vertical: 20),
+                          decoration: BoxDecoration(
+                            color: Colors.black45,
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Center(
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                              color: Color(_data.subtitleBgColor),
+                              child: Text(
+                                "Sample Subtitle Text",
+                                style: TextStyle(
+                                  color: Color(_data.subtitleColor),
+                                  fontSize: _data.subtitleFontSize,
+                                  fontWeight: FontWeight.bold,
+                                  shadows: const [Shadow(color: Colors.black87, blurRadius: 4)],
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 24),
+                Text(
+                  s.sectionOther,
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                        color: AppTheme.accentColor(_data.gradientPreset),
+                        fontWeight: FontWeight.bold,
+                      ),
+                ),
+                Text(
                   s.sectionVideo,
                   style: Theme.of(context).textTheme.titleMedium?.copyWith(
                         color: AppTheme.accentColor(_data.gradientPreset),
@@ -361,6 +558,36 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                         ),
                         ),
                     ],
+                  ),
+                ),
+                const SizedBox(height: 24),
+                Text(
+                  "Playback & Network",
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                        color: AppTheme.accentColor(_data.gradientPreset),
+                        fontWeight: FontWeight.bold,
+                      ),
+                ),
+                const SizedBox(height: 12),
+                _glassCard(
+                  child: SwitchListTile(
+                    title: const Text("Hardware Acceleration"),
+                    subtitle: const Text("Use hardware decoding (turn off to fix stuttering on older devices)"),
+                    value: _data.hardwareAcceleration,
+                    activeTrackColor: AppTheme.accentColor(_data.gradientPreset).withOpacity(0.45),
+                    activeColor: AppTheme.accentColor(_data.gradientPreset),
+                    onChanged: (v) => _apply(_data.copyWith(hardwareAcceleration: v)),
+                  ),
+                ),
+                const SizedBox(height: 8),
+                _glassCard(
+                  child: SwitchListTile(
+                    title: const Text("Data Saver Mode"),
+                    subtitle: const Text("Automatically request lower quality streams on mobile networks"),
+                    value: _data.dataSaverMode,
+                    activeTrackColor: AppTheme.accentColor(_data.gradientPreset).withOpacity(0.45),
+                    activeColor: AppTheme.accentColor(_data.gradientPreset),
+                    onChanged: (v) => _apply(_data.copyWith(dataSaverMode: v)),
                   ),
                 ),
                 const SizedBox(height: 24),
@@ -510,16 +737,54 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       ),
     );
   }
-}
 
-String _gradientPresetTitle(AppStrings s, AppGradientPreset p) {
-  return switch (p) {
-    AppGradientPreset.classic => s.gradientClassic,
-    AppGradientPreset.ocean => s.gradientOcean,
-    AppGradientPreset.goldSunset => s.gradientGold,
-    AppGradientPreset.violetHaze => s.gradientViolet,
-    AppGradientPreset.emberGlow => s.gradientEmber,
-  };
+  String _gradientPresetTitle(AppStrings s, AppGradientPreset preset) {
+    return switch (preset) {
+      AppGradientPreset.emberGlow => 'Ember Glow (Red/Orange)',
+      AppGradientPreset.oceanBreeze => 'Ocean Breeze (Blue/Teal)',
+      AppGradientPreset.neonCyber => 'Neon Cyber (Purple/Pink)',
+      AppGradientPreset.emeraldForest => 'Emerald Forest (Green/Dark)',
+    };
+  }
+
+  Widget _colorCircle(int colorValue, int activeColor) {
+    final active = activeColor == colorValue;
+    return GestureDetector(
+      onTap: () => _apply(_data.copyWith(subtitleColor: colorValue)),
+      child: Container(
+        width: 40,
+        height: 40,
+        decoration: BoxDecoration(
+          color: Color(colorValue),
+          shape: BoxShape.circle,
+          border: Border.all(color: active ? AppTheme.accentColor(_data.gradientPreset) : Colors.white24, width: active ? 3 : 1),
+          boxShadow: active ? [BoxShadow(color: AppTheme.accentColor(_data.gradientPreset).withOpacity(0.5), blurRadius: 8)] : [],
+        ),
+      ),
+    );
+  }
+
+  Widget _bgCircle(int colorValue, int activeColor, String label) {
+    final active = activeColor == colorValue;
+    return GestureDetector(
+      onTap: () => _apply(_data.copyWith(subtitleBgColor: colorValue)),
+      child: Column(
+        children: [
+          Container(
+            width: 40,
+            height: 40,
+            decoration: BoxDecoration(
+              color: Color(colorValue),
+              shape: BoxShape.circle,
+              border: Border.all(color: active ? AppTheme.accentColor(_data.gradientPreset) : Colors.white24, width: active ? 3 : 1),
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(label, style: TextStyle(fontSize: 12, color: active ? Colors.white : Colors.white54)),
+        ],
+      ),
+    );
+  }
 }
 
 class _GradientPresetSwatch extends StatelessWidget {

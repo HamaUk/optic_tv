@@ -14,6 +14,8 @@ class AppSettingsData {
   final double subtitleFontSize;
   final int subtitleColor; // ARGB
   final int subtitleBgColor; // ARGB
+  final bool dataSaverMode;
+  final bool hardwareAcceleration;
 
   const AppSettingsData({
     this.keepScreenOnWhilePlaying = true,
@@ -25,6 +27,8 @@ class AppSettingsData {
     this.subtitleFontSize = 20.0,
     this.subtitleColor = 0xFFFFFFFF, // White
     this.subtitleBgColor = 0x73000000, // 45% Black
+    this.dataSaverMode = false,
+    this.hardwareAcceleration = true,
   });
 
   static Future<AppSettingsData> load() async {
@@ -40,6 +44,8 @@ class AppSettingsData {
       subtitleFontSize: p.getDouble(_kSubtitleFontSize) ?? 20.0,
       subtitleColor: p.getInt(_kSubtitleColor) ?? 0xFFFFFFFF,
       subtitleBgColor: p.getInt(_kSubtitleBgColor) ?? 0x73000000,
+      dataSaverMode: p.getBool(_kDataSaverMode) ?? false,
+      hardwareAcceleration: p.getBool(_kHardwareAcceleration) ?? true,
     );
   }
 
@@ -54,6 +60,8 @@ class AppSettingsData {
     await p.setDouble(_kSubtitleFontSize, subtitleFontSize);
     await p.setInt(_kSubtitleColor, subtitleColor);
     await p.setInt(_kSubtitleBgColor, subtitleBgColor);
+    await p.setBool(_kDataSaverMode, dataSaverMode);
+    await p.setBool(_kHardwareAcceleration, hardwareAcceleration);
   }
 
   AppSettingsData copyWith({
@@ -66,6 +74,8 @@ class AppSettingsData {
     double? subtitleFontSize,
     int? subtitleColor,
     int? subtitleBgColor,
+    bool? dataSaverMode,
+    bool? hardwareAcceleration,
   }) {
     return AppSettingsData(
       keepScreenOnWhilePlaying: keepScreenOnWhilePlaying ?? this.keepScreenOnWhilePlaying,
@@ -77,6 +87,8 @@ class AppSettingsData {
       subtitleFontSize: subtitleFontSize ?? this.subtitleFontSize,
       subtitleColor: subtitleColor ?? this.subtitleColor,
       subtitleBgColor: subtitleBgColor ?? this.subtitleBgColor,
+      dataSaverMode: dataSaverMode ?? this.dataSaverMode,
+      hardwareAcceleration: hardwareAcceleration ?? this.hardwareAcceleration,
     );
   }
 
@@ -134,3 +146,5 @@ const _kGradientPreset = 'settings_gradient_preset';
 const _kSubtitleFontSize = 'settings_subtitle_font_size';
 const _kSubtitleColor = 'settings_subtitle_color';
 const _kSubtitleBgColor = 'settings_subtitle_bg_color';
+const _kDataSaverMode = 'settings_data_saver_mode';
+const _kHardwareAcceleration = 'settings_hardware_acceleration';

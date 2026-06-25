@@ -18,7 +18,6 @@ import '../../services/tmdb_service.dart';
 import '../dashboard/movie_details_screen.dart';
 import '../../providers/ui_settings_provider.dart';
 import '../../services/settings_service.dart';
-import 'widgets/subtitle_studio.dart';
 
 class MoviePlayerPage extends ConsumerStatefulWidget {
   final OpticPlayer player;
@@ -56,12 +55,8 @@ class _MoviePlayerPageState extends ConsumerState<MoviePlayerPage> {
   String? _osdLabel;
   Timer? _osdTimer;
 
-  // Subtitle & TMDB Services
-  final SubtitleService _subtitleService = SubtitleService();
+  // TMDB Service for metadata
   final TmdbService _tmdbService = TmdbService();
-  List<SubtitleResult> _availableSubtitles = [];
-  bool _isSearchingSubtitles = false;
-  bool _showSubtitlePrompt = false;
 
   @override
   void initState() {
@@ -102,20 +97,7 @@ class _MoviePlayerPageState extends ConsumerState<MoviePlayerPage> {
     _configureEngine();
   }
 
-  Future<void> _loadManualSubtitle() async {
-    // Subtitle injection not supported by video_player plugin natively.
-    // Handled via ExoPlayer's built-in subtitle tracks when embedded in stream.
-    debugPrint('Subtitle loading skipped (ExoPlayer handles embedded tracks).');
-  }
 
-  Future<void> _searchSubtitles() async {
-    // Auto subtitle search disabled — ExoPlayer handles embedded tracks.
-    // To re-enable, implement subtitle search that feeds URLs via MediaItem.
-  }
-
-  Future<void> _applySubtitle(SubtitleResult sub) async {
-    // No-op with ExoPlayer; subtitle URLs must be set at MediaItem creation time.
-  }
 
   void _resetHideTimer() {
     _hideTimer?.cancel();
@@ -292,13 +274,6 @@ class _MoviePlayerPageState extends ConsumerState<MoviePlayerPage> {
                     ),
                     Row(
                       children: [
-                        _buildHUDAction(Icons.closed_caption_rounded, () {
-                          // Subtitle selection: show available tracks from ExoPlayer
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(content: Text('Subtitles managed by ExoPlayer (embedded tracks)')),
-                          );
-                        }),
-                        const SizedBox(width: 24),
                         _buildSpeedButton(),
                       ],
                     ),

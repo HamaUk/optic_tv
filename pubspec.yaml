@@ -59,6 +59,7 @@ dependencies:
   dpad: ^3.0.0
   flutter_jailbreak_detection: ^1.10.0
   google_nav_bar: any
+  translator: any
 
   # Media Engine — ExoPlayer (Android native, zero overhead)
   video_player: ^2.9.1
