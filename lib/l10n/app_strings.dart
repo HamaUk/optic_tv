@@ -755,7 +755,7 @@ class AppStrings {
 
   String get wcTabNews {
     if (isKurmanji) return 'Nûçe';
-    if (isSorani) return 'هەواڕەکان';
+    if (isSorani) return 'هەواڵەکان';
     return 'News';
   }
 
@@ -827,7 +827,7 @@ class AppStrings {
 
   String get wcNoNews {
     if (isKurmanji) return 'Nûçe tune ye';
-    if (isSorani) return 'هەواڕ بەردەست نییە';
+    if (isSorani) return 'هەواڵ بەردەست نییە';
     return 'No news available';
   }
 
@@ -869,7 +869,7 @@ class AppStrings {
 
   String get wcNewsLabel {
     if (isKurmanji) return 'NÛÇE';
-    if (isSorani) return 'هەواڕ';
+    if (isSorani) return 'هەواڵ';
     return 'NEWS';
   }
 
