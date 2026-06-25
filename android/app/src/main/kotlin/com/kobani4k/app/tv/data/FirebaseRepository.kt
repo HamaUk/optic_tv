@@ -19,14 +19,16 @@ class FirebaseRepository {
      * Checks if the code is active and has not expired.
      * Returns true if successful, false otherwise.
      */
-    suspend fun verifyLoginCode(code: String): Boolean {
+    suspend fun verifyLoginCode(code: String): String {
         val normalizedInput = code.replace("\\s+".toRegex(), "").lowercase()
-        if (normalizedInput.isEmpty()) return false
+        if (normalizedInput.isEmpty()) return "INVALID"
 
         return try {
-            val snapshot = db.child("sync/global/loginCodes")
-                .get()
-                .await()
+            val snapshot = kotlinx.coroutines.withTimeout(8000L) {
+                db.child("sync/global/loginCodes")
+                    .get()
+                    .await()
+            }
 
             if (snapshot.exists()) {
                 for (child in snapshot.children) {
@@ -62,13 +64,16 @@ class FirebaseRepository {
                         }
                     }
                     // We found an active, non-expired code
-                    return true
+                    return "SUCCESS"
                 }
             }
-            false
+            "INVALID"
+        } catch (e: kotlinx.coroutines.TimeoutCancellationException) {
+            e.printStackTrace()
+            "ERROR"
         } catch (e: Exception) {
             e.printStackTrace()
-            false
+            "ERROR"
         }
     }
 
@@ -78,7 +83,9 @@ class FirebaseRepository {
      */
     suspend fun getChannels(): List<TvChannel> {
         return try {
-            val snapshot = db.child("sync/global/managedPlaylist").get().await()
+            val snapshot = kotlinx.coroutines.withTimeout(8000L) {
+                db.child("sync/global/managedPlaylist").get().await()
+            }
             if (snapshot.exists()) {
                 val channels = mutableListOf<TvChannel>()
                 for (child in snapshot.children) {

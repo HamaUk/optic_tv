@@ -190,12 +190,12 @@ fun LoginScreen(onLoginSuccess: () -> Unit) {
                                 isLoading = true
                                 errorMessage = null
                                 scope.launch {
-                                    val success = repository.verifyLoginCode(enteredCode)
+                                    val result = repository.verifyLoginCode(enteredCode)
                                     isLoading = false
-                                    if (success) {
-                                        onLoginSuccess()
-                                    } else {
-                                        errorMessage = "INVALID OR EXPIRED CODE"
+                                    when (result) {
+                                        "SUCCESS" -> onLoginSuccess()
+                                        "ERROR" -> errorMessage = "NETWORK ERROR"
+                                        else -> errorMessage = "INVALID OR EXPIRED CODE"
                                     }
                                 }
                             }
