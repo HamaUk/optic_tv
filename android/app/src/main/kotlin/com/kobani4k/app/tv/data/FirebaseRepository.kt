@@ -14,66 +14,73 @@ data class TvChannel(
 class FirebaseRepository {
     private val db = FirebaseDatabase.getInstance().reference
 
-    /**
-     * Verifies if a given 6-digit code exists in `sync/global/loginCodes`.
-     * Checks if the code is active and has not expired.
-     * Returns true if successful, false otherwise.
-     */
-    suspend fun verifyLoginCode(code: String): String {
+    suspend fun verifyLoginCode(code: String): String = kotlin.coroutines.suspendCoroutine { cont ->
         val normalizedInput = code.replace("\\s+".toRegex(), "").lowercase()
-        if (normalizedInput.isEmpty()) return "INVALID"
+        if (normalizedInput.isEmpty()) {
+            cont.resumeWith(Result.success("INVALID"))
+            return@suspendCoroutine
+        }
 
-        return try {
-            val snapshot = kotlinx.coroutines.withTimeout(8000L) {
-                db.child("sync/global/loginCodes")
-                    .get()
-                    .await()
+        var isResumed = false
+        val handler = android.os.Handler(android.os.Looper.getMainLooper())
+        
+        val timeoutRunnable = Runnable {
+            if (!isResumed) {
+                isResumed = true
+                cont.resumeWith(Result.success("ERROR"))
             }
+        }
+        handler.postDelayed(timeoutRunnable, 8000L)
 
-            if (snapshot.exists()) {
-                for (child in snapshot.children) {
-                    val activeValue = child.child("active").value
-                    val active = activeValue != false
+        db.child("sync/global/loginCodes").get().addOnCompleteListener { task ->
+            if (isResumed) return@addOnCompleteListener
+            isResumed = true
+            handler.removeCallbacks(timeoutRunnable)
 
-                    val rawCode = child.child("code").value ?: continue
-                    var normalizedDbCode = rawCode.toString().trim()
-                    if (normalizedDbCode.endsWith(".0")) {
-                        normalizedDbCode = normalizedDbCode.substring(0, normalizedDbCode.length - 2)
-                    }
-                    normalizedDbCode = normalizedDbCode.replace("\\s+".toRegex(), "").lowercase()
+            if (task.isSuccessful) {
+                val snapshot = task.result
+                if (snapshot != null && snapshot.exists()) {
+                    for (child in snapshot.children) {
+                        val activeValue = child.child("active").value
+                        val active = activeValue != false
 
-                    if (!active || normalizedDbCode.isEmpty() || normalizedDbCode != normalizedInput) {
-                        continue
-                    }
-
-                    val expiresAtRaw = child.child("expiresAt").value
-                    if (expiresAtRaw != null) {
-                        try {
-                            val expiresAtStr = expiresAtRaw.toString()
-                            val expireTime = try {
-                                java.time.OffsetDateTime.parse(expiresAtStr).toInstant()
-                            } catch (e: Exception) {
-                                java.time.Instant.parse(expiresAtStr)
-                            }
-                            val now = java.time.Instant.now()
-                            if (now.isAfter(expireTime)) {
-                                continue // This specific code entry is expired
-                            }
-                        } catch (e: Exception) {
-                            e.printStackTrace()
+                        val rawCode = child.child("code").value ?: continue
+                        var normalizedDbCode = rawCode.toString().trim()
+                        if (normalizedDbCode.endsWith(".0")) {
+                            normalizedDbCode = normalizedDbCode.substring(0, normalizedDbCode.length - 2)
                         }
+                        normalizedDbCode = normalizedDbCode.replace("\\s+".toRegex(), "").lowercase()
+
+                        if (!active || normalizedDbCode.isEmpty() || normalizedDbCode != normalizedInput) {
+                            continue
+                        }
+
+                        val expiresAtRaw = child.child("expiresAt").value
+                        if (expiresAtRaw != null) {
+                            try {
+                                val expiresAtStr = expiresAtRaw.toString()
+                                val expireTime = try {
+                                    java.time.OffsetDateTime.parse(expiresAtStr).toInstant()
+                                } catch (e: Exception) {
+                                    java.time.Instant.parse(expiresAtStr)
+                                }
+                                val now = java.time.Instant.now()
+                                if (now.isAfter(expireTime)) {
+                                    continue
+                                }
+                            } catch (e: Exception) {
+                                e.printStackTrace()
+                            }
+                        }
+                        cont.resumeWith(Result.success("SUCCESS"))
+                        return@addOnCompleteListener
                     }
-                    // We found an active, non-expired code
-                    return "SUCCESS"
                 }
+                cont.resumeWith(Result.success("INVALID"))
+            } else {
+                task.exception?.printStackTrace()
+                cont.resumeWith(Result.success("ERROR"))
             }
-            "INVALID"
-        } catch (e: kotlinx.coroutines.TimeoutCancellationException) {
-            e.printStackTrace()
-            "ERROR"
-        } catch (e: Exception) {
-            e.printStackTrace()
-            "ERROR"
         }
     }
 
@@ -81,47 +88,65 @@ class FirebaseRepository {
      * Fetches the actual channels from Firebase Realtime Database.
      * Maps them to TvChannel structures.
      */
-    suspend fun getChannels(): List<TvChannel> {
-        return try {
-            val snapshot = kotlinx.coroutines.withTimeout(8000L) {
-                db.child("sync/global/managedPlaylist").get().await()
+    suspend fun getChannels(): List<TvChannel> = kotlin.coroutines.suspendCoroutine { cont ->
+        var isResumed = false
+        val handler = android.os.Handler(android.os.Looper.getMainLooper())
+        
+        val timeoutRunnable = Runnable {
+            if (!isResumed) {
+                isResumed = true
+                cont.resumeWith(Result.success(defaultMockChannels()))
             }
-            if (snapshot.exists()) {
-                val channels = mutableListOf<TvChannel>()
-                for (child in snapshot.children) {
-                    val name = child.child("name").getValue(String::class.java) ?: "Unknown"
-                    val url = child.child("url").getValue(String::class.java) ?: ""
-                    
-                    var group = child.child("group").getValue(String::class.java)
-                    if (group == null) {
-                         group = child.child("category").getValue(String::class.java)
+        }
+        handler.postDelayed(timeoutRunnable, 8000L)
+
+        db.child("sync/global/managedPlaylist").get().addOnCompleteListener { task ->
+            if (isResumed) return@addOnCompleteListener
+            isResumed = true
+            handler.removeCallbacks(timeoutRunnable)
+
+            if (task.isSuccessful) {
+                val snapshot = task.result
+                if (snapshot != null && snapshot.exists()) {
+                    val channels = mutableListOf<TvChannel>()
+                    for (child in snapshot.children) {
+                        val name = child.child("name").getValue(String::class.java) ?: "Unknown"
+                        val url = child.child("url").getValue(String::class.java) ?: ""
+                        
+                        var group = child.child("group").getValue(String::class.java)
+                        if (group == null) {
+                             group = child.child("category").getValue(String::class.java)
+                        }
+                        if (group == null) {
+                             group = "General"
+                        }
+                        
+                        var logo = child.child("logo").getValue(String::class.java)
+                        if (logo == null) {
+                             logo = child.child("icon_url").getValue(String::class.java)
+                        }
+                        
+                        val type = child.child("type").getValue(String::class.java) ?: "live"
+                        
+                        if (url.isNotEmpty()) {
+                            channels.add(TvChannel(name, url, group, logo, type))
+                        }
                     }
-                    if (group == null) {
-                         group = "General"
-                    }
                     
-                    var logo = child.child("logo").getValue(String::class.java)
-                    if (logo == null) {
-                         logo = child.child("icon_url").getValue(String::class.java)
-                    }
+                    channels.sortBy { it.name.lowercase() }
                     
-                    val type = child.child("type").getValue(String::class.java) ?: "live"
-                    
-                    if (url.isNotEmpty()) {
-                        channels.add(TvChannel(name, url, group, logo, type))
+                    if (channels.isEmpty()) {
+                        cont.resumeWith(Result.success(defaultMockChannels()))
+                    } else {
+                        cont.resumeWith(Result.success(channels))
                     }
+                } else {
+                    cont.resumeWith(Result.success(defaultMockChannels()))
                 }
-                
-                // Sort by name case-insensitive by default
-                channels.sortBy { it.name.lowercase() }
-                
-                channels.ifEmpty { defaultMockChannels() }
             } else {
-                defaultMockChannels()
+                task.exception?.printStackTrace()
+                cont.resumeWith(Result.success(defaultMockChannels()))
             }
-        } catch (e: Exception) {
-            e.printStackTrace()
-            defaultMockChannels()
         }
     }
 
