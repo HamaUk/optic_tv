@@ -16,10 +16,12 @@ class AnalyticsService {
       int active = 0;
       data.forEach((key, value) {
         if (value is Map && value.containsKey('lastSeen')) {
-          final lastSeen = value['lastSeen'] as int;
-          if (now - lastSeen < 3 * 60 * 1000) {
-            active++;
-          }
+          try {
+            final lastSeen = (value['lastSeen'] as num).toInt();
+            if (now - lastSeen < 3 * 60 * 1000) {
+              active++;
+            }
+          } catch (_) {}
         }
       });
       return active;
@@ -34,11 +36,13 @@ class AnalyticsService {
       int active = 0;
       data.forEach((key, value) {
         if (value is Map && value.containsKey('lastSeen')) {
-          final lastSeen = value['lastSeen'] as int;
-          final channel = value['channel']?.toString();
-          if (now - lastSeen < 3 * 60 * 1000 && channel == channelName) {
-            active++;
-          }
+          try {
+            final lastSeen = (value['lastSeen'] as num).toInt();
+            final channel = value['channel']?.toString();
+            if (now - lastSeen < 3 * 60 * 1000 && channel == channelName) {
+              active++;
+            }
+          } catch (_) {}
         }
       });
       return active;

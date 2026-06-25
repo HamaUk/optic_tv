@@ -2008,7 +2008,7 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
                       int maxY = 0;
                       for (int i = 6; i >= 0; i--) {
                         final d = today.subtract(Duration(days: i));
-                        final key = DateFormat('yyyy-MM-dd').format(d);
+                        final key = DateFormat('yyyy_MM_dd').format(d);
                         final val = dailyData[key] ?? 0;
                         if (val > maxY) maxY = val;
                         spots.add(FlSpot(6.0 - i, val.toDouble()));
