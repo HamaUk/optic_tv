@@ -197,10 +197,10 @@ class OpticPlayer with WidgetsBindingObserver {
   Future<void> dispose() async {
     WidgetsBinding.instance.removeObserver(this);
     if (_disposed) return;
-    _disposed = true;
-    // Don't dispose the native player - just stop it
-    // The native player in MainActivity is shared and should persist
+    // The native player in MainActivity is shared and should persist,
+    // but we MUST stop playback before setting _disposed = true
     await stop();
+    _disposed = true;
     _positionCtrl.close();
     _durationCtrl.close();
     _playingCtrl.close();
