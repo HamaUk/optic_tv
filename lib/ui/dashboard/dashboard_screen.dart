@@ -1829,7 +1829,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
       child: Container(
         height: 70,
         decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(36),
+          borderRadius: BorderRadius.circular(100),
           boxShadow: [
             BoxShadow(
               color: Colors.black.withOpacity(0.55),
@@ -1845,14 +1845,14 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
           ],
         ),
         child: ClipRRect(
-          borderRadius: BorderRadius.circular(36),
+          borderRadius: BorderRadius.circular(100),
           child: BackdropFilter(
             filter: ImageFilter.blur(sigmaX: 18, sigmaY: 18),
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
               decoration: BoxDecoration(
                 color: const Color(0xFF080C12).withOpacity(0.82),
-                borderRadius: BorderRadius.circular(36),
+                borderRadius: BorderRadius.circular(100),
                 border: Border.all(
                   color: Colors.white.withOpacity(0.09),
                   width: 1,
@@ -1862,7 +1862,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
                 rippleColor: accent.withOpacity(0.3),
                 hoverColor: accent.withOpacity(0.1),
                 haptic: true,
-                tabBorderRadius: 24,
+                tabBorderRadius: 100,
                 curve: Curves.easeOutExpo,
                 duration: const Duration(milliseconds: 400),
                 gap: 8,
