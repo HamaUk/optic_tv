@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../services/world_cup_service.dart';
 import '../../widgets/animated_gradient_border.dart';
@@ -8,7 +8,6 @@ import '../../providers/app_locale_provider.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'match_details_screen.dart';
 import 'team_details_screen.dart';
-
 class WorldCupScreen extends ConsumerStatefulWidget {
   const WorldCupScreen({super.key});
 
@@ -35,7 +34,7 @@ class _WorldCupScreenState extends ConsumerState<WorldCupScreen>
     super.initState();
     _tabController = TabController(length: 7, vsync: this);
     _loadData();
-    _loadLiveSoccer();
+    _loadLiveSoccer(_selectedDate);
     _loadNews();
     _loadScorers();
   }
@@ -53,9 +52,9 @@ class _WorldCupScreenState extends ConsumerState<WorldCupScreen>
     }
   }
 
-  Future<void> _loadLiveSoccer() async {
+  Future<void> _loadLiveSoccer(DateTime date) async {
     setState(() => _isLoadingLive = true);
-    final data = await WorldCupService.fetchGames(); // Fallback for live
+    final data = await WorldCupService.fetchLiveSoccerForDate(date);
     if (mounted) {
       setState(() {
         _liveSoccer = data;
@@ -171,27 +170,47 @@ class _WorldCupScreenState extends ConsumerState<WorldCupScreen>
 
                 return GestureDetector(
                   onTap: () {
-                    setState(() => _selectedDate = date);
+                    if (_selectedDate != date) {
+                      setState(() => _selectedDate = date);
+                      _loadLiveSoccer(date);
+                    }
                   },
-                  child: AnimatedContainer(
-                    duration: const Duration(milliseconds: 200),
+                  child: Container(
                     margin: const EdgeInsets.only(left: 12),
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                    decoration: BoxDecoration(
-                      gradient: isSelected
-                          ? const LinearGradient(colors: [Color(0xFFD4AF37), Color(0xFFB8960E)])
-                          : null,
-                      color: isSelected ? null : const Color(0xFF1A1A1A),
-                      borderRadius: BorderRadius.circular(20),
-                      border: isSelected ? null : Border.all(color: Colors.white10),
-                    ),
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Text(monthStr, style: TextStyle(color: isSelected ? Colors.black54 : Colors.white54, fontSize: 10, fontWeight: FontWeight.bold)),
-                        Text(date.day.toString(), style: TextStyle(color: isSelected ? Colors.black : Colors.white, fontSize: 16, fontWeight: FontWeight.w900)),
-                      ],
-                    ),
+                    child: isSelected
+                        ? AnimatedGradientBorder(
+                            borderWidth: 1.5,
+                            borderRadius: BorderRadius.circular(20),
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFFD4AF37).withOpacity(0.15),
+                                borderRadius: BorderRadius.circular(20),
+                              ),
+                              child: Column(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Text(monthStr, style: const TextStyle(color: Color(0xFFD4AF37), fontSize: 10, fontWeight: FontWeight.bold)),
+                                  Text(date.day.toString(), style: const TextStyle(color: Color(0xFFD4AF37), fontSize: 16, fontWeight: FontWeight.w900)),
+                                ],
+                              ),
+                            ),
+                          )
+                        : Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFF1A1A1A),
+                              borderRadius: BorderRadius.circular(20),
+                              border: Border.all(color: Colors.white10),
+                            ),
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Text(monthStr, style: const TextStyle(color: Colors.white54, fontSize: 10, fontWeight: FontWeight.bold)),
+                                Text(date.day.toString(), style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w900)),
+                              ],
+                            ),
+                          ),
                   ),
                 );
               },
@@ -206,7 +225,7 @@ class _WorldCupScreenState extends ConsumerState<WorldCupScreen>
                   : RefreshIndicator(
                       color: const Color(0xFFD4AF37),
                       backgroundColor: const Color(0xFF1A1A1A),
-                      onRefresh: _loadLiveSoccer,
+                      onRefresh: () => _loadLiveSoccer(_selectedDate),
                       child: ListView.builder(
                         padding: const EdgeInsets.only(bottom: 100),
                         itemCount: _liveSoccer.length,
@@ -313,35 +332,33 @@ class _WorldCupScreenState extends ConsumerState<WorldCupScreen>
       },
       child: Container(
         margin: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [
-              isLive
-                  ? const Color(0xFFD4AF37).withOpacity(0.1)
-                  : Colors.white.withOpacity(0.04),
-              Colors.white.withOpacity(0.02),
-            ],
-          ),
+        child: AnimatedGradientBorder(
+          borderWidth: isLive ? 1.5 : 1.2,
           borderRadius: BorderRadius.circular(20),
-          border: Border.all(
-            color: isLive
-                ? const Color(0xFFD4AF37).withOpacity(0.6)
-                : Colors.white.withOpacity(0.08),
-            width: isLive ? 1.5 : 1,
-          ),
-          boxShadow: [
-            BoxShadow(
-              color: isLive
-                  ? const Color(0xFFD4AF37).withOpacity(0.12)
-                  : Colors.black.withOpacity(0.25),
-              blurRadius: isLive ? 16 : 8,
-              offset: const Offset(0, 4),
+          child: Container(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [
+                  isLive
+                      ? const Color(0xFFD4AF37).withOpacity(0.1)
+                      : Colors.white.withOpacity(0.04),
+                  Colors.white.withOpacity(0.02),
+                ],
+              ),
+              borderRadius: BorderRadius.circular(20),
+              boxShadow: [
+                BoxShadow(
+                  color: isLive
+                      ? const Color(0xFFD4AF37).withOpacity(0.12)
+                      : Colors.black.withOpacity(0.25),
+                  blurRadius: isLive ? 16 : 8,
+                  offset: const Offset(0, 4),
+                ),
+              ],
             ),
-          ],
-        ),
-        child: Padding(
+            child: Padding(
           padding: const EdgeInsets.all(18),
           child: Column(
             children: [
@@ -403,65 +420,58 @@ class _WorldCupScreenState extends ConsumerState<WorldCupScreen>
               const SizedBox(height: 14),
               // Teams row
               Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  // Home team
+                  // Home
                   Expanded(
-                    child: Column(
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.end,
                       children: [
-                        _teamLogo(homeFlag),
-                        const SizedBox(height: 8),
-                        Text(
-                          homeTeam,
-                          textAlign: TextAlign.center,
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontWeight: FontWeight.w700,
-                            fontSize: 13,
+                        Expanded(
+                          child: Text(
+                            homeTeam,
+                            textAlign: TextAlign.end,
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 15,
+                            ),
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
                           ),
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
                         ),
+                        const SizedBox(width: 10),
+                        _teamLogo(homeFlag, width: 30, height: 22),
                       ],
                     ),
                   ),
                   // Score / VS
                   Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 20),
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
                     child: Column(
                       children: [
                         Text(
                           state == 'pre'
                               ? 'VS'
                               : '$homeScore - $awayScore',
-                          style: TextStyle(
-                            color: isLive
-                                ? const Color(0xFFD4AF37)
-                                : Colors.white,
+                          style: const TextStyle(
+                            color: Colors.white,
                             fontWeight: FontWeight.w900,
-                            fontSize: 28,
-                            letterSpacing: 1.5,
+                            fontSize: 24,
                           ),
                         ),
-                        const SizedBox(height: 8),
+                        const SizedBox(height: 6),
                         Container(
                           padding: const EdgeInsets.symmetric(
-                              horizontal: 10, vertical: 4),
+                              horizontal: 8, vertical: 3),
                           decoration: BoxDecoration(
                             color: badgeColor,
-                            borderRadius: BorderRadius.circular(16),
-                            border: Border.all(
-                                color: badgeBorder, width: 1),
+                            borderRadius: BorderRadius.circular(8),
                           ),
                           child: Text(
-                            finished
-                                ? s.wcFinished
-                                : isLive
-                                    ? timeLabel
-                                    : timeLabel,
+                            finished ? s.wcFinished : timeLabel,
                             style: TextStyle(
                               color: badgeText,
-                              fontWeight: FontWeight.w700,
+                              fontWeight: FontWeight.bold,
                               fontSize: 11,
                             ),
                           ),
@@ -469,22 +479,25 @@ class _WorldCupScreenState extends ConsumerState<WorldCupScreen>
                       ],
                     ),
                   ),
-                  // Away team
+                  // Away
                   Expanded(
-                    child: Column(
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.start,
                       children: [
-                        _teamLogo(awayFlag),
-                        const SizedBox(height: 8),
-                        Text(
-                          awayTeam,
-                          textAlign: TextAlign.center,
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontWeight: FontWeight.w700,
-                            fontSize: 13,
+                        _teamLogo(awayFlag, width: 30, height: 22),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: Text(
+                            awayTeam,
+                            textAlign: TextAlign.start,
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 15,
+                            ),
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
                           ),
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
                         ),
                       ],
                     ),
@@ -495,38 +508,40 @@ class _WorldCupScreenState extends ConsumerState<WorldCupScreen>
           ),
         ),
       ),
+      ),
     );
   }
 
-  Widget _teamLogo(String url) {
+  Widget _teamLogo(String url, {double width = 48, double height = 48}) {
+    final double radius = width > 30 ? 10 : 4;
+    final double iconSize = width > 30 ? 24 : 20;
+
     if (url.isEmpty) {
       return Container(
-        width: 48,
-        height: 48,
+        width: width,
+        height: height,
         decoration: BoxDecoration(
           color: Colors.white.withOpacity(0.08),
-          borderRadius: BorderRadius.circular(10),
+          borderRadius: BorderRadius.circular(radius),
         ),
-        child: const Icon(Icons.shield_rounded,
-            color: Colors.white24, size: 24),
+        child: Icon(Icons.shield_rounded, color: Colors.white24, size: iconSize),
       );
     }
     return ClipRRect(
-      borderRadius: BorderRadius.circular(10),
+      borderRadius: BorderRadius.circular(radius),
       child: Image.network(
         url,
-        width: 48,
-        height: 48,
+        width: width,
+        height: height,
         fit: BoxFit.contain,
         errorBuilder: (_, __, ___) => Container(
-          width: 48,
-          height: 48,
+          width: width,
+          height: height,
           decoration: BoxDecoration(
             color: Colors.white.withOpacity(0.08),
-            borderRadius: BorderRadius.circular(10),
+            borderRadius: BorderRadius.circular(radius),
           ),
-          child: const Icon(Icons.shield_rounded,
-              color: Colors.white24, size: 24),
+          child: Icon(Icons.shield_rounded, color: Colors.white24, size: iconSize),
         ),
       ),
     );
@@ -580,9 +595,25 @@ class _WorldCupScreenState extends ConsumerState<WorldCupScreen>
             ? const Color(0xFFD4AF37)
             : Colors.blueAccent;
 
-    return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
-      child: AnimatedGradientBorder(
+    return GestureDetector(
+      onTap: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => MatchDetailsScreen(
+              eventId: '', // worldcup26.ir matches don't have ESPN ID
+              homeTeam: homeTeam,
+              awayTeam: awayTeam,
+              homeFlag: homeFlag,
+              awayFlag: awayFlag,
+              gameData: game,
+            ),
+          ),
+        );
+      },
+      child: Container(
+        margin: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
+        child: AnimatedGradientBorder(
         borderWidth: 1.2,
         borderRadius: BorderRadius.circular(18),
         child: Container(
@@ -713,6 +744,7 @@ class _WorldCupScreenState extends ConsumerState<WorldCupScreen>
             ],
           ),
         ),
+      ),
       ),
     );
   }

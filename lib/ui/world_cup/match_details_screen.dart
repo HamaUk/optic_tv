@@ -11,6 +11,7 @@ class MatchDetailsScreen extends ConsumerStatefulWidget {
   final String awayTeam;
   final String? homeFlag;
   final String? awayFlag;
+  final dynamic gameData;
 
   const MatchDetailsScreen({
     super.key,
@@ -19,6 +20,7 @@ class MatchDetailsScreen extends ConsumerStatefulWidget {
     required this.awayTeam,
     this.homeFlag,
     this.awayFlag,
+    this.gameData,
   });
 
   @override
@@ -46,6 +48,44 @@ class _MatchDetailsScreenState extends ConsumerState<MatchDetailsScreen> with Si
   }
 
   Future<void> _fetchSummary() async {
+    if (widget.eventId.isEmpty && widget.gameData != null) {
+      if (mounted) {
+        setState(() {
+          _summary = {
+            'header': {
+              'competitions': [
+                {
+                  'status': {
+                    'type': {
+                      'state': 'post',
+                      'shortDetail': 'FT',
+                    }
+                  }
+                }
+              ]
+            },
+            'boxscore': {
+              'teams': [
+                {
+                  'homeAway': 'home',
+                  'team': {'shortDisplayName': widget.homeTeam},
+                  'score': widget.gameData['home_score'],
+                },
+                {
+                  'homeAway': 'away',
+                  'team': {'shortDisplayName': widget.awayTeam},
+                  'score': widget.gameData['away_score'],
+                }
+              ]
+            },
+            'keyEvents': _parseKeyEvents(widget.gameData),
+          };
+          _loading = false;
+        });
+      }
+      return;
+    }
+
     final data = await WorldCupService.fetchMatchSummary(widget.eventId);
     final probs = await WorldCupService.fetchMatchProbabilities(widget.eventId);
     if (mounted) {
@@ -55,7 +95,31 @@ class _MatchDetailsScreenState extends ConsumerState<MatchDetailsScreen> with Si
         _loading = false;
       });
     }
-  }  @override
+  }
+
+  List<dynamic> _parseKeyEvents(dynamic gameData) {
+    List<dynamic> events = [];
+    
+    void parseScorers(dynamic scorersStr) {
+      if (scorersStr == null || scorersStr == 'null') return;
+      String s = scorersStr.toString();
+      s = s.replaceAll('{', '').replaceAll('}', '').replaceAll('"', '').replaceAll('“', '').replaceAll('”', '');
+      if (s.isEmpty) return;
+      
+      final parts = s.split(',');
+      for (var p in parts) {
+        if (p.trim().isEmpty) continue;
+        events.add({
+          'type': {'text': 'Goal'},
+          'shortText': p.trim(),
+          'clock': {'displayValue': ''},
+        });
+      }
+    }
+    parseScorers(gameData['home_scorers']);
+    parseScorers(gameData['away_scorers']);
+    return events;
+  }
   @override
   Widget build(BuildContext context) {
     final locale = ref.watch(appLocaleProvider);

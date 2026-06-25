@@ -8,6 +8,7 @@ import '../../widgets/tv_fluid_focusable.dart';
 import '../../l10n/app_strings.dart';
 import '../../providers/app_locale_provider.dart';
 import '../../providers/session_provider.dart';
+import 'package:custom_tv_text_field/custom_tv_text_field.dart';
 
 class LoginScreen extends ConsumerStatefulWidget {
   const LoginScreen({super.key});
@@ -40,19 +41,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
     super.dispose();
   }
 
-  void _onKeyPress(String val) {
-    if (_busy) return;
-    if (val == 'DEL') {
-      if (_codeController.text.isNotEmpty) {
-        _codeController.text =
-            _codeController.text.substring(0, _codeController.text.length - 1);
-      }
-    } else {
-      if (_codeController.text.length < 12) {
-        _codeController.text += val;
-      }
-    }
-  }
+
 
   Future<void> _submit(AppStrings s) async {
     final code = _codeController.text.trim();
@@ -286,9 +275,24 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      _buildTvDisplayField(s),
+                      CustomTVTextField(
+                        controller: _codeController,
+                        isFocused: true,
+                        hint: s.loginHint.toUpperCase(),
+                        textFieldType: TextFieldType.number,
+                        textStyle: const TextStyle(color: AppTheme.primaryGold, fontSize: 32, fontWeight: FontWeight.w900, letterSpacing: 8),
+                        hintStyle: TextStyle(color: Colors.white.withOpacity(0.15), fontSize: 24, fontWeight: FontWeight.w900, letterSpacing: 8),
+                        backgroundColor: Colors.white.withOpacity(0.03),
+                        borderColor: Colors.white.withOpacity(0.15),
+                        focusedBorderColor: AppTheme.primaryGold.withOpacity(0.5),
+                        borderRadius: 24,
+                        verticalContentPadding: 24,
+                        horizontalContentPadding: 32,
+                        textAlign: TextAlign.center,
+                        onFieldSubmitted: (_) => _submit(s),
+                      ),
                       if (session.error != null) ...[
-                        const SizedBox(height: 24),
+                        const SizedBox(height: 32),
                         Container(
                           padding: const EdgeInsets.all(12),
                           decoration: BoxDecoration(
@@ -298,13 +302,11 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
                           ),
                           child: Text(
                             session.error!,
-                            style: const TextStyle(color: Colors.redAccent, fontSize: 14, fontWeight: FontWeight.bold),
+                            style: const TextStyle(color: Colors.redAccent, fontSize: 16, fontWeight: FontWeight.bold),
                             textAlign: TextAlign.center,
                           ),
                         ),
                       ],
-                      const SizedBox(height: 40),
-                      _buildKeypad(s, uiLocale),
                     ],
                   ),
                 ),
@@ -429,89 +431,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
     );
   }
 
-  Widget _buildTvDisplayField(AppStrings s) {
-    return ValueListenableBuilder<TextEditingValue>(
-      valueListenable: _codeController,
-      builder: (context, value, _) {
-        return Container(
-          height: 100,
-          width: double.infinity,
-          decoration: BoxDecoration(
-            color: Colors.white.withOpacity(0.03),
-            borderRadius: BorderRadius.circular(24),
-            border: Border.all(color: Colors.white.withOpacity(0.15), width: 2),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withOpacity(0.4),
-                blurRadius: 30,
-                offset: const Offset(0, 15),
-              ),
-            ],
-          ),
-          child: Center(
-            child: value.text.isEmpty
-                ? Text(
-                    s.loginHint.toUpperCase(),
-                    style: TextStyle(color: Colors.white.withOpacity(0.15), fontSize: 24, fontWeight: FontWeight.w900, letterSpacing: 8),
-                  )
-                : Text(
-                    value.text,
-                    style: const TextStyle(color: AppTheme.primaryGold, fontSize: 44, fontWeight: FontWeight.w900, letterSpacing: 16),
-                  ),
-          ),
-        );
-      },
-    );
-  }
 
-  Widget _buildKeypad(AppStrings s, Locale uiLocale) {
-    return GridView.count(
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
-      crossAxisCount: 3,
-      mainAxisSpacing: 16,
-      crossAxisSpacing: 16,
-      childAspectRatio: 1.6,
-      children: [
-        for (var i = 1; i <= 9; i++) _keyButton(i.toString()),
-        _keyButton('DEL', icon: Icons.backspace_rounded, bgColor: Colors.redAccent.withOpacity(0.15), fgColor: Colors.redAccent),
-        _keyButton('0'),
-        _keyButton('OK', icon: Icons.login_rounded, isPrimary: true),
-      ],
-    );
-  }
-
-  Widget _keyButton(String val, {IconData? icon, bool isPrimary = false, Color? bgColor, Color? fgColor}) {
-    final backgroundColor = bgColor ?? (isPrimary ? AppTheme.primaryGold.withOpacity(0.2) : Colors.white.withOpacity(0.05));
-    final borderColor = isPrimary ? AppTheme.primaryGold.withOpacity(0.5) : Colors.white.withOpacity(0.1);
-    final foregroundColor = fgColor ?? (isPrimary ? AppTheme.primaryGold : Colors.white);
-
-    return GhostenFocusable(
-      onTap: () => val == 'OK' ? _submit(AppStrings(ref.read(appLocaleProvider))) : _onKeyPress(val),
-      child: Container(
-        decoration: BoxDecoration(
-          color: backgroundColor,
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: borderColor, width: 1.5),
-          boxShadow: isPrimary ? [
-            BoxShadow(
-              color: AppTheme.primaryGold.withOpacity(0.2),
-              blurRadius: 15,
-              offset: const Offset(0, 5),
-            )
-          ] : null,
-        ),
-        child: Center(
-          child: icon != null
-              ? Icon(icon, color: foregroundColor, size: 32)
-              : Text(
-                  val,
-                  style: TextStyle(color: foregroundColor, fontSize: 32, fontWeight: FontWeight.w900),
-                ),
-        ),
-      ),
-    );
-  }
 }
 
 class _GlowOrb extends StatelessWidget {
