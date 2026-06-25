@@ -43,6 +43,35 @@ class _WorldCupScreenState extends ConsumerState<WorldCupScreen>
     setState(() => _isLoading = true);
     final games = await WorldCupService.fetchGames();
     final groups = await WorldCupService.fetchGroups();
+    
+    // Sort games strategically: 
+    // 1. Upcoming games first (sorted ascending by date, so soonest is top)
+    // 2. Finished games next (sorted descending by date, so most recently finished is top)
+    DateTime? parseDate(String? d) {
+      if (d == null) return null;
+      try {
+        final p = d.split(' ');
+        final dp = p[0].split('/');
+        final tp = p[1].split(':');
+        return DateTime(int.parse(dp[2]), int.parse(dp[0]), int.parse(dp[1]), int.parse(tp[0]), int.parse(tp[1]));
+      } catch (_) { return null; }
+    }
+    
+    games.sort((a, b) {
+      final aFin = a['finished'] == 'TRUE' || a['finished'] == true;
+      final bFin = b['finished'] == 'TRUE' || b['finished'] == true;
+      if (aFin != bFin) return aFin ? 1 : -1; // Unfinished first
+      final aDate = parseDate(a['local_date']);
+      final bDate = parseDate(b['local_date']);
+      if (aDate == null && bDate == null) return 0;
+      if (aDate == null) return 1;
+      if (bDate == null) return -1;
+      // If unfinished, sort ascending (closest first)
+      if (!aFin) return aDate.compareTo(bDate);
+      // If finished, sort descending (most recent first)
+      return bDate.compareTo(aDate);
+    });
+
     if (mounted) {
       setState(() {
         _games = games;
