@@ -38,8 +38,8 @@ class _WorldCupScreenState extends ConsumerState<WorldCupScreen>
   @override
   void initState() {
     super.initState();
-    // 7 Tabs: Matches (Combined), Highlights, Groups, News, Scorers (Stats), Teams, Venues
-    _tabController = TabController(length: 7, vsync: this);
+    // 5 Tabs: Matches (Combined), Highlights, Groups, News, Scorers (Stats)
+    _tabController = TabController(length: 5, vsync: this);
     _loadData();
     _loadLiveSoccerForOffset(_selectedDayOffset);
     _loadNews();
@@ -142,8 +142,6 @@ class _WorldCupScreenState extends ConsumerState<WorldCupScreen>
             Tab(text: s.wcTabGroups),
             Tab(text: s.wcTabNews),
             Tab(text: s.wcTabScorers),
-            Tab(text: s.wcTabTeams),
-            Tab(text: s.wcTabVenues),
           ],
         ),
       ),
@@ -155,8 +153,6 @@ class _WorldCupScreenState extends ConsumerState<WorldCupScreen>
           _buildGroupsTab(s),
           _buildNewsTab(s),
           _buildScorersTab(s),
-          _buildTeamsTab(s),
-          _buildVenuesTab(s),
         ],
       ),
     );
@@ -1033,149 +1029,7 @@ class _WorldCupScreenState extends ConsumerState<WorldCupScreen>
     );
   }
 
-  Widget _buildTeamsTab(AppStrings s) {
-    return FutureBuilder<List<dynamic>>(
-      future: WorldCupService.fetchTeamsList(), // Using ESPN teams list for reliability
-      builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Center(child: CircularProgressIndicator(color: Color(0xFFD4AF37)));
-        }
-        final teams = snapshot.data ?? [];
-        if (teams.isEmpty) {
-          return Center(child: Text(s.wcNoTeams, style: const TextStyle(color: Colors.white54)));
-        }
 
-        return GridView.builder(
-          padding: const EdgeInsets.all(14).copyWith(bottom: 100),
-          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-            crossAxisCount: 3,
-            crossAxisSpacing: 10,
-            mainAxisSpacing: 10,
-            childAspectRatio: 1.0,
-          ),
-          itemCount: teams.length,
-          itemBuilder: (context, index) {
-            final t = teams[index]['team'] ?? {};
-            final name = t['displayName'] ?? t['name'] ?? '';
-            final logo = t['logos'] != null && (t['logos'] as List).isNotEmpty ? t['logos'][0]['href'] : '';
-            final id = t['id'] ?? '';
-
-            return GestureDetector(
-              onTap: () {
-                if (id.isNotEmpty) {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (_) => TeamDetailsScreen(teamId: id, teamName: name, teamFlag: logo),
-                    ),
-                  );
-                }
-              },
-              child: Container(
-                decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.04),
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: Colors.white.withOpacity(0.06), width: 1),
-                ),
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    _teamLogo(logo, width: 36, height: 26),
-                    const SizedBox(height: 8),
-                    Text(
-                      name,
-                      style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 11),
-                      textAlign: TextAlign.center,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ],
-                ),
-              ),
-            );
-          },
-        );
-      },
-    );
-  }
-
-  Widget _buildVenuesTab(AppStrings s) {
-    final venues = [
-      {"name": "Azteca", "city": "Mexico City, Mexico", "capacity": "87,523"},
-      {"name": "MetLife Stadium", "city": "East Rutherford, USA", "capacity": "82,500"},
-      {"name": "AT&T Stadium", "city": "Arlington, USA", "capacity": "80,000"},
-      {"name": "Arrowhead Stadium", "city": "Kansas City, USA", "capacity": "76,416"},
-      {"name": "Mercedes-Benz Stadium", "city": "Atlanta, USA", "capacity": "71,000"},
-      {"name": "SoFi Stadium", "city": "Inglewood, USA", "capacity": "70,240"},
-      {"name": "Lincoln Financial Field", "city": "Philadelphia, USA", "capacity": "69,796"},
-      {"name": "Lumen Field", "city": "Seattle, USA", "capacity": "69,000"},
-      {"name": "Levi's Stadium", "city": "Santa Clara, USA", "capacity": "68,500"},
-      {"name": "Gillette Stadium", "city": "Foxborough, USA", "capacity": "65,878"},
-      {"name": "Hard Rock Stadium", "city": "Miami Gardens, USA", "capacity": "64,767"},
-      {"name": "BC Place", "city": "Vancouver, Canada", "capacity": "54,500"},
-      {"name": "BMO Field", "city": "Toronto, Canada", "capacity": "45,736"},
-      {"name": "BBVA Stadium", "city": "Guadalupe, Mexico", "capacity": "53,500"},
-      {"name": "Akron Stadium", "city": "Zapopan, Mexico", "capacity": "48,071"},
-    ];
-
-    return ListView.builder(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12).copyWith(bottom: 100),
-      itemCount: venues.length,
-      itemBuilder: (context, index) {
-        final v = venues[index];
-        return Container(
-          margin: const EdgeInsets.only(bottom: 10),
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            color: Colors.white.withOpacity(0.04),
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: Colors.white.withOpacity(0.06), width: 1),
-          ),
-          child: Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(10),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFD4AF37).withOpacity(0.12),
-                  shape: BoxShape.circle,
-                ),
-                child: const Icon(Icons.location_on_rounded, color: Color(0xFFD4AF37), size: 20),
-              ),
-              const SizedBox(width: 14),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      v["name"]!,
-                      style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14),
-                    ),
-                    Text(
-                      v["city"]!,
-                      style: const TextStyle(color: Colors.white38, fontSize: 11),
-                    ),
-                  ],
-                ),
-              ),
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.end,
-                children: [
-                  Text(
-                    v["capacity"]!,
-                    style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 14),
-                  ),
-                  Text(
-                    s.wcCapacity,
-                    style: const TextStyle(color: Colors.white30, fontSize: 9, fontWeight: FontWeight.bold),
-                  ),
-                ],
-              ),
-            ],
-          ),
-        );
-      },
-    );
-  }
 
   // --- Highlights Tab ---
 
