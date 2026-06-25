@@ -2,6 +2,7 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../widgets/tv/tv_focusable.dart';
+import '../../widgets/animated_gradient_border.dart';
 
 import '../../core/theme.dart';
 import '../../l10n/app_strings.dart';
@@ -491,17 +492,26 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   }
 
   Widget _glassCard({required Widget child}) {
-    return ClipRRect(
+    return AnimatedGradientBorder(
+      borderSize: 2,
+      gradientColors: [
+        AppTheme.accentColor(_data.gradientPreset),
+        Colors.transparent,
+        AppTheme.accentColor(_data.gradientPreset).withOpacity(0.5),
+        Colors.transparent,
+      ],
       borderRadius: BorderRadius.circular(24),
-      child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 15, sigmaY: 15),
-        child: Container(
-          decoration: BoxDecoration(
-            color: Colors.black.withOpacity(0.3),
-            borderRadius: BorderRadius.circular(24),
-            border: Border.all(color: Colors.white.withOpacity(0.06), width: 1),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(24),
+        child: BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 15, sigmaY: 15),
+          child: Container(
+            decoration: BoxDecoration(
+              color: Colors.black.withOpacity(0.3),
+              borderRadius: BorderRadius.circular(24),
+            ),
+            child: child,
           ),
-          child: child,
         ),
       ),
     );

@@ -150,14 +150,13 @@ class AppTheme {
   }
 
   static LinearGradient settingsBackdropGradient(AppGradientPreset p) {
-    final accent = accentColor(p);
-    return LinearGradient(
+    return const LinearGradient(
       begin: Alignment.topCenter,
       end: Alignment.bottomCenter,
       colors: [
-        const Color(0xFF000000),
-        accent.withOpacity(0.15),
-        const Color(0xFF000000),
+        Color(0xFF000000),
+        Color(0xFF0F0F0F),
+        Color(0xFF000000),
       ],
     );
   }

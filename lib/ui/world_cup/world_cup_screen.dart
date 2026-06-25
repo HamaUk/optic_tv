@@ -16,26 +16,40 @@ class _WorldCupScreenState extends State<WorldCupScreen> with SingleTickerProvid
   List<dynamic> _groups = [];
   List<dynamic> _liveSoccer = [];
   bool _isLoading = true;
+  bool _isLoadingLive = true;
+  int _selectedDayOffset = 0;
 
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 3, vsync: this);
     _loadData();
+    _loadLiveSoccer();
   }
 
   Future<void> _loadData() async {
     setState(() => _isLoading = true);
     final games = await WorldCupService.fetchGames();
     final groups = await WorldCupService.fetchGroups();
-    final liveSoccer = await WorldCupService.fetchLiveSoccer();
     
     if (mounted) {
       setState(() {
         _games = games;
         _groups = groups;
-        _liveSoccer = liveSoccer;
         _isLoading = false;
+      });
+    }
+  }
+
+  Future<void> _loadLiveSoccer() async {
+    setState(() => _isLoadingLive = true);
+    final targetDate = DateTime.now().add(Duration(days: _selectedDayOffset));
+    final liveSoccer = await WorldCupService.fetchLiveSoccerForDate(targetDate);
+    
+    if (mounted) {
+      setState(() {
+        _liveSoccer = liveSoccer;
+        _isLoadingLive = false;
       });
     }
   }
@@ -86,17 +100,67 @@ class _WorldCupScreenState extends State<WorldCupScreen> with SingleTickerProvid
   }
 
   Widget _buildLiveSoccerTab() {
-    if (_liveSoccer.isEmpty) {
-      return const Center(child: Text('No live matches found.', style: TextStyle(color: Colors.white70)));
-    }
-    
-    return ListView.builder(
-      padding: const EdgeInsets.only(top: 16, bottom: 100),
-      itemCount: _liveSoccer.length,
-      itemBuilder: (context, index) {
-        final event = _liveSoccer[index];
-        return _buildEspnMatchCard(event);
+    return Column(
+      children: [
+        // Date Selector Toggle
+        Padding(
+          padding: const EdgeInsets.symmetric(vertical: 16.0, horizontal: 8.0),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              _buildDateToggle(0, 'ئەمڕۆ (Today)'),
+              const SizedBox(width: 8),
+              _buildDateToggle(1, 'سبەی (Tomorrow)'),
+              const SizedBox(width: 8),
+              _buildDateToggle(2, 'دواتر (Next)'),
+            ],
+          ),
+        ),
+        
+        Expanded(
+          child: _isLoadingLive
+              ? const Center(child: CircularProgressIndicator())
+              : _liveSoccer.isEmpty
+                  ? const Center(child: Text('هیچ یارییەک نییە لەم بەروارەدا', style: TextStyle(color: Colors.white70)))
+                  : ListView.builder(
+                      padding: const EdgeInsets.only(bottom: 100),
+                      itemCount: _liveSoccer.length,
+                      itemBuilder: (context, index) {
+                        final event = _liveSoccer[index];
+                        return _buildEspnMatchCard(event);
+                      },
+                    ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildDateToggle(int offset, String label) {
+    final isSelected = _selectedDayOffset == offset;
+    return GestureDetector(
+      onTap: () {
+        if (!isSelected) {
+          setState(() => _selectedDayOffset = offset);
+          _loadLiveSoccer();
+        }
       },
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        decoration: BoxDecoration(
+          color: isSelected ? Theme.of(context).colorScheme.primary : Colors.white10,
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: isSelected ? Colors.transparent : Colors.white24),
+        ),
+        child: Text(
+          label,
+          style: TextStyle(
+            color: isSelected ? Colors.white : Colors.white70,
+            fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+            fontSize: 13,
+          ),
+        ),
+      ),
     );
   }
 

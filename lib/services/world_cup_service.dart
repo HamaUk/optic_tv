@@ -84,16 +84,17 @@ class WorldCupService {
     return [];
   }
 
-  /// Fetches Live Soccer games from ESPN API (FIFA World Cup Only)
-  static Future<List<dynamic>> fetchLiveSoccer() async {
+  /// Fetches Live Soccer games from ESPN API (FIFA World Cup Only) for a specific date
+  static Future<List<dynamic>> fetchLiveSoccerForDate(DateTime date) async {
     try {
-      final response = await http.get(Uri.parse('https://site.api.espn.com/apis/site/v2/sports/soccer/fifa.world/scoreboard'));
+      final dateStr = "${date.year}${date.month.toString().padLeft(2, '0')}${date.day.toString().padLeft(2, '0')}";
+      final response = await http.get(Uri.parse('https://site.api.espn.com/apis/site/v2/sports/soccer/fifa.world/scoreboard?dates=$dateStr'));
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
         return data['events'] as List<dynamic>? ?? [];
       }
     } catch (e) {
-      print('Error fetching ESPN live soccer: $e');
+      print('Error fetching ESPN live soccer for date: $e');
     }
     return [];
   }
