@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../services/world_cup_service.dart';
-import '../../theme.dart';
+import '../../core/theme.dart';
 import 'dart:ui';
 
 class MatchDetailsScreen extends StatefulWidget {
