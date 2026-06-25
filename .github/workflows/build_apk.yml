@@ -64,6 +64,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          TAG_NAME="build-$(date +'%Y%m%d%H%M%S')"
+          VERSION=$(grep '^version: ' pubspec.yaml | cut -d ' ' -f 2 | cut -d '+' -f 1)
+          TAG_NAME="v${VERSION}-b${{ github.run_number }}"
           echo "Creating Release $TAG_NAME..."
-          gh release create "$TAG_NAME" build/app/outputs/flutter-apk/app-release.apk --title "New Build $TAG_NAME" --notes "Here is your fresh APK!"
+          gh release create "$TAG_NAME" build/app/outputs/flutter-apk/app-release.apk --title "KOBANI 4K $TAG_NAME" --notes "Automated build #${{ github.run_number }} of version $VERSION"
