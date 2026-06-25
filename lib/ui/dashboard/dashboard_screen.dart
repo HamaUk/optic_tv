@@ -42,6 +42,7 @@ import '../../widgets/tv/tv_focusable.dart';
 import '../../widgets/tv_fluid_focusable.dart';
 import 'package:lottie/lottie.dart';
 import 'package:flutter_staggered_animations/flutter_staggered_animations.dart';
+import 'package:google_nav_bar/google_nav_bar.dart';
 
  // Admin portal is handled via AdminScreen with Firebase Auth.
 
@@ -1848,6 +1849,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
           child: BackdropFilter(
             filter: ImageFilter.blur(sigmaX: 18, sigmaY: 18),
             child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
               decoration: BoxDecoration(
                 color: const Color(0xFF080C12).withOpacity(0.82),
                 borderRadius: BorderRadius.circular(36),
@@ -1856,14 +1858,34 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
                   width: 1,
                 ),
               ),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                children: [
-                  _navItem(s, settings, iconActive: Icons.grid_view_rounded, iconInactive: Icons.grid_view_outlined, label: s.navHome, index: 0),
-                  _navItem(s, settings, iconActive: Icons.movie_creation_rounded, iconInactive: Icons.movie_creation_outlined, label: s.navMovies, index: 1),
-                  _navItem(s, settings, iconActive: Icons.sports_basketball_rounded, iconInactive: Icons.sports_basketball_outlined, label: s.navSport, index: 2),
-                  _navItem(s, settings, iconActive: Icons.emoji_events_rounded, iconInactive: Icons.emoji_events_outlined, label: s.navWorldCup, index: 3),
-                  _navItem(s, settings, iconActive: Icons.person_rounded, iconInactive: Icons.person_outline_rounded, label: s.navProfile, index: 4),
+              child: GNav(
+                rippleColor: accent.withOpacity(0.3),
+                hoverColor: accent.withOpacity(0.1),
+                haptic: true,
+                tabBorderRadius: 24,
+                curve: Curves.easeOutExpo,
+                duration: const Duration(milliseconds: 400),
+                gap: 8,
+                color: Colors.white38,
+                activeColor: Colors.white,
+                iconSize: 26,
+                tabBackgroundColor: accent.withOpacity(0.2),
+                padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
+                selectedIndex: _navIndex,
+                onTabChange: (index) {
+                  HapticFeedback.selectionClick();
+                  if (index == 4 && _navIndex == 4) {
+                    _openSettings(); // Allow opening settings by tapping profile again
+                  } else {
+                    setState(() => _navIndex = index);
+                  }
+                },
+                tabs: [
+                  GButton(icon: _navIndex == 0 ? Icons.grid_view_rounded : Icons.grid_view_outlined, text: s.navHome),
+                  GButton(icon: _navIndex == 1 ? Icons.movie_creation_rounded : Icons.movie_creation_outlined, text: s.navMovies),
+                  GButton(icon: _navIndex == 2 ? Icons.sports_basketball_rounded : Icons.sports_basketball_outlined, text: s.navSport),
+                  GButton(icon: _navIndex == 3 ? Icons.emoji_events_rounded : Icons.emoji_events_outlined, text: s.navWorldCup),
+                  GButton(icon: _navIndex == 4 ? Icons.person_rounded : Icons.person_outline_rounded, text: s.navProfile),
                 ],
               ),
             ),
@@ -1873,133 +1895,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
     );
   }
 
-  Widget _navItem(
-    AppStrings s,
-    AppSettingsData settings, {
-    required IconData iconActive,
-    required IconData iconInactive,
-    required String label,
-    required int index,
-    bool sideRail = false,
-    bool isTv = false,
-  }) {
-    final selected = _navIndex == index;
-    final accent = _accent; // Uses dynamic palette blend
-    final color = selected ? accent : (sideRail ? Colors.white.withOpacity(0.52) : Colors.white38);
-    final icon = selected ? iconActive : iconInactive;
 
-    if (isTv) {
-      return TvFocusWrapper(
-        onTap: () {
-          if (index == -1) {
-            _openSettings();
-          } else {
-            HapticFeedback.selectionClick();
-            setState(() => _navIndex = index);
-          }
-        },
-        borderRadius: 14,
-        scale: 1.15,
-        child: Container(
-          width: 80,
-          padding: const EdgeInsets.symmetric(vertical: 12),
-          decoration: BoxDecoration(
-            color: selected ? accent.withOpacity(0.2) : Colors.transparent,
-            borderRadius: BorderRadius.circular(14),
-            boxShadow: selected ? [
-              BoxShadow(color: accent.withOpacity(0.3), blurRadius: 15),
-            ] : [],
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(icon, color: color, size: 28),
-              const SizedBox(height: 6),
-              Text(
-                label,
-                style: AppTheme.withRabarIfKurdish(
-                  s.locale,
-                  TextStyle(
-                    color: color,
-                    fontSize: 11,
-                    fontWeight: selected ? FontWeight.w900 : FontWeight.w500,
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-      );
-    }
-
-    return GestureDetector(
-      onTap: () {
-        HapticFeedback.selectionClick();
-        setState(() => _navIndex = index);
-      },
-      behavior: HitTestBehavior.opaque,
-      child: SizedBox(
-        width: 72,
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            // ── Icon pill with glow background ──────────────────────────
-            AnimatedContainer(
-              duration: const Duration(milliseconds: 320),
-              curve: Curves.easeOutCubic,
-              padding: EdgeInsets.symmetric(horizontal: selected ? 14 : 10, vertical: 6),
-              decoration: BoxDecoration(
-                color: selected ? accent.withOpacity(0.18) : Colors.transparent,
-                borderRadius: BorderRadius.circular(16),
-                boxShadow: selected ? [
-                  BoxShadow(color: accent.withOpacity(0.35), blurRadius: 16, spreadRadius: -2),
-                ] : [],
-              ),
-              child: Icon(
-                icon,
-                color: color,
-                size: sideRail ? 34 : 30,
-                shadows: selected ? [
-                  Shadow(color: accent.withOpacity(0.6), blurRadius: 12),
-                ] : [],
-              ),
-            ),
-            const SizedBox(height: 3),
-            // ── Label ────────────────────────────────────────────────────
-            AnimatedDefaultTextStyle(
-              duration: const Duration(milliseconds: 200),
-              style: AppTheme.withRabarIfKurdish(
-                s.locale,
-                TextStyle(
-                  color: selected ? Colors.white : Colors.white38,
-                  fontSize: selected ? 10.5 : 9.5,
-                  fontWeight: selected ? FontWeight.w800 : FontWeight.w500,
-                  letterSpacing: selected ? 0.4 : 0,
-                ),
-              ),
-              child: Text(label, maxLines: 1, overflow: TextOverflow.ellipsis),
-            ),
-            const SizedBox(height: 3),
-            // ── Active pill indicator ────────────────────────────────────
-            AnimatedContainer(
-              duration: const Duration(milliseconds: 350),
-              curve: Curves.elasticOut,
-              width: selected ? 20 : 0,
-              height: 3,
-              decoration: BoxDecoration(
-                color: selected ? accent : Colors.transparent,
-                borderRadius: BorderRadius.circular(3),
-                boxShadow: selected ? [
-                  BoxShadow(color: accent.withOpacity(0.7), blurRadius: 6, spreadRadius: 1),
-                ] : [],
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
 
   /// Category Sidebar (Pane 2) specifically for TV.
   Widget _buildTvCategoryRail(AppStrings s) {
