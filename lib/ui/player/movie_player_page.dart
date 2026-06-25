@@ -449,7 +449,36 @@ class _VideoSettingsModalState extends State<VideoSettingsModal> {
   String selectedAudio = 'English';
   double selectedSpeed = 1.0;
 
+  List<String> _qualities = ['Auto'];
+
   final List<double> speedValues = [0.5, 0.75, 1.0, 1.5, 2.0];
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchTracks();
+  }
+
+  Future<void> _fetchTracks() async {
+    try {
+      final tracks = await widget.player.getTracks();
+      final heights = <int>{};
+      for (var t in tracks) {
+        if (t['height'] != null) {
+          heights.add((t['height'] as num).toInt());
+        }
+      }
+      
+      final sortedHeights = heights.toList()..sort((a, b) => b.compareTo(a));
+      if (mounted) {
+        setState(() {
+          _qualities = ['Auto', ...sortedHeights.map((h) => '${h}p')];
+        });
+      }
+    } catch (e) {
+      debugPrint('Failed to load real tracks: $e');
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -483,14 +512,15 @@ class _VideoSettingsModalState extends State<VideoSettingsModal> {
                     ],
                   ),
                   const SizedBox(height: 12),
-                  ...['Auto', '1080p', '720p', '360p', '240p'].map((quality) => 
+                  ..._qualities.map((quality) => 
                     _buildSelectionRow(quality, selectedQuality == quality, () {
                       setState(() => selectedQuality = quality);
-                      if (quality == 'Auto') widget.player.setMaxResolution(0);
-                      if (quality == '1080p') widget.player.setMaxResolution(1080);
-                      if (quality == '720p') widget.player.setMaxResolution(720);
-                      if (quality == '360p') widget.player.setMaxResolution(360);
-                      if (quality == '240p') widget.player.setMaxResolution(240);
+                      if (quality == 'Auto') {
+                        widget.player.setMaxResolution(0);
+                      } else {
+                        final h = int.tryParse(quality.replaceAll('p', '')) ?? 0;
+                        widget.player.setMaxResolution(h);
+                      }
                     })
                   ),
                 ],
