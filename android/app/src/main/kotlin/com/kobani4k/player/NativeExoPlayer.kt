@@ -236,6 +236,10 @@ class NativeExoPlayer(
     // ─── Player Operations ───────────────────────────────────────────────
 
     private fun open(url: String, headers: Map<String, String>) {
+        // Stop current playback and clear media item
+        player.stop()
+        player.clearMediaItem()
+
         // Recreate texture to ensure clean state when opening new stream
         // This fixes black screen issue when navigating between tabs
         textureEntry?.release()
