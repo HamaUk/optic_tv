@@ -493,13 +493,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
 
   Widget _glassCard({required Widget child}) {
     return AnimatedGradientBorder(
-      borderSize: 2,
-      gradientColors: [
-        AppTheme.accentColor(_data.gradientPreset),
-        Colors.transparent,
-        AppTheme.accentColor(_data.gradientPreset).withOpacity(0.5),
-        Colors.transparent,
-      ],
+      borderWidth: 2,
       borderRadius: BorderRadius.circular(24),
       child: ClipRRect(
         borderRadius: BorderRadius.circular(24),
