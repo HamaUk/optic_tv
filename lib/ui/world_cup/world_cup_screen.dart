@@ -257,6 +257,11 @@ class _WorldCupScreenState extends State<WorldCupScreen> with SingleTickerProvid
   }
 
   Widget _buildMatchesTab() {
+    if (_games.isEmpty) {
+      return const Center(child: Text('No matches found.', style: TextStyle(color: Colors.white70)));
+    }
+    
+    return ListView.builder(
       padding: const EdgeInsets.only(top: 16, bottom: 100),
       itemCount: _games.length,
       itemBuilder: (context, index) {
