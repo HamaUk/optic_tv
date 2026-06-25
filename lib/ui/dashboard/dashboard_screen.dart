@@ -556,28 +556,6 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
 
         // World Cup tab: show dedicated screen instead of channel grid.
         if (_navIndex == 3) {
-          return const WorldCupScreen();
-        }
-
-        return Scaffold(
-          backgroundColor: AppTheme.backgroundBlack,
-            body: Container(
-              decoration: BoxDecoration(
-                gradient: AppTheme.shellGradient(settings.gradientPreset),
-              ),
-              child: SafeArea(
-                bottom: false,
-                child: _buildDashboardShell(
-                  context, s, 16.0, false, screen, settings,
-                ),
-              ),
-            ),
-            bottomNavigationBar: portrait ? _buildBottomNav(s, MediaQuery.paddingOf(context).bottom, settings) : null,
-          );
-        }
-
-        // World Cup tab
-        if (_navIndex == 3) {
           return Scaffold(
             backgroundColor: AppTheme.backgroundBlack,
             body: Container(
@@ -596,11 +574,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
         final isTv = MediaQuery.sizeOf(context).width > 900;
 
         if (isTv) {
-          return channelsAsync.when(
-            data: (all) => TvDashboardScreen(allChannels: all, managedGroups: managedGroups),
-            loading: () => const Scaffold(backgroundColor: Colors.black, body: Center(child: CircularProgressIndicator())),
-            error: (e, _) => Scaffold(backgroundColor: Colors.black, body: Center(child: Text('Error: $e'))),
-          );
+          return TvDashboardScreen(allChannels: channels, managedGroups: managedGroups);
         }
 
         final heroImage = _focusedChannel?.logo ?? (filtered.isNotEmpty ? filtered.first.logo : null);
