@@ -18,7 +18,7 @@ class WorldCupScreen extends ConsumerStatefulWidget {
 class _WorldCupScreenState extends ConsumerState<WorldCupScreen>
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
-  DateTime _selectedDate = DateTime(2026, 6, 11);
+  DateTime _selectedDate = DateTime.now();
   List<dynamic> _games = [];
   List<dynamic> _groups = [];
   List<dynamic> _liveSoccer = [];
@@ -147,12 +147,31 @@ class _WorldCupScreenState extends ConsumerState<WorldCupScreen>
   // ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ Live Soccer Tab ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬
 
   Widget _buildLiveSoccerTab(AppStrings s) {
-    final startDate = DateTime(2026, 6, 11);
-    final endDate = DateTime(2026, 7, 19);
+    final today = DateTime(DateTime.now().year, DateTime.now().month, DateTime.now().day);
     final List<DateTime> tournamentDates = [];
-    for (var d = startDate; d.isBefore(endDate.add(const Duration(days: 1))); d = d.add(const Duration(days: 1))) {
-      tournamentDates.add(d);
+    
+    // Add recent and upcoming days around today
+    for (int i = -3; i <= 7; i++) {
+      tournamentDates.add(today.add(Duration(days: i)));
     }
+    
+    // Add World Cup dates
+    final wcStart = DateTime(2026, 6, 11);
+    final wcEnd = DateTime(2026, 7, 19);
+    for (var d = wcStart; d.isBefore(wcEnd.add(const Duration(days: 1))); d = d.add(const Duration(days: 1))) {
+      // Only add if not already in the list
+      if (!tournamentDates.any((existing) => existing.year == d.year && existing.month == d.month && existing.day == d.day)) {
+        tournamentDates.add(d);
+      }
+    }
+    
+    // Sort chronologically
+    tournamentDates.sort((a, b) => a.compareTo(b));
+    
+    int selectedIndex = tournamentDates.indexWhere((d) => d.year == _selectedDate.year && d.month == _selectedDate.month && d.day == _selectedDate.day);
+    if (selectedIndex < 0) selectedIndex = 0;
+    
+    double initialOffset = (selectedIndex > 2 ? selectedIndex - 2 : 0) * 82.0;
 
     return Column(
       children: [
@@ -161,6 +180,7 @@ class _WorldCupScreenState extends ConsumerState<WorldCupScreen>
           child: SizedBox(
             height: 60,
             child: ListView.builder(
+              controller: ScrollController(initialScrollOffset: initialOffset),
               scrollDirection: Axis.horizontal,
               itemCount: tournamentDates.length,
               itemBuilder: (context, index) {
@@ -625,9 +645,38 @@ class _WorldCupScreenState extends ConsumerState<WorldCupScreen>
                 : Colors.white.withOpacity(0.04),
             borderRadius: BorderRadius.circular(18),
           ),
-          child: Row(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
             children: [
-              // Home
+              if (game['local_date'] != null)
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 12),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        game['local_date'] ?? '',
+                        style: TextStyle(
+                          color: Colors.white.withOpacity(0.5),
+                          fontSize: 11,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      if (game['group'] != null)
+                        Text(
+                          'Group ${game['group']}',
+                          style: TextStyle(
+                            color: Colors.white.withOpacity(0.5),
+                            fontSize: 11,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
+              Row(
+                children: [
+                  // Home
               Expanded(
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.end,
@@ -742,6 +791,8 @@ class _WorldCupScreenState extends ConsumerState<WorldCupScreen>
                   ],
                 ),
               ),
+            ],
+          ),
             ],
           ),
         ),
