@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter/foundation.dart';
@@ -19,7 +20,7 @@ final channelViewersProvider = StreamProvider.family<int, String>((ref, channelU
 /// When the user leaves, the entry is removed immediately + via onDisconnect.
 /// This guarantees: 1 device = 1 entry, no duplicates, instant count update.
 class ViewerService {
-  final FirebaseDatabase _db = FirebaseDatabase.instance;
+  late final FirebaseDatabase _db = FirebaseDatabase.instanceFor(app: Firebase.app('viewers'));
 
   static String? _deviceId;
   String? _currentChannelKey;

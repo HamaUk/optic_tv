@@ -52,6 +52,20 @@ void main() async {
     } else {
       await Firebase.initializeApp();
     }
+    
+    // Initialize Secondary Firebase Project for Viewers
+    await Firebase.initializeApp(
+      name: 'viewers',
+      options: const FirebaseOptions(
+        apiKey: "AIzaSyCRXemvVgwctprqX1rguf2CBIsI_4-FeZg",
+        appId: "1:909355498608:web:2bd36700709779a73948b5",
+        messagingSenderId: "909355498608",
+        projectId: "optic-tv-viewers",
+        databaseURL: "https://optic-tv-viewers-default-rtdb.europe-west1.firebasedatabase.app",
+        storageBucket: "optic-tv-viewers.firebasestorage.app",
+      ),
+    );
+
     await NotificationService().initialize();
   } catch (e) {
     debugPrint('Firebase initialization failed: $e');
