@@ -445,9 +445,10 @@ fun DashboardScreen(
                                 activePreviewUrl = activeChannel.url
                             }
 
-                            if (activePreviewUrl != null) {
+                            val currentUrl = activePreviewUrl
+                            if (currentUrl != null) {
                                 PreviewPlayer(
-                                    url = activePreviewUrl,
+                                    url = currentUrl,
                                     onBufferingChanged = { isPreviewBuffering = it }
                                 )
                             }
