@@ -403,13 +403,16 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
 
     final result = await Navigator.of(context).push(
       MaterialPageRoute(
-        builder: (context) => FullscreenPlayerPage(
-          player: _player!,
-          channels: widget.channels,
-          initialIndex: _index,
-          activeServerIndex: _activeServerIndex,
-          uiLocale: ref.read(appLocaleProvider),
-          strings: AppStrings(ref.read(appLocaleProvider)),
+        builder: (context) {
+          final groupChannels = _channelsInSelectedGroup;
+          final groupIndex = groupChannels.indexOf(_current).clamp(0, groupChannels.length - 1);
+          return FullscreenPlayerPage(
+            player: _player!,
+            channels: groupChannels,
+            initialIndex: groupIndex,
+            activeServerIndex: _activeServerIndex,
+            uiLocale: ref.read(appLocaleProvider),
+            strings: AppStrings(ref.read(appLocaleProvider)),
           onServerChanged: (newServerIndex) {
             if (mounted) {
               setState(() {
@@ -431,7 +434,8 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
               ref.read(viewerServiceProvider).joinChannel(newCh.url, channelName: newCh.name);
             }
           },
-        ),
+        );
+        },
       ),
     );
 
