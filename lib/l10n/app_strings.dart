@@ -729,9 +729,27 @@ class AppStrings {
   }
 
   String get wcTabScorers {
-    if (isKurmanji) return 'Golkar';
-    if (isSorani) return 'گۆڵکاران';
-    return 'Scorers';
+    if (isKurmanji) return 'Amar';
+    if (isSorani) return 'ئامارەکان';
+    return 'Stats';
+  }
+
+  String get wcTabTeams {
+    if (isKurmanji) return 'Tîm';
+    if (isSorani) return 'تیمەکان';
+    return 'Teams';
+  }
+
+  String get wcTabVenues {
+    if (isKurmanji) return 'Yarîgeh';
+    if (isSorani) return 'یاریگاکان';
+    return 'Venues';
+  }
+
+  String get wcYesterday {
+    if (isKurmanji) return 'Duhî';
+    if (isSorani) return 'دوێنێ';
+    return 'Yesterday';
   }
 
   String get wcToday {

@@ -4,9 +4,10 @@ import '../../services/world_cup_service.dart';
 import '../../widgets/animated_gradient_border.dart';
 import '../../core/theme.dart';
 import '../../l10n/app_strings.dart';
-import '../../providers/app_locale_provider.dart';
+import '../../providers/locale_provider.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'match_details_screen.dart';
+import 'team_details_screen.dart';
 
 class WorldCupScreen extends ConsumerStatefulWidget {
   const WorldCupScreen({super.key});
@@ -18,70 +19,24 @@ class WorldCupScreen extends ConsumerStatefulWidget {
 class _WorldCupScreenState extends ConsumerState<WorldCupScreen>
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
-  List<dynamic> _games = [];
-  List<dynamic> _groups = [];
+  DateTime _selectedDate = DateTime(2026, 6, 11);
   List<dynamic> _liveSoccer = [];
-  List<dynamic> _news = [];
-  List<dynamic> _scorers = [];
-  bool _isLoading = true;
   bool _isLoadingLive = true;
-  bool _isLoadingNews = true;
-  bool _isLoadingScorers = true;
-  int _selectedDayOffset = 0;
 
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 5, vsync: this);
-    _loadData();
+    _tabController = TabController(length: 7, vsync: this);
     _loadLiveSoccer();
-    _loadNews();
-    _loadScorers();
-  }
-
-  Future<void> _loadData() async {
-    setState(() => _isLoading = true);
-    final games = await WorldCupService.fetchGames();
-    final groups = await WorldCupService.fetchGroups();
-    if (mounted) {
-      setState(() {
-        _games = games;
-        _groups = groups;
-        _isLoading = false;
-      });
-    }
   }
 
   Future<void> _loadLiveSoccer() async {
     setState(() => _isLoadingLive = true);
-    final targetDate = DateTime.now().add(Duration(days: _selectedDayOffset));
-    final liveSoccer = await WorldCupService.fetchLiveSoccerForDate(targetDate);
+    final data = await WorldCupService.fetchMatchesByDate(0);
     if (mounted) {
       setState(() {
-        _liveSoccer = liveSoccer;
+        _liveSoccer = data;
         _isLoadingLive = false;
-      });
-    }
-  }
-
-  Future<void> _loadNews() async {
-    setState(() => _isLoadingNews = true);
-    final news = await WorldCupService.fetchNews();
-    if (mounted) {
-      setState(() {
-        _news = news;
-        _isLoadingNews = false;
-      });
-    }
-  }
-
-  Future<void> _loadScorers() async {
-    setState(() => _isLoadingScorers = true);
-    final scorers = await WorldCupService.fetchTopScorers();
-    if (mounted) {
-      setState(() {
-        _scorers = scorers;
-        _isLoadingScorers = false;
       });
     }
   }
@@ -99,128 +54,48 @@ class _WorldCupScreenState extends ConsumerState<WorldCupScreen>
 
     return Scaffold(
       backgroundColor: Colors.black,
-      body: NestedScrollView(
-        headerSliverBuilder: (context, innerBoxIsScrolled) {
-          return [
-            SliverAppBar(
-              expandedHeight: 130,
-              floating: false,
-              pinned: true,
-              backgroundColor: Colors.black,
-              flexibleSpace: FlexibleSpaceBar(
-                background: Container(
-                  decoration: const BoxDecoration(
-                    gradient: LinearGradient(
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                      colors: [
-                        Color(0xFF0A0A0A),
-                        Color(0xFF1A1200),
-                        Color(0xFF0A0A0A),
-                      ],
-                    ),
-                  ),
-                  child: SafeArea(
-                    child: Padding(
-                      padding: const EdgeInsets.fromLTRB(20, 12, 20, 8),
-                      child: Row(
-                        crossAxisAlignment: CrossAxisAlignment.center,
-                        children: [
-                          Container(
-                            padding: const EdgeInsets.all(10),
-                            decoration: BoxDecoration(
-                              color: const Color(0xFFD4AF37).withOpacity(0.15),
-                              borderRadius: BorderRadius.circular(14),
-                              border: Border.all(
-                                color: const Color(0xFFD4AF37).withOpacity(0.35),
-                              ),
-                            ),
-                            child: const Icon(
-                              Icons.sports_soccer_rounded,
-                              color: Color(0xFFD4AF37),
-                              size: 28,
-                            ),
-                          ),
-                          const SizedBox(width: 14),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Text(
-                                  s.wcTitle,
-                                  style: const TextStyle(
-                                    color: Colors.white70,
-                                    fontSize: 13,
-                                    fontWeight: FontWeight.w600,
-                                    letterSpacing: 1.5,
-                                  ),
-                                ),
-                                const SizedBox(height: 2),
-                                const Text(
-                                  '2026',
-                                  style: TextStyle(
-                                    color: Color(0xFFD4AF37),
-                                    fontSize: 28,
-                                    fontWeight: FontWeight.w900,
-                                    letterSpacing: 3,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                          // Refresh button
-                          IconButton(
-                            onPressed: () {
-                              _loadLiveSoccer();
-                              _loadData();
-                            },
-                            icon: const Icon(
-                              Icons.refresh_rounded,
-                              color: Color(0xFFD4AF37),
-                              size: 22,
-                            ),
-                            tooltip: 'Refresh',
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-              bottom: TabBar(
-                controller: _tabController,
-                indicatorColor: const Color(0xFFD4AF37),
-                indicatorWeight: 3,
-                labelColor: Colors.white,
-                unselectedLabelColor: Colors.white38,
-                isScrollable: true,
-                labelStyle:
-                    const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
-                tabs: [
-                  Tab(text: s.wcTabLive),
-                  Tab(text: s.wcTabMatches),
-                  Tab(text: s.wcTabGroups),
-                  Tab(text: s.wcTabNews),
-                  Tab(text: s.wcTabScorers),
-                ],
-              ),
-            ),
-          ];
-        },
-        body: _isLoading
-            ? const Center(
-                child: CircularProgressIndicator(color: Color(0xFFD4AF37)))
-            : TabBarView(
-                controller: _tabController,
-                children: [
-                  _buildLiveSoccerTab(s),
-                  _buildMatchesTab(s),
-                  _buildGroupsTab(s),
-                  _buildNewsTab(s),
-                  _buildScorersTab(s),
-                ],
-              ),
+      appBar: AppBar(
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        centerTitle: true,
+        title: Text(
+          '${s.wcTitle} 2026',
+          style: const TextStyle(
+            color: Colors.white,
+            fontSize: 24,
+            fontWeight: FontWeight.w900,
+          ),
+        ),
+        bottom: TabBar(
+          controller: _tabController,
+          indicatorColor: const Color(0xFFD4AF37),
+          indicatorWeight: 3,
+          labelColor: Colors.white,
+          unselectedLabelColor: Colors.white38,
+          isScrollable: true,
+          labelStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+          tabs: [
+            Tab(text: s.wcTabLive),
+            Tab(text: s.wcTabMatches),
+            Tab(text: s.wcTabGroups),
+            Tab(text: s.wcTabNews),
+            Tab(text: s.wcTabScorers),
+            Tab(text: s.wcTabTeams),
+            Tab(text: s.wcTabVenues),
+          ],
+        ),
+      ),
+      body: TabBarView(
+        controller: _tabController,
+        children: [
+          _buildLiveSoccerTab(s),
+          _buildMatchesTab(s),
+          _buildGroupsTab(s),
+          _buildNewsTab(s),
+          _buildScorersTab(s),
+          _buildTeamsTab(s),
+          _buildVenuesTab(s),
+        ],
       ),
     );
   }
@@ -228,34 +103,61 @@ class _WorldCupScreenState extends ConsumerState<WorldCupScreen>
   // ─── Live Soccer Tab ─────────────────────────────────────────
 
   Widget _buildLiveSoccerTab(AppStrings s) {
+    final startDate = DateTime(2026, 6, 11);
+    final endDate = DateTime(2026, 7, 19);
+    final List<DateTime> tournamentDates = [];
+    for (var d = startDate; d.isBefore(endDate.add(const Duration(days: 1))); d = d.add(const Duration(days: 1))) {
+      tournamentDates.add(d);
+    }
+
     return Column(
       children: [
-        // Date Selector
         Padding(
-          padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 12),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              _buildDateToggle(0, s.wcToday),
-              const SizedBox(width: 8),
-              _buildDateToggle(1, s.wcTomorrow),
-              const SizedBox(width: 8),
-              _buildDateToggle(2, s.wcAfterTomorrow),
-            ],
+          padding: const EdgeInsets.symmetric(vertical: 12),
+          child: SizedBox(
+            height: 60,
+            child: ListView.builder(
+              scrollDirection: Axis.horizontal,
+              itemCount: tournamentDates.length,
+              itemBuilder: (context, index) {
+                final date = tournamentDates[index];
+                final isSelected = _selectedDate.year == date.year && _selectedDate.month == date.month && _selectedDate.day == date.day;
+                final monthStr = ["", "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"][date.month];
+
+                return GestureDetector(
+                  onTap: () {
+                    setState(() => _selectedDate = date);
+                  },
+                  child: AnimatedContainer(
+                    duration: const Duration(milliseconds: 200),
+                    margin: const EdgeInsets.only(left: 12),
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    decoration: BoxDecoration(
+                      gradient: isSelected
+                          ? const LinearGradient(colors: [Color(0xFFD4AF37), Color(0xFFB8960E)])
+                          : null,
+                      color: isSelected ? null : const Color(0xFF1A1A1A),
+                      borderRadius: BorderRadius.circular(20),
+                      border: isSelected ? null : Border.all(color: Colors.white10),
+                    ),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Text(monthStr, style: TextStyle(color: isSelected ? Colors.black54 : Colors.white54, fontSize: 10, fontWeight: FontWeight.bold)),
+                        Text(date.day.toString(), style: TextStyle(color: isSelected ? Colors.black : Colors.white, fontSize: 16, fontWeight: FontWeight.w900)),
+                      ],
+                    ),
+                  ),
+                );
+              },
+            ),
           ),
         ),
         Expanded(
           child: _isLoadingLive
-              ? const Center(
-                  child:
-                      CircularProgressIndicator(color: Color(0xFFD4AF37)))
+              ? const Center(child: CircularProgressIndicator(color: Color(0xFFD4AF37)))
               : _liveSoccer.isEmpty
-                  ? Center(
-                      child: Text(
-                        s.wcNoMatches,
-                        style: const TextStyle(color: Colors.white54),
-                      ),
-                    )
+                  ? Center(child: Text(s.wcNoMatches, style: const TextStyle(color: Colors.white54)))
                   : RefreshIndicator(
                       color: const Color(0xFFD4AF37),
                       backgroundColor: const Color(0xFF1A1A1A),
@@ -264,62 +166,12 @@ class _WorldCupScreenState extends ConsumerState<WorldCupScreen>
                         padding: const EdgeInsets.only(bottom: 100),
                         itemCount: _liveSoccer.length,
                         itemBuilder: (context, index) {
-                          return _buildEspnMatchCard(
-                              _liveSoccer[index], s);
+                          return _buildEspnMatchCard(_liveSoccer[index], s);
                         },
                       ),
                     ),
         ),
       ],
-    );
-  }
-
-  Widget _buildDateToggle(int offset, String label) {
-    final isSelected = _selectedDayOffset == offset;
-    return GestureDetector(
-      onTap: () {
-        if (!isSelected) {
-          setState(() => _selectedDayOffset = offset);
-          _loadLiveSoccer();
-        }
-      },
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 200),
-        padding:
-            const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
-        decoration: BoxDecoration(
-          gradient: isSelected
-              ? const LinearGradient(
-                  colors: [Color(0xFFD4AF37), Color(0xFFB8960E)])
-              : null,
-          color: isSelected ? null : Colors.white.withOpacity(0.07),
-          borderRadius: BorderRadius.circular(22),
-          border: Border.all(
-            color: isSelected
-                ? const Color(0xFFD4AF37)
-                : Colors.white.withOpacity(0.12),
-            width: isSelected ? 1.5 : 1,
-          ),
-          boxShadow: isSelected
-              ? [
-                  BoxShadow(
-                    color: const Color(0xFFD4AF37).withOpacity(0.25),
-                    blurRadius: 10,
-                    offset: const Offset(0, 3),
-                  )
-                ]
-              : null,
-        ),
-        child: Text(
-          label,
-          style: TextStyle(
-            color: isSelected ? Colors.black : Colors.white60,
-            fontWeight:
-                isSelected ? FontWeight.w800 : FontWeight.w500,
-            fontSize: 13,
-          ),
-        ),
-      ),
     );
   }
 
@@ -332,11 +184,9 @@ class _WorldCupScreenState extends ConsumerState<WorldCupScreen>
     String awayScore = '0';
 
     try {
-      final competitions =
-          event['competitions'] as List<dynamic>? ?? [];
+      final competitions = event['competitions'] as List<dynamic>? ?? [];
       if (competitions.isNotEmpty) {
-        final competitors =
-            competitions[0]['competitors'] as List<dynamic>? ?? [];
+        final competitors = competitions[0]['competitors'] as List<dynamic>? ?? [];
         for (var c in competitors) {
           final isHome = c['homeAway'] == 'home';
           final team = c['team'] ?? {};
@@ -371,12 +221,18 @@ class _WorldCupScreenState extends ConsumerState<WorldCupScreen>
     } else if (state == 'pre' && event['date'] != null) {
       try {
         final dt = DateTime.parse(event['date']).toLocal();
-        timeLabel =
-            '${dt.hour.toString().padLeft(2, '0')}:${dt.minute.toString().padLeft(2, '0')}';
+        final now = DateTime.now();
+        final difference = dt.difference(now);
+        if (difference.inDays == 0 && difference.inHours > 0) {
+          timeLabel = 'In ${difference.inHours}h ${difference.inMinutes % 60}m';
+        } else if (difference.inMinutes > 0 && difference.inMinutes < 60) {
+          timeLabel = 'In ${difference.inMinutes}m';
+        } else {
+          timeLabel = '${dt.hour.toString().padLeft(2, '0')}:${dt.minute.toString().padLeft(2, '0')}';
+        }
       } catch (_) {}
     }
 
-    // Status badge colors
     final Color badgeColor = finished
         ? Colors.white.withOpacity(0.18)
         : isLive
