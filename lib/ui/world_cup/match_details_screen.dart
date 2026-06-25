@@ -66,11 +66,11 @@ class _MatchDetailsScreenState extends ConsumerState<MatchDetailsScreen> with Si
           ? const Center(child: CircularProgressIndicator(color: Color(0xFFD4AF37)))
           : _summary == null
               ? const Center(child: Text("Data not available", style: TextStyle(color: Colors.white)))
-              : _buildContent(),
+              : _buildContent(s),
     );
   }
 
-  Widget _buildContent() {
+  Widget _buildContent(AppStrings s) {
     return CustomScrollView(
       slivers: [
         SliverToBoxAdapter(
@@ -95,7 +95,7 @@ class _MatchDetailsScreenState extends ConsumerState<MatchDetailsScreen> with Si
         SliverPadding(
           padding: const EdgeInsets.all(20),
           sliver: SliverToBoxAdapter(
-            child: _buildActiveTabContent(),
+            child: _buildActiveTabContent(s),
           ),
         ),
       ],
