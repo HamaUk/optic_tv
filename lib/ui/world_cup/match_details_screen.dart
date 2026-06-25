@@ -104,15 +104,8 @@ class _MatchDetailsScreenState extends State<MatchDetailsScreen> with SingleTick
     final homeName = homeData?['team']?['shortDisplayName'] ?? widget.homeTeam;
     final awayName = awayData?['team']?['shortDisplayName'] ?? widget.awayTeam;
 
-    return Container(
-      padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 16),
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topCenter,
-          end: Alignment.bottomCenter,
-          colors: [Colors.black, Colors.black.withOpacity(0.8)],
-        ),
-      ),
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 80, 16, 24),
       child: Column(
         children: [
           Row(
@@ -123,27 +116,85 @@ class _MatchDetailsScreenState extends State<MatchDetailsScreen> with SingleTick
                 child: Column(
                   children: [
                     if (homeLogo.isNotEmpty)
-                      Image.network(homeLogo, height: 64, errorBuilder: (c, e, s) => const Icon(Icons.shield, color: Colors.white54, size: 64)),
-                    const SizedBox(height: 12),
-                    Text(homeName, style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold), textAlign: TextAlign.center),
+                      Container(
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withOpacity(0.05),
+                          borderRadius: BorderRadius.circular(20),
+                          border: Border.all(color: Colors.white.withOpacity(0.1)),
+                        ),
+                        child: Image.network(
+                          homeLogo, 
+                          height: 56, 
+                          errorBuilder: (c, e, s) => const Icon(Icons.shield, color: Colors.white54, size: 56),
+                        ),
+                      ),
+                    const SizedBox(height: 16),
+                    Text(
+                      homeName, 
+                      style: const TextStyle(
+                        color: Colors.white, 
+                        fontSize: 16, 
+                        fontWeight: FontWeight.w700,
+                      ), 
+                      textAlign: TextAlign.center,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                    ),
                   ],
                 ),
               ),
               // SCORE
               Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 24),
+                padding: const EdgeInsets.symmetric(horizontal: 20),
                 child: Column(
                   children: [
-                    Text(status, style: const TextStyle(color: AppTheme.primaryGold, fontSize: 14, fontWeight: FontWeight.bold)),
-                    const SizedBox(height: 8),
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
                       decoration: BoxDecoration(
-                        color: Colors.white.withOpacity(0.1),
-                        borderRadius: BorderRadius.circular(16),
-                        border: Border.all(color: Colors.white.withOpacity(0.2)),
+                        color: AppTheme.primaryGold.withOpacity(0.2),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: AppTheme.primaryGold.withOpacity(0.5)),
                       ),
-                      child: Text('$homeScore - $awayScore', style: const TextStyle(color: Colors.white, fontSize: 32, fontWeight: FontWeight.bold)),
+                      child: Text(
+                        status, 
+                        style: const TextStyle(
+                          color: AppTheme.primaryGold, 
+                          fontSize: 12, 
+                          fontWeight: FontWeight.w700,
+                          letterSpacing: 1,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 16),
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          colors: [
+                            AppTheme.primaryGold.withOpacity(0.2),
+                            AppTheme.primaryGold.withOpacity(0.05),
+                          ],
+                        ),
+                        borderRadius: BorderRadius.circular(20),
+                        border: Border.all(color: AppTheme.primaryGold.withOpacity(0.4)),
+                        boxShadow: [
+                          BoxShadow(
+                            color: AppTheme.primaryGold.withOpacity(0.2),
+                            blurRadius: 20,
+                            offset: const Offset(0, 8),
+                          )
+                        ],
+                      ),
+                      child: Text(
+                        '$homeScore - $awayScore', 
+                        style: const TextStyle(
+                          color: AppTheme.primaryGold, 
+                          fontSize: 36, 
+                          fontWeight: FontWeight.w900,
+                          letterSpacing: 2,
+                        ),
+                      ),
                     ),
                   ],
                 ),
@@ -153,9 +204,31 @@ class _MatchDetailsScreenState extends State<MatchDetailsScreen> with SingleTick
                 child: Column(
                   children: [
                     if (awayLogo.isNotEmpty)
-                      Image.network(awayLogo, height: 64, errorBuilder: (c, e, s) => const Icon(Icons.shield, color: Colors.white54, size: 64)),
-                    const SizedBox(height: 12),
-                    Text(awayName, style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold), textAlign: TextAlign.center),
+                      Container(
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withOpacity(0.05),
+                          borderRadius: BorderRadius.circular(20),
+                          border: Border.all(color: Colors.white.withOpacity(0.1)),
+                        ),
+                        child: Image.network(
+                          awayLogo, 
+                          height: 56, 
+                          errorBuilder: (c, e, s) => const Icon(Icons.shield, color: Colors.white54, size: 56),
+                        ),
+                      ),
+                    const SizedBox(height: 16),
+                    Text(
+                      awayName, 
+                      style: const TextStyle(
+                        color: Colors.white, 
+                        fontSize: 16, 
+                        fontWeight: FontWeight.w700,
+                      ), 
+                      textAlign: TextAlign.center,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                    ),
                   ],
                 ),
               ),
@@ -549,37 +622,53 @@ class _MatchDetailsScreenState extends State<MatchDetailsScreen> with SingleTick
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.black,
-      appBar: AppBar(
-        backgroundColor: Colors.black,
-        elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.white),
-          onPressed: () => Navigator.pop(context),
-        ),
-      ),
       body: _loading
           ? const Center(child: CircularProgressIndicator(color: AppTheme.primaryGold))
           : _summary == null
               ? const Center(child: Text('Data not available', style: TextStyle(color: Colors.white)))
-              : Column(
-                  children: [
-                    _buildScoreboardHeader(),
-                    Container(
-                      color: Colors.black,
-                      child: TabBar(
+              : CustomScrollView(
+                  slivers: [
+                    SliverAppBar(
+                      expandedHeight: 220,
+                      floating: false,
+                      pinned: true,
+                      backgroundColor: Colors.black,
+                      leading: IconButton(
+                        icon: const Icon(Icons.arrow_back, color: Colors.white),
+                        onPressed: () => Navigator.pop(context),
+                      ),
+                      flexibleSpace: FlexibleSpaceBar(
+                        background: Container(
+                          decoration: BoxDecoration(
+                            gradient: LinearGradient(
+                              begin: Alignment.topCenter,
+                              end: Alignment.bottomCenter,
+                              colors: [
+                                Colors.black,
+                                AppTheme.primaryGold.withOpacity(0.15),
+                                Colors.black,
+                              ],
+                            ),
+                          ),
+                          child: _buildScoreboardHeader(),
+                        ),
+                      ),
+                      bottom: TabBar(
                         controller: _tabController,
                         indicatorColor: AppTheme.primaryGold,
+                        indicatorWeight: 3,
                         labelColor: AppTheme.primaryGold,
                         unselectedLabelColor: Colors.white54,
+                        labelStyle: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
                         tabs: const [
-                          Tab(text: 'ڕووداوەکان'), // Events
-                          Tab(text: 'ئامارەکان'),  // Stats
-                          Tab(text: 'پێکهاتەکان'), // Lineups
-                          Tab(text: 'ڕابردوو'),    // History
+                          Tab(text: 'ڕووداوەکان'),
+                          Tab(text: 'ئامارەکان'),
+                          Tab(text: 'پێکهاتەکان'),
+                          Tab(text: 'ڕابردوو'),
                         ],
                       ),
                     ),
-                    Expanded(
+                    SliverFillRemaining(
                       child: TabBarView(
                         controller: _tabController,
                         children: [

@@ -80,8 +80,20 @@ class OpticPlayer with WidgetsBindingObserver {
       }
     } else if (state == AppLifecycleState.resumed) {
       if (_wasPlayingBeforePause && _lastUrl != null) {
-        open(_lastUrl!, headers: _lastHeaders);
-        _wasPlayingBeforePause = false;
+        // Reinitialize texture and player to ensure clean state after resume
+        _initialized = false;
+        textureId = -1;
+        textureIdNotifier.value = -1;
+        _init().then((_) {
+          if (_initialized && _lastUrl != null) {
+            open(_lastUrl!, headers: _lastHeaders).then((_) {
+              if (_wasPlayingBeforePause) {
+                play();
+              }
+              _wasPlayingBeforePause = false;
+            });
+          }
+        });
       }
     }
   }
