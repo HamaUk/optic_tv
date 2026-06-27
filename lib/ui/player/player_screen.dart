@@ -86,7 +86,8 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
   
   // Ghosten Panel Architecture
   final ValueNotifier<_TvPanelType> _activePanel = ValueNotifier(_TvPanelType.none);
-
+  bool _tvOverlayVisible = false;
+  Timer? _tvHideTimer;
   bool _reversePanelTransition = false;
   Timer? _panelTimer;
   
@@ -482,12 +483,31 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
       return const Scaffold(backgroundColor: Colors.black, body: Center(child: CircularProgressIndicator()));
     }
 
+    final uiLocale = ref.watch(appLocaleProvider);
+    final s = AppStrings(uiLocale);
+    final bottomPad = MediaQuery.of(context).padding.bottom;
+    const isTv = false;
+
+    if (isTv) {
+      return Scaffold(
+        key: _scaffoldKey,
+        backgroundColor: Colors.black,
+        endDrawer: const Drawer(
+          child: SettingsScreen(),
+        ),
+        body: Stack(
+          fit: StackFit.expand,
+          children: [
+            _buildVideoView(),
+            _buildTvArchitectureOverhaul(s),
+          ],
+        ),
+      );
+    }
+
+    // New Simplified Mobile Architecture (Matches Picture 1 layout)
     return Scaffold(
-      key: _scaffoldKey,
       backgroundColor: Colors.black,
-      endDrawer: const Drawer(
-        child: SettingsScreen(),
-      ),
       body: SafeArea(
         child: Column(
           children: [
@@ -524,8 +544,8 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
       child: Stack(
         fit: StackFit.expand,
         children: [
-          TVFocusable(
-            onSelect: _playPause,
+          GestureDetector(
+            onTap: _playPause,
             child: _player != null
                 ? NativePlayerView(player: _player!)
                 : const Center(child: CircularProgressIndicator(color: Colors.white24)),
@@ -665,6 +685,312 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
                                     fontSize: 24,
                                     fontWeight: FontWeight.bold,
                                     letterSpacing: 1.2,
+                                  ),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                              Builder(
+                                builder: (context) {
+                                  final viewersAsync = ref.watch(channelViewersProvider(_current.url));
+                                  final viewers = viewersAsync.value ?? 0;
+                                  if (viewers == 0) return const SizedBox.shrink();
+                                  return Container(
+                                    padding: const EdgeInsets.symmetric(
+                                        horizontal: 12, vertical: 6),
+                                    decoration: BoxDecoration(
+                                      color: Colors.black.withOpacity(0.6),
+                                      borderRadius: BorderRadius.circular(10),
+                                      border: Border.all(
+                                          color: const Color(0xFFD4AF37).withOpacity(0.7),
+                                          width: 1.5),
+                                    ),
+                                    child: Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        const Icon(Icons.remove_red_eye_rounded,
+                                            color: Color(0xFFD4AF37), size: 17),
+                                        const SizedBox(width: 7),
+                                        Text(
+                                          '$viewers',
+                                          style: const TextStyle(
+                                            color: Colors.white,
+                                            fontSize: 15,
+                                            fontWeight: FontWeight.bold,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  );
+                                },
+                              ),
+                            ],
+                          ),
+                        ),
+
+                  const Spacer(),
+
+                  // Glassmorphism Banana HUD
+                  GlassmorphicContainer(
+                    width: 500,
+                    height: 80,
+                    borderRadius: 40,
+                    blur: 20,
+                    alignment: Alignment.center,
+                    border: 1,
+                    linearGradient: LinearGradient(
+                      colors: [Colors.white.withOpacity(0.1), Colors.white.withOpacity(0.05)],
+                    ),
+                    borderGradient: LinearGradient(
+                      colors: [Colors.white.withOpacity(0.2), Colors.white.withOpacity(0.05)],
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        _buildTvFocusIcon(
+                          _muted ? Icons.volume_off_rounded : Icons.volume_up_rounded, 
+                          () {
+                            setState(() => _muted = !_muted);
+                            _player?.setVolume(_muted ? 0.0 : 100.0);
+                            _resetTvHideTimer();
+                          }
+                        ),
+                        const SizedBox(width: 24),
+                        _buildTvFocusIcon(Icons.settings_rounded, () {
+                          _scaffoldKey.currentState?.openEndDrawer();
+                          _resetTvHideTimer();
+                        }),
+                        const SizedBox(width: 24),
+                        TVFocusable(
+                          focusNode: _playPauseFocusNode,
+                          showFocusBorder: false,
+                          focusScale: 1.1,
+                          onSelect: () {
+                            _playPause();
+                            _resetTvHideTimer();
+                          },
+                          child: const SizedBox(),
+                          builder: (context, isFocused, child) => Container(
+                            decoration: BoxDecoration(
+                              color: isFocused ? _accent : Colors.white.withOpacity(0.15),
+                              shape: BoxShape.circle,
+                              boxShadow: isFocused ? [BoxShadow(color: _accent.withOpacity(0.5), blurRadius: 10)] : [],
+                            ),
+                            padding: const EdgeInsets.all(12),
+                            child: Icon(
+                              _isPlaying ? Icons.pause_rounded : Icons.play_arrow_rounded,
+                              color: isFocused ? Colors.black : Colors.white,
+                              size: 36,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 24),
+                        _buildTvFocusIcon(Icons.aspect_ratio_rounded, () {
+                          _resetTvHideTimer();
+                        }),
+                      ],
+                    ),
+                  ),
+
+                  const SizedBox(height: 32),
+
+                  // Channel Carousel
+                  Container(
+                    height: 120,
+                    width: double.infinity,
+                    padding: const EdgeInsets.symmetric(vertical: 8),
+                    child: Focus(
+                      onKeyEvent: (node, event) {
+                        if (event is KeyDownEvent || event is KeyRepeatEvent) {
+                          if (event.logicalKey == LogicalKeyboardKey.arrowUp) {
+                            _playPauseFocusNode.requestFocus();
+                            _resetTvHideTimer();
+                            return KeyEventResult.handled;
+                          }
+                        }
+                        return KeyEventResult.ignored;
+                      },
+                      child: ListView.builder(
+                        scrollDirection: Axis.horizontal,
+                        padding: const EdgeInsets.symmetric(horizontal: 48),
+                        itemCount: _channelsInSelectedGroup.length,
+                        itemBuilder: (context, idx) {
+                          final channel = _channelsInSelectedGroup[idx];
+                          final globalIdx = widget.channels.indexOf(channel);
+                          return _buildTvChannelCarouselItem(globalIdx, _accent);
+                        },
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                ],
+              ),
+            ),
+                ], // Closes 626 Stack children
+              ), // Closes 624 Stack
+            ), // Closes 621 AnimatedOpacity
+          ), // Closes 619 IgnorePointer
+        ], // Closes 618 Stack children
+      ), // Closes 616 Stack
+    ); // Closes 613 Focus
+  }
+
+  Widget _buildTvFocusIcon(IconData icon, VoidCallback onSelect) {
+    return TVFocusable(
+      showFocusBorder: false,
+      focusScale: 1.15,
+      onSelect: onSelect,
+      child: const SizedBox(),
+      builder: (context, isFocused, child) => Container(
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          color: isFocused ? Colors.white24 : Colors.transparent,
+        ),
+        padding: const EdgeInsets.all(8),
+        child: Icon(icon, color: Colors.white, size: 28),
+      ),
+    );
+  }
+
+  Widget _buildTvChannelCarouselItem(int index, Color accent) {
+    final channel = widget.channels[index];
+    final isSelected = index == _index;
+
+    return TVFocusable(
+      showFocusBorder: false,
+      focusScale: 1.05,
+      onSelect: () {
+        _selectChannelByIndex(index);
+        _resetTvHideTimer();
+      },
+      child: const SizedBox(),
+      builder: (context, isFocused, child) => Container(
+        width: 110,
+        margin: const EdgeInsets.symmetric(horizontal: 8),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            AnimatedContainer(
+              duration: const Duration(milliseconds: 200),
+              width: 100,
+              height: 75,
+              decoration: BoxDecoration(
+                color: isSelected ? Colors.white : Colors.white.withOpacity(0.08),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(
+                  color: isFocused ? accent : (isSelected ? Colors.white : Colors.transparent),
+                  width: 3,
+                ),
+                boxShadow: (isFocused || isSelected)
+                    ? [
+                        BoxShadow(
+                          color: (isFocused ? accent : Colors.white).withOpacity(0.4),
+                          blurRadius: 8,
+                          spreadRadius: 2,
+                        ),
+                      ]
+                    : null,
+              ),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(9),
+                child: Padding(
+                  padding: const EdgeInsets.all(8.0),
+                  child: ChannelLogoImage(
+                    logo: channel.logo,
+                    channelName: channel.name,
+                    width: double.infinity,
+                    height: double.infinity,
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(height: 6),
+            Text(
+              channel.name.toUpperCase(),
+              style: TextStyle(
+                color: isSelected ? Colors.white : Colors.white70,
+                fontSize: 12,
+                fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
+              ),
+              textAlign: TextAlign.center,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  KeyEventResult _onTvRootKeyEvent(FocusNode node, KeyEvent event) {
+    if (event is KeyDownEvent || event is KeyRepeatEvent) {
+      final key = event.logicalKey;
+
+      if (!_tvOverlayVisible) {
+        if (key == LogicalKeyboardKey.select || key == LogicalKeyboardKey.enter || key == LogicalKeyboardKey.space) {
+          setState(() {
+            _tvOverlayVisible = true;
+          });
+          _resetTvHideTimer();
+          return KeyEventResult.handled;
+        }
+        if (key == LogicalKeyboardKey.arrowUp) {
+          _handlePrevious();
+          return KeyEventResult.handled;
+        }
+        if (key == LogicalKeyboardKey.arrowDown) {
+          _handleNext();
+          return KeyEventResult.handled;
+        }
+        if (key == LogicalKeyboardKey.arrowLeft || key == LogicalKeyboardKey.arrowRight) {
+           setState(() {
+            _tvOverlayVisible = true;
+          });
+          _resetTvHideTimer();
+          return KeyEventResult.handled;
+        }
+      } else {
+        if (key == LogicalKeyboardKey.escape || key == LogicalKeyboardKey.browserBack) {
+          setState(() {
+            _tvOverlayVisible = false;
+          });
+          _tvHideTimer?.cancel();
+          return KeyEventResult.handled;
+        }
+        // Any other key press resets the timer so it doesn't hide while navigating
+        _resetTvHideTimer();
+      }
+    }
+    return KeyEventResult.ignored;
+  }
+
+  String _formatDuration(Duration d) {
+    final hh = d.inHours;
+    final mm = d.inMinutes.remainder(60).toString().padLeft(2, '0');
+    final ss = d.inSeconds.remainder(60).toString().padLeft(2, '0');
+    if (hh > 0) return '$hh:$mm:$ss';
+    return '$mm:$ss';
+  }
+
+  void _handlePrevious() {
+    if (_index > 0) _selectChannelByIndex(_index - 1);
+  }
+
+  
+  void _resetTvHideTimer() {
+    _tvHideTimer?.cancel();
+    if (_tvOverlayVisible) {
+      _tvHideTimer = Timer(const Duration(seconds: 8), () {
+        if (mounted) setState(() => _tvOverlayVisible = false);
+      });
+    }
+  }
+
+  void _handleNext() {
+    if (_index < widget.channels.length - 1) _selectChannelByIndex(_index + 1);
+  }
+
   Widget _buildMobileScaffold(Locale uiLocale, AppStrings s, double bottomPad) {
     return Container(
       color: Colors.black,
@@ -717,10 +1043,9 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
             ),
           ),
           const SizedBox(width: 8),
-          TVFocusable(
-            showFocusBorder: false,
-            focusScale: 1.1,
-            onSelect: () async {
+          IconButton(
+            icon: Icon(Icons.settings_outlined, color: Colors.white.withOpacity(0.7), size: 22),
+            onPressed: () async {
               await Navigator.push<void>(
                 context,
                 MaterialPageRoute(builder: (_) => const SettingsScreen()),
@@ -730,15 +1055,6 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
                 setState(() => _settings = newSettings);
               }
             },
-            builder: (context, isFocused, child) => Container(
-              padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: isFocused ? Colors.white24 : Colors.transparent,
-              ),
-              child: Icon(Icons.settings_outlined, color: Colors.white.withOpacity(0.7), size: 22),
-            ),
-            child: const SizedBox.shrink(),
           ),
         ],
       ),
@@ -800,16 +1116,15 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
         itemBuilder: (context, i) {
           final g = groups[i];
           final selected = g == _selectedGroup;
-          return TVFocusable(
-            showFocusBorder: false,
-            onSelect: () => setState(() => _selectedGroup = g),
-            builder: (context, isFocused, child) => AnimatedContainer(
+          return GestureDetector(
+            onTap: () => setState(() => _selectedGroup = g),
+            child: AnimatedContainer(
               duration: const Duration(milliseconds: 300),
               curve: Curves.easeOutCubic,
               padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 8),
               margin: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
               decoration: BoxDecoration(
-                color: isFocused ? _accent.withOpacity(0.3) : (selected ? _accent.withOpacity(0.12) : Colors.transparent),
+                color: selected ? _accent.withOpacity(0.12) : Colors.transparent,
                 borderRadius: BorderRadius.circular(10),
                 border: Border(
                   left: BorderSide(
@@ -817,7 +1132,6 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
                     width: 3,
                   ),
                 ),
-                boxShadow: isFocused ? [BoxShadow(color: _accent.withOpacity(0.5), blurRadius: 8)] : null,
               ),
               child: Column(
                 children: [
@@ -836,16 +1150,15 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
                     style: AppTheme.withRabarIfKurdish(
                       uiLocale,
                       TextStyle(
-                        color: selected ? _accent : Colors.white60,
-                        fontSize: 10,
-                        fontWeight: selected ? FontWeight.w800 : FontWeight.w600,
+                        color: selected ? _accent : Colors.white54,
+                        fontSize: 11,
+                        fontWeight: selected ? FontWeight.w700 : FontWeight.normal,
                       ),
                     ),
                   ),
                 ],
               ),
             ),
-            child: const SizedBox.shrink(),
           );
         },
       ),
@@ -865,13 +1178,11 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
             final ch = channels[i];
             final fullIdx = widget.channels.indexOf(ch);
             final active = ch.url == _current.url;
-            return TVFocusable(
-              onSelect: () => _selectChannelByIndex(fullIdx),
-              showFocusBorder: true,
-              focusScale: 1.02,
-              builder: (context, isFocused, child) => Material(
-                key: ValueKey('mobile_${ch.url}_$fullIdx'),
-                color: isFocused ? _accent.withOpacity(0.3) : (active ? _accent.withOpacity(0.08) : Colors.transparent),
+            return Material(
+              key: ValueKey('mobile_${ch.url}_$fullIdx'),
+              color: active ? _accent.withOpacity(0.08) : Colors.transparent,
+              child: InkWell(
+                onTap: () => _selectChannelByIndex(fullIdx),
                 child: Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                   child: Row(
@@ -938,7 +1249,6 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
                   ),
                 ),
               ),
-              child: const SizedBox.shrink(),
             );
           },
         ),
