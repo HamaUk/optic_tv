@@ -129,7 +129,9 @@ fun PlayerScreen(
             .setAudioAttributes(audioAttributes, true)
             .build()
             
-        // Trick 2 & 3: Downmix to Stereo (2 channels) & Disable DSP Audio Offload
+        // Trick 3: Downmix to Stereo (2 channels) & Disable DSP Audio Offload
+        // Also enable Audio Tunneling (trick from ultra-tv-main) to bypass the Android mixer
+        // for better A/V sync on Android TV hardware decoders.
         player.trackSelectionParameters = player.trackSelectionParameters.buildUpon()
             .setMaxAudioChannelCount(2)
             .setAudioOffloadPreferences(
@@ -137,10 +139,16 @@ fun PlayerScreen(
                     .setAudioOffloadMode(androidx.media3.common.AudioOffloadPreferences.AUDIO_OFFLOAD_MODE_DISABLED)
                     .build()
             )
+            .setTunnelingEnabled(true)
             .build()
 
         // Trick 5: Network Wake Mode to prevent cheap CPUs from putting audio/WiFi chips to sleep
         player.setWakeMode(androidx.media3.common.C.WAKE_MODE_NETWORK)
+
+        // Trick from ultra-tv-main: Force video scaling mode to SCALE_TO_FIT.
+        // On many cheap AMLogic/Realtek chipsets, the hardware decoder delivers frames but the 
+        // surface isn't sized properly, leading to a "black screen with audio only" issue.
+        player.videoScalingMode = androidx.media3.common.C.VIDEO_SCALING_MODE_SCALE_TO_FIT
 
         player
     }
