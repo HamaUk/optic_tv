@@ -70,6 +70,7 @@ class _TvFocusWrapperState extends State<TvFocusWrapper> with SingleTickerProvid
       },
       onSelect: widget.onTap,
       onLongSelect: widget.onLongPress,
+      effects: const [], // Disable default dpad package border
       child: AnimatedScale(
         scale: showEffects ? widget.scale : 1.0,
         duration: const Duration(milliseconds: 200),
