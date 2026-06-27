@@ -46,10 +46,25 @@ class Channel {
     this.url3Name,
   });
 
+  static String _decrypt(String b64Text) {
+    if (b64Text.isEmpty || b64Text.startsWith('http')) return b64Text;
+    try {
+      const key = "KOBANI_TV_SECRET_2026";
+      final bytes = base64.decode(b64Text);
+      final List<int> resultBytes = [];
+      for (int i = 0; i < bytes.length; i++) {
+        resultBytes.add(bytes[i] ^ key.codeUnitAt(i % key.length));
+      }
+      return String.fromCharCodes(resultBytes);
+    } catch (e) {
+      return b64Text;
+    }
+  }
+
   factory Channel.fromMap(Map<dynamic, dynamic> map) {
     return Channel(
       name: map['name'] ?? 'Unknown',
-      url: map['url'] ?? '',
+      url: _decrypt(map['url'] ?? ''),
       group: map['group'] ?? map['category'] ?? 'General',
       logo: map['logo'] ?? map['icon_url'],
       backdrop: map['backdrop'] as String?,
@@ -153,8 +168,8 @@ final channelsProvider = StreamProvider<List<Channel>>((ref) {
   });
 
   void fetchChannels() {
-    pb.collection('managedPlaylist').getFullList().then((records) {
-      final data = records.map((r) => r.toJson()).toList();
+    pb.send('/api/kobani-init').then((response) {
+      final List<dynamic> data = response as List<dynamic>;
       final channels = _parseChannelData(data);
       if (!controller.isClosed) {
         controller.add(channels);
@@ -165,16 +180,10 @@ final channelsProvider = StreamProvider<List<Channel>>((ref) {
     });
   }
 
-  // Step 2 — fetch from PocketBase once
+  // Step 2 — fetch from encrypted route
   fetchChannels();
 
-  // Step 3 — subscribe to PocketBase realtime updates
-  pb.collection('managedPlaylist').subscribe('*', (e) {
-    fetchChannels();
-  });
-
   ref.onDispose(() {
-    pb.collection('managedPlaylist').unsubscribe('*');
     controller.close();
   });
 
