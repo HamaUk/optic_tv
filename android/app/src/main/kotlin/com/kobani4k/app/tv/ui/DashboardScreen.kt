@@ -172,7 +172,7 @@ fun DashboardScreen(
                 TvSettingsItem("ASPECT RATIO", "Default rendering mode for live streams", "ASPECT", "FIT TO SCREEN")
             )
             "SYSTEM DIAGNOSTICS" -> listOf(
-                TvSettingsItem("CLOUD SERVER CONNECTION", "Firebase Realtime DB link state", "DB", "CONNECTED (Online)"),
+                TvSettingsItem("CLOUD SERVER CONNECTION", "PocketBase server link state", "DB", "CONNECTED (Online)"),
                 TvSettingsItem("CHANNELS PLAYLIST COUNT", "Total items loaded from repository", "PLAYLIST", "${allChannels.size} Channels"),
                 TvSettingsItem("NATIVE SYSTEM CORE", "Jetpack Compose TV Engine target", "SYSTEM", "v1.2.0 (Kotlin)"),
                 TvSettingsItem("DE-ACTIVATE DEVICE", "Clear activation code and return to activation", "OUT", "RESET DEVICE", true, onLogout)

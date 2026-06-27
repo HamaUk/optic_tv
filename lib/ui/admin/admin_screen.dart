@@ -109,12 +109,12 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
   bool _showBrokenOnly = false;
   _LoginDuration _selectedLoginDuration = _LoginDuration.month;
 
-  DatabaseReference get _playlistRef => FirebaseDatabase.instance.ref(_playlistPath);
-  DatabaseReference get _groupsRef => FirebaseDatabase.instance.ref(_groupsPath);
-  DatabaseReference get _loginCodesRef => FirebaseDatabase.instance.ref(_loginCodesPath);
-  DatabaseReference get _announcementRef => FirebaseDatabase.instance.ref(_announcementPath);
-  DatabaseReference get _notifBroadcastRef => FirebaseDatabase.instance.ref(_notifBroadcastPath);
-  DatabaseReference get _notifHistoryRef => FirebaseDatabase.instance.ref(_notifHistoryPath);
+  DatabaseReference get _playlistRef => PocketBaseDatabase.instance.ref(_playlistPath);
+  DatabaseReference get _groupsRef => PocketBaseDatabase.instance.ref(_groupsPath);
+  DatabaseReference get _loginCodesRef => PocketBaseDatabase.instance.ref(_loginCodesPath);
+  DatabaseReference get _announcementRef => PocketBaseDatabase.instance.ref(_announcementPath);
+  DatabaseReference get _notifBroadcastRef => PocketBaseDatabase.instance.ref(_notifBroadcastPath);
+  DatabaseReference get _notifHistoryRef => PocketBaseDatabase.instance.ref(_notifHistoryPath);
 
   void initState() {
     super.initState();
@@ -1350,7 +1350,7 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
         // 1. Fetch TMDB metadata
         final movie = await tmdb.findMovie(searchName);
 
-        // 2. Save to Firebase with fallbacks
+        // 2. Save to PocketBase with fallbacks
         await _playlistRef.push().set({
           'name': name,
           'url': url,
@@ -2064,7 +2064,7 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
                                 const SizedBox(height: 8),
                                 Text(
                                   'Export saves every channel (including Movies tab items) and saved groups '
-                                  'to a JSON file. Use Import to restore them if Firebase data is lost. '
+                                  'to a JSON file. Use Import to restore them if server data is lost. '
                                   'Login codes are not included.',
                                   style: TextStyle(fontSize: 13, color: Colors.white.withOpacity(0.5)),
                                 ),
@@ -4205,7 +4205,7 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
     }
   }
 
-  DatabaseReference get _updateRef => FirebaseDatabase.instance.ref('sync/global/updateManager');
+  DatabaseReference get _updateRef => PocketBaseDatabase.instance.ref('sync/global/updateManager');
 
   Widget _buildUpdateTab() {
     return ListView(

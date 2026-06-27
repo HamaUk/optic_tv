@@ -4,8 +4,8 @@ import 'package:pocketbase/pocketbase.dart';
 import 'package:rxdart/rxdart.dart';
 import 'pocketbase_service.dart';
 
-class FirebaseDatabase {
-  static final instance = FirebaseDatabase();
+class PocketBaseDatabase {
+  static final instance = PocketBaseDatabase();
   DatabaseReference ref(String path) => DatabaseReference(path);
 }
 

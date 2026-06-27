@@ -154,7 +154,7 @@ Future<void> _saveChannelCache(List<Channel> channels) async {
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Instant-start: emits cached channels from SharedPreferences IMMEDIATELY
-// (no network needed), then updates when Firebase stream arrives.
+// (no network needed), then updates when PocketBase data arrives.
 // Dashboard appears in <100 ms on every launch after the first.
 // ─────────────────────────────────────────────────────────────────────────────
 final channelsProvider = StreamProvider<List<Channel>>((ref) {
