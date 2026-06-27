@@ -601,70 +601,7 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
   }
 
 
-  Widget _buildTvArchitectureOverhaul(AppStrings s) {
-    return Focus(
-      autofocus: true,
-      onKeyEvent: _onTvRootKeyEvent,
-      child: Stack(
-        fit: StackFit.expand,
-        children: [
-          IgnorePointer(
-            ignoring: !_tvOverlayVisible,
-            child: AnimatedOpacity(
-              duration: const Duration(milliseconds: 300),
-              opacity: _tvOverlayVisible ? 1.0 : 0.0,
-              child: Stack(
-                fit: StackFit.expand,
-                children: [
-                  Container(
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        colors: [
-                          Colors.black.withOpacity(0.8),
-                          Colors.transparent,
-                          Colors.black.withOpacity(0.85),
-                        ],
-                        begin: Alignment.topCenter,
-                        end: Alignment.bottomCenter,
-                      ),
-                    ),
-                  ),
-                  SafeArea(
-                    child: Column(
-                      children: [
-                        // Top Bar
-                        Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 48, vertical: 24),
-                          child: Row(
-                            children: [
-                              if (_current.logo != null && _current.logo!.isNotEmpty) ...[
-                                Container(
-                                  width: 48,
-                                  height: 48,
-                                  decoration: BoxDecoration(
-                                    borderRadius: BorderRadius.circular(12),
-                                    color: Colors.white10,
-                                  ),
-                                  child: ClipRRect(
-                                    borderRadius: BorderRadius.circular(12),
-                                    child: ChannelLogoImage(
-                                      logo: _current.logo,
-                                      channelName: _current.name,
-                                      width: 48,
-                                      height: 48,
-                                    ),
-                                  ),
-                                ),
-                                const SizedBox(width: 16),
-                              ],
-                              Expanded(
-                                child: Text(
-                                  _current.name.toUpperCase(),
-                                  style: const TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 24,
-                                    fontWeight: FontWeight.bold,
-                                    letterSpacing: 1.2,
+
   Widget _buildMobileScaffold(Locale uiLocale, AppStrings s, double bottomPad) {
     return Container(
       color: Colors.black,
