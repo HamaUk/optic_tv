@@ -8,7 +8,7 @@ final analyticsServiceProvider = Provider((ref) => AnalyticsService());
 class AnalyticsService {
   Future<int> getLiveUsersCount() async {
     try {
-      final records = await pb.collection('live_viewers').getFullList();
+      final records = await pb.collection('liveViewers').getFullList();
       return records.length;
     } catch (_) {
       return 0;
