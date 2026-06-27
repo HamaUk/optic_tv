@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:math';
 import 'package:pocketbase/pocketbase.dart';
+import 'package:rxdart/rxdart.dart';
 import 'pocketbase_service.dart';
 
 class FirebaseDatabase {
@@ -78,19 +79,20 @@ class DatabaseReference {
     }
   }
 
-  // Use a static map to cache streams by path so they aren't recreated on every build!
-  static final Map<String, Stream<DatabaseEvent>> _streamCache = {};
+  // Use a static map to cache BehaviorSubjects by path so they aren't recreated on every build
+  // BehaviorSubject remembers the latest value and emits it immediately to new listeners!
+  static final Map<String, BehaviorSubject<DatabaseEvent>> _streamCache = {};
 
   Stream<DatabaseEvent> get onValue {
     if (_streamCache.containsKey(path)) {
-      return _streamCache[path]!;
+      return _streamCache[path]!.stream;
     }
 
     final col = _collectionName;
     final id = _recordId;
     
-    // Create a broadcast controller
-    final controller = StreamController<DatabaseEvent>.broadcast();
+    // Create a BehaviorSubject
+    final controller = BehaviorSubject<DatabaseEvent>();
 
     void fetchAndEmit() async {
       final snap = await get();
@@ -115,7 +117,7 @@ class DatabaseReference {
       }
     };
 
-    _streamCache[path] = controller.stream;
+    _streamCache[path] = controller;
     return controller.stream;
   }
 
