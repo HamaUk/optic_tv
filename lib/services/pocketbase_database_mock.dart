@@ -155,12 +155,39 @@ class DatabaseReference {
     if (id != null) {
       await pb.collection(col).update(id, body: value);
     } else {
+      // Firebase-style multi-path updates use keys like "recordId/field".
+      // Group these by record ID so we send one pb.update() per record.
+      final grouped = <String, Map<String, dynamic>>{};
+      final direct = <String, dynamic>{};
+
       for (final entry in value.entries) {
+        if (entry.key.contains('/')) {
+          final slashIdx = entry.key.indexOf('/');
+          final recId = entry.key.substring(0, slashIdx);
+          final field = entry.key.substring(slashIdx + 1);
+          grouped.putIfAbsent(recId, () => <String, dynamic>{});
+          grouped[recId]![field] = entry.value;
+        } else {
+          direct[entry.key] = entry.value;
+        }
+      }
+
+      // Handle grouped multi-path updates (e.g. reorder)
+      for (final entry in grouped.entries) {
+        try {
+          await pb.collection(col).update(entry.key, body: entry.value);
+        } catch (_) {
+          await pb.collection(col).create(body: {'id': entry.key, ...entry.value}).catchError((_) {});
+        }
+      }
+
+      // Handle direct key-value updates (original behavior)
+      for (final entry in direct.entries) {
         if (entry.value == null) {
           await pb.collection(col).delete(entry.key).catchError((_) {});
         } else {
           try {
-            await pb.collection(col).update(entry.key, body: entry.value);
+            await pb.collection(col).update(entry.key, body: entry.value as Map<String, dynamic>);
           } catch (_) {
             await pb.collection(col).create(body: {'id': entry.key, ...?entry.value as Map?}).catchError((_) {});
           }
