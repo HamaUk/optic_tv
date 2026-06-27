@@ -7,14 +7,22 @@ class AuthService {
 
   static Future<RecordAuth?> signIn(String email, String password) async {
     try {
-      final cred = await pb.collection('users').authWithPassword(
+      // First try to authenticate as an admin (superuser)
+      return await pb.collection('_superusers').authWithPassword(
         email.trim(),
         password.trim(),
       );
-      return cred;
     } catch (e) {
-      debugPrint('Auth Error: $e');
-      rethrow;
+      try {
+        // Fallback to regular user authentication
+        return await pb.collection('users').authWithPassword(
+          email.trim(),
+          password.trim(),
+        );
+      } catch (e2) {
+        debugPrint('Auth Error: $e2');
+        rethrow;
+      }
     }
   }
 
