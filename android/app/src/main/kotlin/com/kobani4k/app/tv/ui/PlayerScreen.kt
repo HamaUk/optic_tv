@@ -134,7 +134,6 @@ fun PlayerScreen(
         // for better A/V sync on Android TV hardware decoders.
         player.trackSelectionParameters = player.trackSelectionParameters.buildUpon()
             .setMaxAudioChannelCount(2)
-            .setTunnelingEnabled(true)
             .build()
 
         // Trick 5: Network Wake Mode to prevent cheap CPUs from putting audio/WiFi chips to sleep
