@@ -78,9 +78,18 @@ class DatabaseReference {
     }
   }
 
+  // Use a static map to cache streams by path so they aren't recreated on every build!
+  static final Map<String, Stream<DatabaseEvent>> _streamCache = {};
+
   Stream<DatabaseEvent> get onValue {
+    if (_streamCache.containsKey(path)) {
+      return _streamCache[path]!;
+    }
+
     final col = _collectionName;
     final id = _recordId;
+    
+    // Create a broadcast controller
     final controller = StreamController<DatabaseEvent>.broadcast();
 
     void fetchAndEmit() async {
@@ -90,17 +99,23 @@ class DatabaseReference {
       }
     }
 
+    // Always fetch immediately
     fetchAndEmit();
     
+    // Subscribe to PocketBase SSE for realtime updates
     pb.collection(col).subscribe(id ?? '*', (e) {
       fetchAndEmit();
     }).catchError((_) {});
 
     controller.onCancel = () {
-      pb.collection(col).unsubscribe(id ?? '*');
-      controller.close();
+      if (!controller.hasListener) {
+        pb.collection(col).unsubscribe(id ?? '*');
+        controller.close();
+        _streamCache.remove(path);
+      }
     };
 
+    _streamCache[path] = controller.stream;
     return controller.stream;
   }
 
