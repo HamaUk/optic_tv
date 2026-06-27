@@ -33,6 +33,7 @@ import androidx.media3.common.Player as Media3Player
 import androidx.media3.datasource.DefaultHttpDataSource
 import androidx.media3.exoplayer.DefaultLoadControl
 import androidx.media3.exoplayer.ExoPlayer
+import androidx.media3.exoplayer.DefaultRenderersFactory
 import androidx.media3.exoplayer.source.DefaultMediaSourceFactory
 import androidx.media3.ui.PlayerView
 import androidx.tv.material3.*
@@ -109,10 +110,39 @@ fun PlayerScreen(
             .setConnectTimeoutMs(10000)
             .setReadTimeoutMs(15000)
 
-        ExoPlayer.Builder(context)
+        // Trick 1: PREFER Software Decoders (FFmpeg) over buggy hardware decoders
+        val renderersFactory = DefaultRenderersFactory(context)
+            .setEnableDecoderFallback(true)
+            .setExtensionRendererMode(DefaultRenderersFactory.EXTENSION_RENDERER_MODE_PREFER)
+            .forceEnableMediaCodecAsynchronousQueueing()
+
+        // Trick 4: Explicit Movie Audio Attributes to bypass weird Android OS audio routing
+        val audioAttributes = androidx.media3.common.AudioAttributes.Builder()
+            .setUsage(androidx.media3.common.C.USAGE_MEDIA)
+            .setContentType(androidx.media3.common.C.AUDIO_CONTENT_TYPE_MOVIE)
+            .build()
+
+        val player = ExoPlayer.Builder(context)
+            .setRenderersFactory(renderersFactory)
             .setLoadControl(loadControl)
             .setMediaSourceFactory(DefaultMediaSourceFactory(httpDataSourceFactory))
+            .setAudioAttributes(audioAttributes, true)
             .build()
+            
+        // Trick 2 & 3: Downmix to Stereo (2 channels) & Disable DSP Audio Offload
+        player.trackSelectionParameters = player.trackSelectionParameters.buildUpon()
+            .setMaxAudioChannelCount(2)
+            .setAudioOffloadPreferences(
+                androidx.media3.common.AudioOffloadPreferences.Builder()
+                    .setAudioOffloadMode(androidx.media3.common.AudioOffloadPreferences.AUDIO_OFFLOAD_MODE_DISABLED)
+                    .build()
+            )
+            .build()
+
+        // Trick 5: Network Wake Mode to prevent cheap CPUs from putting audio/WiFi chips to sleep
+        player.setWakeMode(androidx.media3.common.C.WAKE_MODE_NETWORK)
+
+        player
     }
 
     // Load initial item
