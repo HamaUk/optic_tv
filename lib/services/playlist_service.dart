@@ -1,8 +1,9 @@
 import 'dart:async';
 import 'dart:convert';
 
-import 'package:firebase_database/firebase_database.dart';
+import 'package:pocketbase/pocketbase.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'pocketbase_service.dart';
 import '../services/optic_player.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -151,19 +152,29 @@ final channelsProvider = StreamProvider<List<Channel>>((ref) {
     }
   });
 
-  // Step 2 — fetch from Firebase once (one-shot .get() instead of persistent .onValue)
-  final dbRef = FirebaseDatabase.instance.ref('sync/global/managedPlaylist');
-  dbRef.get().then((snapshot) {
-    final channels = _parseChannelData(snapshot.value);
-    if (!controller.isClosed) {
-      controller.add(channels);
-      _saveChannelCache(channels); // persist for next launch
-    }
-  }).catchError((Object e) {
-    if (!controller.isClosed) controller.addError(e);
+  void fetchChannels() {
+    pb.collection('managedPlaylist').getFullList().then((records) {
+      final data = records.map((r) => r.toJson()).toList();
+      final channels = _parseChannelData(data);
+      if (!controller.isClosed) {
+        controller.add(channels);
+        _saveChannelCache(channels);
+      }
+    }).catchError((Object e) {
+      if (!controller.isClosed) controller.addError(e);
+    });
+  }
+
+  // Step 2 — fetch from PocketBase once
+  fetchChannels();
+
+  // Step 3 — subscribe to PocketBase realtime updates
+  pb.collection('managedPlaylist').subscribe('*', (e) {
+    fetchChannels();
   });
 
   ref.onDispose(() {
+    pb.collection('managedPlaylist').unsubscribe('*');
     controller.close();
   });
 
@@ -191,15 +202,11 @@ class ChannelGroup {
 }
 
 final groupsProvider = FutureProvider<List<ChannelGroup>>((ref) async {
-  final dbRef = FirebaseDatabase.instance.ref('sync/global/channelGroups');
-
   try {
-    final snapshot = await dbRef.get();
-    final data = snapshot.value;
-    if (data is! Map) return [];
+    final records = await pb.collection('channelGroups').getFullList();
 
-    final list = data.entries.map((e) {
-      return ChannelGroup.fromMap(e.key.toString(), e.value as Map);
+    final list = records.map((e) {
+      return ChannelGroup.fromMap(e.id, e.toJson());
     }).toList();
 
     list.sort((a, b) {

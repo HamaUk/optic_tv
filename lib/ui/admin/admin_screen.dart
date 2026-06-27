@@ -5,8 +5,8 @@ import 'dart:io';
 
 import 'package:dio/dio.dart';
 import 'package:file_picker/file_picker.dart';
-import 'package:firebase_auth/firebase_auth.dart';
-import 'package:firebase_database/firebase_database.dart';
+import 'package:file_picker/file_picker.dart';
+import '../../services/pocketbase_database_mock.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
@@ -118,7 +118,7 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
 
   void initState() {
     super.initState();
-    _isAuthenticated = FirebaseAuth.instance.currentUser != null;
+    _isAuthenticated = AuthService.currentUser != null;
     _tabController = TabController(length: 9, vsync: this);
     _channelGroupController.text = 'Live TV';
     _channelSearchController.addListener(() {

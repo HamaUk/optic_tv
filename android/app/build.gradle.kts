@@ -6,7 +6,6 @@ plugins {
     id("kotlin-android")
     // The Flutter Gradle Plugin must be applied after the Android and Kotlin Gradle plugins.
     id("dev.flutter.flutter-gradle-plugin")
-    id("com.google.gms.google-services")
     id("org.jetbrains.kotlin.plugin.compose")
 }
 
@@ -117,9 +116,8 @@ dependencies {
     implementation("androidx.media3:media3-ui:$media3Version")
     implementation("androidx.media3:media3-session:$media3Version")
 
-    // Firebase
-    implementation(platform("com.google.firebase:firebase-bom:32.7.4"))
-    implementation("com.google.firebase:firebase-database")
+    // PocketBase & Networking
+    implementation("com.squareup.okhttp3:okhttp:4.12.0")
 
     // Premium UI (Lottie)
     implementation("com.airbnb.android:lottie-compose:6.3.0")

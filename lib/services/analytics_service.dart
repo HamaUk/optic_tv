@@ -1,25 +1,15 @@
 import 'dart:async';
-import 'package:firebase_database/firebase_database.dart';
+import 'package:pocketbase/pocketbase.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'pocketbase_service.dart';
 
 final analyticsServiceProvider = Provider((ref) => AnalyticsService());
 
 class AnalyticsService {
-  final FirebaseDatabase _db = FirebaseDatabase.instance;
-
   Future<int> getLiveUsersCount() async {
     try {
-      final snap = await _db.ref('live_viewers').get();
-      if (!snap.exists || snap.value == null) return 0;
-
-      int totalActive = 0;
-      final data = snap.value as Map<dynamic, dynamic>;
-      data.forEach((channelKey, channelData) {
-        if (channelData is Map) {
-          totalActive += channelData.length;
-        }
-      });
-      return totalActive;
+      final records = await pb.collection('live_viewers').getFullList();
+      return records.length;
     } catch (_) {
       return 0;
     }
@@ -27,9 +17,8 @@ class AnalyticsService {
 
   Future<int> getTotalViews() async {
     try {
-      final snap = await _db.ref('sync/global/analytics/views/total').get();
-      if (!snap.exists || snap.value == null) return 0;
-      return (snap.value as num).toInt();
+      final record = await pb.collection('analytics_views_total').getFirstListItem('');
+      return record.getIntValue('total');
     } catch (_) {
       return 0;
     }
@@ -37,10 +26,12 @@ class AnalyticsService {
 
   Future<Map<String, int>> getDailyViews() async {
     try {
-      final snap = await _db.ref('sync/global/analytics/views/daily').get();
-      if (!snap.exists || snap.value == null) return {};
-      final data = snap.value as Map<dynamic, dynamic>;
-      return data.map((key, value) => MapEntry(key.toString(), (value as num).toInt()));
+      final records = await pb.collection('analytics_views_daily').getFullList();
+      final map = <String, int>{};
+      for (final r in records) {
+        map[r.getStringValue('date')] = r.getIntValue('views');
+      }
+      return map;
     } catch (_) {
       return {};
     }
@@ -48,26 +39,15 @@ class AnalyticsService {
 
   Future<List<Map<String, dynamic>>> getTopChannels({int limit = 10}) async {
     try {
-      final snap = await _db.ref('sync/global/analytics/channel_views').get();
-      if (!snap.exists || snap.value == null) return [];
-
-      final data = snap.value as Map<dynamic, dynamic>;
-      final channels = <Map<String, dynamic>>[];
-
-      data.forEach((key, value) {
-        if (value is Map) {
-          final total = (value['total'] as num?)?.toInt() ?? 0;
-          final name = value['name']?.toString() ?? 'Unknown Channel';
-          channels.add({
-            'key': key.toString(),
-            'name': name,
-            'total': total,
-          });
-        }
-      });
-
-      channels.sort((a, b) => (b['total'] as int).compareTo(a['total'] as int));
-      return channels.take(limit).toList();
+      final records = await pb.collection('analytics_channel_views').getFullList(
+        sort: '-total',
+      );
+      
+      return records.take(limit).map((r) => {
+        'key': r.id,
+        'name': r.getStringValue('name'),
+        'total': r.getIntValue('total'),
+      }).toList();
     } catch (_) {
       return [];
     }

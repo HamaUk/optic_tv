@@ -1,7 +1,8 @@
 import 'dart:async';
 import 'dart:ui';
 import 'dart:math' as math;
-import 'package:firebase_database/firebase_database.dart';
+import 'package:pocketbase/pocketbase.dart';
+import '../../services/pocketbase_service.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import 'package:flutter/material.dart';
@@ -45,7 +46,7 @@ import 'package:lottie/lottie.dart';
 import 'package:flutter_staggered_animations/flutter_staggered_animations.dart';
 import 'package:google_nav_bar/google_nav_bar.dart';
 
- // Admin portal is handled via AdminScreen with Firebase Auth.
+  // Admin portal is handled via AdminScreen with PocketBase Auth.
 
 class DashboardScreen extends ConsumerStatefulWidget {
   const DashboardScreen({super.key});
@@ -2829,17 +2830,16 @@ class _GlobalAnnouncementTicker extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final settings = ref.watch(appUiSettingsProvider).asData?.value ?? const AppSettingsData();
     final accent = AppTheme.accentColor(settings.gradientPreset);
-    return FutureBuilder<DataSnapshot>(
-      future: FirebaseDatabase.instance.ref('sync/global/announcement').get(),
+    return FutureBuilder<RecordModel>(
+      future: pb.collection('announcements').getFirstListItem(''),
       builder: (context, snapshot) {
-        if (!snapshot.hasData || snapshot.data?.value == null) {
+        if (!snapshot.hasData || snapshot.data == null) {
           return const SizedBox.shrink();
         }
-        final data = snapshot.data!.value;
-        if (data is! Map) return const SizedBox.shrink();
-
-        final active = data['active'] == true;
-        final text = '${data['text'] ?? ''}';
+        final record = snapshot.data!;
+        
+        final active = record.getBoolValue('active');
+        final text = record.getStringValue('text');
 
         if (!active || text.isEmpty) return const SizedBox.shrink();
 

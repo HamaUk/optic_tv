@@ -18,7 +18,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.tv.material3.*
-import com.kobani4k.app.tv.data.FirebaseRepository
+import com.kobani4k.app.tv.data.PocketBaseRepository
 import kotlinx.coroutines.launch
 
 // Refined Premium Palette
@@ -40,7 +40,7 @@ fun LoginScreen(onLoginSuccess: () -> Unit) {
     var isLoading by remember { mutableStateOf(false) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
     val scope = rememberCoroutineScope()
-    val repository = remember { FirebaseRepository() }
+    val repository = remember { PocketBaseRepository() }
 
     Box(
         modifier = Modifier

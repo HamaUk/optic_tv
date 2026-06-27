@@ -3,7 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:firebase_core/firebase_core.dart';
+import 'services/pocketbase_service.dart';
 
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:dpad/dpad.dart';
@@ -38,37 +38,10 @@ void main() async {
   }
 
   try {
-    if (identical(0, 0.0)) { // Simple check for web
-      await Firebase.initializeApp(
-        options: const FirebaseOptions(
-          apiKey: "AIzaSyCvNllsitniHSvzTIKiH74EqgCrHqB5xJI",
-          appId: "1:476890397528:web:9107ccb708b51d368e7343",
-          messagingSenderId: "476890397528",
-          projectId: "optic-tv",
-          databaseURL: "https://optic-tv-default-rtdb.firebaseio.com",
-          storageBucket: "optic-tv.firebasestorage.app",
-        ),
-      );
-    } else {
-      await Firebase.initializeApp();
-    }
-    
-    // Initialize Secondary Firebase Project for Viewers
-    await Firebase.initializeApp(
-      name: 'viewers',
-      options: const FirebaseOptions(
-        apiKey: "AIzaSyCRXemvVgwctprqX1rguf2CBIsI_4-FeZg",
-        appId: "1:909355498608:web:2bd36700709779a73948b5",
-        messagingSenderId: "909355498608",
-        projectId: "optic-tv-viewers",
-        databaseURL: "https://optic-tv-viewers-default-rtdb.europe-west1.firebasedatabase.app",
-        storageBucket: "optic-tv-viewers.firebasestorage.app",
-      ),
-    );
-
-    await NotificationService().initialize();
+    PocketBaseService().initialize('http://64.225.76.43');
+    // We will handle notifications via PocketBase later if needed, or simply not initialize FCM.
   } catch (e) {
-    debugPrint('Firebase initialization failed: $e');
+    debugPrint('PocketBase initialization failed: $e');
   }
 
   final prefs = await SharedPreferences.getInstance();

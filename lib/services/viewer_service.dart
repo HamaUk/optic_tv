@@ -1,10 +1,10 @@
 import 'dart:async';
-import 'package:firebase_core/firebase_core.dart';
-import 'package:firebase_database/firebase_database.dart';
+import 'package:pocketbase/pocketbase.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:math';
+import 'pocketbase_service.dart';
 
 final viewerServiceProvider = Provider((ref) => ViewerService());
 
@@ -12,24 +12,13 @@ final channelViewersProvider = StreamProvider.family<int, String>((ref, channelU
   return ref.watch(viewerServiceProvider).getViewersStream(channelUrl);
 });
 
-/// Device-ID based viewer presence service.
-///
-/// Each device gets a stable random ID stored in SharedPreferences.
-/// When the user opens a channel:
-///   live_viewers/$channelKey/$deviceId = { lastSeen: timestamp }
-/// When the user leaves, the entry is removed immediately + via onDisconnect.
-/// This guarantees: 1 device = 1 entry, no duplicates, instant count update.
 class ViewerService {
-  late final FirebaseDatabase _db = FirebaseDatabase.instanceFor(app: Firebase.app('viewers'));
-
   static String? _deviceId;
   String? _currentChannelKey;
-  DatabaseReference? _currentRef;
+  String? _recordId;
   Timer? _heartbeatTimer;
 
   static const _heartbeatInterval = Duration(seconds: 20);
-
-  // ─── Device ID ────────────────────────────────────────────────
 
   static Future<String> _getDeviceId() async {
     if (_deviceId != null) return _deviceId!;
@@ -43,111 +32,100 @@ class ViewerService {
     return id;
   }
 
-  // ─── Join / Leave ─────────────────────────────────────────────
-
-  /// Call this when the user starts watching a channel.
   Future<void> joinChannel(String channelUrl, {String? channelName}) async {
     final sanitizedKey = _sanitizeKey(channelUrl);
     if (sanitizedKey.isEmpty) return;
 
-    // Leave previous channel first
     await leaveChannel(channelUrl);
 
     try {
       final deviceId = await _getDeviceId();
       _currentChannelKey = sanitizedKey;
 
-      final ref = _db.ref('live_viewers/$sanitizedKey/$deviceId');
-      _currentRef = ref;
+      final body = {
+        'channelKey': sanitizedKey,
+        'deviceId': deviceId,
+        'lastSeen': DateTime.now().toUtc().toIso8601String(),
+      };
 
-      // Write presence — auto-removed on disconnect
-      await ref.set({'lastSeen': ServerValue.timestamp});
-      await ref.onDisconnect().remove();
+      try {
+        final existing = await pb.collection('liveViewers').getFirstListItem('deviceId="$deviceId"');
+        _recordId = existing.id;
+        await pb.collection('liveViewers').update(_recordId!, body: body);
+      } catch (_) {
+        final record = await pb.collection('liveViewers').create(body: body);
+        _recordId = record.id;
+      }
 
-      // Heartbeat to keep presence alive
-      _startHeartbeat(ref);
-
-      // Historical analytics (increment)
-      _recordAnalytics(sanitizedKey, channelName);
+      _startHeartbeat();
     } catch (e) {
       debugPrint('ViewerService.joinChannel error: $e');
     }
   }
 
-  /// Call this when the user leaves a channel.
   Future<void> leaveChannel(String channelUrl) async {
     _heartbeatTimer?.cancel();
     _heartbeatTimer = null;
 
-    if (_currentRef != null) {
+    if (_recordId != null) {
       try {
-        await _currentRef!.remove();
-        await _currentRef!.onDisconnect().cancel();
+        await pb.collection('liveViewers').delete(_recordId!);
       } catch (e) {
         debugPrint('ViewerService.leaveChannel error: $e');
       }
-      _currentRef = null;
+      _recordId = null;
     }
     _currentChannelKey = null;
   }
 
-  // ─── Heartbeat ────────────────────────────────────────────────
-
-  void _startHeartbeat(DatabaseReference ref) {
+  void _startHeartbeat() {
     _heartbeatTimer?.cancel();
-    _heartbeatTimer = Timer.periodic(_heartbeatInterval, (_) {
-      ref.update({'lastSeen': ServerValue.timestamp}).catchError((_) {});
+    _heartbeatTimer = Timer.periodic(_heartbeatInterval, (_) async {
+      if (_recordId != null) {
+        try {
+          await pb.collection('liveViewers').update(_recordId!, body: {
+            'lastSeen': DateTime.now().toUtc().toIso8601String(),
+          });
+        } catch (_) {}
+      }
     });
   }
 
-  // ─── Analytics ───────────────────────────────────────────────
-
-  void _recordAnalytics(String sanitizedKey, String? channelName) {
-    // Analytics tracking removed to save Firebase bandwidth and write limits
-  }
-
-  // ─── Stream ───────────────────────────────────────────────────
-
-  /// Real-time stream of how many unique devices are currently watching.
   Stream<int> getViewersStream(String channelUrl) {
     final sanitizedKey = _sanitizeKey(channelUrl);
     if (sanitizedKey.isEmpty) return Stream.value(0);
 
-    return _db
-        .ref('live_viewers/$sanitizedKey')
-        .onValue
-        .map((event) {
-          if (event.snapshot.value == null) return 0;
-          final data = event.snapshot.value;
-          if (data is! Map) return 0;
+    final controller = StreamController<int>.broadcast();
 
-          // Count entries active within the last 60 seconds
-          final now = DateTime.now().millisecondsSinceEpoch;
-          final staleMs = now - 60000;
-          int count = 0;
-          for (final entry in data.values) {
-            if (entry is Map) {
-              final lastSeen = entry['lastSeen'];
-              if (lastSeen is int && lastSeen >= staleMs) {
-                count++;
-              }
-            }
-          }
-          return count;
-        })
-        .handleError((_) => 0);
+    void fetchCount() {
+      // Fetch viewers updated in the last 60 seconds
+      final staleTime = DateTime.now().toUtc().subtract(const Duration(seconds: 60)).toIso8601String();
+      pb.collection('liveViewers').getList(
+        page: 1, 
+        perPage: 1, 
+        filter: 'channelKey="$sanitizedKey" && lastSeen >= "$staleTime"'
+      ).then((res) {
+        if (!controller.isClosed) controller.add(res.totalItems);
+      }).catchError((_) {});
+    }
+
+    fetchCount();
+    final timer = Timer.periodic(const Duration(seconds: 15), (_) => fetchCount());
+
+    controller.onCancel = () {
+      timer.cancel();
+      controller.close();
+    };
+
+    return controller.stream;
   }
-
-  // ─── Cleanup ──────────────────────────────────────────────────
 
   Future<void> dispose() async {
     _heartbeatTimer?.cancel();
-    if (_currentRef != null) {
-      await _currentRef!.remove().catchError((_) {});
+    if (_recordId != null) {
+      await pb.collection('liveViewers').delete(_recordId!).catchError((_) {});
     }
   }
-
-  // ─── Helpers ─────────────────────────────────────────────────
 
   String _sanitizeKey(String url) {
     return url

@@ -1,18 +1,15 @@
-import 'package:firebase_auth/firebase_auth.dart';
+import 'package:pocketbase/pocketbase.dart';
 import 'package:flutter/foundation.dart';
-import 'package:google_sign_in/google_sign_in.dart';
+import 'pocketbase_service.dart';
 
 class AuthService {
-  static final FirebaseAuth _auth = FirebaseAuth.instance;
-  static GoogleSignIn get _googleSignIn => GoogleSignIn.instance;
+  static RecordModel? get currentUser => pb.authStore.model as RecordModel?;
 
-  static User? get currentUser => _auth.currentUser;
-
-  static Future<UserCredential?> signIn(String email, String password) async {
+  static Future<RecordAuth?> signIn(String email, String password) async {
     try {
-      final cred = await _auth.signInWithEmailAndPassword(
-        email: email.trim(),
-        password: password.trim(),
+      final cred = await pb.collection('users').authWithPassword(
+        email.trim(),
+        password.trim(),
       );
       return cred;
     } catch (e) {
@@ -21,30 +18,14 @@ class AuthService {
     }
   }
 
-  static Future<UserCredential?> signInWithGoogle() async {
+  static Future<RecordAuth?> signInWithGoogle() async {
     try {
-      // 1. Initialize for the 7.x API
-      await _googleSignIn.initialize();
-
-      // 2. Authenticate (Identify the user)
-      final GoogleSignInAccount? googleUser = await _googleSignIn.authenticate();
-      if (googleUser == null) return null;
-
-      // 3. Get Authentication (ID Token)
-      final GoogleSignInAuthentication googleAuth = await googleUser.authentication;
-      
-      // 4. In 7.x, the access token must be explicitly requested via authorizationClient 
-      // if it's not automatically provided or if we need specific scopes.
-      // For Firebase Auth, we usually need the accessToken too.
-      final authorized = await googleUser.authorizationClient.authorizeScopes(['email', 'profile']);
-      final String? accessToken = authorized?.accessToken;
-
-      final AuthCredential credential = GoogleAuthProvider.credential(
-        accessToken: accessToken,
-        idToken: googleAuth.idToken,
-      );
-
-      return await _auth.signInWithCredential(credential);
+      // Note: PocketBase OAuth2 requires web fallback or deep linking
+      // This is a placeholder for Google OAuth if needed.
+      final authData = await pb.collection('users').authWithOAuth2('google', (url) async {
+        // Implement OAuth URL launcher here
+      });
+      return authData;
     } catch (e) {
       debugPrint('Google Sign-In Error: $e');
       rethrow;
@@ -52,11 +33,8 @@ class AuthService {
   }
 
   static Future<void> signOut() async {
-    await Future.wait([
-      _auth.signOut(),
-      _googleSignIn.signOut(),
-    ]);
+    pb.authStore.clear();
   }
 
-  static bool get isAdmin => _auth.currentUser != null;
+  static bool get isAdmin => pb.authStore.isValid && pb.authStore.model != null;
 }

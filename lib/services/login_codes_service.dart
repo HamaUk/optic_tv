@@ -1,13 +1,11 @@
-import 'package:firebase_database/firebase_database.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:pocketbase/pocketbase.dart';
+import 'pocketbase_service.dart';
+import 'dart:async';
 
-/// Validates user-facing login codes from
-/// `sync/global/loginCodes` where each child is:
-///   { "code": "...", "active": true, "expiresAt": "2026-05-01T00:00:00.000Z" }
-///
-/// Codes with a past `expiresAt` are treated as inactive.
+/// Validates user-facing login codes from PocketBase
+/// `loginCodes` collection
 class LoginCodesService {
-  static const _rtdbPath = 'sync/global/loginCodes';
   static const _cacheKey = 'login_codes_cache_v1';
 
   static Future<bool> validate(String raw) async {
@@ -15,15 +13,20 @@ class LoginCodesService {
     if (normalized.isEmpty) return false;
 
     try {
-      final snap = await FirebaseDatabase.instance.ref(_rtdbPath).get();
-      if (snap.exists && snap.value != null) {
-        final ok = _matchSnapshot(snap.value, normalized);
-        await _storeCacheFromSnapshot(snap.value);
+      final records = await pb.collection('loginCodes').getFullList(
+        filter: 'code = "$normalized"',
+      );
+      
+      if (records.isNotEmpty) {
+        final ok = _matchRecords(records, normalized);
+        if (ok) {
+          await _storeCache(normalized);
+        }
         return ok;
       }
       return false;
     } catch (e) {
-      // Offline / Firebase error -> try cache
+      // Offline / API error -> try cache
       final cachedOk = await _matchCached(normalized);
       if (cachedOk) return true;
       throw Exception('DB Error: $e');
@@ -34,61 +37,53 @@ class LoginCodesService {
     final normalized = _normalize(raw);
     if (normalized.isEmpty) return Stream.value(false);
 
-    return FirebaseDatabase.instance.ref(_rtdbPath).onValue.map((event) {
-      if (event.snapshot.exists && event.snapshot.value != null) {
-        return _matchSnapshot(event.snapshot.value, normalized);
-      }
-      return false;
+    final controller = StreamController<bool>.broadcast();
+
+    // Initial check
+    validate(raw).then(controller.add).catchError((_) => controller.add(false));
+
+    // Subscribe to PocketBase realtime updates for loginCodes
+    pb.collection('loginCodes').subscribe('*', (e) {
+      validate(raw).then(controller.add).catchError((_) {});
     });
+
+    return controller.stream;
   }
 
   static String _normalize(String s) =>
       s.replaceAll(RegExp(r'\s+'), '').toLowerCase();
 
-  static bool _isExpired(dynamic expiresAt) {
-    if (expiresAt == null) return false; // No expiry means permanent.
+  static bool _isExpired(String? expiresAt) {
+    if (expiresAt == null || expiresAt.isEmpty) return false;
     try {
-      final dt = DateTime.parse('$expiresAt');
+      final dt = DateTime.parse(expiresAt);
       return DateTime.now().toUtc().isAfter(dt);
     } catch (_) {
       return false;
     }
   }
 
-  static bool _matchSnapshot(dynamic data, String normalized) {
-    Iterable values;
-    if (data is Map) {
-      values = data.values;
-    } else if (data is List) {
-      values = data.where((v) => v != null);
-    } else {
-      return false;
-    }
-
-    for (final v in values) {
-      if (v is! Map) continue;
-      final active = v['active'] != false;
-      final code = _normalize('${v['code'] ?? ''}');
+  static bool _matchRecords(List<RecordModel> records, String normalized) {
+    for (final v in records) {
+      final active = v.getBoolValue('active');
+      final code = _normalize(v.getStringValue('code'));
       if (!active || code.isEmpty || code != normalized) continue;
-      if (_isExpired(v['expiresAt'])) continue;
+      
+      final expiresAt = v.getStringValue('expiresAt');
+      if (_isExpired(expiresAt)) continue;
+      
       return true;
     }
     return false;
   }
 
-  static Future<void> _storeCacheFromSnapshot(dynamic data) async {
-    final codes = <String>[];
-    if (data is Map) {
-      for (final v in data.values) {
-        if (v is Map && v['active'] != false) {
-          if (_isExpired(v['expiresAt'])) continue;
-          final c = _normalize('${v['code'] ?? ''}');
-          if (c.isNotEmpty) codes.add(c);
-        }
-      }
-    }
+  static Future<void> _storeCache(String code) async {
     final p = await SharedPreferences.getInstance();
-    await p.setStringList(_cacheKey, codes);
+    var list = p.getStringList(_cacheKey) ?? [];
+    if (!list.contains(code)) {
+      list.add(code);
+      await p.setStringList(_cacheKey, list);
+    }
   }
 
   static Future<bool> _matchCached(String normalized) async {

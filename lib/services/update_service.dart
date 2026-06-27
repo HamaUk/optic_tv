@@ -1,6 +1,7 @@
-import 'package:firebase_database/firebase_database.dart';
+import 'package:pocketbase/pocketbase.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:package_info_plus/package_info_plus.dart';
+import 'pocketbase_service.dart';
 
 class AppUpdateData {
   final String apkUrl;
@@ -17,26 +18,21 @@ class AppUpdateData {
     required this.isActive,
   });
 
-  factory AppUpdateData.fromMap(Map<dynamic, dynamic>? map) {
-    if (map == null) {
-      return const AppUpdateData(apkUrl: '', versionCode: 0, versionName: '', releaseNotes: '', isActive: false);
-    }
+  factory AppUpdateData.fromRecord(RecordModel record) {
     return AppUpdateData(
-      apkUrl: map['apkUrl']?.toString() ?? '',
-      versionCode: int.tryParse(map['versionCode']?.toString() ?? '0') ?? 0,
-      versionName: map['versionName']?.toString() ?? '',
-      releaseNotes: map['releaseNotes']?.toString() ?? '',
-      isActive: map['isActive'] == true || map['isActive'] == 'true',
+      apkUrl: record.getStringValue('apkUrl'),
+      versionCode: record.getIntValue('versionCode'),
+      versionName: record.getStringValue('versionName'),
+      releaseNotes: record.getStringValue('releaseNotes'),
+      isActive: record.getBoolValue('isActive'),
     );
   }
 }
 
 final updateManagerProvider = FutureProvider<AppUpdateData>((ref) async {
   try {
-    final snap = await FirebaseDatabase.instance
-        .ref('sync/global/updateManager')
-        .get();
-    return AppUpdateData.fromMap(snap.value as Map<dynamic, dynamic>?);
+    final record = await pb.collection('updateManager').getFirstListItem('');
+    return AppUpdateData.fromRecord(record);
   } catch (_) {
     return const AppUpdateData(apkUrl: '', versionCode: 0, versionName: '', releaseNotes: '', isActive: false);
   }

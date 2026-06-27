@@ -27,7 +27,7 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.tv.material3.*
 import coil.compose.AsyncImage
-import com.kobani4k.app.tv.data.FirebaseRepository
+import com.kobani4k.app.tv.data.PocketBaseRepository
 import com.kobani4k.app.tv.data.TvChannel
 import androidx.media3.common.MediaItem
 import androidx.media3.common.PlaybackException
@@ -64,7 +64,7 @@ fun DashboardScreen(
     onLogout: () -> Unit
 ) {
     val context = LocalContext.current
-    val repository = remember { FirebaseRepository() }
+    val repository = remember { PocketBaseRepository() }
     
     // Playlists and settings
     var allChannels by remember { mutableStateOf<List<TvChannel>>(emptyList()) }

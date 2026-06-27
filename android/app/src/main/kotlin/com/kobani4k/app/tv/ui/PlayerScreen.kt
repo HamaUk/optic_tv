@@ -37,7 +37,7 @@ import androidx.media3.exoplayer.source.DefaultMediaSourceFactory
 import androidx.media3.ui.PlayerView
 import androidx.tv.material3.*
 import coil.compose.AsyncImage
-import com.kobani4k.app.tv.data.FirebaseRepository
+import com.kobani4k.app.tv.data.PocketBaseRepository
 import com.kobani4k.app.tv.data.TvChannel
 import kotlinx.coroutines.delay
 
@@ -59,7 +59,7 @@ fun PlayerScreen(
     onBack: () -> Unit
 ) {
     val context = LocalContext.current
-    val repository = remember { FirebaseRepository() }
+    val repository = remember { PocketBaseRepository() }
 
     // Dynamic states
     var currentChannelName by remember { mutableStateOf(channelName) }

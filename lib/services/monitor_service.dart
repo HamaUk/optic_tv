@@ -1,14 +1,15 @@
 import 'dart:async';
-import 'package:firebase_database/firebase_database.dart';
+import 'package:pocketbase/pocketbase.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:math';
+import 'pocketbase_service.dart';
 
 class MonitorService {
-  static const _rtdbPath = 'sync/global/activeSessions';
   static Timer? _timer;
   static String? _deviceId;
   static String? _currentCode;
   static String? _currentChannel;
+  static String? _recordId;
 
   static Future<String> _getDeviceId() async {
     if (_deviceId != null) return _deviceId!;
@@ -31,38 +32,49 @@ class MonitorService {
 
   static void updateActivity(String? channelName) {
     _currentChannel = channelName;
-    _ping(); // Immediate ping on activity change
+    _ping();
   }
 
   static void _setupHeartbeat(String id) {
     _timer?.cancel();
     _ping();
-    // Heartbeat every 60 seconds
     _timer = Timer.periodic(const Duration(seconds: 60), (_) => _ping());
-    
-    // Clean up when app disconnects
-    FirebaseDatabase.instance.ref('$_rtdbPath/$id').onDisconnect().remove();
   }
 
   static Future<void> _ping() async {
     if (_deviceId == null || _currentCode == null) return;
     try {
-      await FirebaseDatabase.instance.ref('$_rtdbPath/$_deviceId').set({
+      final body = {
+        'deviceId': _deviceId,
         'code': _currentCode,
         'channel': _currentChannel ?? 'Dashboard',
-        'lastSeen': ServerValue.timestamp,
         'platform': 'App',
-      });
+        'lastSeen': DateTime.now().toUtc().toIso8601String(),
+      };
+
+      if (_recordId == null) {
+        try {
+            final existing = await pb.collection('activeSessions').getFirstListItem('deviceId="$_deviceId"');
+            _recordId = existing.id;
+            await pb.collection('activeSessions').update(_recordId!, body: body);
+        } catch (_) {
+            final record = await pb.collection('activeSessions').create(body: body);
+            _recordId = record.id;
+        }
+      } else {
+        await pb.collection('activeSessions').update(_recordId!, body: body);
+      }
     } catch (e) {
-       // Silent fail for pings
+       // Silent fail
     }
   }
 
   static void stop() {
     _timer?.cancel();
     _currentCode = null;
-    if (_deviceId != null) {
-      FirebaseDatabase.instance.ref('$_rtdbPath/$_deviceId').remove();
+    if (_recordId != null) {
+      pb.collection('activeSessions').delete(_recordId!).catchError((_) {});
+      _recordId = null;
     }
   }
 }

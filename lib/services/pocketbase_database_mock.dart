@@ -1,0 +1,162 @@
+import 'dart:async';
+import 'dart:math';
+import 'package:pocketbase/pocketbase.dart';
+import 'pocketbase_service.dart';
+
+class FirebaseDatabase {
+  static final instance = FirebaseDatabase();
+  DatabaseReference ref(String path) => DatabaseReference(path);
+}
+
+class DataSnapshot {
+  final String? key;
+  final dynamic value;
+  DataSnapshot(this.key, this.value);
+  bool get exists => value != null;
+}
+
+class DatabaseEvent {
+  final DataSnapshot snapshot;
+  DatabaseEvent(this.snapshot);
+}
+
+class DatabaseReference {
+  final String path;
+  DatabaseReference(this.path);
+
+  DatabaseReference child(String pathStr) {
+    if (pathStr.startsWith('/')) pathStr = pathStr.substring(1);
+    return DatabaseReference('$path/$pathStr');
+  }
+
+  DatabaseReference push() {
+    // Generate exactly 15 lowercase alphanumeric chars for PocketBase ID
+    final chars = 'abcdefghijklmnopqrstuvwxyz0123456789';
+    final rnd = Random();
+    final id = String.fromCharCodes(Iterable.generate(
+      15, (_) => chars.codeUnitAt(rnd.nextInt(chars.length))));
+    return DatabaseReference('$path/$id');
+  }
+
+  String get key => path.split('/').last;
+
+  String get _collectionName {
+    if (path.contains('managedPlaylist')) return 'managedPlaylist';
+    if (path.contains('channelGroups')) return 'channelGroups';
+    if (path.contains('loginCodes')) return 'loginCodes';
+    if (path.contains('announcement')) return 'announcements';
+    if (path.contains('notifications/broadcast')) return 'broadcasts';
+    if (path.contains('notifications/history')) return 'broadcasts';
+    if (path.contains('updateManager')) return 'updateManager';
+    return 'unknown';
+  }
+
+  String? get _recordId {
+    final parts = path.split('/');
+    if (parts.length > 3) return parts.last;
+    return null;
+  }
+
+  Future<DataSnapshot> get() async {
+    final col = _collectionName;
+    final id = _recordId;
+
+    try {
+      if (id != null) {
+        final record = await pb.collection(col).getOne(id);
+        return DataSnapshot(id, record.toJson());
+      } else {
+        final records = await pb.collection(col).getFullList();
+        final map = <String, dynamic>{};
+        for (var r in records) {
+          map[r.id] = r.toJson();
+        }
+        return DataSnapshot(key, map.isEmpty ? null : map);
+      }
+    } catch (_) {
+      return DataSnapshot(key, null);
+    }
+  }
+
+  Stream<DatabaseEvent> get onValue {
+    final col = _collectionName;
+    final id = _recordId;
+    final controller = StreamController<DatabaseEvent>.broadcast();
+
+    void fetchAndEmit() async {
+      final snap = await get();
+      if (!controller.isClosed) {
+        controller.add(DatabaseEvent(snap));
+      }
+    }
+
+    fetchAndEmit();
+    
+    pb.collection(col).subscribe(id ?? '*', (e) {
+      fetchAndEmit();
+    }).catchError((_) {});
+
+    controller.onCancel = () {
+      pb.collection(col).unsubscribe(id ?? '*');
+      controller.close();
+    };
+
+    return controller.stream;
+  }
+
+  Future<void> set(dynamic value) async {
+    final col = _collectionName;
+    final id = _recordId;
+    if (id != null) {
+      if (value == null) {
+        await pb.collection(col).delete(id).catchError((_) {});
+      } else {
+        try {
+          await pb.collection(col).update(id, body: value);
+        } catch (_) {
+          try {
+            await pb.collection(col).create(body: {'id': id, ...?value as Map?});
+          } catch (_) {
+            await pb.collection(col).create(body: value);
+          }
+        }
+      }
+    } else {
+      if (value is Map) {
+        for (final k in value.keys) {
+          try {
+            await pb.collection(col).create(body: {'id': k, ...?value[k] as Map?});
+          } catch (_) {}
+        }
+      }
+    }
+  }
+
+  Future<void> update(Map<String, dynamic> value) async {
+    final col = _collectionName;
+    final id = _recordId;
+    if (id != null) {
+      await pb.collection(col).update(id, body: value);
+    } else {
+      for (final entry in value.entries) {
+        if (entry.value == null) {
+          await pb.collection(col).delete(entry.key).catchError((_) {});
+        } else {
+          try {
+            await pb.collection(col).update(entry.key, body: entry.value);
+          } catch (_) {
+            await pb.collection(col).create(body: {'id': entry.key, ...?entry.value as Map?}).catchError((_) {});
+          }
+        }
+      }
+    }
+  }
+
+  Future<void> remove() async {
+    final col = _collectionName;
+    final id = _recordId;
+    if (id != null) {
+      await pb.collection(col).delete(id).catchError((_) {});
+    }
+  }
+}
