@@ -1069,7 +1069,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
             child: _buildSportHeader(s, pad),
           ),
 
-        if (!isTv && (_navIndex == 0 || _navIndex == 3) &&
+        if ((_navIndex == 0 || _navIndex == 3) &&
             _searchController.text.trim().isEmpty &&
             slideChannels.isNotEmpty)
           SliverToBoxAdapter(
@@ -2665,7 +2665,7 @@ class _FeaturedCarouselState extends State<_FeaturedCarousel> with TickerProvide
                                   ),
                                   const SizedBox(width: 12),
                                   // ── Watch Now Button ──
-                                  GestureDetector(
+                                  GhostenFocusable(
                                     onTap: () => widget.onWatch(ch),
                                     child: Container(
                                       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
