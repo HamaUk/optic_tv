@@ -134,11 +134,6 @@ fun PlayerScreen(
         // for better A/V sync on Android TV hardware decoders.
         player.trackSelectionParameters = player.trackSelectionParameters.buildUpon()
             .setMaxAudioChannelCount(2)
-            .setAudioOffloadPreferences(
-                androidx.media3.common.AudioOffloadPreferences.Builder()
-                    .setAudioOffloadMode(androidx.media3.common.AudioOffloadPreferences.AUDIO_OFFLOAD_MODE_DISABLED)
-                    .build()
-            )
             .setTunnelingEnabled(true)
             .build()
 
