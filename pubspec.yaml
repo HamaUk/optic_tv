@@ -59,7 +59,9 @@ dependencies:
   custom_tv_text_field: ^1.0.0
 
   # Media Engine — ExoPlayer (Android native, zero overhead)
-  video_player: ^2.9.1
+  media_kit: ^1.1.11
+  media_kit_video: ^1.2.4
+  media_kit_libs_video: ^1.0.4
   device_info_plus: ^11.1.0
   package_info_plus: any
 

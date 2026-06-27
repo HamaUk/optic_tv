@@ -13,7 +13,8 @@ import 'package:animations/animations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:dpad/dpad.dart';
 import 'package:lottie/lottie.dart';
-import 'package:video_player/video_player.dart';
+import 'package:media_kit/media_kit.dart';
+import 'package:media_kit_video/media_kit_video.dart';
 
 import '../world_cup/world_cup_screen.dart';
 import '../../core/theme.dart';
@@ -2759,29 +2760,36 @@ class _SilentPreviewPlayer extends StatefulWidget {
 }
 
 class _SilentPreviewPlayerState extends State<_SilentPreviewPlayer> {
-  late VideoPlayerController _controller;
+  late final Player _player;
+  late final VideoController _controller;
   bool _initialized = false;
   bool _error = false;
 
   @override
   void initState() {
     super.initState();
-    _controller = VideoPlayerController.networkUrl(Uri.parse(widget.url))
-      ..initialize().then((_) {
-        if (!mounted) return;
+    _player = Player();
+    _controller = VideoController(_player);
+
+    _player.stream.error.listen((event) {
+      if (!mounted) return;
+      setState(() => _error = true);
+    });
+
+    _player.stream.playing.listen((playing) {
+      if (playing && !_initialized && mounted) {
         setState(() => _initialized = true);
-        _controller.setVolume(0.0);
-        _controller.setLooping(true);
-        _controller.play();
-      }).catchError((e) {
-        if (!mounted) return;
-        setState(() => _error = true);
-      });
+      }
+    });
+
+    _player.setVolume(0.0);
+    _player.setPlaylistMode(PlaylistMode.single);
+    _player.open(Media(widget.url), play: true);
   }
 
   @override
   void dispose() {
-    _controller.dispose();
+    _player.dispose();
     super.dispose();
   }
 
@@ -2809,9 +2817,9 @@ class _SilentPreviewPlayerState extends State<_SilentPreviewPlayer> {
         child: FittedBox(
           fit: BoxFit.cover,
           child: SizedBox(
-            width: _controller.value.size.width,
-            height: _controller.value.size.height,
-            child: VideoPlayer(_controller),
+            width: _player.state.width?.toDouble() ?? 1920,
+            height: _player.state.height?.toDouble() ?? 1080,
+            child: Video(controller: _controller, controls: NoVideoControls),
           ),
         ),
       ),

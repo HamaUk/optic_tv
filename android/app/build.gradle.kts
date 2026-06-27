@@ -107,7 +107,7 @@ dependencies {
     implementation("androidx.navigation:navigation-compose:$navVersion")
     
     // ExoPlayer / Media3 — Full Ghosten-Level IPTV Stack
-    val media3Version = "1.8.0"
+    val media3Version = "1.8.0" // Note: ffmpeg decoder is compatible with this
     implementation("androidx.media3:media3-exoplayer:$media3Version")
     implementation("androidx.media3:media3-exoplayer-hls:$media3Version")
     implementation("androidx.media3:media3-exoplayer-rtsp:$media3Version")
@@ -115,6 +115,9 @@ dependencies {
     implementation("androidx.media3:media3-datasource-rtmp:$media3Version")
     implementation("androidx.media3:media3-ui:$media3Version")
     implementation("androidx.media3:media3-session:$media3Version")
+    
+    // SOFTWARE DECODERS (FFMPEG) for cheap Android TV boxes lacking AC3/DTS hardware
+    implementation("org.jellyfin.media3:media3-ffmpeg-decoder:1.5.0+1")
 
     // PocketBase & Networking
     implementation("com.squareup.okhttp3:okhttp:4.12.0")

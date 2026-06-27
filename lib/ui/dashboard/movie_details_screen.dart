@@ -3,7 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:cached_network_image/cached_network_image.dart';
-import 'package:video_player/video_player.dart';
+import 'package:media_kit/media_kit.dart';
+import 'package:media_kit_video/media_kit_video.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:translator/translator.dart';
 import '../../services/optic_player.dart';
@@ -42,8 +43,9 @@ class _MovieDetailsScreenState extends ConsumerState<MovieDetailsScreen>
   TmdbVideo? _trailer;
   bool _loading = true;
 
-  // Background Preview Player (video_player / ExoPlayer)
-  VideoPlayerController? _bgController;
+  // Background Preview Player (media_kit)
+  Player? _bgPlayer;
+  VideoController? _bgController;
   bool _bgPlaying = false;
 
   // Auto-Translation State
@@ -78,18 +80,21 @@ class _MovieDetailsScreenState extends ConsumerState<MovieDetailsScreen>
   }
 
   void _initBackgroundPlayer() {
-    final ctrl = VideoPlayerController.networkUrl(
-      Uri.parse(widget.channel.url),
-      httpHeaders: {'User-Agent': 'SmartIPTV'},
-    );
-    _bgController = ctrl;
-    ctrl.initialize().then((_) {
-      if (mounted) {
-        ctrl.setVolume(0); // Silent preview
-        ctrl.play();
-        setState(() => _bgPlaying = true);
+    final player = Player();
+    final ctrl = VideoController(player);
+
+    player.stream.playing.listen((playing) {
+      if (mounted && _bgPlaying != playing) {
+        setState(() => _bgPlaying = playing);
       }
-    }).catchError((_) {}); // Silently ignore preview errors
+    });
+
+    player.setVolume(0.0);
+    player.setPlaylistMode(PlaylistMode.single);
+    player.open(Media(widget.channel.url), play: true);
+
+    _bgPlayer = player;
+    _bgController = ctrl;
   }
 
   Future<void> _initData() async {
@@ -195,7 +200,7 @@ class _MovieDetailsScreenState extends ConsumerState<MovieDetailsScreen>
 
   @override
   void dispose() {
-    _bgController?.dispose();
+    _bgPlayer?.dispose();
     _shimmerController.dispose();
     super.dispose();
   }
@@ -227,10 +232,12 @@ class _MovieDetailsScreenState extends ConsumerState<MovieDetailsScreen>
               child: AnimatedOpacity(
                 duration: const Duration(seconds: 2),
                 opacity: _bgPlaying ? 0.75 : 0.0,
-                child: _bgController!.value.isInitialized
+                child: _bgController != null
                     ? AspectRatio(
-                        aspectRatio: _bgController!.value.aspectRatio,
-                        child: VideoPlayer(_bgController!),
+                        aspectRatio: _bgPlayer?.state.width != null && _bgPlayer?.state.height != null
+                            ? _bgPlayer!.state.width! / _bgPlayer!.state.height!
+                            : 16 / 9,
+                        child: Video(controller: _bgController!, controls: NoVideoControls),
                       )
                     : const SizedBox.shrink(),
               ),

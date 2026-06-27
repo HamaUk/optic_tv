@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'package:media_kit/media_kit.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
@@ -22,6 +23,7 @@ import 'package:flutter_jailbreak_detection/flutter_jailbreak_detection.dart';
 void main() async {
   HttpOverrides.global = GlobalSecurityHttpOverrides();
   WidgetsFlutterBinding.ensureInitialized();
+  MediaKit.ensureInitialized();
   
   // RASP Security Check: Block Rooted / Jailbroken Devices
   if (!identical(0, 0.0) && Platform.isAndroid || Platform.isIOS) {
