@@ -37,14 +37,15 @@ void main() async {
     }
   }
 
+  final prefs = await SharedPreferences.getInstance();
+
   try {
-    PocketBaseService().initialize('http://64.225.76.43');
+    PocketBaseService().initialize('http://64.225.76.43', prefs);
     // We will handle notifications via PocketBase later if needed, or simply not initialize FCM.
   } catch (e) {
     debugPrint('PocketBase initialization failed: $e');
   }
 
-  final prefs = await SharedPreferences.getInstance();
   final initialSession = prefs.getBool('auth_logged_in') ?? false;
   final initialCode = prefs.getString('auth_active_code');
   var initialLocaleCode = AppLocaleNotifier.normalizeStoredCode(prefs.getString('app_locale'));
