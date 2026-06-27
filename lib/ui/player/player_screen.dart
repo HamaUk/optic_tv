@@ -478,6 +478,10 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final uiLocale = ref.watch(appLocaleProvider);
+    final s = AppStrings(uiLocale);
+    final bottomPad = MediaQuery.of(context).padding.bottom;
+
     if (_player == null) {
       return const Scaffold(backgroundColor: Colors.black, body: Center(child: CircularProgressIndicator()));
     }
