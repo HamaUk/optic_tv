@@ -377,20 +377,22 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
                       
                       const SizedBox(height: 32),
                       
-                      TvFluidFocusable(
-                        onPressed: _busy ? () {} : () => _submit(s),
-                        builder: (context, isFocused) {
+                      StatefulBuilder(
+                        builder: (context, setState) {
+                          bool isFocused = false;
                           return AnimatedGradientBorder(
                             borderRadius: BorderRadius.circular(24),
                             borderWidth: isFocused ? 4 : 2,
-                            child: Container(
+                            child: SizedBox(
                               width: double.infinity,
                               height: 72,
-                              decoration: BoxDecoration(
-                                color: isFocused ? const Color(0xFF1a1a1a) : const Color(0xFF121212),
-                                borderRadius: BorderRadius.circular(22),
-                              ),
-                              child: Center(
+                              child: ElevatedButton(
+                                onFocusChange: (val) => setState(() => isFocused = val),
+                                onPressed: _busy ? null : () => _submit(s),
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: isFocused ? const Color(0xFF1a1a1a) : const Color(0xFF121212),
+                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(22)),
+                                ),
                                 child: Text(
                                   s.loginButton.toUpperCase(),
                                   style: AppTheme.withRabarIfKurdish(
