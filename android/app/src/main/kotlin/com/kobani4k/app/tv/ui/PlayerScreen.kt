@@ -87,6 +87,7 @@ fun PlayerScreen(
     var channelNumberInput by remember { mutableStateOf("") }
     var showChannelInfoBanner by remember { mutableStateOf(true) }
     var infoBannerHideTrigger by remember { mutableStateOf(0) }
+    var zapChannelIndex by remember { mutableStateOf<Int?>(null) }
     
     var channelsList by remember { mutableStateOf<List<TvChannel>>(emptyList()) }
 
@@ -105,6 +106,7 @@ fun PlayerScreen(
         if (showChannelInfoBanner && !showControls) {
             delay(4000)
             showChannelInfoBanner = false
+            zapChannelIndex = null
         }
     }
 
@@ -207,20 +209,17 @@ fun PlayerScreen(
         focusRequester.requestFocus()
     }
 
-    fun changeChannel(next: Boolean) {
+    fun handleQuickZap(isUp: Boolean) {
         if (channelsList.isNotEmpty()) {
-            val currentIndex = channelsList.indexOfFirst { it.url == currentStreamUrl }
-            if (currentIndex != -1) {
-                val newIndex = if (next) {
-                    (currentIndex + 1) % channelsList.size
+            val playingIndex = channelsList.indexOfFirst { it.url == currentStreamUrl }
+            val baseIndex = zapChannelIndex ?: playingIndex
+            if (baseIndex != -1) {
+                val newIndex = if (isUp) {
+                    if (baseIndex - 1 < 0) channelsList.size - 1 else baseIndex - 1
                 } else {
-                    if (currentIndex - 1 < 0) channelsList.size - 1 else currentIndex - 1
+                    (baseIndex + 1) % channelsList.size
                 }
-                val ch = channelsList[newIndex]
-                currentStreamUrl = ch.url
-                currentChannelName = ch.name
-                currentLogoUrl = ch.logo
-                
+                zapChannelIndex = newIndex
                 showChannelInfoBanner = true
                 infoBannerHideTrigger++
             }
@@ -252,9 +251,20 @@ fun PlayerScreen(
                         androidx.compose.ui.input.key.Key.DirectionCenter,
                         androidx.compose.ui.input.key.Key.NumPadEnter,
                         androidx.compose.ui.input.key.Key.Enter -> {
-                            showControls = !showControls
-                            showChannelInfoBanner = false
-                            true
+                            if (showChannelInfoBanner && zapChannelIndex != null) {
+                                val ch = channelsList[zapChannelIndex!!]
+                                currentStreamUrl = ch.url
+                                currentChannelName = ch.name
+                                currentLogoUrl = ch.logo
+                                zapChannelIndex = null
+                                showChannelInfoBanner = true
+                                infoBannerHideTrigger++
+                                true
+                            } else {
+                                showControls = !showControls
+                                showChannelInfoBanner = false
+                                true
+                            }
                         }
                         androidx.compose.ui.input.key.Key.Back -> {
                             if (showControls) {
@@ -267,13 +277,13 @@ fun PlayerScreen(
                         }
                         androidx.compose.ui.input.key.Key.DirectionUp -> {
                             if (!showControls) {
-                                changeChannel(next = true)
+                                handleQuickZap(isUp = true)
                                 true
                             } else false
                         }
                         androidx.compose.ui.input.key.Key.DirectionDown -> {
                             if (!showControls) {
-                                changeChannel(next = false)
+                                handleQuickZap(isUp = false)
                                 true
                             } else false
                         }
@@ -412,8 +422,10 @@ fun PlayerScreen(
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    val currentIndex = channelsList.indexOfFirst { it.url == currentStreamUrl }
-                    val chNum = if (currentIndex != -1) (currentIndex + 1).toString() else "-"
+                    val displayIndex = zapChannelIndex ?: channelsList.indexOfFirst { it.url == currentStreamUrl }
+                    val chNum = if (displayIndex != -1) (displayIndex + 1).toString() else "-"
+                    val chName = if (displayIndex != -1) channelsList[displayIndex].name else currentChannelName
+                    
                     Text(
                         text = chNum,
                         color = TextSecondary,
@@ -423,7 +435,7 @@ fun PlayerScreen(
                     )
                     
                     Text(
-                        text = currentChannelName.uppercase(),
+                        text = chName.uppercase(),
                         color = TextPrimary,
                         fontFamily = PoppinsFamily,
                         fontSize = 24.sp,
