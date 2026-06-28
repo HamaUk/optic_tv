@@ -13,6 +13,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -64,7 +65,7 @@ fun DashboardScreen(
         groups
     }
     
-    var selectedCategory by remember { mutableStateOf<String?>(null) }
+    var selectedCategory by rememberSaveable { mutableStateOf<String?>(null) }
     
     LaunchedEffect(categories) {
         if (categories.isNotEmpty() && selectedCategory == null) {
@@ -141,7 +142,10 @@ fun DashboardScreen(
                     verticalArrangement = Arrangement.spacedBy(16.dp),
                     contentPadding = PaddingValues(bottom = 32.dp)
                 ) {
-                    items(filteredChannels) { channel ->
+                    items(
+                        items = filteredChannels,
+                        key = { it.url }
+                    ) { channel ->
                         ChannelCard(
                             channel = channel,
                             onClick = { onChannelSelected(channel) }
