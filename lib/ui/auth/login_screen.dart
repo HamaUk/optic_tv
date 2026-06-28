@@ -13,6 +13,7 @@ import '../../l10n/app_strings.dart';
 import '../../providers/app_locale_provider.dart';
 import '../../providers/session_provider.dart';
 import '../../services/platform_service.dart';
+import '../dashboard/dashboard_screen.dart';
 
 class LoginScreen extends ConsumerStatefulWidget {
   const LoginScreen({super.key});
@@ -99,7 +100,12 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
     if (!mounted) return;
     setState(() => _busy = false);
     
-    if (!success) {
+    if (success) {
+      Navigator.of(context).pushAndRemoveUntil(
+        MaterialPageRoute(builder: (_) => const DashboardScreen()),
+        (route) => false,
+      );
+    } else {
       final error = ref.read(sessionProvider).error ?? 'Invalid code.';
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(error, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)), backgroundColor: Colors.redAccent),
