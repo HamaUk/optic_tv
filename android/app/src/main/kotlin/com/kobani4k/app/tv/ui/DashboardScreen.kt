@@ -1,57 +1,58 @@
 package com.kobani4k.app.tv.ui
 
 import android.content.Context
-import android.net.Uri
 import androidx.compose.animation.*
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.Icon
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.focus.onFocusChanged
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.font.Font
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.ui.viewinterop.AndroidView
 import androidx.tv.material3.*
 import coil.compose.AsyncImage
+import com.kobani4k.app.R
 import com.kobani4k.app.tv.data.PocketBaseRepository
 import com.kobani4k.app.tv.data.TvChannel
-import androidx.media3.common.MediaItem
-import androidx.media3.common.PlaybackException
-import androidx.media3.common.Player as Media3Player
-import androidx.media3.exoplayer.DefaultLoadControl
-import androidx.media3.exoplayer.ExoPlayer
-import androidx.media3.ui.PlayerView
-import kotlinx.coroutines.delay
 
-// Premium TV Palette
-private val CanvasColor = Color(0xFF060B11)      // Deep charcoal/navy canvas
-private val SurfaceColor = Color(0xFF0C131D)     // Card/Sidebar panel background
-private val SurfaceElevatedColor = Color(0xFF131D2D) // Focused element container
-private val BrandGold = Color(0xFFFFD700)        // Gold/Amber highlight
-private val FocusedOutlineColor = Color(0xFFFFFFFF) // White focus boundary
-private val TextPrimary = Color(0xFFF5F7FB)      // Bright primary text
-private val TextSecondary = Color(0xFF8C9BAE)    // Muted grey secondary text
+// Premium TV Palette matching Zina TV styling
+private val CanvasColor = Color(0xFF07111B)
+private val SurfaceColor = Color(0xFF0F1B29)
+private val SurfaceElevatedColor = Color(0xFF162338)
+private val BrandGold = Color(0xFFFFC766)
+private val FocusedOutlineColor = Color(0xFFF5F7FB)
+private val TextPrimary = Color(0xFFF5F7FB)
+private val TextSecondary = Color(0xFFBBC6D8)
+
+val PoppinsFamily = FontFamily(
+    Font(R.font.poppins_regular, FontWeight.Normal),
+    Font(R.font.poppins_medium, FontWeight.Medium),
+    Font(R.font.poppins_bold, FontWeight.Bold)
+)
 
 enum class TvMenu { LIVE_TV, MOVIES, SPORTS, FAVORITES, SETTINGS }
 
 data class TvSettingsItem(
     val title: String,
     val description: String,
-    val iconText: String,
+    val iconId: Int,
     val value: String,
     val isAction: Boolean = false,
     val action: () -> Unit = {}
@@ -82,109 +83,53 @@ fun DashboardScreen(
 
     // Active Navigation items
     var selectedMenu by remember { mutableStateOf(TvMenu.LIVE_TV) }
-    var activeCategory by remember { mutableStateOf("") }
-    var focusedChannel by remember { mutableStateOf<TvChannel?>(null) }
+    var activeCategory by remember { mutableStateOf<String?>(null) }
     
-    // Settings categories and items
-    val settingsCategories = listOf("PREFERENCES", "SYSTEM DIAGNOSTICS")
-    var activeSettingsCategory by remember { mutableStateOf("PREFERENCES") }
-    var focusedSettingItem by remember { mutableStateOf<TvSettingsItem?>(null) }
-
     // Fetch channels on start
     LaunchedEffect(Unit) {
         allChannels = repository.getChannels()
         isLoading = false
     }
 
-    // Computed categories based on selection
+    // Computed categories
     val categories = remember(allChannels, selectedMenu, favoritesSet) {
         when (selectedMenu) {
-            TvMenu.LIVE_TV -> {
-                allChannels.filter { it.type == "live" && !it.group.contains("sport", ignoreCase = true) }
-                    .map { it.group.trim().ifEmpty { "General" } }
-                    .distinct()
-                    .sorted()
-            }
-            TvMenu.MOVIES -> {
-                allChannels.filter { it.type == "movie" }
-                    .map { it.group.trim().ifEmpty { "General" } }
-                    .distinct()
-                    .sorted()
-            }
-            TvMenu.SPORTS -> {
-                allChannels.filter { it.group.contains("sport", ignoreCase = true) || it.type == "sports" }
-                    .map { it.group.trim().ifEmpty { "Sports" } }
-                    .distinct()
-                    .sorted()
-            }
-            TvMenu.FAVORITES -> {
-                listOf("FAVORITE CHANNELS")
-            }
-            TvMenu.SETTINGS -> {
-                settingsCategories
-            }
+            TvMenu.LIVE_TV -> allChannels.filter { it.type == "live" && !it.group.contains("sport", ignoreCase = true) }.map { it.group.trim().ifEmpty { "General" } }.distinct().sorted()
+            TvMenu.MOVIES -> allChannels.filter { it.type == "movie" }.map { it.group.trim().ifEmpty { "General" } }.distinct().sorted()
+            TvMenu.SPORTS -> allChannels.filter { it.group.contains("sport", ignoreCase = true) || it.type == "sports" }.map { it.group.trim().ifEmpty { "Sports" } }.distinct().sorted()
+            TvMenu.FAVORITES -> listOf("FAVORITE CHANNELS")
+            TvMenu.SETTINGS -> emptyList()
         }
     }
 
-    // Automatically select first category when navigation category list changes
-    LaunchedEffect(categories) {
-        activeCategory = categories.firstOrNull() ?: ""
-    }
-
-    // Computed channels list for middle pane
     val filteredChannels = remember(allChannels, selectedMenu, activeCategory, favoritesSet) {
-        if (activeCategory.isEmpty()) return@remember emptyList<TvChannel>()
+        if (activeCategory == null) return@remember emptyList<TvChannel>()
         when (selectedMenu) {
-            TvMenu.LIVE_TV -> {
-                allChannels.filter { 
-                    it.type == "live" && 
-                    !it.group.contains("sport", ignoreCase = true) &&
-                    (it.group.trim().ifEmpty { "General" } == activeCategory)
-                }
-            }
-            TvMenu.MOVIES -> {
-                allChannels.filter { 
-                    it.type == "movie" && 
-                    (it.group.trim().ifEmpty { "General" } == activeCategory)
-                }
-            }
-            TvMenu.SPORTS -> {
-                allChannels.filter { 
-                    (it.group.contains("sport", ignoreCase = true) || it.type == "sports") &&
-                    (it.group.trim().ifEmpty { "Sports" } == activeCategory)
-                }
-            }
-            TvMenu.FAVORITES -> {
-                allChannels.filter { favoritesSet.contains(it.url) }
-            }
-            TvMenu.SETTINGS -> {
-                emptyList()
-            }
+            TvMenu.LIVE_TV -> allChannels.filter { it.type == "live" && !it.group.contains("sport", ignoreCase = true) && (it.group.trim().ifEmpty { "General" } == activeCategory) }
+            TvMenu.MOVIES -> allChannels.filter { it.type == "movie" && (it.group.trim().ifEmpty { "General" } == activeCategory) }
+            TvMenu.SPORTS -> allChannels.filter { (it.group.contains("sport", ignoreCase = true) || it.type == "sports") && (it.group.trim().ifEmpty { "Sports" } == activeCategory) }
+            TvMenu.FAVORITES -> allChannels.filter { favoritesSet.contains(it.url) }
+            TvMenu.SETTINGS -> emptyList()
         }
     }
 
-    // Computed settings options list for middle pane
-    val settingsItems = remember(activeCategory, allChannels, onLogout) {
-        when (activeCategory) {
-            "PREFERENCES" -> listOf(
-                TvSettingsItem("LOW LATENCY MODE", "Start streams with a tight 500ms buffer", "LATENCY", "ENABLED (Optimized)"),
-                TvSettingsItem("HARDWARE ACCELERATION", "Use GPU-driven hardware codecs", "HW CODEC", "AUTO (Recommended)"),
-                TvSettingsItem("ASPECT RATIO", "Default rendering mode for live streams", "ASPECT", "FIT TO SCREEN")
-            )
-            "SYSTEM DIAGNOSTICS" -> listOf(
-                TvSettingsItem("CLOUD SERVER CONNECTION", "PocketBase server link state", "DB", "CONNECTED (Online)"),
-                TvSettingsItem("CHANNELS PLAYLIST COUNT", "Total items loaded from repository", "PLAYLIST", "${allChannels.size} Channels"),
-                TvSettingsItem("NATIVE SYSTEM CORE", "Jetpack Compose TV Engine target", "SYSTEM", "v1.2.0 (Kotlin)"),
-                TvSettingsItem("DE-ACTIVATE DEVICE", "Clear activation code and return to activation", "OUT", "RESET DEVICE", true, onLogout)
-            )
-            else -> emptyList()
-        }
+    val settingsItems = remember(allChannels, onLogout) {
+        listOf(
+            TvSettingsItem("LOW LATENCY MODE", "Start streams with a tight 500ms buffer", R.drawable.ic_play, "ENABLED"),
+            TvSettingsItem("HARDWARE ACCELERATION", "Use GPU-driven hardware codecs", R.drawable.ic_settings, "AUTO"),
+            TvSettingsItem("ASPECT RATIO", "Default rendering mode for live streams", R.drawable.ic_fit, "FIT TO SCREEN"),
+            TvSettingsItem("CLOUD SERVER CONNECTION", "PocketBase server link state", R.drawable.globe, "CONNECTED"),
+            TvSettingsItem("CHANNELS PLAYLIST COUNT", "Total items loaded from repository", R.drawable.ic_live, "${allChannels.size} Channels"),
+            TvSettingsItem("DE-ACTIVATE DEVICE", "Clear activation code and return to activation", R.drawable.ic_exit_app, "RESET DEVICE", true, onLogout)
+        )
     }
 
-    // Clear focus states when category changes to prevent stale preview references
-    LaunchedEffect(activeCategory) {
-        focusedChannel = null
-        focusedSettingItem = settingsItems.firstOrNull()
+    LaunchedEffect(selectedMenu) {
+        if (selectedMenu == TvMenu.FAVORITES) {
+            activeCategory = "FAVORITE CHANNELS"
+        } else {
+            activeCategory = null
+        }
     }
 
     Row(
@@ -192,22 +137,23 @@ fun DashboardScreen(
             .fillMaxSize()
             .background(CanvasColor)
     ) {
-        // PANE 1: LEFT MENU (width = 200.dp)
+        // PANE 1: LEFT NAVIGATION MENU
         Column(
             modifier = Modifier
-                .width(200.dp)
+                .fillMaxWidth(0.25f)
                 .fillMaxHeight()
                 .background(SurfaceColor)
                 .border(width = 1.dp, color = SurfaceElevatedColor, shape = RoundedCornerShape(0.dp))
-                .padding(vertical = 24.dp, horizontal = 12.dp)
+                .padding(vertical = 32.dp, horizontal = 24.dp)
         ) {
             Text(
                 text = "KOBANI 4K",
                 color = BrandGold,
-                fontWeight = FontWeight.Black,
-                fontSize = 20.sp,
+                fontFamily = PoppinsFamily,
+                fontWeight = FontWeight.Bold,
+                fontSize = 24.sp,
                 letterSpacing = 2.sp,
-                modifier = Modifier.padding(bottom = 32.dp, start = 12.dp)
+                modifier = Modifier.padding(bottom = 48.dp, start = 12.dp)
             )
 
             TvMenu.values().forEach { menu ->
@@ -219,429 +165,139 @@ fun DashboardScreen(
                     TvMenu.FAVORITES -> "FAVORITES"
                     TvMenu.SETTINGS -> "SETTINGS"
                 }
-                val dotColor = when (menu) {
-                    TvMenu.LIVE_TV -> Color(0xFFFF5C61)
-                    TvMenu.MOVIES -> Color(0xFF69A8FF)
-                    TvMenu.SPORTS -> Color(0xFF4FD39A)
-                    TvMenu.FAVORITES -> BrandGold
-                    TvMenu.SETTINGS -> Color(0xFFBBC6D8)
+                val icon = when (menu) {
+                    TvMenu.LIVE_TV -> R.drawable.ic_live_tv
+                    TvMenu.MOVIES -> R.drawable.ic_movies
+                    TvMenu.SPORTS -> R.drawable.ic_series // Using series as generic for sports if no ball icon
+                    TvMenu.FAVORITES -> R.drawable.ic_favorite_filled
+                    TvMenu.SETTINGS -> R.drawable.ic_settings
                 }
 
                 SidebarItem(
                     title = title,
+                    iconId = icon,
                     isSelected = isSelected,
-                    dotColor = dotColor,
                     onFocus = { selectedMenu = menu }
                 )
-                Spacer(modifier = Modifier.height(10.dp))
+                Spacer(modifier = Modifier.height(16.dp))
             }
 
             Spacer(modifier = Modifier.weight(1f))
 
-            // SIGN OUT Option explicitly on left menu bottom
             SidebarItem(
                 title = "SIGN OUT",
+                iconId = R.drawable.ic_exit_app,
                 isSelected = false,
-                dotColor = Color(0xFFFF4C4C),
                 onFocus = {},
                 onClick = onLogout
             )
         }
 
-        // PANE 2: DYNAMIC CATEGORIES (width = 200.dp)
+        // PANE 2: DYNAMIC CONTENT GRID
         Column(
             modifier = Modifier
-                .width(200.dp)
+                .fillMaxWidth()
                 .fillMaxHeight()
-                .border(width = 1.dp, color = SurfaceElevatedColor, shape = RoundedCornerShape(0.dp))
-                .padding(vertical = 24.dp, horizontal = 10.dp)
+                .padding(32.dp)
         ) {
-            Text(
-                text = "CATEGORIES",
-                color = TextSecondary,
-                fontWeight = FontWeight.Bold,
-                fontSize = 11.sp,
-                letterSpacing = 1.sp,
-                modifier = Modifier.padding(bottom = 20.dp, start = 8.dp)
-            )
-
-            if (isLoading) {
-                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    CircularProgressIndicator(color = BrandGold, modifier = Modifier.size(24.dp))
-                }
-            } else if (categories.isEmpty()) {
-                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    Text("NO ITEMS", color = TextSecondary, fontSize = 12.sp, fontWeight = FontWeight.Bold)
-                }
-            } else {
-                LazyColumn(
-                    verticalArrangement = Arrangement.spacedBy(8.dp),
-                    modifier = Modifier.fillMaxSize()
-                ) {
-                    items(categories.size) { index ->
-                        val cat = categories[index]
-                        CategoryItem(
-                            title = cat,
-                            isSelected = activeCategory == cat,
-                            onFocus = { activeCategory = cat }
-                        )
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(bottom = 32.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = when {
+                        selectedMenu == TvMenu.SETTINGS -> "SYSTEM SETTINGS"
+                        activeCategory != null -> activeCategory!!.uppercase()
+                        else -> "CATEGORIES"
+                    },
+                    color = TextPrimary,
+                    fontFamily = PoppinsFamily,
+                    fontSize = 28.sp,
+                    fontWeight = FontWeight.Bold,
+                    letterSpacing = 1.sp
+                )
+                
+                if (activeCategory != null && selectedMenu != TvMenu.FAVORITES && selectedMenu != TvMenu.SETTINGS) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(painter = painterResource(id = R.drawable.ic_back), contentDescription = null, tint = TextSecondary, modifier = Modifier.size(20.dp))
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(text = "BACK TO CATEGORIES", color = TextSecondary, fontFamily = PoppinsFamily, fontSize = 14.sp, fontWeight = FontWeight.Medium)
                     }
                 }
             }
-        }
 
-        // PANE 3: CHANNELS LIST or SETTINGS OPTIONS (width = 280.dp)
-        Column(
-            modifier = Modifier
-                .width(280.dp)
-                .fillMaxHeight()
-                .border(width = 1.dp, color = SurfaceElevatedColor, shape = RoundedCornerShape(0.dp))
-                .padding(vertical = 24.dp, horizontal = 12.dp)
-        ) {
-            val paneTitle = if (selectedMenu == TvMenu.SETTINGS) "OPTIONS" else "STREAMS"
-            Text(
-                text = paneTitle,
-                color = TextSecondary,
-                fontWeight = FontWeight.Bold,
-                fontSize = 11.sp,
-                letterSpacing = 1.sp,
-                modifier = Modifier.padding(bottom = 20.dp, start = 8.dp)
-            )
-
-            if (selectedMenu == TvMenu.SETTINGS) {
-                LazyColumn(
-                    verticalArrangement = Arrangement.spacedBy(8.dp),
+            if (isLoading) {
+                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    CircularProgressIndicator(color = BrandGold, modifier = Modifier.size(48.dp))
+                }
+            } else if (selectedMenu == TvMenu.SETTINGS) {
+                LazyVerticalGrid(
+                    columns = GridCells.Fixed(2),
+                    horizontalArrangement = Arrangement.spacedBy(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(16.dp),
                     modifier = Modifier.fillMaxSize()
                 ) {
                     items(settingsItems.size) { index ->
                         val item = settingsItems[index]
-                        SettingsRowItem(
-                            item = item,
-                            onFocus = { focusedSettingItem = item },
-                            onClick = {
-                                if (item.isAction) {
-                                    item.action()
-                                }
-                            }
-                        )
+                        SettingsCard(item = item, onClick = { if (item.isAction) item.action() })
+                    }
+                }
+            } else if (activeCategory == null) {
+                if (categories.isEmpty()) {
+                    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                        Text("NO CATEGORIES FOUND", color = TextSecondary, fontFamily = PoppinsFamily, fontSize = 16.sp, fontWeight = FontWeight.Medium)
+                    }
+                } else {
+                    LazyVerticalGrid(
+                        columns = GridCells.Fixed(4),
+                        horizontalArrangement = Arrangement.spacedBy(16.dp),
+                        verticalArrangement = Arrangement.spacedBy(16.dp),
+                        modifier = Modifier.fillMaxSize()
+                    ) {
+                        items(categories.size) { index ->
+                            val cat = categories[index]
+                            CategoryCard(title = cat, onClick = { activeCategory = cat })
+                        }
                     }
                 }
             } else {
                 if (filteredChannels.isEmpty()) {
                     Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                        Text(
-                            text = if (selectedMenu == TvMenu.FAVORITES) "FAVORITES EMPTY" else "NO CHANNELS FOUND",
-                            color = TextSecondary,
-                            fontSize = 12.sp,
-                            fontWeight = FontWeight.Bold,
-                            textAlign = TextAlign.Center
-                        )
+                        Text("NO CHANNELS IN THIS CATEGORY", color = TextSecondary, fontFamily = PoppinsFamily, fontSize = 16.sp, fontWeight = FontWeight.Medium)
                     }
                 } else {
-                    LazyColumn(
-                        verticalArrangement = Arrangement.spacedBy(8.dp),
+                    LazyVerticalGrid(
+                        columns = GridCells.Fixed(3),
+                        horizontalArrangement = Arrangement.spacedBy(16.dp),
+                        verticalArrangement = Arrangement.spacedBy(16.dp),
                         modifier = Modifier.fillMaxSize()
                     ) {
                         items(filteredChannels.size) { index ->
                             val ch = filteredChannels[index]
-                            ChannelRowItem(
+                            ChannelCard(
                                 channel = ch,
                                 isFavorite = favoritesSet.contains(ch.url),
-                                onFocus = { focusedChannel = ch },
-                                onClick = { onChannelSelected(ch) }
+                                onClick = { onChannelSelected(ch) },
+                                onToggleFavorite = { toggleFavorite(ch.url) },
+                                onBackPress = { activeCategory = null }
                             )
                         }
                     }
                 }
             }
         }
-
-        // PANE 4: PREVIEW & METADATA PANE (weight = 1f)
-        Box(
-            modifier = Modifier
-                .weight(1f)
-                .fillMaxHeight()
-                .padding(24.dp)
-        ) {
-            if (selectedMenu == TvMenu.SETTINGS) {
-                // Settings details rendering
-                val item = focusedSettingItem
-                if (item != null) {
-                    Column(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .background(SurfaceColor, RoundedCornerShape(16.dp))
-                            .border(width = 1.dp, color = SurfaceElevatedColor, shape = RoundedCornerShape(16.dp))
-                            .padding(32.dp),
-                        verticalArrangement = Arrangement.Center,
-                        horizontalAlignment = Alignment.CenterHorizontally
-                    ) {
-                        Box(
-                            modifier = Modifier
-                                .size(64.dp)
-                                .background(SurfaceElevatedColor, RoundedCornerShape(16.dp)),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Text(
-                                text = item.iconText,
-                                color = BrandGold,
-                                fontWeight = FontWeight.Bold,
-                                fontSize = 16.sp
-                            )
-                        }
-                        Spacer(modifier = Modifier.height(24.dp))
-                        Text(
-                            text = item.title,
-                            color = BrandGold,
-                            fontWeight = FontWeight.Black,
-                            fontSize = 20.sp,
-                            letterSpacing = 1.sp,
-                            textAlign = TextAlign.Center
-                        )
-                        Spacer(modifier = Modifier.height(8.dp))
-                        Text(
-                            text = item.value,
-                            color = TextPrimary,
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 14.sp
-                        )
-                        Spacer(modifier = Modifier.height(16.dp))
-                        Text(
-                            text = item.description,
-                            color = TextSecondary,
-                            fontSize = 13.sp,
-                            textAlign = TextAlign.Center,
-                            modifier = Modifier.fillMaxWidth(0.85f)
-                        )
-                        
-                        if (item.isAction) {
-                            Spacer(modifier = Modifier.height(28.dp))
-                            ActionButton(label = "EXECUTE ACTION", iconText = "▶") {
-                                item.action()
-                            }
-                        }
-                    }
-                }
-            } else {
-                // Live Stream video preview rendering
-                Column(modifier = Modifier.fillMaxSize()) {
-                    // 16:9 Live TV Player Card
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .aspectRatio(16f / 9f)
-                            .clip(RoundedCornerShape(16.dp))
-                            .background(SurfaceColor)
-                            .border(width = 1.dp, color = SurfaceElevatedColor, shape = RoundedCornerShape(16.dp))
-                    ) {
-                        val activeChannel = focusedChannel
-                        if (activeChannel != null) {
-                            var activePreviewUrl by remember { mutableStateOf<String?>(null) }
-                            var isPreviewBuffering by remember { mutableStateOf(false) }
-
-                            LaunchedEffect(activeChannel) {
-                                activePreviewUrl = null
-                                delay(600) // 600ms Debounce to prevent stream switching spam
-                                activePreviewUrl = activeChannel.url
-                            }
-
-                            val currentUrl = activePreviewUrl
-                            if (currentUrl != null) {
-                                PreviewPlayer(
-                                    url = currentUrl,
-                                    onBufferingChanged = { isPreviewBuffering = it }
-                                )
-                            }
-
-                            // Buffering overlay inside preview window
-                            if (isPreviewBuffering || activePreviewUrl == null) {
-                                Box(
-                                    modifier = Modifier
-                                        .fillMaxSize()
-                                        .background(Color.Black.copy(alpha = 0.5f)),
-                                    contentAlignment = Alignment.Center
-                                ) {
-                                    CircularProgressIndicator(
-                                        color = BrandGold,
-                                        modifier = Modifier.size(36.dp)
-                                    )
-                                }
-                            }
-                        } else {
-                            // Default Fallback
-                            Box(
-                                modifier = Modifier
-                                    .fillMaxSize()
-                                    .background(
-                                        Brush.verticalGradient(
-                                            colors = listOf(SurfaceElevatedColor, CanvasColor)
-                                        )
-                                    ),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                                    Text(
-                                        text = "★ KOBANI 4K ★",
-                                        color = BrandGold,
-                                        fontWeight = FontWeight.Black,
-                                        fontSize = 24.sp,
-                                        letterSpacing = 2.sp
-                                    )
-                                    Spacer(modifier = Modifier.height(8.dp))
-                                    Text(
-                                        text = "SCROLL LIST TO PREVIEW STREAMS",
-                                        color = TextSecondary,
-                                        fontSize = 11.sp,
-                                        fontWeight = FontWeight.Bold,
-                                        letterSpacing = 1.sp
-                                    )
-                                }
-                            }
-                        }
-                    }
-
-                    Spacer(modifier = Modifier.height(20.dp))
-
-                    // Channel Metadata & Playback Action Buttons
-                    val channel = focusedChannel
-                    if (channel != null) {
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            if (!channel.logo.isNullOrEmpty()) {
-                                AsyncImage(
-                                    model = channel.logo,
-                                    contentDescription = null,
-                                    modifier = Modifier
-                                        .size(60.dp)
-                                        .background(Color.White.copy(alpha = 0.08f), RoundedCornerShape(12.dp))
-                                        .padding(6.dp)
-                                )
-                                Spacer(modifier = Modifier.width(16.dp))
-                            }
-                            Column(modifier = Modifier.weight(1f)) {
-                                Text(
-                                    text = channel.name.uppercase(),
-                                    color = BrandGold,
-                                    fontSize = 18.sp,
-                                    fontWeight = FontWeight.Black,
-                                    maxLines = 1,
-                                    overflow = TextOverflow.Ellipsis
-                                )
-                                Text(
-                                    text = "CATEGORY: ${channel.group.uppercase()}",
-                                    color = TextSecondary,
-                                    fontSize = 12.sp,
-                                    fontWeight = FontWeight.Bold
-                                )
-                                Text(
-                                    text = channel.url,
-                                    color = TextSecondary.copy(alpha = 0.6f),
-                                    fontSize = 10.sp,
-                                    maxLines = 1,
-                                    overflow = TextOverflow.Ellipsis
-                                )
-                            }
-                        }
-
-                        Spacer(modifier = Modifier.height(20.dp))
-
-                        // Focusable Player Action Row
-                        Row(
-                            horizontalArrangement = Arrangement.spacedBy(12.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            ActionButton(
-                                label = "WATCH FULL SCREEN",
-                                iconText = "▶"
-                            ) {
-                                onChannelSelected(channel)
-                            }
-
-                            val isFav = favoritesSet.contains(channel.url)
-                            ActionButton(
-                                label = if (isFav) "REMOVE FAVORITE" else "ADD FAVORITE",
-                                iconText = if (isFav) "★" else "☆"
-                            ) {
-                                toggleFavorite(channel.url)
-                            }
-                        }
-
-                        Spacer(modifier = Modifier.height(12.dp))
-                        Text(
-                            text = "HINT: PRESS [DPAD-CENTER/OK] IN STREAMS LIST FOR DIRECT FULLSCREEN",
-                            color = TextSecondary.copy(alpha = 0.7f),
-                            fontSize = 10.sp,
-                            fontWeight = FontWeight.Bold
-                        )
-                    }
-                }
-            }
-        }
     }
-}
-
-@OptIn(ExperimentalTvMaterial3Api::class)
-@Composable
-fun PreviewPlayer(
-    url: String,
-    onBufferingChanged: (Boolean) -> Unit
-) {
-    val context = LocalContext.current
-    
-    val exoPlayer = remember {
-        val loadControl = DefaultLoadControl.Builder()
-            .setBufferDurationsMs(3000, 8000, 500, 1000)
-            .build()
-        ExoPlayer.Builder(context)
-            .setLoadControl(loadControl)
-            .build()
-    }
-
-    LaunchedEffect(url) {
-        onBufferingChanged(true)
-        exoPlayer.stop()
-        val mediaItem = MediaItem.fromUri(Uri.parse(url))
-        exoPlayer.setMediaItem(mediaItem)
-        exoPlayer.prepare()
-        exoPlayer.playWhenReady = true
-    }
-
-    DisposableEffect(exoPlayer) {
-        val listener = object : Media3Player.Listener {
-            override fun onPlaybackStateChanged(state: Int) {
-                onBufferingChanged(state == Media3Player.STATE_BUFFERING)
-            }
-            override fun onPlayerError(error: PlaybackException) {
-                onBufferingChanged(false)
-            }
-        }
-        exoPlayer.addListener(listener)
-        onDispose {
-            exoPlayer.removeListener(listener)
-            exoPlayer.release()
-        }
-    }
-
-    AndroidView(
-        factory = { ctx ->
-            PlayerView(ctx).apply {
-                player = exoPlayer
-                useController = false
-                resizeMode = androidx.media3.ui.AspectRatioFrameLayout.RESIZE_MODE_ZOOM
-            }
-        },
-        modifier = Modifier.fillMaxSize()
-    )
 }
 
 @OptIn(ExperimentalTvMaterial3Api::class)
 @Composable
 fun SidebarItem(
     title: String,
+    iconId: Int,
     isSelected: Boolean,
-    dotColor: Color,
     onFocus: () -> Unit,
     onClick: () -> Unit = {}
 ) {
@@ -650,7 +306,7 @@ fun SidebarItem(
 
     Surface(
         onClick = onClick,
-        shape = ClickableSurfaceDefaults.shape(shape = RoundedCornerShape(10.dp)),
+        shape = ClickableSurfaceDefaults.shape(shape = RoundedCornerShape(12.dp)),
         colors = ClickableSurfaceDefaults.colors(
             containerColor = if (isSelected) SurfaceElevatedColor else Color.Transparent,
             focusedContainerColor = TextPrimary,
@@ -663,16 +319,16 @@ fun SidebarItem(
                     width = if (isSelected) 1.5.dp else 0.dp,
                     color = if (isSelected) BrandGold else Color.Transparent
                 ),
-                shape = RoundedCornerShape(10.dp)
+                shape = RoundedCornerShape(12.dp)
             ),
             focusedBorder = Border(
                 border = androidx.compose.foundation.BorderStroke(2.dp, FocusedOutlineColor),
-                shape = RoundedCornerShape(10.dp)
+                shape = RoundedCornerShape(12.dp)
             )
         ),
         modifier = Modifier
             .fillMaxWidth()
-            .height(46.dp)
+            .height(56.dp)
             .scale(scale)
             .onFocusChanged { 
                 isFocused = it.isFocused 
@@ -684,19 +340,21 @@ fun SidebarItem(
         Row(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(horizontal = 12.dp),
+                .padding(horizontal = 16.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Box(
-                modifier = Modifier
-                    .size(8.dp)
-                    .background(dotColor, RoundedCornerShape(999.dp))
+            Icon(
+                painter = painterResource(id = iconId),
+                contentDescription = null,
+                modifier = Modifier.size(24.dp),
+                tint = if (isFocused) CanvasColor else (if (isSelected) BrandGold else TextSecondary)
             )
-            Spacer(modifier = Modifier.width(12.dp))
+            Spacer(modifier = Modifier.width(16.dp))
             Text(
                 text = title,
-                fontSize = 13.sp,
-                fontWeight = FontWeight.Bold,
+                fontFamily = PoppinsFamily,
+                fontSize = 15.sp,
+                fontWeight = FontWeight.Medium,
                 letterSpacing = 1.sp
             )
         }
@@ -705,58 +363,51 @@ fun SidebarItem(
 
 @OptIn(ExperimentalTvMaterial3Api::class)
 @Composable
-fun CategoryItem(
+fun CategoryCard(
     title: String,
-    isSelected: Boolean,
-    onFocus: () -> Unit
+    onClick: () -> Unit
 ) {
     var isFocused by remember { mutableStateOf(false) }
     val scale by animateFloatAsState(targetValue = if (isFocused) 1.05f else 1.0f)
 
     Surface(
-        onClick = {},
-        shape = ClickableSurfaceDefaults.shape(shape = RoundedCornerShape(10.dp)),
+        onClick = onClick,
+        shape = ClickableSurfaceDefaults.shape(shape = RoundedCornerShape(16.dp)),
         colors = ClickableSurfaceDefaults.colors(
-            containerColor = if (isSelected) SurfaceElevatedColor else Color.Transparent,
+            containerColor = SurfaceElevatedColor,
             focusedContainerColor = TextPrimary,
-            contentColor = if (isSelected) BrandGold else TextSecondary,
+            contentColor = TextPrimary,
             focusedContentColor = CanvasColor
         ),
         border = ClickableSurfaceDefaults.border(
             border = Border(
-                border = androidx.compose.foundation.BorderStroke(
-                    width = if (isSelected) 1.5.dp else 0.dp,
-                    color = if (isSelected) BrandGold else Color.Transparent
-                ),
-                shape = RoundedCornerShape(10.dp)
+                border = androidx.compose.foundation.BorderStroke(1.dp, SurfaceColor),
+                shape = RoundedCornerShape(16.dp)
             ),
             focusedBorder = Border(
-                border = androidx.compose.foundation.BorderStroke(2.dp, FocusedOutlineColor),
-                shape = RoundedCornerShape(10.dp)
+                border = androidx.compose.foundation.BorderStroke(3.dp, BrandGold),
+                shape = RoundedCornerShape(16.dp)
             )
         ),
         modifier = Modifier
             .fillMaxWidth()
-            .height(46.dp)
+            .aspectRatio(1.5f)
             .scale(scale)
-            .onFocusChanged { 
-                isFocused = it.isFocused 
-                if (it.isFocused) {
-                    onFocus()
-                }
-            }
+            .onFocusChanged { isFocused = it.isFocused }
     ) {
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(horizontal = 12.dp),
-            contentAlignment = Alignment.CenterStart
+                .padding(16.dp),
+            contentAlignment = Alignment.Center
         ) {
             Text(
                 text = title.uppercase(),
-                fontSize = 12.sp,
+                fontFamily = PoppinsFamily,
+                fontSize = 16.sp,
                 fontWeight = FontWeight.Bold,
-                maxLines = 1,
+                textAlign = TextAlign.Center,
+                maxLines = 2,
                 overflow = TextOverflow.Ellipsis
             )
         }
@@ -765,18 +416,20 @@ fun CategoryItem(
 
 @OptIn(ExperimentalTvMaterial3Api::class)
 @Composable
-fun ChannelRowItem(
+fun ChannelCard(
     channel: TvChannel,
     isFavorite: Boolean,
-    onFocus: () -> Unit,
-    onClick: () -> Unit
+    onClick: () -> Unit,
+    onToggleFavorite: () -> Unit,
+    onBackPress: () -> Unit
 ) {
     var isFocused by remember { mutableStateOf(false) }
-    val scale by animateFloatAsState(targetValue = if (isFocused) 1.04f else 1.0f)
+    val scale by animateFloatAsState(targetValue = if (isFocused) 1.05f else 1.0f)
 
     Surface(
         onClick = onClick,
-        shape = ClickableSurfaceDefaults.shape(shape = RoundedCornerShape(10.dp)),
+        onLongClick = onToggleFavorite,
+        shape = ClickableSurfaceDefaults.shape(shape = RoundedCornerShape(16.dp)),
         colors = ClickableSurfaceDefaults.colors(
             containerColor = SurfaceColor,
             focusedContainerColor = SurfaceElevatedColor,
@@ -786,28 +439,34 @@ fun ChannelRowItem(
         border = ClickableSurfaceDefaults.border(
             border = Border(
                 border = androidx.compose.foundation.BorderStroke(1.dp, SurfaceElevatedColor),
-                shape = RoundedCornerShape(10.dp)
+                shape = RoundedCornerShape(16.dp)
             ),
             focusedBorder = Border(
-                border = androidx.compose.foundation.BorderStroke(2.dp, BrandGold),
-                shape = RoundedCornerShape(10.dp)
+                border = androidx.compose.foundation.BorderStroke(3.dp, BrandGold),
+                shape = RoundedCornerShape(16.dp)
             )
         ),
         modifier = Modifier
             .fillMaxWidth()
-            .height(54.dp)
+            .height(96.dp)
             .scale(scale)
-            .onFocusChanged { 
-                isFocused = it.isFocused 
-                if (it.isFocused) {
-                    onFocus()
-                }
+            .onFocusChanged { isFocused = it.isFocused }
+            .androidx.compose.ui.input.key.onKeyEvent { keyEvent ->
+                if (keyEvent.nativeKeyEvent.action == android.view.KeyEvent.ACTION_DOWN) {
+                    when (keyEvent.nativeKeyEvent.keyCode) {
+                        android.view.KeyEvent.KEYCODE_BACK -> {
+                            onBackPress()
+                            true
+                        }
+                        else -> false
+                    }
+                } else false
             }
     ) {
         Row(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(horizontal = 12.dp),
+                .padding(16.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
             if (!channel.logo.isNullOrEmpty()) {
@@ -815,44 +474,40 @@ fun ChannelRowItem(
                     model = channel.logo,
                     contentDescription = null,
                     modifier = Modifier
-                        .size(36.dp)
-                        .background(Color.White.copy(alpha = 0.08f), RoundedCornerShape(6.dp))
-                        .padding(4.dp)
+                        .size(64.dp)
+                        .background(Color.White.copy(alpha = 0.08f), RoundedCornerShape(12.dp))
+                        .padding(8.dp)
                 )
             } else {
                 Box(
                     modifier = Modifier
-                        .size(36.dp)
-                        .background(SurfaceElevatedColor, RoundedCornerShape(6.dp)),
+                        .size(64.dp)
+                        .background(SurfaceElevatedColor, RoundedCornerShape(12.dp)),
                     contentAlignment = Alignment.Center
                 ) {
-                    Text(
-                        text = "TV",
-                        color = BrandGold,
-                        fontSize = 11.sp,
-                        fontWeight = FontWeight.Bold
-                    )
+                    Text("TV", fontFamily = PoppinsFamily, fontSize = 16.sp, color = BrandGold, fontWeight = FontWeight.Bold)
                 }
             }
-            
-            Spacer(modifier = Modifier.width(12.dp))
-            
-            Text(
-                text = channel.name,
-                fontSize = 13.sp,
-                fontWeight = FontWeight.Bold,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-                modifier = Modifier.weight(1f)
-            )
-            
-            if (isFavorite) {
-                Spacer(modifier = Modifier.width(6.dp))
+            Spacer(modifier = Modifier.width(16.dp))
+            Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    text = "★",
-                    color = BrandGold,
-                    fontSize = 16.sp
+                    text = channel.name.uppercase(),
+                    fontFamily = PoppinsFamily,
+                    fontSize = 15.sp,
+                    fontWeight = FontWeight.Bold,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
                 )
+                Spacer(modifier = Modifier.height(4.dp))
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    if (isFavorite) {
+                        Icon(painter = painterResource(id = R.drawable.ic_favorite_filled), contentDescription = null, tint = BrandGold, modifier = Modifier.size(12.dp))
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text(text = "FAVORITE", fontFamily = PoppinsFamily, fontSize = 11.sp, fontWeight = FontWeight.Medium, color = BrandGold)
+                    } else {
+                        Text(text = "LIVE STREAM", fontFamily = PoppinsFamily, fontSize = 11.sp, fontWeight = FontWeight.Medium, color = TextSecondary)
+                    }
+                }
             }
         }
     }
@@ -860,17 +515,16 @@ fun ChannelRowItem(
 
 @OptIn(ExperimentalTvMaterial3Api::class)
 @Composable
-fun SettingsRowItem(
+fun SettingsCard(
     item: TvSettingsItem,
-    onFocus: () -> Unit,
     onClick: () -> Unit
 ) {
     var isFocused by remember { mutableStateOf(false) }
-    val scale by animateFloatAsState(targetValue = if (isFocused) 1.04f else 1.0f)
+    val scale by animateFloatAsState(targetValue = if (isFocused) 1.03f else 1.0f)
 
     Surface(
         onClick = onClick,
-        shape = ClickableSurfaceDefaults.shape(shape = RoundedCornerShape(10.dp)),
+        shape = ClickableSurfaceDefaults.shape(shape = RoundedCornerShape(16.dp)),
         colors = ClickableSurfaceDefaults.colors(
             containerColor = SurfaceColor,
             focusedContainerColor = SurfaceElevatedColor,
@@ -880,113 +534,57 @@ fun SettingsRowItem(
         border = ClickableSurfaceDefaults.border(
             border = Border(
                 border = androidx.compose.foundation.BorderStroke(1.dp, SurfaceElevatedColor),
-                shape = RoundedCornerShape(10.dp)
+                shape = RoundedCornerShape(16.dp)
             ),
             focusedBorder = Border(
                 border = androidx.compose.foundation.BorderStroke(2.dp, BrandGold),
-                shape = RoundedCornerShape(10.dp)
+                shape = RoundedCornerShape(16.dp)
             )
         ),
         modifier = Modifier
             .fillMaxWidth()
-            .height(54.dp)
-            .scale(scale)
-            .onFocusChanged { 
-                isFocused = it.isFocused 
-                if (it.isFocused) {
-                    onFocus()
-                }
-            }
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(horizontal = 12.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Box(
-                modifier = Modifier
-                    .size(36.dp)
-                    .background(SurfaceElevatedColor, RoundedCornerShape(6.dp)),
-                contentAlignment = Alignment.Center
-            ) {
-                Text(
-                    text = item.iconText,
-                    color = BrandGold,
-                    fontSize = 10.sp,
-                    fontWeight = FontWeight.Bold
-                )
-            }
-            
-            Spacer(modifier = Modifier.width(12.dp))
-            
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = item.title,
-                    fontSize = 13.sp,
-                    fontWeight = FontWeight.Bold,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
-                )
-                Text(
-                    text = item.value,
-                    fontSize = 11.sp,
-                    color = TextSecondary,
-                    maxLines = 1
-                )
-            }
-        }
-    }
-}
-
-@OptIn(ExperimentalTvMaterial3Api::class)
-@Composable
-fun ActionButton(
-    label: String,
-    iconText: String,
-    onClick: () -> Unit
-) {
-    var isFocused by remember { mutableStateOf(false) }
-    val scale by animateFloatAsState(targetValue = if (isFocused) 1.04f else 1.0f)
-
-    Button(
-        onClick = onClick,
-        shape = ButtonDefaults.shape(shape = RoundedCornerShape(10.dp)),
-        colors = ButtonDefaults.colors(
-            containerColor = SurfaceElevatedColor,
-            focusedContainerColor = TextPrimary,
-            contentColor = TextPrimary,
-            focusedContentColor = CanvasColor
-        ),
-        border = ButtonDefaults.border(
-            border = Border(
-                border = androidx.compose.foundation.BorderStroke(1.dp, SurfaceElevatedColor),
-                shape = RoundedCornerShape(10.dp)
-            ),
-            focusedBorder = Border(
-                border = androidx.compose.foundation.BorderStroke(2.dp, BrandGold),
-                shape = RoundedCornerShape(10.dp)
-            )
-        ),
-        modifier = Modifier
-            .height(40.dp)
+            .height(110.dp)
             .scale(scale)
             .onFocusChanged { isFocused = it.isFocused }
     ) {
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(16.dp),
+            verticalArrangement = Arrangement.Center
         ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(painter = painterResource(id = item.iconId), contentDescription = null, tint = BrandGold, modifier = Modifier.size(16.dp))
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        text = item.title,
+                        fontFamily = PoppinsFamily,
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = BrandGold
+                    )
+                }
+                Text(
+                    text = item.value,
+                    fontFamily = PoppinsFamily,
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.Medium,
+                    color = TextPrimary
+                )
+            }
+            Spacer(modifier = Modifier.height(8.dp))
             Text(
-                text = iconText,
+                text = item.description,
+                fontFamily = PoppinsFamily,
                 fontSize = 12.sp,
-                fontWeight = FontWeight.Bold,
-                color = if (isFocused) CanvasColor else BrandGold
-            )
-            Text(
-                text = label,
-                fontSize = 12.sp,
-                fontWeight = FontWeight.Bold
+                color = TextSecondary,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis
             )
         }
     }

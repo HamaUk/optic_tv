@@ -6,31 +6,32 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.Icon
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.focus.onFocusChanged
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.tv.material3.*
+import com.kobani4k.app.R
 import com.kobani4k.app.tv.data.PocketBaseRepository
 import kotlinx.coroutines.launch
 
-// Refined Premium Palette
-private val BackgroundDark = Color(0xFF04080F)
-private val BackgroundGradientEnd = Color(0xFF0F1A2C)
-private val SurfaceColor = Color(0x40162338) // Glass effect
-private val SurfaceElevatedColor = Color(0x801E2E4A)
-private val BrandGold = Color(0xFFFFD700)
-private val BrandGoldMuted = Color(0x40FFD700)
-private val FocusedOutlineColor = Color(0xFFFFFFFF)
-private val TextPrimary = Color(0xFFFFFFFF)
-private val TextSecondary = Color(0xFF90A4BE)
+// Premium TV Palette matching Zina TV styling
+private val CanvasColor = Color(0xFF07111B)
+private val SurfaceColor = Color(0xFF0F1B29)
+private val SurfaceElevatedColor = Color(0xFF162338)
+private val BrandGold = Color(0xFFFFC766)
+private val FocusedOutlineColor = Color(0xFFF5F7FB)
+private val TextPrimary = Color(0xFFF5F7FB)
+private val TextSecondary = Color(0xFFBBC6D8)
 private val TextError = Color(0xFFFF4C4C)
 
 @OptIn(ExperimentalTvMaterial3Api::class)
@@ -45,55 +46,45 @@ fun LoginScreen(onLoginSuccess: () -> Unit) {
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(
-                Brush.radialGradient(
-                    colors = listOf(BackgroundGradientEnd, BackgroundDark),
-                    radius = 1200f
-                )
-            )
+            .background(CanvasColor)
     ) {
         Row(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(horizontal = 48.dp, vertical = 32.dp),
+                .padding(horizontal = 64.dp, vertical = 48.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // LEFT PANEL: Luxury Branding & Activation Fields
+            // LEFT PANEL: Activation Info matching Zina Login Screen
             Column(
                 modifier = Modifier
-                    .weight(1.3f)
+                    .weight(1.2f)
                     .fillMaxHeight()
-                    .padding(end = 40.dp),
-                horizontalAlignment = Alignment.CenterHorizontally,
+                    .padding(end = 64.dp),
+                horizontalAlignment = Alignment.Start,
                 verticalArrangement = Arrangement.Center
             ) {
                 Text(
-                    text = "KOBANI 4K",
-                    fontSize = 54.sp,
-                    color = BrandGold,
-                    fontWeight = FontWeight.Black,
-                    letterSpacing = 8.sp,
-                    style = androidx.compose.ui.text.TextStyle(
-                        shadow = androidx.compose.ui.graphics.Shadow(
-                            color = BrandGoldMuted,
-                            blurRadius = 20f
-                        )
-                    )
-                )
-                Spacer(modifier = Modifier.height(16.dp))
-                Text(
-                    text = "ENTER DEVICE ACTIVATION CODE",
-                    fontSize = 15.sp,
-                    color = TextSecondary,
+                    text = "Device Activation",
+                    fontSize = 36.sp,
+                    color = TextPrimary,
+                    fontFamily = PoppinsFamily,
                     fontWeight = FontWeight.Bold,
-                    letterSpacing = 3.sp
+                    letterSpacing = 1.sp
                 )
-                Spacer(modifier = Modifier.height(56.dp))
+                Spacer(modifier = Modifier.height(8.dp))
+                Text(
+                    text = "To continue with the activation process, please enter your 6-digit PIN code",
+                    fontSize = 16.sp,
+                    color = Color(0x88FFFFFF), // Zina TV #88ffffff
+                    fontFamily = PoppinsFamily,
+                    fontWeight = FontWeight.Medium
+                )
+                Spacer(modifier = Modifier.height(48.dp))
 
                 // Responsive Glow Slots
                 Row(
-                    horizontalArrangement = Arrangement.spacedBy(12.dp),
-                    modifier = Modifier.fillMaxWidth(0.9f)
+                    horizontalArrangement = Arrangement.spacedBy(16.dp),
+                    modifier = Modifier.fillMaxWidth()
                 ) {
                     for (i in 0 until 6) {
                         val hasDigit = i < enteredCode.length
@@ -101,70 +92,94 @@ fun LoginScreen(onLoginSuccess: () -> Unit) {
                         Box(
                             modifier = Modifier
                                 .weight(1f)
-                                .aspectRatio(0.85f)
-                                .shadow(if (hasDigit) 8.dp else 0.dp, RoundedCornerShape(16.dp))
+                                .aspectRatio(1f)
+                                .shadow(if (hasDigit) 4.dp else 0.dp, RoundedCornerShape(12.dp))
                                 .background(
                                     if (hasDigit) SurfaceElevatedColor else SurfaceColor,
-                                    RoundedCornerShape(16.dp)
+                                    RoundedCornerShape(12.dp)
                                 )
                                 .border(
                                     width = if (hasDigit) 2.dp else 1.dp,
                                     color = if (hasDigit) BrandGold else SurfaceElevatedColor,
-                                    shape = RoundedCornerShape(16.dp)
+                                    shape = RoundedCornerShape(12.dp)
                                 ),
                             contentAlignment = Alignment.Center
                         ) {
                             Text(
                                 text = digitValue,
-                                fontSize = 42.sp,
+                                fontSize = 32.sp,
+                                fontFamily = PoppinsFamily,
                                 color = if (hasDigit) TextPrimary else Color.Transparent,
-                                fontWeight = FontWeight.ExtraBold
+                                fontWeight = FontWeight.Bold
                             )
                         }
                     }
                 }
 
-                Spacer(modifier = Modifier.height(32.dp))
+                Spacer(modifier = Modifier.height(48.dp))
+                
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(
+                        painter = painterResource(id = R.drawable.ic_login),
+                        contentDescription = null,
+                        tint = BrandGold,
+                        modifier = Modifier.size(24.dp)
+                    )
+                    Spacer(modifier = Modifier.width(12.dp))
+                    Text(
+                        text = if (isLoading) "VERIFYING CODE..." else "WAITING FOR INPUT...",
+                        color = if (isLoading) BrandGold else TextSecondary,
+                        fontFamily = PoppinsFamily,
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.Bold,
+                        letterSpacing = 2.sp
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(16.dp))
 
                 AnimatedVisibility(visible = errorMessage != null) {
-                    Text(
-                        text = errorMessage ?: "",
-                        color = TextError,
-                        fontSize = 16.sp,
-                        fontWeight = FontWeight.Bold,
-                        letterSpacing = 1.sp
-                    )
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(painter = painterResource(id = R.drawable.mtrl_ic_error), contentDescription = null, tint = TextError, modifier = Modifier.size(20.dp))
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            text = errorMessage ?: "",
+                            color = TextError,
+                            fontFamily = PoppinsFamily,
+                            fontSize = 14.sp,
+                            fontWeight = FontWeight.Medium
+                        )
+                    }
                 }
             }
 
-            // RIGHT PANEL: Elegant Keypad
+            // RIGHT PANEL: Elegant Keypad matching ZinaKeyboard exactly
             Box(
                 modifier = Modifier
                     .weight(1f)
-                    .fillMaxHeight()
-                    .padding(vertical = 16.dp),
+                    .fillMaxHeight(),
                 contentAlignment = Alignment.Center
             ) {
-                // Keypad Card Surface
+                // Keypad Container
                 Surface(
-                    shape = RoundedCornerShape(28.dp),
+                    shape = RoundedCornerShape(16.dp),
                     colors = SurfaceDefaults.colors(
                         containerColor = SurfaceColor
                     ),
                     border = Border(
                         border = androidx.compose.foundation.BorderStroke(1.dp, SurfaceElevatedColor),
-                        shape = RoundedCornerShape(28.dp)
+                        shape = RoundedCornerShape(16.dp)
                     ),
                     modifier = Modifier
-                        .width(340.dp)
+                        .width(360.dp)
                         .wrapContentHeight()
                 ) {
                     Column(
                         modifier = Modifier
                             .wrapContentSize()
-                            .padding(24.dp),
+                            .padding(32.dp),
                         horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.spacedBy(16.dp)
+                        verticalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
                         fun onDigit(digit: String) {
                             if (enteredCode.length < 6) {
@@ -209,13 +224,13 @@ fun LoginScreen(onLoginSuccess: () -> Unit) {
                         )
 
                         Column(
-                            verticalArrangement = Arrangement.spacedBy(14.dp),
+                            verticalArrangement = Arrangement.spacedBy(12.dp), // @dimen/keyboardInputMargin
                             modifier = Modifier.fillMaxWidth()
                         ) {
                             rows.forEach { row ->
                                 Row(
                                     modifier = Modifier.fillMaxWidth(),
-                                    horizontalArrangement = Arrangement.spacedBy(14.dp)
+                                    horizontalArrangement = Arrangement.spacedBy(12.dp)
                                 ) {
                                     row.forEach { key ->
                                         Box(modifier = Modifier.weight(1f)) {
@@ -235,30 +250,35 @@ fun LoginScreen(onLoginSuccess: () -> Unit) {
                             }
                         }
 
-                        Spacer(modifier = Modifier.height(8.dp))
+                        Spacer(modifier = Modifier.height(16.dp))
 
-                        // Submit Button
+                        // Submit Button matching Zina Login Button
                         val isReady = enteredCode.length == 6
                         Button(
                             onClick = { handleSubmit() },
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .height(64.dp),
-                            shape = ButtonDefaults.shape(shape = RoundedCornerShape(16.dp)),
+                                .height(56.dp),
+                            shape = ButtonDefaults.shape(shape = RoundedCornerShape(12.dp)),
                             colors = ButtonDefaults.colors(
                                 containerColor = if (isReady) BrandGold else SurfaceElevatedColor,
-                                contentColor = if (isReady) BackgroundDark else TextSecondary,
+                                contentColor = if (isReady) CanvasColor else TextSecondary,
                                 focusedContainerColor = FocusedOutlineColor,
-                                focusedContentColor = BackgroundDark
+                                focusedContentColor = CanvasColor
                             ),
                             scale = ButtonDefaults.scale(focusedScale = 1.05f)
                         ) {
-                            Text(
-                                text = if (isLoading) "VERIFYING..." else "ACTIVATE DEVICE",
-                                fontSize = 18.sp,
-                                fontWeight = FontWeight.ExtraBold,
-                                letterSpacing = 2.sp
-                            )
+                            if (isLoading) {
+                                CircularProgressIndicator(color = CanvasColor, modifier = Modifier.size(24.dp))
+                            } else {
+                                Text(
+                                    text = "LOGIN",
+                                    fontFamily = PoppinsFamily,
+                                    fontSize = 18.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    letterSpacing = 1.sp
+                                )
+                            }
                         }
                     }
                 }
@@ -274,34 +294,60 @@ fun KeypadButton(
     isSpecial: Boolean,
     onClick: () -> Unit
 ) {
-    Button(
+    var isFocused by remember { mutableStateOf(false) }
+    val scale by animateFloatAsState(targetValue = if (isFocused) 1.05f else 1.0f)
+
+    Surface(
         onClick = onClick,
         modifier = Modifier
             .fillMaxWidth()
-            .aspectRatio(1.4f),
-        shape = ButtonDefaults.shape(shape = RoundedCornerShape(16.dp)),
-        colors = ButtonDefaults.colors(
-            containerColor = SurfaceElevatedColor.copy(alpha = 0.6f),
-            focusedContainerColor = FocusedOutlineColor,
+            .aspectRatio(1f) // Zina Keyboard uses 1:1 ratio
+            .scale(scale)
+            .onFocusChanged { isFocused = it.isFocused },
+        shape = ClickableSurfaceDefaults.shape(shape = RoundedCornerShape(12.dp)), // Zina radius 12dip
+        colors = ClickableSurfaceDefaults.colors(
+            containerColor = SurfaceColor, // customColorBackgroundVariant
+            focusedContainerColor = TextPrimary, // customColorPrimary (white focus)
             contentColor = if (isSpecial) BrandGold else TextPrimary,
-            focusedContentColor = BackgroundDark
+            focusedContentColor = CanvasColor
         ),
-        scale = ButtonDefaults.scale(focusedScale = 1.08f),
-        border = ButtonDefaults.border(
+        border = ClickableSurfaceDefaults.border(
             border = Border(
                 border = androidx.compose.foundation.BorderStroke(1.dp, SurfaceElevatedColor),
-                shape = RoundedCornerShape(16.dp)
+                shape = RoundedCornerShape(12.dp)
             ),
             focusedBorder = Border(
-                border = androidx.compose.foundation.BorderStroke(3.dp, BrandGold),
-                shape = RoundedCornerShape(16.dp)
+                border = androidx.compose.foundation.BorderStroke(2.dp, FocusedOutlineColor),
+                shape = RoundedCornerShape(12.dp)
             )
         )
     ) {
-        Text(
-            text = label,
-            fontSize = 24.sp,
-            fontWeight = FontWeight.Bold
-        )
+        Box(
+            modifier = Modifier.fillMaxSize(),
+            contentAlignment = Alignment.Center
+        ) {
+            if (label == "DEL") {
+                Icon(
+                    painter = painterResource(id = R.drawable.material_ic_clear_black_24dp),
+                    contentDescription = "Delete",
+                    modifier = Modifier.size(24.dp),
+                    tint = if (isFocused) CanvasColor else BrandGold
+                )
+            } else if (label == "CLR") {
+                Text(
+                    text = "CLR",
+                    fontFamily = PoppinsFamily,
+                    fontSize = 18.sp,
+                    fontWeight = FontWeight.Bold
+                )
+            } else {
+                Text(
+                    text = label,
+                    fontFamily = PoppinsFamily,
+                    fontSize = 24.sp,
+                    fontWeight = FontWeight.Bold
+                )
+            }
+        }
     }
 }
