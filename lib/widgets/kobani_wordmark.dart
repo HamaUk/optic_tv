@@ -48,11 +48,21 @@ class _KobaniWordmarkState extends State<KobaniWordmark>
       animation: _controller,
       builder: (context, child) {
         final double t = _controller.value;
-        // Subtle breathing scale effect (1.0 to 1.05)
-        final double scale = 1.0 + (math.sin(t * math.pi * 2) + 1) / 40.0;
         
-        return Transform.scale(
-          scale: scale,
+        // Modern 3D float and perspective wobble
+        final matrix = Matrix4.identity()
+          ..setEntry(3, 2, 0.002) // Perspective depth
+          ..rotateX(math.sin(t * math.pi * 2) * 0.08)
+          ..rotateY(math.cos(t * math.pi * 2) * 0.08)
+          ..translate(
+            0.0,
+            math.sin(t * math.pi * 4) * 4.0, // Float up and down
+            0.0,
+          );
+        
+        return Transform(
+          transform: matrix,
+          alignment: Alignment.center,
           child: ShaderMask(
             blendMode: BlendMode.srcIn,
             shaderCallback: (bounds) => LinearGradient(
