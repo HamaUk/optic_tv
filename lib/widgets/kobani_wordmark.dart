@@ -90,7 +90,7 @@ class _KobaniWordmarkState extends State<KobaniWordmark>
                           fontSize: fontSize,
                           fontWeight: FontWeight.w900,
                           color: Colors.white,
-                          letterSpacing: letterSpacing * 1.2,
+                          letterSpacing: letterSpacing * 0.1,
                           height: 0.95,
                         ),
                       ),
