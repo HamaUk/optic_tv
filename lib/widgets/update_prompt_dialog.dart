@@ -85,9 +85,11 @@ class _UpdatePromptDialogState extends State<UpdatePromptDialog> {
 
   @override
   Widget build(BuildContext context) {
-    return Dialog(
-      backgroundColor: Colors.transparent,
-      elevation: 0,
+    return PopScope(
+      canPop: false,
+      child: Dialog(
+        backgroundColor: Colors.transparent,
+        elevation: 0,
       insetPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
       child: ClipRRect(
         borderRadius: BorderRadius.circular(24),
@@ -165,31 +167,18 @@ class _UpdatePromptDialogState extends State<UpdatePromptDialog> {
                     ),
                   ),
                 ] else ...[
-                  Row(
-                    children: [
-                      Expanded(
-                        child: TextButton(
-                          onPressed: () => Navigator.pop(context),
-                          child: Text('LATER', style: TextStyle(color: Colors.white.withOpacity(0.4))),
-                        ),
+                  SizedBox(
+                    width: double.infinity,
+                    height: 50,
+                    child: ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppTheme.primaryGold,
+                        foregroundColor: Colors.black,
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                       ),
-                      const SizedBox(width: 16),
-                      Expanded(
-                        flex: 2,
-                        child: SizedBox(
-                          height: 50,
-                          child: ElevatedButton(
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: AppTheme.primaryGold,
-                              foregroundColor: Colors.black,
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                            ),
-                            onPressed: _startDownload,
-                            child: const Text('DOWNLOAD', style: TextStyle(fontWeight: FontWeight.bold, letterSpacing: 1.5)),
-                          ),
-                        ),
-                      ),
-                    ],
+                      onPressed: _startDownload,
+                      child: const Text('DOWNLOAD UPDATE', style: TextStyle(fontWeight: FontWeight.bold, letterSpacing: 1.5)),
+                    ),
                   ),
                 ],
               ],
