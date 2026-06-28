@@ -16,6 +16,7 @@ import androidx.tv.material3.darkColorScheme
 import com.kobani4k.app.tv.ui.DashboardScreen
 import com.kobani4k.app.tv.ui.LoginScreen
 import com.kobani4k.app.tv.ui.PlayerScreen
+import android.content.Context
 import java.net.URLDecoder
 import java.net.URLEncoder
 
@@ -32,12 +33,17 @@ class TvMainActivity : ComponentActivity() {
                         .fillMaxSize()
                         .background(MaterialTheme.colorScheme.background)
                 ) {
+                    val prefs = getSharedPreferences("FlutterSharedPreferences", Context.MODE_PRIVATE)
+                    val initialSession = prefs.getBoolean("flutter.auth_logged_in", false)
+                    val startDest = if (initialSession) "dashboard" else "login"
+
                     val navController = rememberNavController()
 
-                    NavHost(navController = navController, startDestination = "login") {
+                    NavHost(navController = navController, startDestination = startDest) {
                         composable("login") {
                             LoginScreen(
                                 onLoginSuccess = {
+                                    prefs.edit().putBoolean("flutter.auth_logged_in", true).apply()
                                     navController.navigate("dashboard") {
                                         popUpTo("login") { inclusive = true }
                                     }
@@ -53,6 +59,7 @@ class TvMainActivity : ComponentActivity() {
                                     navController.navigate("player/$encodedName/$encodedUrl/$encodedLogo")
                                 },
                                 onLogout = {
+                                    prefs.edit().putBoolean("flutter.auth_logged_in", false).apply()
                                     navController.navigate("login") {
                                         popUpTo("dashboard") { inclusive = true }
                                     }

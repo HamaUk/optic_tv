@@ -23,6 +23,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.tv.material3.*
 import coil.compose.AsyncImage
 import com.kobani4k.app.tv.data.PocketBaseRepository
@@ -43,6 +45,16 @@ fun DashboardScreen(
     LaunchedEffect(Unit) {
         allChannels = repository.getChannels()
         isLoading = false
+    }
+
+    val focusRequester = remember { FocusRequester() }
+
+    LaunchedEffect(isLoading, categories) {
+        if (!isLoading && categories.isNotEmpty()) {
+            try {
+                focusRequester.requestFocus()
+            } catch (e: Exception) {}
+        }
     }
 
     val categories = remember(allChannels) {
@@ -99,7 +111,8 @@ fun DashboardScreen(
                             title = category,
                             isSelected = selectedCategory == category,
                             onClick = { selectedCategory = category },
-                            onFocused = { selectedCategory = category }
+                            onFocused = { selectedCategory = category },
+                            modifier = if (category == categories.first()) Modifier.focusRequester(focusRequester) else Modifier
                         )
                     }
                 }
@@ -144,7 +157,8 @@ fun CategoryItem(
     title: String,
     isSelected: Boolean,
     onClick: () -> Unit,
-    onFocused: () -> Unit
+    onFocused: () -> Unit,
+    modifier: Modifier = Modifier
 ) {
     var isFocused by remember { mutableStateOf(false) }
     
@@ -161,7 +175,7 @@ fun CategoryItem(
     }
 
     Box(
-        modifier = Modifier
+        modifier = modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(8.dp))
             .background(bgColor)
