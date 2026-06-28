@@ -669,6 +669,13 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
     items.sort((a, b) {
       final av = a.value;
       final bv = b.value;
+      
+      // Sort by group first to prevent interleaving of different groups' orders
+      final aGroup = (av is Map) ? '${av['group'] ?? av['category'] ?? 'General'}' : 'General';
+      final bGroup = (bv is Map) ? '${bv['group'] ?? bv['category'] ?? 'General'}' : 'General';
+      final groupComp = aGroup.toLowerCase().compareTo(bGroup.toLowerCase());
+      if (groupComp != 0) return groupComp;
+
       if (av is Map && bv is Map) {
         final ao = av['order'] as int? ?? 999999;
         final bo = bv['order'] as int? ?? 999999;
