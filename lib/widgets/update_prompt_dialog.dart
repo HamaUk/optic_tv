@@ -88,7 +88,7 @@ class _UpdatePromptDialogState extends State<UpdatePromptDialog> {
   @override
   Widget build(BuildContext context) {
     return PopScope(
-      canPop: false,
+      canPop: true,
       child: Dialog(
         backgroundColor: Colors.transparent,
         elevation: 0,
@@ -169,18 +169,38 @@ class _UpdatePromptDialogState extends State<UpdatePromptDialog> {
                     ),
                   ),
                 ] else ...[
-                  SizedBox(
-                    width: double.infinity,
-                    height: 50,
-                    child: ElevatedButton(
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: AppTheme.primaryGold,
-                        foregroundColor: Colors.black,
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: SizedBox(
+                          height: 50,
+                          child: TextButton(
+                            style: TextButton.styleFrom(
+                              foregroundColor: Colors.white70,
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                            ),
+                            onPressed: () => Navigator.of(context).pop(),
+                            child: Text(widget.strings.updateLater, style: const TextStyle(fontWeight: FontWeight.bold, letterSpacing: 1.5)),
+                          ),
+                        ),
                       ),
-                      onPressed: _startDownload,
-                      child: Text(widget.strings.updateDownload, style: const TextStyle(fontWeight: FontWeight.bold, letterSpacing: 1.5)),
-                    ),
+                      const SizedBox(width: 16),
+                      Expanded(
+                        flex: 2,
+                        child: SizedBox(
+                          height: 50,
+                          child: ElevatedButton(
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: AppTheme.primaryGold,
+                              foregroundColor: Colors.black,
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                            ),
+                            onPressed: _startDownload,
+                            child: Text(widget.strings.updateDownload, style: const TextStyle(fontWeight: FontWeight.bold, letterSpacing: 1.5)),
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
                 ],
               ],
