@@ -310,10 +310,10 @@ internal fun LiveDrawer(
                 verticalArrangement = Arrangement.spacedBy(20.dp),
             ) {
                 DrawerIconButton(Icons.Default.Search, "Search", onClick = {})
-                DrawerIconButton(Icons.Default.ViewList, "EPG", onClick = {})
+                DrawerIconButton(Icons.Default.List, "EPG", onClick = {})
                 DrawerIconButton(Icons.Default.Favorite, "Add to Fav", onClick = {})
-                DrawerIconButton(Icons.Default.Audiotrack, "Tracks", onClick = {})
-                DrawerIconButton(Icons.Default.AspectRatio, "Aspect", onClick = {})
+                DrawerIconButton(Icons.Default.PlayArrow, "Tracks", onClick = {})
+                DrawerIconButton(Icons.Default.Info, "Aspect", onClick = {})
                 DrawerIconButton(Icons.Default.Settings, "Settings", onClick = {})
             }
 
