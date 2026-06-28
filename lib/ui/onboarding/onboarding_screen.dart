@@ -51,6 +51,9 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final lang = ref.watch(appLocaleProvider).languageCode;
+    String t(String en, String ckb) => (lang == 'ckb' || lang == 'kmr') ? ckb : en;
+
     return Scaffold(
       backgroundColor: Colors.black,
       body: Stack(
@@ -84,9 +87,9 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
             physics: const NeverScrollableScrollPhysics(),
             onPageChanged: (i) => setState(() => _currentPage = i),
             children: [
-              _buildStep1(),
-              _buildStep2(),
-              _buildStep3(),
+              _buildStep1(t),
+              _buildStep2(t),
+              _buildStep3(t),
             ],
           ),
         ],
@@ -94,7 +97,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
     );
   }
 
-  Widget _buildStep1() {
+  Widget _buildStep1(String Function(String, String) t) {
     return _FadeInSlide(
       key: const ValueKey(1),
       child: Column(
@@ -102,15 +105,15 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
         children: [
           Image.asset('assets/images/logo.png', width: 140, height: 140),
           const SizedBox(height: 32),
-          const Text(
-            'Welcome to KOBANI 4K',
-            style: TextStyle(color: Colors.white, fontSize: 36, fontWeight: FontWeight.w900, letterSpacing: 1.5),
+          Text(
+            t('Welcome to KOBANI 4K', 'بەخێربێیت بۆ KOBANI 4K'),
+            style: const TextStyle(color: Colors.white, fontSize: 36, fontWeight: FontWeight.w900, letterSpacing: 1.5),
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: 16),
-          const Text(
-            'The Ultimate Streaming Experience',
-            style: TextStyle(color: Colors.white70, fontSize: 18, letterSpacing: 0.5),
+          Text(
+            t('The Ultimate Streaming Experience', 'باشترین ئەزموونی سەیرکردن'),
+            style: const TextStyle(color: Colors.white70, fontSize: 18, letterSpacing: 0.5),
           ),
           const SizedBox(height: 64),
           ElevatedButton(
@@ -121,22 +124,22 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
               elevation: 8,
             ),
             onPressed: _nextPage,
-            child: const Text('GET STARTED', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: Colors.black, letterSpacing: 1.2)),
+            child: Text(t('GET STARTED', 'دەستپێکردن'), style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: Colors.black, letterSpacing: 1.2)),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildStep2() {
+  Widget _buildStep2(String Function(String, String) t) {
     return _FadeInSlide(
       key: const ValueKey(2),
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          const Text(
-            'Choose Your Language',
-            style: TextStyle(color: Colors.white, fontSize: 32, fontWeight: FontWeight.bold),
+          Text(
+            t('Choose Your Language', 'زمانەکەت هەڵبژێرە'),
+            style: const TextStyle(color: Colors.white, fontSize: 32, fontWeight: FontWeight.bold),
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: 64),
@@ -173,30 +176,30 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
     );
   }
 
-  Widget _buildStep3() {
+  Widget _buildStep3(String Function(String, String) t) {
     return _FadeInSlide(
       key: const ValueKey(3),
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          const Text(
-            'Choose Your Device',
-            style: TextStyle(color: Colors.white, fontSize: 32, fontWeight: FontWeight.bold),
+          Text(
+            t('Choose Your Device', 'ئامێرەکەت هەڵبژێرە'),
+            style: const TextStyle(color: Colors.white, fontSize: 32, fontWeight: FontWeight.bold),
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: 16),
-          const Text(
-            'How are you using this app?',
-            style: TextStyle(color: Colors.white70, fontSize: 18),
+          Text(
+            t('How are you using this app?', 'چۆن ئەم بەرنامەیە بەکاردەهێنیت؟'),
+            style: const TextStyle(color: Colors.white70, fontSize: 18),
           ),
           const SizedBox(height: 64),
-          _buildDeviceBtn('📱 Phone / Tablet', () async {
+          _buildDeviceBtn('📱 ${t("Phone / Tablet", "مۆبایل / تابلێت")}', () async {
             final p = await SharedPreferences.getInstance();
             await p.setString('device_mode', 'phone');
             _finishOnboarding();
           }),
           const SizedBox(height: 24),
-          _buildDeviceBtn('📺 TV Interface', () async {
+          _buildDeviceBtn('📺 ${t("TV Interface", "ڕووکاری تەلەفزیۆن")}', () async {
             final p = await SharedPreferences.getInstance();
             await p.setString('device_mode', 'tv');
             _finishOnboarding();
