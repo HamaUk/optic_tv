@@ -18,6 +18,7 @@ import 'services/notification_service.dart';
 import 'services/settings_service.dart';
 import 'ui/auth/login_screen.dart';
 import 'ui/dashboard/dashboard_screen.dart';
+import 'ui/onboarding/onboarding_screen.dart';
 import 'services/platform_service.dart';
 import 'package:flutter_jailbreak_detection/flutter_jailbreak_detection.dart';
 
@@ -56,6 +57,7 @@ void main() async {
 
   final initialSession = prefs.getBool('auth_logged_in') ?? false;
   final initialCode = prefs.getString('auth_active_code');
+  final isFirstLaunch = prefs.getBool('first_launch') ?? true;
   var initialLocaleCode = AppLocaleNotifier.normalizeStoredCode(prefs.getString('app_locale'));
   await prefs.setString('app_locale', initialLocaleCode);
 
@@ -68,6 +70,7 @@ void main() async {
       child: OpticTvApp(
         initialLoggedIn: initialSession,
         initialCode: initialCode,
+        isFirstLaunch: isFirstLaunch,
       ),
     ),
   );
@@ -94,10 +97,12 @@ class _SeededLocaleNotifier extends AppLocaleNotifier {
 class OpticTvApp extends ConsumerStatefulWidget {
   final bool initialLoggedIn;
   final String? initialCode;
+  final bool isFirstLaunch;
 
   const OpticTvApp({
     super.key,
     required this.initialLoggedIn,
+    required this.isFirstLaunch,
     this.initialCode,
   });
 
@@ -179,10 +184,14 @@ class _OpticTvAppState extends ConsumerState<OpticTvApp> with WidgetsBindingObse
                 return _buildSecurityWarning(maliciousApps);
               }
               
+              if (widget.isFirstLaunch) return const OnboardingScreen();
               return session.loggedIn ? const DashboardScreen() : const LoginScreen();
             },
             loading: () => const Scaffold(backgroundColor: Colors.black, body: Center(child: CircularProgressIndicator())),
-            error: (_, __) => session.loggedIn ? const DashboardScreen() : const LoginScreen(),
+            error: (_, __) {
+              if (widget.isFirstLaunch) return const OnboardingScreen();
+              return session.loggedIn ? const DashboardScreen() : const LoginScreen();
+            },
           );
         },
       ),

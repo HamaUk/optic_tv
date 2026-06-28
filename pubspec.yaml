@@ -85,11 +85,13 @@ flutter:
   uses-material-design: true
   assets:
     - assets/json/
+    - assets/video/
     - assets/images/flut.png
     - assets/images/logonewww.png
     - assets/images/optic_logo.png
     - assets/images/newiconapp.jpg
     - assets/images/kobani4k_icon.png
+    - assets/images/logo.png
   fonts:
     - family: Rabar
       fonts:
