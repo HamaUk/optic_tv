@@ -36,7 +36,7 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
   static const _playlistPath = 'sync/global/managedPlaylist';
   static const _groupsPath = 'sync/global/channelGroups';
   static const _loginCodesPath = 'sync/global/loginCodes';
-  static const _announcementPath = 'sync/global/announcement';
+  static const _announcementPath = 'sync/global/announcement/globalannounce12';
   static const _notifBroadcastPath = 'sync/global/notifications/broadcast';
   static const _notifHistoryPath = 'sync/global/notifications/history';
   static const _backupFileVersion = 1;
@@ -4205,7 +4205,7 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
     }
   }
 
-  DatabaseReference get _updateRef => PocketBaseDatabase.instance.ref('sync/global/updateManager');
+  DatabaseReference get _updateRef => PocketBaseDatabase.instance.ref('sync/global/updateManager/globalupdate123');
 
   Widget _buildUpdateTab() {
     return ListView(
