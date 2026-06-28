@@ -171,42 +171,14 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
     return SizedBox(
       width: 320,
       height: 80,
-class _FadeInSlide extends StatefulWidget {
-  final Widget child;
-  const _FadeInSlide({required super.key, required this.child});
-
-  @override
-  State<_FadeInSlide> createState() => _FadeInSlideState();
-}
-
-class _FadeInSlideState extends State<_FadeInSlide> with SingleTickerProviderStateMixin {
-  late AnimationController _ctrl;
-  late Animation<double> _opacity;
-  late Animation<Offset> _slide;
-
-  @override
-  void initState() {
-    super.initState();
-    _ctrl = AnimationController(vsync: this, duration: const Duration(milliseconds: 800));
-    _opacity = Tween<double>(begin: 0, end: 1).animate(CurvedAnimation(parent: _ctrl, curve: Curves.easeOutCubic));
-    _slide = Tween<Offset>(begin: const Offset(0, 0.15), end: Offset.zero).animate(CurvedAnimation(parent: _ctrl, curve: Curves.easeOutCubic));
-    
-    _ctrl.forward();
-  }
-
-  @override
-  void dispose() {
-    _ctrl.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return SlideTransition(
-      position: _slide,
-      child: FadeTransition(
-        opacity: _opacity,
-        child: widget.child,
+      child: ElevatedButton(
+        style: ElevatedButton.styleFrom(
+          backgroundColor: Colors.grey[900],
+          side: const BorderSide(color: Colors.white30, width: 2),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+        ),
+        onPressed: onTap,
+        child: Text(title, style: const TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.bold)),
       ),
     );
   }
