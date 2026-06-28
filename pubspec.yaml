@@ -85,7 +85,7 @@ flutter:
   uses-material-design: true
   assets:
     - assets/json/
-    - assets/video/
+    - assets/video/splash.mp4
     - assets/images/flut.png
     - assets/images/logonewww.png
     - assets/images/optic_logo.png
