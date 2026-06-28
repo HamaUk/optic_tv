@@ -1,10 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:video_player/video_player.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../providers/app_locale_provider.dart';
 import '../auth/login_screen.dart';
-import '../../widgets/animated_gradient_border.dart';
 
 class OnboardingScreen extends ConsumerStatefulWidget {
   const OnboardingScreen({super.key});
@@ -14,26 +12,11 @@ class OnboardingScreen extends ConsumerStatefulWidget {
 }
 
 class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
-  late VideoPlayerController _controller;
   final PageController _pageController = PageController();
   int _currentPage = 0;
 
   @override
-  void initState() {
-    super.initState();
-    _controller = VideoPlayerController.asset('assets/video/splash.mp4')
-      ..initialize().then((_) {
-        _controller.setLooping(true);
-        _controller.play();
-        setState(() {});
-      }).catchError((error) {
-        debugPrint("Video Player Error: $error");
-      });
-  }
-
-  @override
   void dispose() {
-    _controller.dispose();
     _pageController.dispose();
     super.dispose();
   }
@@ -53,105 +36,86 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
 
   @override
   Widget build(BuildContext context) {
+    // Inject a global error handler to show exactly what crashed on screen
+    ErrorWidget.builder = (FlutterErrorDetails details) {
+      return Material(
+        color: Colors.black,
+        child: Center(
+          child: Padding(
+            padding: const EdgeInsets.all(20),
+            child: Text(
+              "CRASH: ${details.exceptionAsString()}",
+              style: const TextStyle(color: Colors.red, fontSize: 16),
+            ),
+          ),
+        ),
+      );
+    };
+
     final lang = ref.watch(appLocaleProvider).languageCode;
     String t(String en, String ckb) => (lang == 'ckb' || lang == 'kmr') ? ckb : en;
 
     return Scaffold(
       backgroundColor: Colors.black,
-      body: Stack(
-        fit: StackFit.expand,
+      body: PageView(
+        controller: _pageController,
+        physics: const NeverScrollableScrollPhysics(),
+        onPageChanged: (i) => setState(() => _currentPage = i),
         children: [
-          // Background Video
-          if (_controller.value.isInitialized)
-            FittedBox(
-              fit: BoxFit.cover,
-              child: SizedBox(
-                width: _controller.value.size.width,
-                height: _controller.value.size.height,
-                child: VideoPlayer(_controller),
-              ),
-            ),
-          
-          // Dark Gradient Overlay
-          Container(
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                colors: [Colors.black.withOpacity(0.85), Colors.black.withOpacity(0.3)],
-                begin: Alignment.bottomCenter,
-                end: Alignment.topCenter,
-              ),
-            ),
-          ),
-
-          // Content Pages
-          PageView(
-            controller: _pageController,
-            physics: const NeverScrollableScrollPhysics(),
-            onPageChanged: (i) => setState(() => _currentPage = i),
-            children: [
-              _buildStep1(t),
-              _buildStep2(t),
-              _buildStep3(t),
-            ],
-          ),
+          _buildStep1(t),
+          _buildStep2(t),
+          _buildStep3(t),
         ],
       ),
     );
   }
 
   Widget _buildStep1(String Function(String, String) t) {
-    return _FadeInSlide(
-      key: const ValueKey(1),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Image.asset('assets/images/logo.png', width: 140, height: 140),
-          const SizedBox(height: 32),
-          Text(
-            t('Welcome to KOBANI 4K', 'KOBANI 4K بەخێربێیت بۆ'),
-            style: const TextStyle(color: Colors.white, fontSize: 36, fontWeight: FontWeight.w900, letterSpacing: 1.5),
-            textAlign: TextAlign.center,
+    return Column(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        const Icon(Icons.live_tv, size: 100, color: Color(0xFFE5A922)),
+        const SizedBox(height: 32),
+        Text(
+          t('Welcome to KOBANI 4K', 'KOBANI 4K بەخێربێیت بۆ'),
+          style: const TextStyle(color: Colors.white, fontSize: 36, fontWeight: FontWeight.w900, letterSpacing: 1.5),
+          textAlign: TextAlign.center,
+        ),
+        const SizedBox(height: 16),
+        Text(
+          t('The Ultimate Streaming Experience', 'باشترین ئەزموونی سەیرکردن'),
+          style: const TextStyle(color: Colors.white70, fontSize: 18, letterSpacing: 0.5),
+        ),
+        const SizedBox(height: 64),
+        ElevatedButton(
+          style: ElevatedButton.styleFrom(
+            backgroundColor: const Color(0xFFE5A922),
+            padding: const EdgeInsets.symmetric(horizontal: 56, vertical: 18),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
           ),
-          const SizedBox(height: 16),
-          Text(
-            t('The Ultimate Streaming Experience', 'باشترین ئەزموونی سەیرکردن'),
-            style: const TextStyle(color: Colors.white70, fontSize: 18, letterSpacing: 0.5),
-          ),
-          const SizedBox(height: 64),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFFE5A922),
-              padding: const EdgeInsets.symmetric(horizontal: 56, vertical: 18),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
-              elevation: 8,
-            ),
-            onPressed: _nextPage,
-            child: Text(t('GET STARTED', 'دەستپێکردن'), style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: Colors.black, letterSpacing: 1.2)),
-          ),
-        ],
-      ),
+          onPressed: _nextPage,
+          child: Text(t('GET STARTED', 'دەستپێکردن'), style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: Colors.black)),
+        ),
+      ],
     );
   }
 
   Widget _buildStep2(String Function(String, String) t) {
-    return _FadeInSlide(
-      key: const ValueKey(2),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Text(
-            t('Choose Your Language', 'زمانەکەت هەڵبژێرە'),
-            style: const TextStyle(color: Colors.white, fontSize: 32, fontWeight: FontWeight.bold),
-            textAlign: TextAlign.center,
-          ),
-          const SizedBox(height: 64),
-          _buildLangBtn('Kurdish (Sorani)', 'ckb'),
-          const SizedBox(height: 20),
-          _buildLangBtn('Kurdish (Kurmanji)', 'kmr'),
-          const SizedBox(height: 20),
-          _buildLangBtn('English', 'en'),
-        ],
-      ),
+    return Column(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        Text(
+          t('Choose Your Language', 'زمانەکەت هەڵبژێرە'),
+          style: const TextStyle(color: Colors.white, fontSize: 32, fontWeight: FontWeight.bold),
+          textAlign: TextAlign.center,
+        ),
+        const SizedBox(height: 64),
+        _buildLangBtn('Kurdish (Sorani)', 'ckb'),
+        const SizedBox(height: 20),
+        _buildLangBtn('Kurdish (Kurmanji)', 'kmr'),
+        const SizedBox(height: 20),
+        _buildLangBtn('English', 'en'),
+      ],
     );
   }
 
@@ -159,55 +123,47 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
     return SizedBox(
       width: 280,
       height: 64,
-      child: AnimatedGradientBorder(
-        borderRadius: BorderRadius.circular(16),
-        borderWidth: 2,
-        child: ElevatedButton(
-          style: ElevatedButton.styleFrom(
-            backgroundColor: Colors.transparent,
-            shadowColor: Colors.transparent,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-          ),
-          onPressed: () {
-            ref.read(appLocaleProvider.notifier).setLocale(Locale(code));
-            _nextPage();
-          },
-          child: Text(title, style: const TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.w600)),
+      child: OutlinedButton(
+        style: OutlinedButton.styleFrom(
+          side: const BorderSide(color: Color(0xFFE5A922), width: 2),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
         ),
+        onPressed: () {
+          ref.read(appLocaleProvider.notifier).setLocale(Locale(code));
+          _nextPage();
+        },
+        child: Text(title, style: const TextStyle(color: Colors.white, fontSize: 20)),
       ),
     );
   }
 
   Widget _buildStep3(String Function(String, String) t) {
-    return _FadeInSlide(
-      key: const ValueKey(3),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Text(
-            t('Choose Your Device', 'ئامێرەکەت هەڵبژێرە'),
-            style: const TextStyle(color: Colors.white, fontSize: 32, fontWeight: FontWeight.bold),
-            textAlign: TextAlign.center,
-          ),
-          const SizedBox(height: 16),
-          Text(
-            t('How are you using this app?', 'چۆن ئەم بەرنامەیە بەکاردەهێنیت؟'),
-            style: const TextStyle(color: Colors.white70, fontSize: 18),
-          ),
-          const SizedBox(height: 64),
-          _buildDeviceBtn('📱 ${t("Phone / Tablet", "مۆبایل / تابلێت")}', () async {
-            final p = await SharedPreferences.getInstance();
-            await p.setString('device_mode', 'phone');
-            _finishOnboarding();
-          }),
-          const SizedBox(height: 24),
-          _buildDeviceBtn('📺 ${t("TV Interface", "ڕووکاری تەلەفزیۆن")}', () async {
-            final p = await SharedPreferences.getInstance();
-            await p.setString('device_mode', 'tv');
-            _finishOnboarding();
-          }),
-        ],
-      ),
+    return Column(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        Text(
+          t('Choose Your Device', 'ئامێرەکەت هەڵبژێرە'),
+          style: const TextStyle(color: Colors.white, fontSize: 32, fontWeight: FontWeight.bold),
+          textAlign: TextAlign.center,
+        ),
+        const SizedBox(height: 16),
+        Text(
+          t('How are you using this app?', 'چۆن ئەم بەرنامەیە بەکاردەهێنیت؟'),
+          style: const TextStyle(color: Colors.white70, fontSize: 18),
+        ),
+        const SizedBox(height: 64),
+        _buildDeviceBtn('📱 ${t("Phone / Tablet", "مۆبایل / تابلێت")}', () async {
+          final p = await SharedPreferences.getInstance();
+          await p.setString('device_mode', 'phone');
+          _finishOnboarding();
+        }),
+        const SizedBox(height: 24),
+        _buildDeviceBtn('📺 ${t("TV Interface", "ڕووکاری تەلەفزیۆن")}', () async {
+          final p = await SharedPreferences.getInstance();
+          await p.setString('device_mode', 'tv');
+          _finishOnboarding();
+        }),
+      ],
     );
   }
 
@@ -215,24 +171,6 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
     return SizedBox(
       width: 320,
       height: 80,
-      child: AnimatedGradientBorder(
-        borderRadius: BorderRadius.circular(20),
-        borderWidth: 2,
-        child: ElevatedButton(
-          style: ElevatedButton.styleFrom(
-            backgroundColor: Colors.transparent,
-            shadowColor: Colors.transparent,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
-            elevation: 0,
-          ),
-          onPressed: onTap,
-          child: Text(title, style: const TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.bold, letterSpacing: 0.5)),
-        ),
-      ),
-    );
-  }
-}
-
 class _FadeInSlide extends StatefulWidget {
   final Widget child;
   const _FadeInSlide({required super.key, required this.child});
