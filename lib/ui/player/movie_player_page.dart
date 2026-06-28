@@ -209,7 +209,7 @@ class _MoviePlayerPageState extends ConsumerState<MoviePlayerPage> {
                   await _exitFullscreen();
                   if (mounted) Navigator.pop(context);
                 }),
-                const SizedBox(width: 16),
+                const SizedBox(width: 20),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -218,13 +218,20 @@ class _MoviePlayerPageState extends ConsumerState<MoviePlayerPage> {
                         widget.channel.name.toUpperCase(),
                         style: const TextStyle(
                           color: Colors.white,
-                          fontSize: 22,
+                          fontSize: 26,
                           fontWeight: FontWeight.w900,
-                          letterSpacing: 1.2,
+                          letterSpacing: 1.5,
+                          shadows: [Shadow(color: Colors.black54, blurRadius: 10)],
                         ),
                       ),
                       const SizedBox(height: 6),
-                      _buildBadge('4K CINEMATIC', Colors.red),
+                      Row(
+                        children: [
+                          _buildBadge('4K CINEMATIC', const Color(0xFFD4AF37)),
+                          const SizedBox(width: 8),
+                          _buildBadge('VOD', Colors.redAccent),
+                        ],
+                      ),
                     ],
                   ),
                 ),
@@ -294,11 +301,12 @@ class _MoviePlayerPageState extends ConsumerState<MoviePlayerPage> {
       children: [
         SliderTheme(
           data: SliderTheme.of(context).copyWith(
-            trackHeight: 4,
-            thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 6),
-            activeTrackColor: Colors.red,
+            trackHeight: 6,
+            thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 8),
+            activeTrackColor: const Color(0xFFD4AF37),
             inactiveTrackColor: Colors.white24,
-            thumbColor: Colors.red,
+            thumbColor: const Color(0xFFD4AF37),
+            overlayColor: const Color(0xFFD4AF37).withOpacity(0.2),
           ),
           child: Slider(
             value: pos.clamp(0.0, dur),
@@ -343,9 +351,14 @@ class _MoviePlayerPageState extends ConsumerState<MoviePlayerPage> {
       child: InkWell(
         onTap: onTap,
         borderRadius: BorderRadius.circular(50),
-        child: Padding(
-          padding: const EdgeInsets.all(12),
-          child: Icon(icon, color: Colors.white, size: isLarge ? 64 : 28),
+        child: Container(
+          padding: EdgeInsets.all(isLarge ? 24 : 12),
+          decoration: isLarge ? BoxDecoration(
+            color: Colors.white.withOpacity(0.15),
+            shape: BoxShape.circle,
+            border: Border.all(color: Colors.white30, width: 1.5),
+          ) : null,
+          child: Icon(icon, color: Colors.white, size: isLarge ? 56 : 30),
         ),
       ),
     );
@@ -373,9 +386,16 @@ class _MoviePlayerPageState extends ConsumerState<MoviePlayerPage> {
         _resetHideTimer();
       },
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-        decoration: BoxDecoration(border: Border.all(color: Colors.white24), borderRadius: BorderRadius.circular(8)),
-        child: Text('${_playbackSpeed.toStringAsFixed(1)}x', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+        decoration: BoxDecoration(
+          color: Colors.white.withOpacity(0.1),
+          border: Border.all(color: const Color(0xFFD4AF37).withOpacity(0.5)), 
+          borderRadius: BorderRadius.circular(12)
+        ),
+        child: Text(
+          '${_playbackSpeed.toStringAsFixed(1)}x', 
+          style: const TextStyle(color: Color(0xFFD4AF37), fontWeight: FontWeight.bold, fontSize: 16)
+        ),
       ),
     );
   }
@@ -489,9 +509,14 @@ class _VideoSettingsModalState extends State<VideoSettingsModal> {
 
     return Container(
       padding: const EdgeInsets.all(16),
-      decoration: const BoxDecoration(
-        color: Color(0xFF121212), // Dark sheet background
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: [const Color(0xFF181818), const Color(0xFF0F0F0F)],
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+        ),
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+        border: Border(top: BorderSide(color: const Color(0xFFD4AF37).withOpacity(0.3), width: 1.5)),
       ),
       child: SingleChildScrollView(
         child: Column(

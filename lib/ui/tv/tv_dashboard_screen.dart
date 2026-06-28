@@ -22,6 +22,69 @@ import '../dashboard/movie_details_screen.dart';
 import '../settings/settings_screen.dart';
 import '../../services/update_service.dart';
 import '../../widgets/update_prompt_dialog.dart';
+import '../player/fullscreen_player_page.dart';
+import '../../services/optic_player.dart';
+
+class TvPlayerLauncher extends ConsumerStatefulWidget {
+  final List<Channel> channels;
+  final int initialIndex;
+
+  const TvPlayerLauncher({super.key, required this.channels, required this.initialIndex});
+
+  @override
+  ConsumerState<TvPlayerLauncher> createState() => _TvPlayerLauncherState();
+}
+
+class _TvPlayerLauncherState extends ConsumerState<TvPlayerLauncher> {
+  late final OpticPlayer _player;
+  bool _isInit = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _player = OpticPlayer();
+    _initPlayer();
+  }
+
+  Future<void> _initPlayer() async {
+    final c = widget.channels[widget.initialIndex];
+    await _player.init();
+    await _player.open(c.url, headers: {
+      'User-Agent': c.userAgent ?? 'SmartIPTV',
+      'X-Optic-Security-Token': 'k4k-secure-stream-99X'
+    });
+    await _player.play();
+    if (mounted) {
+      setState(() => _isInit = true);
+    }
+  }
+
+  @override
+  void dispose() {
+    _player.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (!_isInit) {
+      return const Scaffold(
+        backgroundColor: Colors.black,
+        body: Center(child: CircularProgressIndicator(color: Colors.white24)),
+      );
+    }
+    final sLoc = ref.watch(appLocaleProvider);
+    return FullscreenPlayerPage(
+      player: _player,
+      channels: widget.channels,
+      initialIndex: widget.initialIndex,
+      activeServerIndex: 0,
+      uiLocale: sLoc,
+      strings: AppStrings(sLoc),
+    );
+  }
+}
+
 
 class TvDashboardScreen extends ConsumerStatefulWidget {
   final List<Channel> allChannels;
@@ -69,7 +132,7 @@ class _TvDashboardScreenState extends ConsumerState<TvDashboardScreen> {
     if (_isMovieChannel(channel)) {
       Navigator.push(context, MaterialPageRoute(builder: (_) => MovieDetailsScreen(allChannels: widget.allChannels, channel: channel)));
     } else {
-      Navigator.push(context, MaterialPageRoute(builder: (_) => PlayerScreen(channels: widget.allChannels, initialIndex: i >= 0 ? i : 0)));
+      Navigator.push(context, MaterialPageRoute(builder: (_) => TvPlayerLauncher(channels: widget.allChannels, initialIndex: i >= 0 ? i : 0)));
     }
   }
 

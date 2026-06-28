@@ -75,6 +75,7 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
   final FocusNode _playerFocus = FocusNode();
   final FocusNode _playPauseFocusNode = FocusNode();
   bool _isFullscreen = false;
+  bool _streamFailed = false;
   bool _fullscreenOverlayVisible = false;
   Timer? _fullscreenOverlayTimer;
 
@@ -368,6 +369,9 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
       });
     } else {
       _snack('All servers failed. Stream connection timed out.', error: true);
+      setState(() {
+        _streamFailed = true;
+      });
     }
   }
 
@@ -383,6 +387,9 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
   }
 
   Future<void> _reopenCurrentStream() async {
+    setState(() {
+      _streamFailed = false;
+    });
     final p = _player;
     if (p == null) return;
 
@@ -565,6 +572,38 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
                 ? NativePlayerView(player: _player!)
                 : const Center(child: CircularProgressIndicator(color: Colors.white24)),
           ),
+          
+          if (_streamFailed)
+            Container(
+              color: Colors.black87,
+              child: Center(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(Icons.wifi_off_rounded, color: Colors.white54, size: 64),
+                    const SizedBox(height: 16),
+                    const Text('Stream Connection Lost', style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
+                    const SizedBox(height: 8),
+                    const Text('Please check your internet or try another server.', style: TextStyle(color: Colors.white54, fontSize: 14)),
+                    const SizedBox(height: 24),
+                    ElevatedButton.icon(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFFD4AF37),
+                        foregroundColor: Colors.black,
+                        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                      ),
+                      icon: const Icon(Icons.refresh_rounded),
+                      label: const Text('Retry Connection', style: TextStyle(fontWeight: FontWeight.bold)),
+                      onPressed: () {
+                        _retryCount = 0;
+                        _reopenCurrentStream();
+                      },
+                    ),
+                  ],
+                ),
+              ),
+            ),
           // Live Viewers (Top Left)
           if (!_isFullscreen)
             Positioned(

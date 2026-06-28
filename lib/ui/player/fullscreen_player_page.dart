@@ -58,6 +58,8 @@ class _FullscreenPlayerPageState extends ConsumerState<FullscreenPlayerPage> {
   ViewerService? _viewerService;
   Timer? _hideTimer;
   final List<StreamSubscription> _subscriptions = [];
+  bool _streamFailed = false;
+  int _retryCount = 0;
 
   // TV SPECIFIC STATE
   bool _zapListVisible = false;
@@ -84,6 +86,10 @@ class _FullscreenPlayerPageState extends ConsumerState<FullscreenPlayerPage> {
     
     _subscriptions.add(widget.player.stream.position.listen((p) {
       if (mounted) setState(() {}); // Refresh for progress if needed
+    }));
+
+    _subscriptions.add(widget.player.stream.error.listen((err) {
+      if (err != null) _handlePlayerError(err);
     }));
 
     _clockTimer = Timer.periodic(const Duration(seconds: 1), (t) {
@@ -144,6 +150,7 @@ class _FullscreenPlayerPageState extends ConsumerState<FullscreenPlayerPage> {
   void _resetHideTimer() {
     _hideTimer?.cancel();
     if (_zapListVisible) return;
+    if (_streamFailed) return;
     if (_overlayVisible) {
       _hideTimer = Timer(const Duration(seconds: 5), () {
         if (mounted) setState(() => _overlayVisible = false);
@@ -151,17 +158,66 @@ class _FullscreenPlayerPageState extends ConsumerState<FullscreenPlayerPage> {
     }
   }
 
-  void _zapTo(int index) async {
+  void _scrollToActiveChannel() {
+    if (!_scrollController.hasClients) return;
+    const cardWidth = 116.0; // 100 card width + 16 horizontal margins
+    final targetOffset = _currentIndex * cardWidth - (MediaQuery.of(context).size.width / 2) + (cardWidth / 2);
+    final clampedOffset = targetOffset.clamp(0.0, _scrollController.position.maxScrollExtent);
+    _scrollController.animateTo(
+      clampedOffset,
+      duration: const Duration(milliseconds: 300),
+      curve: Curves.easeInOut,
+    );
+  }
+
+  void _handlePlayerError(dynamic err) {
+    if (!mounted) return;
+
+    List<String> validUrls = [_currentChannel.url];
+    if (_currentChannel.url2 != null && _currentChannel.url2!.trim().isNotEmpty) validUrls.add(_currentChannel.url2!);
+    if (_currentChannel.url3 != null && _currentChannel.url3!.trim().isNotEmpty) validUrls.add(_currentChannel.url3!);
+
+    if (_currentServerIndex + 1 < validUrls.length) {
+      _currentServerIndex++;
+      _retryCount = 0;
+      debugPrint('Stream error: $err. Failing over to Server ${_currentServerIndex + 1}');
+      Future.delayed(const Duration(milliseconds: 500), () {
+        if (mounted) _zapTo(_currentIndex, preserveServer: true);
+      });
+      return;
+    }
+
+    if (_retryCount < 2) {
+      _retryCount++;
+      debugPrint('Stream error, retrying ($_retryCount / 2): $err');
+      Future.delayed(const Duration(seconds: 2), () {
+        if (mounted) _zapTo(_currentIndex, preserveServer: true);
+      });
+    } else {
+      setState(() {
+        _streamFailed = true;
+        _overlayVisible = true;
+      });
+    }
+  }
+
+  void _zapTo(int index, {bool preserveServer = false}) async {
     if (index < 0 || index >= widget.channels.length) return;
     
+    setState(() {
+      _streamFailed = false;
+    });
+
     final oldChannel = _currentChannel;
     final oldUrl = _currentChannel.url;
 
     setState(() {
       _currentIndex = index;
       _currentChannel = widget.channels[_currentIndex];
-      _currentServerIndex = 0;
-      widget.onServerChanged?.call(0);
+      if (!preserveServer) {
+        _currentServerIndex = 0;
+      }
+      widget.onServerChanged?.call(_currentServerIndex);
       _overlayVisible = true;
       _zapListVisible = false;
     });
@@ -376,6 +432,48 @@ class _FullscreenPlayerPageState extends ConsumerState<FullscreenPlayerPage> {
               Center(
                 child: NativePlayerView(player: widget.player, fit: _currentFit),
               ),
+              
+              if (_streamFailed)
+                Container(
+                  color: Colors.black87,
+                  child: Center(
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Icon(Icons.wifi_off_rounded, color: Colors.white54, size: 64),
+                        const SizedBox(height: 16),
+                        const Text('Stream Connection Lost', style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
+                        const SizedBox(height: 8),
+                        const Text('Please check your internet or try another server.', style: TextStyle(color: Colors.white54, fontSize: 14)),
+                        const SizedBox(height: 24),
+                        TVFocusable(
+                          onSelect: () {
+                            _retryCount = 0;
+                            _zapTo(_currentIndex, preserveServer: true);
+                          },
+                          child: const SizedBox(),
+                          builder: (context, isFocused, child) => ElevatedButton.icon(
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: isFocused ? Colors.white : const Color(0xFFD4AF37),
+                              foregroundColor: Colors.black,
+                              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(8),
+                                side: isFocused ? const BorderSide(color: Color(0xFFD4AF37), width: 3) : BorderSide.none,
+                              ),
+                            ),
+                            icon: const Icon(Icons.refresh_rounded),
+                            label: const Text('Retry Connection', style: TextStyle(fontWeight: FontWeight.bold)),
+                            onPressed: () {
+                              _retryCount = 0;
+                              _zapTo(_currentIndex, preserveServer: true);
+                            },
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
               
               // THE HUD LAYER
               IgnorePointer(
