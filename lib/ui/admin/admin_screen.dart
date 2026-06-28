@@ -4294,9 +4294,14 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
                   Text('Active: ${map['isActive']}', style: const TextStyle(color: Colors.white70)),
                   const SizedBox(height: 16),
                   OutlinedButton.icon(
-                    onPressed: () => _updateRef.remove(),
-                    icon: const Icon(Icons.delete_forever_rounded),
-                    label: const Text('Delete / Disable Update'),
+                    onPressed: () {
+                      _updateRef.update({'isActive': false});
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('Update has been disabled.'), backgroundColor: Colors.green),
+                      );
+                    },
+                    icon: const Icon(Icons.disabled_by_default_rounded),
+                    label: const Text('Disable Active Update'),
                     style: OutlinedButton.styleFrom(foregroundColor: Colors.redAccent),
                   )
                 ],
