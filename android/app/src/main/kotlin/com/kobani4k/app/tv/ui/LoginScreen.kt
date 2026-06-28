@@ -1,6 +1,7 @@
 package com.kobani4k.app.tv.ui
 
 import androidx.compose.animation.core.*
+import androidx.compose.animation.animateColorAsState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
@@ -10,6 +11,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.scale
+import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
@@ -136,7 +138,7 @@ fun LoginScreen(onLoginSuccess: () -> Unit) {
                         .background(Color(0xFF1A1B22), RoundedCornerShape(16.dp))
                         .border(2.dp, animatedBorder, RoundedCornerShape(16.dp))
                         .padding(horizontal = 24.dp)
-                        .androidx.compose.ui.focus.onFocusChanged { isInputFocused = it.isFocused },
+                        .onFocusChanged { isInputFocused = it.isFocused },
                     contentAlignment = Alignment.CenterStart
                 ) {
                     androidx.compose.foundation.text.BasicTextField(
