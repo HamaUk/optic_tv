@@ -252,6 +252,13 @@ fun PlayerScreen(
                     when (keyEvent.nativeKeyEvent.keyCode) {
                         KeyEvent.KEYCODE_DPAD_CENTER, KeyEvent.KEYCODE_ENTER -> {
                             if (!showZapList && !showControls) {
+                                showZapList = true
+                                return@onKeyEvent true
+                            }
+                            false
+                        }
+                        KeyEvent.KEYCODE_DPAD_DOWN -> {
+                            if (!showZapList && !showControls) {
                                 showControls = true
                                 return@onKeyEvent true
                             }
