@@ -26,6 +26,8 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
         _controller.setLooping(true);
         _controller.play();
         setState(() {});
+      }).catchError((error) {
+        debugPrint("Video Player Error: $error");
       });
   }
 
@@ -251,10 +253,7 @@ class _FadeInSlideState extends State<_FadeInSlide> with SingleTickerProviderSta
     _opacity = Tween<double>(begin: 0, end: 1).animate(CurvedAnimation(parent: _ctrl, curve: Curves.easeOutCubic));
     _slide = Tween<Offset>(begin: const Offset(0, 0.15), end: Offset.zero).animate(CurvedAnimation(parent: _ctrl, curve: Curves.easeOutCubic));
     
-    // Slight delay to allow PageView transition
-    Future.delayed(const Duration(milliseconds: 200), () {
-      if (mounted) _ctrl.forward();
-    });
+    _ctrl.forward();
   }
 
   @override
