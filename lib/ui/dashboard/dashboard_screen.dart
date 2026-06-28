@@ -562,22 +562,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
             return a.key.toLowerCase().compareTo(b.key.toLowerCase());
           });
 
-        // World Cup tab: show dedicated screen instead of channel grid.
-        if (_navIndex == 3) {
-          return Scaffold(
-            backgroundColor: AppTheme.backgroundBlack,
-            body: Container(
-              decoration: BoxDecoration(
-                gradient: AppTheme.shellGradient(settings.gradientPreset),
-              ),
-              child: const SafeArea(
-                bottom: false,
-                child: WorldCupScreen(),
-              ),
-            ),
-            bottomNavigationBar: portrait ? _buildBottomNav(s, MediaQuery.paddingOf(context).bottom, settings) : null,
-          );
-        }
+
 
         final isTv = ref.watch(deviceTypeProvider).asData?.value == DeviceType.tv;
 
@@ -603,20 +588,22 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
                 s,
                 16.0,
                 false,
-                filtered.isEmpty
-                    ? _buildEmptyState(s)
-                    : _buildScrollableContent(
-                        context,
-                        s,
-                        filteredForNav,
-                        filtered,
-                        groups,
-                        settings,
-                        settings.reduceMotion ? 100 : 220,
-                        16.0,
-                        managedGroups,
-                        channels,
-                      ),
+                _navIndex == 3
+                    ? const WorldCupScreen()
+                    : filtered.isEmpty
+                        ? _buildEmptyState(s)
+                        : _buildScrollableContent(
+                            context,
+                            s,
+                            filteredForNav,
+                            filtered,
+                            groups,
+                            settings,
+                            settings.reduceMotion ? 100 : 220,
+                            16.0,
+                            managedGroups,
+                            channels,
+                          ),
                 settings,
               ),
             ),
