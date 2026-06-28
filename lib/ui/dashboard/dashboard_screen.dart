@@ -1076,6 +1076,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
           ),
 
         if ((_navIndex == 0 || _navIndex == 3) &&
+            !isLandscape &&
             _searchController.text.trim().isEmpty &&
             slideChannels.isNotEmpty)
           SliverToBoxAdapter(
