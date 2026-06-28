@@ -55,7 +55,11 @@ class TvMainActivity : ComponentActivity() {
                                 onChannelSelected = { channel ->
                                     val encodedName = URLEncoder.encode(channel.name, "UTF-8")
                                     val encodedUrl = URLEncoder.encode(channel.url, "UTF-8")
-                                    val encodedLogo = URLEncoder.encode(channel.logo ?: "", "UTF-8")
+                                    
+                                    // FIX: Provide a fallback string so the route doesn't break
+                                    val safeLogo = if (channel.logo.isNullOrEmpty()) "NO_LOGO" else channel.logo
+                                    val encodedLogo = URLEncoder.encode(safeLogo, "UTF-8")
+                                    
                                     navController.navigate("player/$encodedName/$encodedUrl/$encodedLogo")
                                 },
                                 onLogout = {
@@ -69,12 +73,15 @@ class TvMainActivity : ComponentActivity() {
                         composable("player/{channelName}/{streamUrl}/{logoUrl}") { backStackEntry ->
                             val channelName = URLDecoder.decode(backStackEntry.arguments?.getString("channelName") ?: "Unknown", "UTF-8")
                             val streamUrl = URLDecoder.decode(backStackEntry.arguments?.getString("streamUrl") ?: "", "UTF-8")
-                            val logoUrl = URLDecoder.decode(backStackEntry.arguments?.getString("logoUrl") ?: "", "UTF-8")
+                            val rawLogoUrl = URLDecoder.decode(backStackEntry.arguments?.getString("logoUrl") ?: "", "UTF-8")
+
+                            // FIX: Convert "NO_LOGO" back to null
+                            val logoUrl = if (rawLogoUrl == "NO_LOGO" || rawLogoUrl.isEmpty()) null else rawLogoUrl
 
                             PlayerScreen(
                                 channelName = channelName,
                                 streamUrl = streamUrl,
-                                logoUrl = logoUrl.ifEmpty { null },
+                                logoUrl = logoUrl,
                                 onBack = { navController.popBackStack() }
                             )
                         }
