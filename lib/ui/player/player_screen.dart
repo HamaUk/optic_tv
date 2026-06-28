@@ -486,6 +486,8 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
       return const Scaffold(backgroundColor: Colors.black, body: Center(child: CircularProgressIndicator()));
     }
 
+    final isLandscape = MediaQuery.orientationOf(context) == Orientation.landscape;
+
     return Scaffold(
       key: _scaffoldKey,
       backgroundColor: Colors.black,
@@ -493,32 +495,58 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
         child: SettingsScreen(),
       ),
       body: SafeArea(
-        child: Column(
-          children: [
-            // 1. Top Header (Logo, Name, Settings)
-            _buildMobileHeader(s, uiLocale),
-            
-            // 2. Video Area (Below Header)
-            ConstrainedBox(
-              constraints: BoxConstraints(maxHeight: MediaQuery.of(context).size.height * 0.5),
-              child: AspectRatio(
-                aspectRatio: 16 / 9,
-                child: _buildVideoView(),
-              ),
-            ),
-            
-            // 3. Channel Lists (Bottom)
-            Expanded(
-              child: Row(
+        left: true, right: true, bottom: !isLandscape, top: true,
+        child: isLandscape
+            ? Row(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  _buildMobileCategoryPane(s, uiLocale),
-                  Container(width: 1, color: Colors.white.withOpacity(0.05)),
-                  _buildMobileChannelPane(s, uiLocale, bottomPad),
+                  Expanded(
+                    flex: 5,
+                    child: Column(
+                      children: [
+                        _buildMobileHeader(s, uiLocale),
+                        Expanded(child: _buildVideoView()),
+                      ],
+                    ),
+                  ),
+                  Expanded(
+                    flex: 4,
+                    child: Row(
+                      children: [
+                        _buildMobileCategoryPane(s, uiLocale),
+                        Container(width: 1, color: Colors.white.withOpacity(0.05)),
+                        _buildMobileChannelPane(s, uiLocale, bottomPad),
+                      ],
+                    ),
+                  ),
+                ],
+              )
+            : Column(
+                children: [
+                  // 1. Top Header (Logo, Name, Settings)
+                  _buildMobileHeader(s, uiLocale),
+                  
+                  // 2. Video Area (Below Header)
+                  ConstrainedBox(
+                    constraints: BoxConstraints(maxHeight: MediaQuery.of(context).size.height * 0.5),
+                    child: AspectRatio(
+                      aspectRatio: 16 / 9,
+                      child: _buildVideoView(),
+                    ),
+                  ),
+                  
+                  // 3. Channel Lists (Bottom)
+                  Expanded(
+                    child: Row(
+                      children: [
+                        _buildMobileCategoryPane(s, uiLocale),
+                        Container(width: 1, color: Colors.white.withOpacity(0.05)),
+                        _buildMobileChannelPane(s, uiLocale, bottomPad),
+                      ],
+                    ),
+                  ),
                 ],
               ),
-            ),
-          ],
-        ),
       ),
     );
   }

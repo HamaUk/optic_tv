@@ -1048,7 +1048,8 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
     List<Channel> fullChannels,
   ) {
     const isTv = false;
-    final crossCount = isTv ? 6 : 3;
+    final isLandscape = MediaQuery.orientationOf(context) == Orientation.landscape;
+    final crossCount = isTv ? 6 : (isLandscape ? 5 : 3);
     
     final featured = fullChannels.where((c) => c.featured).toList();
     
