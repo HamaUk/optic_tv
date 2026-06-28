@@ -775,23 +775,34 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
                     ),
                   ),
                   // ── Rail items ────────────────────────────────────────────
-                  Padding(
-                    padding: EdgeInsets.fromLTRB(6, 30, 6, math.max(bottom, 20)),
-                    child: Column(
-                      children: [
-                        const KobaniWordmark(height: 24),
-                        const SizedBox(height: 60),
-                        _railItem(s, 0, Icons.grid_view_rounded, s.navHome, _navIndex == 0),
-                        const SizedBox(height: 16),
-                        _railItem(s, 1, Icons.movie_creation_rounded, s.navMovies, _navIndex == 1),
-                        const SizedBox(height: 16),
-                        _railItem(s, 2, Icons.sports_basketball_rounded, s.navSport, _navIndex == 2),
-                        const SizedBox(height: 16),
-                        _railItem(s, 3, Icons.emoji_events_rounded, s.navWorldCup, _navIndex == 3),
-                        const Spacer(),
-                        _railItem(s, -1, Icons.settings_suggest_rounded, s.settingsTooltip, false, onTap: _openSettings),
-                      ],
-                    ),
+                  LayoutBuilder(
+                    builder: (context, constraints) {
+                      final bool isCompact = constraints.maxHeight < 600;
+                      return SingleChildScrollView(
+                        padding: EdgeInsets.fromLTRB(6, isCompact ? 12 : 30, 6, math.max(bottom, 20)),
+                        child: ConstrainedBox(
+                          constraints: BoxConstraints(minHeight: constraints.maxHeight - math.max(bottom, 20) - (isCompact ? 12 : 30)),
+                          child: IntrinsicHeight(
+                            child: Column(
+                              children: [
+                                KobaniWordmark(height: isCompact ? 18 : 24),
+                                SizedBox(height: isCompact ? 20 : 60),
+                                _railItem(s, 0, Icons.grid_view_rounded, s.navHome, _navIndex == 0, isCompact: isCompact),
+                                SizedBox(height: isCompact ? 8 : 16),
+                                _railItem(s, 1, Icons.movie_creation_rounded, s.navMovies, _navIndex == 1, isCompact: isCompact),
+                                SizedBox(height: isCompact ? 8 : 16),
+                                _railItem(s, 2, Icons.sports_basketball_rounded, s.navSport, _navIndex == 2, isCompact: isCompact),
+                                SizedBox(height: isCompact ? 8 : 16),
+                                _railItem(s, 3, Icons.emoji_events_rounded, s.navWorldCup, _navIndex == 3, isCompact: isCompact),
+                                const Spacer(),
+                                SizedBox(height: isCompact ? 8 : 16),
+                                _railItem(s, -1, Icons.settings_suggest_rounded, s.settingsTooltip, false, onTap: _openSettings, isCompact: isCompact),
+                              ],
+                            ),
+                          ),
+                        ),
+                      );
+                    },
                   ),
                 ],
               ),
@@ -802,7 +813,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
     );
   }
 
-  Widget _railItem(AppStrings s, int index, IconData icon, String label, bool selected, {VoidCallback? onTap}) {
+  Widget _railItem(AppStrings s, int index, IconData icon, String label, bool selected, {VoidCallback? onTap, bool isCompact = false}) {
     final accent = _accent;
     return GestureDetector(
       onTap: () {
@@ -816,10 +827,10 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 300),
         curve: Curves.easeOutBack,
-        width: 70,
-        padding: const EdgeInsets.symmetric(vertical: 12),
+        width: isCompact ? 60 : 70,
+        padding: EdgeInsets.symmetric(vertical: isCompact ? 8 : 12),
         decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(18),
+          borderRadius: BorderRadius.circular(isCompact ? 14 : 18),
           color: selected ? accent.withOpacity(0.15) : Colors.transparent,
           border: Border.all(
             color: selected ? accent : Colors.transparent,
@@ -834,17 +845,17 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
             Icon(
               icon,
               color: selected ? accent : Colors.white.withOpacity(0.4),
-              size: 34,
+              size: isCompact ? 24 : 34,
               shadows: selected ? [
                 Shadow(color: accent.withOpacity(0.6), blurRadius: 12),
               ] : [],
             ),
-            const SizedBox(height: 6),
+            SizedBox(height: isCompact ? 4 : 6),
             Text(
               label.toUpperCase(),
               style: TextStyle(
                 color: selected ? Colors.white : Colors.white.withOpacity(0.3),
-                fontSize: 9,
+                fontSize: isCompact ? 8 : 9,
                 fontWeight: selected ? FontWeight.w900 : FontWeight.w600,
                 letterSpacing: 0.8,
               ),
@@ -862,8 +873,9 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
     double pad,
     bool tv,
   ) {
+    final landscape = MediaQuery.orientationOf(context) == Orientation.landscape;
     return Padding(
-      padding: EdgeInsets.fromLTRB(pad * 0.5, pad * 0.75, pad * 0.5, 8),
+      padding: EdgeInsets.fromLTRB(pad * 0.5, landscape ? pad * 0.25 : pad * 0.75, pad * 0.5, landscape ? 4 : 8),
       child: Row(
         children: [
           // Glass Menu Button
@@ -885,9 +897,9 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
                 borderRadius: BorderRadius.circular(14),
                 child: SizedBox(
                   width: double.infinity,
-                  height: tv ? 48 : 44,
+                  height: tv ? 48 : (landscape ? 36 : 44),
                   child: Center(
-                    child: KobaniWordmark(height: tv ? 30 : 26),
+                    child: KobaniWordmark(height: tv ? 30 : (landscape ? 18 : 26)),
                   ),
                 ),
               ),
