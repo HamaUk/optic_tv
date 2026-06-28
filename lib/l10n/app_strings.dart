@@ -1010,4 +1010,58 @@ class AppStrings {
     if (isSorani) return 'هیچ داتایەکی پێکهاتە نییە';
     return 'No roster data available';
   }
+  String get updateAvailable {
+    if (isKurmanji) return 'NÛVEKIRIN HEYE';
+    if (isSorani) return 'نوێکردنەوە بەردەستە';
+    return 'UPDATE AVAILABLE';
+  }
+
+  String updateVersion(String version) {
+    if (isKurmanji) return 'Guherto $version';
+    if (isSorani) return 'وەشانی $version';
+    return 'Version $version';
+  }
+
+  String updateReleaseNotesEmpty(String original) {
+    if (original.isNotEmpty) return original;
+    if (isKurmanji) return 'Sererastkirina çewtiyan û baştirkirina performansê.';
+    if (isSorani) return 'چارەسەرکردنی کێشەکان و باشترکردنی خێرایی.';
+    return 'Bug fixes and performance improvements.';
+  }
+
+  String get updateDownload {
+    if (isKurmanji) return 'NÛVEKIRINÊ DAXE';
+    if (isSorani) return 'دابەزاندنی نوێکردنەوە';
+    return 'DOWNLOAD UPDATE';
+  }
+
+  String get updateInstall {
+    if (isKurmanji) return 'NÛVEKIRINÊ LÊ BIKE';
+    if (isSorani) return 'دامەزراندنی نوێکردنەوە';
+    return 'INSTALL UPDATE';
+  }
+
+  String get updatePreparing {
+    if (isKurmanji) return 'Tê amadekirin...';
+    if (isSorani) return 'ئامادەکردن...';
+    return 'Preparing...';
+  }
+
+  String updateDownloading(String received, String total) {
+    if (isKurmanji) return 'Tê daxistin... $received / $total MB';
+    if (isSorani) return 'لە دابەزاندندایە... $received / $total مێگابایت';
+    return 'Downloading... $received / $total MB';
+  }
+
+  String get updateDownloadComplete {
+    if (isKurmanji) return 'Daxistin Temam Bû!';
+    if (isSorani) return 'دابەزاندن تەواو بوو!';
+    return 'Download Complete!';
+  }
+
+  String get updateDownloadFailed {
+    if (isKurmanji) return 'Daxistin têk çû. Ji bo dubarekirinê pêl bike.';
+    if (isSorani) return 'دابەزاندن سەرکەوتوو نەبوو. دەست لێ بدە بۆ دووبارەکردنەوە.';
+    return 'Download failed. Tap to retry.';
+  }
 }

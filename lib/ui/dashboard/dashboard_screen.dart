@@ -535,7 +535,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
     ref.listen<AppUpdateData?>(updatePromptTriggerProvider, (previous, next) {
       if (next != null && !_hasPromptedUpdate) {
         _hasPromptedUpdate = true;
-        UpdatePromptDialog.show(context, next);
+        UpdatePromptDialog.show(context, next, AppStrings(ref.read(appLocaleProvider)));
       }
     });
 

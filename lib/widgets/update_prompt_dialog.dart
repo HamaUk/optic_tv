@@ -5,18 +5,20 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:path_provider/path_provider.dart';
 import '../core/theme.dart';
+import '../l10n/app_strings.dart';
 import '../services/update_service.dart';
 
 class UpdatePromptDialog extends StatefulWidget {
   final AppUpdateData updateData;
+  final AppStrings strings;
 
-  const UpdatePromptDialog({super.key, required this.updateData});
+  const UpdatePromptDialog({super.key, required this.updateData, required this.strings});
 
-  static Future<void> show(BuildContext context, AppUpdateData data) {
+  static Future<void> show(BuildContext context, AppUpdateData data, AppStrings strings) {
     return showDialog(
       context: context,
       barrierDismissible: false,
-      builder: (_) => UpdatePromptDialog(updateData: data),
+      builder: (_) => UpdatePromptDialog(updateData: data, strings: strings),
     );
   }
 
@@ -35,7 +37,7 @@ class _UpdatePromptDialogState extends State<UpdatePromptDialog> {
   Future<void> _startDownload() async {
     setState(() {
       _isDownloading = true;
-      _statusText = 'Preparing...';
+      _statusText = widget.strings.updatePreparing;
     });
 
     try {
@@ -55,7 +57,7 @@ class _UpdatePromptDialogState extends State<UpdatePromptDialog> {
               _progress = received / total;
               final mbReceived = (received / 1048576).toStringAsFixed(1);
               final mbTotal = (total / 1048576).toStringAsFixed(1);
-              _statusText = 'Downloading... $mbReceived / $mbTotal MB';
+              _statusText = widget.strings.updateDownloading(mbReceived, mbTotal);
             });
           }
         },
@@ -64,12 +66,12 @@ class _UpdatePromptDialogState extends State<UpdatePromptDialog> {
       setState(() {
         _isDownloading = false;
         _isFinished = true;
-        _statusText = 'Download Complete!';
+        _statusText = widget.strings.updateDownloadComplete;
       });
     } catch (e) {
       setState(() {
         _isDownloading = false;
-        _statusText = 'Download failed. Tap to retry.';
+        _statusText = widget.strings.updateDownloadFailed;
       });
     }
   }
@@ -119,13 +121,13 @@ class _UpdatePromptDialogState extends State<UpdatePromptDialog> {
                 ),
                 const SizedBox(height: 24),
                 Text(
-                  'UPDATE AVAILABLE',
+                  widget.strings.updateAvailable,
                   style: TextStyle(color: Colors.white.withOpacity(0.9), fontSize: 22, fontWeight: FontWeight.w900, letterSpacing: 2),
                 ),
                 const SizedBox(height: 8),
                 Text(
-                  'Version ${widget.updateData.versionName}',
-                  style: TextStyle(color: AppTheme.primaryGold, fontSize: 14, fontWeight: FontWeight.bold),
+                  widget.strings.updateVersion(widget.updateData.versionName),
+                  style: const TextStyle(color: AppTheme.primaryGold, fontSize: 14, fontWeight: FontWeight.bold),
                 ),
                 const SizedBox(height: 16),
                 Container(
@@ -136,7 +138,7 @@ class _UpdatePromptDialogState extends State<UpdatePromptDialog> {
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: Text(
-                    widget.updateData.releaseNotes.isEmpty ? 'Bug fixes and performance improvements.' : widget.updateData.releaseNotes,
+                    widget.strings.updateReleaseNotesEmpty(widget.updateData.releaseNotes),
                     style: TextStyle(color: Colors.white.withOpacity(0.7), fontSize: 13, height: 1.5),
                     textAlign: TextAlign.center,
                   ),
@@ -163,7 +165,7 @@ class _UpdatePromptDialogState extends State<UpdatePromptDialog> {
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                       ),
                       onPressed: _install,
-                      child: const Text('INSTALL UPDATE', style: TextStyle(fontWeight: FontWeight.bold, letterSpacing: 1.5)),
+                      child: Text(widget.strings.updateInstall, style: const TextStyle(fontWeight: FontWeight.bold, letterSpacing: 1.5)),
                     ),
                   ),
                 ] else ...[
@@ -177,7 +179,7 @@ class _UpdatePromptDialogState extends State<UpdatePromptDialog> {
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                       ),
                       onPressed: _startDownload,
-                      child: const Text('DOWNLOAD UPDATE', style: TextStyle(fontWeight: FontWeight.bold, letterSpacing: 1.5)),
+                      child: Text(widget.strings.updateDownload, style: const TextStyle(fontWeight: FontWeight.bold, letterSpacing: 1.5)),
                     ),
                   ),
                 ],
