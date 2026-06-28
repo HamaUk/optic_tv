@@ -46,6 +46,7 @@ import androidx.tv.material3.*
 import coil.compose.AsyncImage
 import com.kobani4k.app.tv.data.PocketBaseRepository
 import com.kobani4k.app.tv.data.TvChannel
+import com.kobani4k.app.tv.data.TvViewerService
 import com.kobani4k.app.tv.ui.theme.UltraTokens
 import com.kobani4k.app.tv.ui.theme.ultraCardColors
 import kotlinx.coroutines.delay
@@ -130,13 +131,23 @@ fun PlayerScreen(
     }
 
     LaunchedEffect(currentStreamUrl) {
+        TvViewerService.joinChannel(currentStreamUrl)
+        
         isBuffering = true
         exoPlayer.stop()
+        exoPlayer.clearMediaItems()
         val mediaItem = MediaItem.fromUri(Uri.parse(currentStreamUrl))
         exoPlayer.setMediaItem(mediaItem)
         exoPlayer.prepare()
         exoPlayer.playWhenReady = true
         exoPlayer.play()
+    }
+
+    DisposableEffect(Unit) {
+        onDispose {
+            TvViewerService.leaveChannel()
+            exoPlayer.release()
+        }
     }
 
     val playerListener = remember {
