@@ -645,8 +645,8 @@ fun HeroCarousel(channel: TvChannel, onPlay: () -> Unit) {
         shape = ClickableSurfaceDefaults.shape(shape = RoundedCornerShape(16.dp)),
         colors = ClickableSurfaceDefaults.colors(containerColor = SurfaceColor, focusedContainerColor = SurfaceElevatedColor),
         border = ClickableSurfaceDefaults.border(
-            border = Border(androidx.compose.foundation.BorderStroke(1.dp, SurfaceColor), RoundedCornerShape(16.dp)),
-            focusedBorder = Border(androidx.compose.foundation.BorderStroke(3.dp, BrandGold), RoundedCornerShape(16.dp))
+            border = Border(border = androidx.compose.foundation.BorderStroke(1.dp, SurfaceColor), shape = RoundedCornerShape(16.dp)),
+            focusedBorder = Border(border = androidx.compose.foundation.BorderStroke(3.dp, BrandGold), shape = RoundedCornerShape(16.dp))
         ),
         modifier = Modifier.fillMaxWidth().height(320.dp).scale(scale).onFocusChanged { isFocused = it.isFocused }
     ) {
