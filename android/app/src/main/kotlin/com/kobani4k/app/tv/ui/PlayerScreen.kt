@@ -193,7 +193,8 @@ fun PlayerScreen(
                         KeyEvent.KEYCODE_DPAD_CENTER,
                         KeyEvent.KEYCODE_ENTER -> {
                             if (!showZapList) {
-                                showControls = !showControls
+                                showZapList = true
+                                showControls = false
                             }
                             true
                         }
