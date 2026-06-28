@@ -125,7 +125,16 @@ fun DashboardScreen(
                             isSelected = selectedCategory == category,
                             onClick = { selectedCategory = category },
                             onFocused = { selectedCategory = category },
-                            modifier = if (category == categories.first()) Modifier.focusRequester(focusRequester) else Modifier
+                            modifier = if (category == categories.firstOrNull()) Modifier.focusRequester(focusRequester) else Modifier
+                        )
+                    }
+                    item {
+                        Spacer(modifier = Modifier.height(32.dp))
+                        CategoryItem(
+                            title = "Settings",
+                            isSelected = selectedCategory == "Settings",
+                            onClick = { selectedCategory = "Settings" },
+                            onFocused = { selectedCategory = "Settings" }
                         )
                     }
                 }
@@ -146,21 +155,49 @@ fun DashboardScreen(
                     modifier = Modifier.padding(bottom = 24.dp)
                 )
 
-                LazyVerticalGrid(
-                    modifier = Modifier.focusRestorer(),
-                    columns = GridCells.Adaptive(minSize = 160.dp),
-                    horizontalArrangement = Arrangement.spacedBy(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(16.dp),
-                    contentPadding = PaddingValues(bottom = 32.dp)
-                ) {
-                    items(
-                        items = filteredChannels,
-                        key = { it.url }
-                    ) { channel ->
-                        ChannelCard(
-                            channel = channel,
-                            onClick = { onChannelSelected(channel) }
-                        )
+                if (selectedCategory == "Settings") {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .weight(1f),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Button(
+                            onClick = onLogout,
+                            shape = RoundedCornerShape(12.dp),
+                            colors = ButtonDefaults.colors(
+                                containerColor = UltraTokens.Surface2,
+                                contentColor = UltraTokens.Fg,
+                                focusedContainerColor = UltraTokens.Accent,
+                                focusedContentColor = Color.White
+                            ),
+                            modifier = Modifier.padding(32.dp)
+                        ) {
+                            Text(
+                                "Logout from TV",
+                                fontSize = 18.sp,
+                                fontWeight = FontWeight.SemiBold,
+                                modifier = Modifier.padding(horizontal = 24.dp, vertical = 8.dp)
+                            )
+                        }
+                    }
+                } else {
+                    LazyVerticalGrid(
+                        modifier = Modifier.focusRestorer(),
+                        columns = GridCells.Adaptive(minSize = 160.dp),
+                        horizontalArrangement = Arrangement.spacedBy(16.dp),
+                        verticalArrangement = Arrangement.spacedBy(16.dp),
+                        contentPadding = PaddingValues(bottom = 32.dp)
+                    ) {
+                        items(
+                            items = filteredChannels,
+                            key = { it.url }
+                        ) { channel ->
+                            ChannelCard(
+                                channel = channel,
+                                onClick = { onChannelSelected(channel) }
+                            )
+                        }
                     }
                 }
             }

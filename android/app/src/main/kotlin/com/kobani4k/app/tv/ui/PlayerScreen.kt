@@ -170,6 +170,16 @@ fun PlayerScreen(
         }
     }
 
+    BackHandler {
+        if (showControls) {
+            showControls = false
+        } else if (showZapList) {
+            showZapList = false
+        } else {
+            onBack()
+        }
+    }
+
     Box(
         modifier = Modifier
             .fillMaxSize()
@@ -217,8 +227,9 @@ fun PlayerScreen(
                                     currentLogoUrl = nextChannel.logo
                                     showControls = true
                                 }
+                                return@onKeyEvent true
                             }
-                            true
+                            false
                         }
                         KeyEvent.KEYCODE_DPAD_DOWN -> {
                             if (!showZapList && channelsList.isNotEmpty()) {
@@ -231,8 +242,9 @@ fun PlayerScreen(
                                     currentLogoUrl = prevChannel.logo
                                     showControls = true
                                 }
+                                return@onKeyEvent true
                             }
-                            true
+                            false
                         }
                         KeyEvent.KEYCODE_MEDIA_PLAY_PAUSE -> {
                             if (isPlayingState) exoPlayer.pause() else exoPlayer.play()
