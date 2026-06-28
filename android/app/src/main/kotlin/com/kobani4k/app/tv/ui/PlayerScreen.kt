@@ -62,6 +62,7 @@ import com.kobani4k.app.tv.data.TvViewerService
 import com.kobani4k.app.tv.ui.theme.UltraTokens
 import com.kobani4k.app.tv.ui.theme.ultraCardColors
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 
 // ═══════════════════════════════════════════════════
 //  Active Menus
@@ -168,14 +169,36 @@ fun PlayerScreen(
         }
     }
 
-    val playerListener = remember {
+    val scope = rememberCoroutineScope()
+    val playerListener = remember(exoPlayer, scope) {
         object : Media3Player.Listener {
             override fun onPlaybackStateChanged(state: Int) {
                 isBuffering = state == Media3Player.STATE_BUFFERING
                 isPlayingState = exoPlayer.isPlaying
+                
+                // If a live stream unexpectedly ends (buffer runs out), try to reconnect
+                if (state == Media3Player.STATE_ENDED) {
+                    scope.launch {
+                        delay(2000)
+                        try {
+                            exoPlayer.seekToDefaultPosition()
+                            exoPlayer.prepare()
+                            exoPlayer.play()
+                        } catch (e: Exception) {}
+                    }
+                }
             }
             override fun onPlayerError(error: PlaybackException) {
                 isBuffering = false
+                // Network error or stream interrupted -> auto reconnect
+                scope.launch {
+                    delay(3000)
+                    try {
+                        exoPlayer.seekToDefaultPosition()
+                        exoPlayer.prepare()
+                        exoPlayer.play()
+                    } catch (e: Exception) {}
+                }
             }
             override fun onIsPlayingChanged(isPlaying: Boolean) {
                 isPlayingState = isPlaying
