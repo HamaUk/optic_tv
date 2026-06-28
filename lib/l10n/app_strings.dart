@@ -1010,6 +1010,12 @@ class AppStrings {
     if (isSorani) return 'هیچ داتایەکی پێکهاتە نییە';
     return 'No roster data available';
   }
+  String get updateLater {
+    if (isKurmanji) return 'Paşê';
+    if (isSorani) return 'دواتر';
+    return 'LATER';
+  }
+
   String get updateAvailable {
     if (isKurmanji) return 'NÛVEKIRIN HEYE';
     if (isSorani) return 'نوێکردنەوە بەردەستە';
