@@ -18,7 +18,7 @@ class ViewerService {
   String? _recordId;
   Timer? _heartbeatTimer;
 
-  static const _heartbeatInterval = Duration(seconds: 20);
+  static const _heartbeatInterval = Duration(seconds: 10);
 
   static Future<String> _getDeviceId() async {
     if (_deviceId != null) return _deviceId!;
@@ -98,8 +98,8 @@ class ViewerService {
     final controller = StreamController<int>.broadcast();
 
     void fetchCount() {
-      // Fetch viewers updated in the last 60 seconds
-      final staleTime = DateTime.now().toUtc().subtract(const Duration(seconds: 60)).toIso8601String();
+      // Fetch viewers updated in the last 25 seconds
+      final staleTime = DateTime.now().toUtc().subtract(const Duration(seconds: 25)).toIso8601String();
       pb.collection('liveViewers').getList(
         page: 1, 
         perPage: 1, 
@@ -110,7 +110,7 @@ class ViewerService {
     }
 
     fetchCount();
-    final timer = Timer.periodic(const Duration(seconds: 15), (_) => fetchCount());
+    final timer = Timer.periodic(const Duration(seconds: 4), (_) => fetchCount());
 
     controller.onCancel = () {
       timer.cancel();
