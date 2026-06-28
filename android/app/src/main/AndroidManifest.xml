@@ -55,6 +55,9 @@
             android:name="flutterEmbedding"
             android:value="2" />
 
+        <!-- OneSignal Notification Defaults -->
+        <meta-data android:name="com.onesignal.NotificationAccentColor.DEFAULT" android:value="FFFFD700" />
+
         <provider
             android:name="androidx.core.content.FileProvider"
             android:authorities="${applicationId}.fileprovider"
