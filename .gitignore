@@ -43,3 +43,8 @@ app.*.map.json
 /android/app/debug
 /android/app/profile
 /android/app/release
+
+assets/json/kobani-noti-service-account.json
+temp_kobani*.json
+android/app/google-services.json
+ssh_test.py

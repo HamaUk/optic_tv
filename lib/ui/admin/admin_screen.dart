@@ -881,7 +881,7 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
         'url': url,
         'group': g,
         'type': type ?? 'live',
-        'featured': featured,
+        'featured': featured ? 'true' : 'false',
       };
 
       if (userAgent != null && userAgent.trim().isNotEmpty) {
@@ -1538,7 +1538,7 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
     final backdropCtrl = TextEditingController(text: '${raw['backdrop'] ?? ''}');
     final userAgentCtrl = TextEditingController(text: '${raw['userAgent'] ?? raw['user_agent'] ?? ''}');
     String contentType = raw['type'] ?? 'live';
-    bool isFeatured = raw['featured'] == true;
+    bool isFeatured = raw['featured'] == true || raw['featured'] == 'true' || raw['featured'] == '1';
 
     showModalBottomSheet<void>(
       context: context,
@@ -1668,10 +1668,6 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
                             child: OutlinedButton(
                               onPressed: () {
                                 Navigator.pop(ctx);
-                                final toDispose = [nameCtrl, urlCtrl, url2Ctrl, url2NameCtrl, url3Ctrl, url3NameCtrl, groupCtrl, logoCtrl, backdropCtrl, userAgentCtrl];
-                                for (final c in toDispose) {
-                                  Future.microtask(c.dispose);
-                                }
                               },
                               child: const Text('Cancel'),
                             ),
@@ -1681,22 +1677,14 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
                             flex: 2,
                             child: FilledButton(
                               onPressed: () {
-                                Navigator.pop(ctx);
                                 final name = nameCtrl.text.trim();
                                 final url = urlCtrl.text.trim();
-                                final toDispose = [nameCtrl, urlCtrl, url2Ctrl, url2NameCtrl, url3Ctrl, url3NameCtrl, groupCtrl, logoCtrl, backdropCtrl, userAgentCtrl];
                                 if (name.isEmpty || url.isEmpty) {
-                                  for (final c in toDispose) {
-                                    Future.microtask(c.dispose);
-                                  }
                                   _snack('Name and URL are required', error: true);
                                   return;
                                 }
-                                  for (final c in toDispose) {
-                                    Future.microtask(c.dispose);
-                                  }
-                                    _updateChannel(
-                                      key,
+                                _updateChannel(
+                                  key,
                                       name: name,
                                       url: url,
                                       group: groupCtrl.text.trim(),
@@ -1710,8 +1698,9 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
                                       url3: url3Ctrl.text.trim(),
                                       url3Name: url3NameCtrl.text.trim(),
                                     );
-                              },
-                              child: const Text('Save changes'),
+                                    if (mounted) Navigator.pop(ctx);
+                                  },
+                                  child: const Text('Save changes'),
                             ),
                           ),
                         ],
@@ -1725,7 +1714,12 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
           ),
         );
       },
-    );
+    ).then((_) {
+      final toDispose = [nameCtrl, urlCtrl, url2Ctrl, url2NameCtrl, url3Ctrl, url3NameCtrl, groupCtrl, logoCtrl, backdropCtrl, userAgentCtrl];
+      for (final c in toDispose) {
+        c.dispose();
+      }
+    });
   }
 
   Widget _field(TextEditingController controller, String label, IconData icon, {int maxLines = 1, FocusNode? focusNode}) {
@@ -3596,12 +3590,12 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
       };
 
       // 1. Broadcast to all active units (local in-app popup)
-      await _notifBroadcastRef.set(notifObj);
+      // Removed broken _notifBroadcastRef.set(notifObj); since both map to `broadcasts` collection in PocketBase.
       
       // 2. Save to history
       await _notifHistoryRef.push().set(notifObj);
 
-      // 3. Send Native Push Notification via OneSignal
+      // 3. Send Native Push Notification via FCM
       try {
         await NotificationService().sendPushNotification(
           title: title,
@@ -3609,7 +3603,7 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
           imageUrl: img.isEmpty ? null : img,
         );
       } catch (e) {
-        debugPrint('OneSignal push failed: $e');
+        debugPrint('FCM push failed: $e');
         // We still continue even if push fails
       }
 
@@ -4119,7 +4113,8 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
   Widget _buildFeaturedManager(List<MapEntry<dynamic, dynamic>> allChannels) {
     final featured = allChannels.where((e) {
       final val = e.value as Map;
-      return val['featured'] == true;
+      final f = val['featured'];
+      return f == true || f == 'true' || f == '1';
     }).toList();
 
     // Sort by existing order if available

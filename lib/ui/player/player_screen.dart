@@ -499,9 +499,12 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
             _buildMobileHeader(s, uiLocale),
             
             // 2. Video Area (Below Header)
-            AspectRatio(
-              aspectRatio: 16 / 9,
-              child: _buildVideoView(),
+            ConstrainedBox(
+              constraints: BoxConstraints(maxHeight: MediaQuery.of(context).size.height * 0.5),
+              child: AspectRatio(
+                aspectRatio: 16 / 9,
+                child: _buildVideoView(),
+              ),
             ),
             
             // 3. Channel Lists (Bottom)
@@ -695,9 +698,12 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
       child: Column(
         children: [
           _buildMobileHeader(s, uiLocale),
-          AspectRatio(
-            aspectRatio: 16 / 9,
-            child: _buildVideoView(),
+          ConstrainedBox(
+            constraints: BoxConstraints(maxHeight: MediaQuery.of(context).size.height * 0.5),
+            child: AspectRatio(
+              aspectRatio: 16 / 9,
+              child: _buildVideoView(),
+            ),
           ),
           Expanded(
             child: Row(

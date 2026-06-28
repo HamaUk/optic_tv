@@ -4,9 +4,7 @@ import android.net.Uri
 import android.view.KeyEvent
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.*
-import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.focusable
 import androidx.compose.foundation.focusGroup
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -23,10 +21,9 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
-import androidx.compose.ui.focus.onFocusChanged
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.key.onKeyEvent
@@ -71,11 +68,25 @@ fun PlayerScreen(
     var isPlayingState by remember { mutableStateOf(true) }
     
     var showZapList by remember { mutableStateOf(false) }
+    var showControls by remember { mutableStateOf(false) }
+    var controlsTimeout by remember { mutableStateOf(0) }
     
     var channelsList by remember { mutableStateOf<List<TvChannel>>(emptyList()) }
 
     LaunchedEffect(Unit) {
         channelsList = repository.getChannels()
+    }
+
+    LaunchedEffect(showControls, controlsTimeout) {
+        if (showControls) {
+            delay(5000) // Auto-hide controls after 5 seconds
+            showControls = false
+        }
+    }
+
+    fun resetControlsTimeout() {
+        controlsTimeout++
+        showControls = true
     }
 
     val exoPlayer = remember {
@@ -152,8 +163,8 @@ fun PlayerScreen(
     }
 
     val focusRequester = remember { FocusRequester() }
-    LaunchedEffect(showZapList) {
-        if (!showZapList) {
+    LaunchedEffect(showZapList, showControls) {
+        if (!showZapList && !showControls) {
             focusRequester.requestFocus()
         }
     }
@@ -166,17 +177,27 @@ fun PlayerScreen(
             .focusable()
             .onKeyEvent { keyEvent ->
                 if (keyEvent.nativeKeyEvent.action == KeyEvent.ACTION_DOWN) {
+                    resetControlsTimeout()
                     when (keyEvent.nativeKeyEvent.keyCode) {
                         KeyEvent.KEYCODE_DPAD_CENTER,
-                        KeyEvent.KEYCODE_ENTER,
+                        KeyEvent.KEYCODE_ENTER -> {
+                            if (!showZapList) {
+                                showControls = !showControls
+                            }
+                            true
+                        }
                         KeyEvent.KEYCODE_DPAD_LEFT -> {
                             if (!showZapList) {
                                 showZapList = true
+                                showControls = false
                             }
                             true
                         }
                         KeyEvent.KEYCODE_BACK -> {
-                            if (showZapList) {
+                            if (showControls) {
+                                showControls = false
+                                true
+                            } else if (showZapList) {
                                 showZapList = false
                                 true
                             } else {
@@ -193,6 +214,7 @@ fun PlayerScreen(
                                     currentStreamUrl = nextChannel.url
                                     currentChannelName = nextChannel.name
                                     currentLogoUrl = nextChannel.logo
+                                    showControls = true
                                 }
                             }
                             true
@@ -206,8 +228,13 @@ fun PlayerScreen(
                                     currentStreamUrl = prevChannel.url
                                     currentChannelName = prevChannel.name
                                     currentLogoUrl = prevChannel.logo
+                                    showControls = true
                                 }
                             }
+                            true
+                        }
+                        KeyEvent.KEYCODE_MEDIA_PLAY_PAUSE -> {
+                            if (isPlayingState) exoPlayer.pause() else exoPlayer.play()
                             true
                         }
                         else -> false
@@ -245,6 +272,110 @@ fun PlayerScreen(
             }
         }
 
+        // OSD Controls
+        AnimatedVisibility(
+            visible = showControls && !showZapList,
+            enter = fadeIn(),
+            exit = fadeOut()
+        ) {
+            Box(modifier = Modifier.fillMaxSize()) {
+                // Top Bar
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(160.dp)
+                        .background(
+                            Brush.verticalGradient(
+                                colors = listOf(Color.Black.copy(alpha = 0.85f), Color.Transparent)
+                            )
+                        )
+                        .padding(horizontal = 48.dp, vertical = 32.dp),
+                    contentAlignment = Alignment.TopStart
+                ) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        if (!currentLogoUrl.isNullOrEmpty()) {
+                            AsyncImage(
+                                model = currentLogoUrl,
+                                contentDescription = null,
+                                modifier = Modifier.size(72.dp)
+                            )
+                            Spacer(Modifier.width(24.dp))
+                        }
+                        Text(
+                            text = currentChannelName,
+                            color = Color.White,
+                            fontSize = 32.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+                }
+
+                // Bottom Bar
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(220.dp)
+                        .align(Alignment.BottomCenter)
+                        .background(
+                            Brush.verticalGradient(
+                                colors = listOf(Color.Transparent, Color.Black.copy(alpha = 0.95f))
+                            )
+                        )
+                        .padding(horizontal = 48.dp, vertical = 32.dp),
+                    contentAlignment = Alignment.BottomStart
+                ) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.Bottom
+                    ) {
+                        Column {
+                            Text(
+                                text = "NOW PLAYING",
+                                color = UltraTokens.Accent,
+                                fontSize = 14.sp,
+                                fontWeight = FontWeight.Bold,
+                                letterSpacing = 2.sp
+                            )
+                            Spacer(Modifier.height(8.dp))
+                            Text(
+                                text = currentChannelName,
+                                color = Color.White,
+                                fontSize = 28.sp,
+                                fontWeight = FontWeight.SemiBold
+                            )
+                        }
+
+                        Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+                            val interaction = remember { MutableInteractionSource() }
+                            val focused by interaction.collectIsFocusedAsState()
+
+                            Button(
+                                onClick = { 
+                                    resetControlsTimeout()
+                                    if (isPlayingState) exoPlayer.pause() else exoPlayer.play() 
+                                },
+                                interactionSource = interaction,
+                                shape = ButtonDefaults.shape(RoundedCornerShape(12.dp)),
+                                colors = ButtonDefaults.colors(
+                                    containerColor = if (focused) UltraTokens.Accent else Color.White.copy(alpha = 0.15f),
+                                    contentColor = Color.White
+                                ),
+                                modifier = Modifier.size(64.dp)
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.PlayArrow,
+                                    contentDescription = "Play/Pause",
+                                    modifier = Modifier.size(36.dp)
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        // Zap List
         AnimatedVisibility(
             visible = showZapList,
             enter = slideInHorizontally { -it } + fadeIn(),

@@ -69,6 +69,14 @@ class Channel {
     return defaultValue;
   }
 
+  static bool _parseBool(dynamic value) {
+    if (value == null) return false;
+    if (value is bool) return value;
+    if (value is String) return value.toLowerCase() == 'true' || value == '1';
+    if (value is num) return value == 1;
+    return false;
+  }
+
   factory Channel.fromMap(Map<dynamic, dynamic> map) {
     return Channel(
       name: map['name'] ?? 'Unknown',
@@ -79,7 +87,7 @@ class Channel {
       subtitleUrl: map['subtitleUrl'] as String?,
       description: map['description'] as String?,
       type: map['type'] as String? ?? 'live',
-      featured: map['featured'] == true,
+      featured: _parseBool(map['featured']),
       order: _parseInt(map['order']),
       featuredOrder: _parseInt(map['featured_order']),
       userAgent: map['userAgent'] as String? ?? map['user_agent'] as String?,
