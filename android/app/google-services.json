@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "170449397065",
+    "project_id": "kobani-noti",
+    "storage_bucket": "kobani-noti.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:170449397065:android:35d08c1d5ad7f4cbfda698",
+        "android_client_info": {
+          "package_name": "com.kobani4k.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyB9IXEDF7JHxfsAU62dgnBuypLj_3vlAdc"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

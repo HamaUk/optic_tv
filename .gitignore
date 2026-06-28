@@ -46,5 +46,4 @@ app.*.map.json
 
 assets/json/kobani-noti-service-account.json
 temp_kobani*.json
-android/app/google-services.json
 ssh_test.py
