@@ -265,13 +265,13 @@ fun PlayerScreen(
                                 true
                             }
                         }
-                        KeyEvent.KEYCODE_DPAD_UP -> {
+                        androidx.compose.ui.input.key.Key.DirectionUp -> {
                             if (!showControls) {
                                 changeChannel(next = true)
                                 true
                             } else false
                         }
-                        KeyEvent.KEYCODE_DPAD_DOWN -> {
+                        androidx.compose.ui.input.key.Key.DirectionDown -> {
                             if (!showControls) {
                                 changeChannel(next = false)
                                 true
