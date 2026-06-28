@@ -40,7 +40,7 @@ class LoginCodesService {
     final controller = StreamController<bool>.broadcast();
 
     // Initial check
-    validate(raw).then(controller.add).catchError((_) => controller.add(false));
+    validate(raw).then(controller.add).catchError((_) {});
 
     // Subscribe to PocketBase realtime updates for loginCodes
     pb.collection('loginCodes').subscribe('*', (e) {

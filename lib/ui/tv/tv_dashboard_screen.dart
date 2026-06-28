@@ -157,6 +157,7 @@ class _TvDashboardScreenState extends ConsumerState<TvDashboardScreen> {
   Widget _buildSidebarItem(IconData icon, String label, int index, AppStrings s) {
     final isSelected = _navIndex == index;
     return TVFocusable(
+      autofocus: index == 0,
       onSelect: () {
         if (index == 4) {
           Navigator.push(context, MaterialPageRoute(builder: (_) => const SettingsScreen()));
