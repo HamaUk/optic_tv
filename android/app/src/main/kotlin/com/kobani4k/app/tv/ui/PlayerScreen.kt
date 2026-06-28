@@ -329,7 +329,7 @@ fun PlayerScreen(
             exit = slideOutVertically { it } + fadeOut(tween(300)),
             modifier = Modifier
                 .align(Alignment.BottomCenter)
-                .padding(horizontal = 48.dp, bottom = 48.dp)
+                .padding(start = 48.dp, end = 48.dp, bottom = 48.dp)
         ) {
             Row(
                 modifier = Modifier
