@@ -6,9 +6,9 @@ import android.widget.TextClock
 import androidx.activity.compose.BackHandler
 import androidx.annotation.OptIn as Media3OptIn
 import androidx.compose.animation.*
-import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.core.tween
+import androidx.compose.animation.core.*
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.focusable
 import androidx.compose.foundation.focusGroup
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -24,6 +24,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.rounded.*
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.Icon
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -37,6 +38,7 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.key.onKeyEvent
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -61,8 +63,14 @@ import com.kobani4k.app.tv.ui.theme.UltraTokens
 import com.kobani4k.app.tv.ui.theme.ultraCardColors
 import kotlinx.coroutines.delay
 
-// Enum to handle right-side menus
+// ═══════════════════════════════════════════════════
+//  Active Menus
+// ═══════════════════════════════════════════════════
 enum class ActiveMenu { NONE, QUALITY, AUDIO, SUBTITLES, SETTINGS }
+
+// ═══════════════════════════════════════════════════
+//  PLAYER SCREEN — Premium OSD with Quick Zap
+// ═══════════════════════════════════════════════════
 
 @Media3OptIn(androidx.media3.common.util.UnstableApi::class)
 @OptIn(ExperimentalTvMaterial3Api::class)
@@ -87,7 +95,7 @@ fun PlayerScreen(
     var showControls by remember { mutableStateOf(false) }
     var activeMenu by remember { mutableStateOf(ActiveMenu.NONE) }
     var controlsActivityTrigger by remember { mutableStateOf(0) }
-    
+
     var showZapBanner by remember { mutableStateOf(false) }
     var zapBannerTrigger by remember { mutableStateOf(0) }
 
@@ -97,7 +105,7 @@ fun PlayerScreen(
         channelsList = repository.getChannels()
     }
 
-    // Auto-hide the Quick Zap banner after 3 seconds
+    // Auto-hide Zap banner after 3s
     LaunchedEffect(showZapBanner, zapBannerTrigger) {
         if (showZapBanner) {
             delay(3000)
@@ -105,7 +113,7 @@ fun PlayerScreen(
         }
     }
 
-    // Auto-hide controls after 5 seconds of inactivity
+    // Auto-hide controls after 5s of inactivity
     LaunchedEffect(showControls, controlsActivityTrigger, activeMenu) {
         if (showControls && activeMenu == ActiveMenu.NONE) {
             delay(5000)
@@ -118,6 +126,7 @@ fun PlayerScreen(
         showControls = true
     }
 
+    // ═══ ExoPlayer Engine (UNCHANGED) ═══
     val exoPlayer = remember {
         val loadControl = DefaultLoadControl.Builder()
             .setBufferDurationsMs(5000, 15000, 500, 1500)
@@ -186,7 +195,6 @@ fun PlayerScreen(
         if (!showZapList && !showControls && activeMenu == ActiveMenu.NONE) {
             mainFocusRequester.requestFocus()
         } else if (showControls && activeMenu == ActiveMenu.NONE) {
-            // Give time for UI to compose before focusing controls
             delay(100)
             runCatching { controlsFocusRequester.requestFocus() }
         }
@@ -210,11 +218,13 @@ fun PlayerScreen(
             .onKeyEvent { keyEvent ->
                 if (keyEvent.nativeKeyEvent.action == KeyEvent.ACTION_DOWN) {
                     wakeUpControls()
-                    
-                    val isUp = keyEvent.nativeKeyEvent.keyCode == KeyEvent.KEYCODE_DPAD_UP || keyEvent.nativeKeyEvent.keyCode == KeyEvent.KEYCODE_CHANNEL_UP
-                    val isDown = keyEvent.nativeKeyEvent.keyCode == KeyEvent.KEYCODE_DPAD_DOWN || keyEvent.nativeKeyEvent.keyCode == KeyEvent.KEYCODE_CHANNEL_DOWN
-                    
-                    // If controls are hidden, allow Quick Zap!
+
+                    val isUp = keyEvent.nativeKeyEvent.keyCode == KeyEvent.KEYCODE_DPAD_UP ||
+                            keyEvent.nativeKeyEvent.keyCode == KeyEvent.KEYCODE_CHANNEL_UP
+                    val isDown = keyEvent.nativeKeyEvent.keyCode == KeyEvent.KEYCODE_DPAD_DOWN ||
+                            keyEvent.nativeKeyEvent.keyCode == KeyEvent.KEYCODE_CHANNEL_DOWN
+
+                    // Quick Zap when controls are hidden
                     if (!showControls && !showZapList && activeMenu == ActiveMenu.NONE) {
                         if (isUp || isDown) {
                             if (channelsList.isNotEmpty()) {
@@ -229,9 +239,8 @@ fun PlayerScreen(
                                     currentStreamUrl = ch.url
                                     currentChannelName = ch.name
                                     currentLogoUrl = ch.logo
-                                    
-                                    // PRO FIX: Show the dedicated Zap Banner, Hide full controls
-                                    showControls = false 
+
+                                    showControls = false
                                     showZapBanner = true
                                     zapBannerTrigger++
                                 }
@@ -240,14 +249,13 @@ fun PlayerScreen(
                         }
                     }
 
-                    // Standard Key bindings
                     when (keyEvent.nativeKeyEvent.keyCode) {
                         KeyEvent.KEYCODE_DPAD_CENTER, KeyEvent.KEYCODE_ENTER -> {
                             if (!showZapList && !showControls) {
                                 showControls = true
                                 return@onKeyEvent true
                             }
-                            false // Let Compose handle button clicks
+                            false
                         }
                         KeyEvent.KEYCODE_DPAD_LEFT -> {
                             if (!showZapList && !showControls) {
@@ -275,7 +283,7 @@ fun PlayerScreen(
                 }
             }
     ) {
-        // VIDEO PLAYER
+        // ═══ VIDEO PLAYER ═══
         AndroidView(
             factory = { ctx ->
                 PlayerView(ctx).apply {
@@ -288,33 +296,58 @@ fun PlayerScreen(
             modifier = Modifier.fillMaxSize()
         )
 
+        // Buffering indicator
         if (isBuffering) {
-            Box(Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.4f)), contentAlignment = Alignment.Center) {
-                CircularProgressIndicator(color = UltraTokens.Accent, modifier = Modifier.size(64.dp))
+            Box(
+                Modifier
+                    .fillMaxSize()
+                    .background(Color.Black.copy(alpha = 0.5f)),
+                contentAlignment = Alignment.Center
+            ) {
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    CircularProgressIndicator(
+                        color = UltraTokens.Accent,
+                        modifier = Modifier.size(56.dp),
+                        strokeWidth = 3.dp
+                    )
+                    Spacer(Modifier.height(16.dp))
+                    Text(
+                        "Loading stream...",
+                        color = UltraTokens.Fg3,
+                        fontSize = 14.sp
+                    )
+                }
             }
         }
 
-        // ==========================================
-        // DEDICATED QUICK ZAP BANNER (Professional)
-        // ==========================================
+        // ═══════════════════════════════════════════
+        //  QUICK ZAP BANNER (Bottom, auto-hide)
+        // ═══════════════════════════════════════════
         AnimatedVisibility(
             visible = showZapBanner && !showControls && !showZapList,
             enter = slideInVertically { it } + fadeIn(tween(300)),
             exit = slideOutVertically { it } + fadeOut(tween(300)),
             modifier = Modifier
                 .align(Alignment.BottomCenter)
-                .padding(start = 48.dp, end = 48.dp, bottom = 48.dp) // Floating effect
+                .padding(horizontal = 48.dp, bottom = 48.dp)
         ) {
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
                     .clip(RoundedCornerShape(20.dp))
-                    .background(Brush.horizontalGradient(
-                        colors = listOf(
-                            Color(0xF00A0A0F), // Solid dark
-                            Color(0xE60A0A0F)  // Slightly transparent
+                    .background(
+                        Brush.horizontalGradient(
+                            colors = listOf(
+                                UltraTokens.SurfacePanel,
+                                UltraTokens.SurfacePanel.copy(alpha = 0.9f)
+                            )
                         )
-                    ))
+                    )
+                    .border(
+                        1.dp,
+                        Color.White.copy(alpha = 0.06f),
+                        RoundedCornerShape(20.dp)
+                    )
                     .padding(horizontal = 32.dp, vertical = 24.dp),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.SpaceBetween
@@ -324,7 +357,7 @@ fun PlayerScreen(
                     if (!currentLogoUrl.isNullOrEmpty()) {
                         Box(
                             modifier = Modifier
-                                .size(80.dp)
+                                .size(72.dp)
                                 .clip(RoundedCornerShape(12.dp))
                                 .background(Color.White.copy(0.05f))
                                 .padding(8.dp),
@@ -336,18 +369,22 @@ fun PlayerScreen(
                                 modifier = Modifier.fillMaxSize()
                             )
                         }
-                        Spacer(Modifier.width(24.dp))
+                        Spacer(Modifier.width(20.dp))
                     }
-                    
-                    // Channel Info
+
                     Column {
                         Row(verticalAlignment = Alignment.CenterVertically) {
-                            Box(modifier = Modifier.size(8.dp).clip(CircleShape).background(Color.Red))
+                            Box(
+                                modifier = Modifier
+                                    .size(8.dp)
+                                    .clip(CircleShape)
+                                    .background(UltraTokens.Live)
+                            )
                             Spacer(Modifier.width(8.dp))
                             Text(
-                                text = "LIVE NOW",
+                                "LIVE NOW",
                                 color = UltraTokens.Accent,
-                                fontSize = 12.sp,
+                                fontSize = 11.sp,
                                 fontWeight = FontWeight.Bold,
                                 letterSpacing = 2.sp
                             )
@@ -356,7 +393,7 @@ fun PlayerScreen(
                         Text(
                             text = currentChannelName,
                             color = Color.White,
-                            fontSize = 36.sp,
+                            fontSize = 32.sp,
                             fontWeight = FontWeight.Bold,
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis
@@ -364,14 +401,14 @@ fun PlayerScreen(
                     }
                 }
 
-                // Action Hint & System Clock
+                // Clock + Hint
                 Column(horizontalAlignment = Alignment.End) {
                     AndroidView(
                         factory = { ctx ->
                             TextClock(ctx).apply {
                                 format12Hour = "hh:mm a"
                                 format24Hour = "HH:mm"
-                                textSize = 24f
+                                textSize = 22f
                                 setTextColor(android.graphics.Color.WHITE)
                                 typeface = android.graphics.Typeface.DEFAULT_BOLD
                             }
@@ -379,28 +416,30 @@ fun PlayerScreen(
                     )
                     Spacer(Modifier.height(8.dp))
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        Text("Press ", color = Color.Gray, fontSize = 14.sp)
+                        Text("Press ", color = UltraTokens.Fg4, fontSize = 13.sp)
                         Icon(
-                            imageVector = Icons.Rounded.RadioButtonChecked, // Center D-Pad Icon representation
+                            Icons.Rounded.RadioButtonChecked,
                             contentDescription = null,
-                            tint = Color.White,
-                            modifier = Modifier.size(16.dp)
+                            tint = UltraTokens.Fg2,
+                            modifier = Modifier.size(14.dp)
                         )
-                        Text(" for Options", color = Color.Gray, fontSize = 14.sp)
+                        Text(" for controls", color = UltraTokens.Fg4, fontSize = 13.sp)
                     }
                 }
             }
         }
 
-        // PROFESSIONAL OSD CONTROLS
+        // ═══════════════════════════════════════════
+        //  OSD CONTROLS (Center/Enter to show)
+        // ═══════════════════════════════════════════
         AnimatedVisibility(
             visible = showControls && !showZapList,
             enter = fadeIn(tween(300)),
             exit = fadeOut(tween(300))
         ) {
             Box(modifier = Modifier.fillMaxSize()) {
-                
-                // TOP BAR (Channel Info & Clock)
+
+                // TOP BAR
                 AnimatedVisibility(
                     visible = showControls,
                     enter = slideInVertically { -it },
@@ -410,8 +449,16 @@ fun PlayerScreen(
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .background(Brush.verticalGradient(listOf(Color.Black.copy(0.9f), Color.Transparent)))
-                            .padding(horizontal = 48.dp, vertical = 32.dp),
+                            .background(
+                                Brush.verticalGradient(
+                                    colors = listOf(
+                                        Color.Black.copy(0.9f),
+                                        Color.Black.copy(0.5f),
+                                        Color.Transparent
+                                    )
+                                )
+                            )
+                            .padding(horizontal = 48.dp, vertical = 28.dp),
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.Top
                     ) {
@@ -420,23 +467,39 @@ fun PlayerScreen(
                                 AsyncImage(
                                     model = currentLogoUrl,
                                     contentDescription = null,
-                                    modifier = Modifier.size(64.dp).clip(RoundedCornerShape(8.dp))
+                                    modifier = Modifier
+                                        .size(56.dp)
+                                        .clip(RoundedCornerShape(10.dp))
                                 )
-                                Spacer(Modifier.width(20.dp))
+                                Spacer(Modifier.width(16.dp))
                             }
                             Column {
-                                Text(text = "NOW PLAYING", color = UltraTokens.Accent, fontSize = 12.sp, fontWeight = FontWeight.Bold, letterSpacing = 2.sp)
-                                Text(text = currentChannelName, color = Color.White, fontSize = 28.sp, fontWeight = FontWeight.Bold)
+                                Text(
+                                    "NOW PLAYING",
+                                    color = UltraTokens.Accent,
+                                    fontSize = 11.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    letterSpacing = 2.sp
+                                )
+                                Spacer(Modifier.height(2.dp))
+                                Text(
+                                    currentChannelName,
+                                    color = Color.White,
+                                    fontSize = 24.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis
+                                )
                             }
                         }
-                        
-                        // TV Clock
+
+                        // Clock
                         AndroidView(
                             factory = { ctx ->
                                 TextClock(ctx).apply {
                                     format12Hour = "hh:mm a"
                                     format24Hour = "HH:mm"
-                                    textSize = 22f
+                                    textSize = 20f
                                     setTextColor(android.graphics.Color.WHITE)
                                     typeface = android.graphics.Typeface.DEFAULT_BOLD
                                 }
@@ -445,7 +508,7 @@ fun PlayerScreen(
                     }
                 }
 
-                // BOTTOM BAR (Controls)
+                // BOTTOM CONTROLS BAR
                 AnimatedVisibility(
                     visible = showControls,
                     enter = slideInVertically { it },
@@ -455,24 +518,45 @@ fun PlayerScreen(
                     Column(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .background(Brush.verticalGradient(listOf(Color.Transparent, Color.Black.copy(0.8f), Color.Black)))
-                            .padding(horizontal = 48.dp, vertical = 32.dp)
+                            .background(
+                                Brush.verticalGradient(
+                                    colors = listOf(
+                                        Color.Transparent,
+                                        Color.Black.copy(0.7f),
+                                        Color.Black.copy(0.95f)
+                                    )
+                                )
+                            )
+                            .padding(horizontal = 48.dp, vertical = 28.dp)
                     ) {
+                        // LIVE indicator
                         Row(verticalAlignment = Alignment.CenterVertically) {
-                            Box(modifier = Modifier.size(10.dp).clip(CircleShape).background(Color.Red))
+                            Box(
+                                modifier = Modifier
+                                    .size(8.dp)
+                                    .clip(CircleShape)
+                                    .background(UltraTokens.Live)
+                            )
                             Spacer(Modifier.width(8.dp))
-                            Text("LIVE", color = Color.White, fontSize = 14.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.sp)
+                            Text(
+                                "LIVE",
+                                color = Color.White,
+                                fontSize = 13.sp,
+                                fontWeight = FontWeight.Bold,
+                                letterSpacing = 1.sp
+                            )
                         }
-                        Spacer(Modifier.height(24.dp))
-                        
-                        // Control Buttons Row
+
+                        Spacer(Modifier.height(20.dp))
+
+                        // Control buttons
                         Row(
-                            horizontalArrangement = Arrangement.spacedBy(16.dp),
+                            horizontalArrangement = Arrangement.spacedBy(14.dp),
                             verticalAlignment = Alignment.CenterVertically,
                             modifier = Modifier.focusGroup()
                         ) {
-                            // Play/Pause
-                            OsdIconButton(
+                            // Play / Pause
+                            OsdButton(
                                 icon = if (isPlayingState) Icons.Rounded.Pause else Icons.Rounded.PlayArrow,
                                 label = if (isPlayingState) "Pause" else "Play",
                                 modifier = Modifier.focusRequester(controlsFocusRequester),
@@ -482,24 +566,24 @@ fun PlayerScreen(
                                 }
                             )
 
-                            Spacer(Modifier.width(16.dp))
+                            Spacer(Modifier.width(8.dp))
 
                             // Quality
-                            OsdIconButton(
+                            OsdButton(
                                 icon = Icons.Rounded.HighQuality,
                                 label = "Quality",
                                 onClick = { activeMenu = ActiveMenu.QUALITY; wakeUpControls() }
                             )
 
                             // Audio
-                            OsdIconButton(
+                            OsdButton(
                                 icon = Icons.Rounded.Audiotrack,
-                                label = "Audio Tracks",
+                                label = "Audio",
                                 onClick = { activeMenu = ActiveMenu.AUDIO; wakeUpControls() }
                             )
-                            
+
                             // Subtitles
-                            OsdIconButton(
+                            OsdButton(
                                 icon = Icons.Rounded.Subtitles,
                                 label = "Subtitles",
                                 onClick = { activeMenu = ActiveMenu.SUBTITLES; wakeUpControls() }
@@ -507,8 +591,8 @@ fun PlayerScreen(
 
                             Spacer(Modifier.weight(1f))
 
-                            // Settings
-                            OsdIconButton(
+                            // Settings (opens in-player settings panel)
+                            OsdButton(
                                 icon = Icons.Rounded.Settings,
                                 label = "Settings",
                                 onClick = { activeMenu = ActiveMenu.SETTINGS; wakeUpControls() }
@@ -519,57 +603,125 @@ fun PlayerScreen(
             }
         }
 
-        // RIGHT SIDE MENU (Quality, Audio, etc)
+        // ═══════════════════════════════════════════
+        //  RIGHT SIDE MENU (Quality / Audio / Subs / Settings)
+        // ═══════════════════════════════════════════
         AnimatedVisibility(
             visible = activeMenu != ActiveMenu.NONE,
             enter = slideInHorizontally { it } + fadeIn(),
             exit = slideOutHorizontally { it } + fadeOut(),
             modifier = Modifier.align(Alignment.CenterEnd)
         ) {
+            val menuFocusRequester = remember { FocusRequester() }
+
+            LaunchedEffect(activeMenu) {
+                if (activeMenu != ActiveMenu.NONE) {
+                    delay(100)
+                    runCatching { menuFocusRequester.requestFocus() }
+                }
+            }
+
             Box(
                 modifier = Modifier
                     .fillMaxHeight()
-                    .width(340.dp)
-                    .background(Color(0xE60A0A0F)) // Translucent dark
-                    .padding(24.dp)
-            ) {
-                Column(Modifier.fillMaxSize()) {
-                    Text(
-                        text = activeMenu.name,
-                        color = Color.White,
-                        fontSize = 20.sp,
-                        fontWeight = FontWeight.Bold,
-                        modifier = Modifier.padding(bottom = 24.dp)
+                    .width(360.dp)
+                    .background(
+                        Brush.horizontalGradient(
+                            colors = listOf(
+                                Color.Transparent,
+                                UltraTokens.SurfacePanel
+                            ),
+                            startX = 0f,
+                            endX = 80f
+                        )
                     )
-                    
-                    // Mocked List - You will wire this to ExoPlayer TrackSelection parameters later
-                    LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            ) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(UltraTokens.SurfacePanel)
+                        .padding(24.dp)
+                ) {
+                    // Menu Header
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = when (activeMenu) {
+                                ActiveMenu.QUALITY -> "VIDEO QUALITY"
+                                ActiveMenu.AUDIO -> "AUDIO TRACKS"
+                                ActiveMenu.SUBTITLES -> "SUBTITLES"
+                                ActiveMenu.SETTINGS -> "QUICK SETTINGS"
+                                else -> ""
+                            },
+                            color = Color.White,
+                            fontSize = 16.sp,
+                            fontWeight = FontWeight.Bold,
+                            letterSpacing = 1.sp
+                        )
+                        Text(
+                            "← Back",
+                            color = UltraTokens.Fg4,
+                            fontSize = 12.sp
+                        )
+                    }
+
+                    Spacer(Modifier.height(4.dp))
+
+                    // Subtle separator
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(1.dp)
+                            .background(Color.White.copy(alpha = 0.08f))
+                    )
+
+                    Spacer(Modifier.height(16.dp))
+
+                    if (activeMenu == ActiveMenu.SETTINGS) {
+                        // ═══ SETTINGS PANEL ═══
+                        SettingsPanel(
+                            focusRequester = menuFocusRequester,
+                            onDismiss = { activeMenu = ActiveMenu.NONE }
+                        )
+                    } else {
+                        // ═══ TRACK SELECTION LIST ═══
                         val items = when (activeMenu) {
-                            ActiveMenu.QUALITY -> listOf("Auto", "1080p (HD)", "720p", "480p")
-                            ActiveMenu.AUDIO -> listOf("Track 1 (Default)", "Track 2")
-                            ActiveMenu.SUBTITLES -> listOf("Off", "English", "Spanish")
-                            else -> listOf("Aspect Ratio", "Decoder", "Sleep Timer")
+                            ActiveMenu.QUALITY -> listOf("Auto", "1080p (HD)", "720p", "480p", "360p")
+                            ActiveMenu.AUDIO -> listOf("Track 1 (Default)", "Track 2", "Track 3")
+                            ActiveMenu.SUBTITLES -> listOf("Off", "English", "Spanish", "Arabic", "French")
+                            else -> emptyList()
                         }
-                        
-                        items(items.size) { index ->
-                            TrackMenuItem(
-                                title = items[index],
-                                isSelected = index == 0, // Mock selection
-                                onClick = { activeMenu = ActiveMenu.NONE }
-                            )
+
+                        LazyColumn(
+                            verticalArrangement = Arrangement.spacedBy(6.dp),
+                            modifier = Modifier.focusRestorer()
+                        ) {
+                            items(items.size) { index ->
+                                TrackOption(
+                                    title = items[index],
+                                    isSelected = index == 0,
+                                    modifier = if (index == 0) Modifier.focusRequester(menuFocusRequester) else Modifier,
+                                    onClick = { activeMenu = ActiveMenu.NONE }
+                                )
+                            }
                         }
                     }
                 }
             }
         }
 
-        // ZAP LIST
+        // ═══════════════════════════════════════════
+        //  ZAP DRAWER (Left side channel list)
+        // ═══════════════════════════════════════════
         AnimatedVisibility(
             visible = showZapList,
             enter = slideInHorizontally { -it } + fadeIn(),
             exit = slideOutHorizontally { -it } + fadeOut()
         ) {
-            LiveDrawer(
+            ZapDrawer(
                 channels = channelsList,
                 currentUrl = currentStreamUrl,
                 onPick = { ch ->
@@ -584,31 +736,48 @@ fun PlayerScreen(
     }
 }
 
+// ═══════════════════════════════════════════════════
+//  OSD ICON BUTTON
+// ═══════════════════════════════════════════════════
+
 @Composable
-fun OsdIconButton(
+private fun OsdButton(
     icon: ImageVector,
     label: String,
     modifier: Modifier = Modifier,
     onClick: () -> Unit
 ) {
     var isFocused by remember { mutableStateOf(false) }
-    val scale by animateFloatAsState(if (isFocused) 1.15f else 1f, tween(200))
-    val bgAlpha by animateFloatAsState(if (isFocused) 1f else 0.2f, tween(200))
+    val scale by animateFloatAsState(if (isFocused) 1.15f else 1f, tween(200), label = "osdScale")
+    val bgColor by animateColorAsState(
+        if (isFocused) UltraTokens.Accent else Color.White.copy(alpha = 0.12f),
+        tween(200),
+        label = "osdBg"
+    )
+    val borderColor by animateColorAsState(
+        if (isFocused) UltraTokens.Accent.copy(alpha = 0.6f) else Color.Transparent,
+        tween(200),
+        label = "osdBorder"
+    )
 
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
-        modifier = modifier.width(80.dp)
+        modifier = modifier.width(72.dp)
     ) {
         Box(
             modifier = Modifier
-                .size(56.dp)
+                .size(52.dp)
                 .scale(scale)
                 .clip(CircleShape)
-                .background(if (isFocused) UltraTokens.Accent else Color.White.copy(alpha = bgAlpha))
+                .background(bgColor)
+                .border(2.dp, borderColor, CircleShape)
                 .focusable()
                 .onFocusChanged { isFocused = it.isFocused }
                 .onKeyEvent {
-                    if (it.nativeKeyEvent.action == KeyEvent.ACTION_DOWN && it.nativeKeyEvent.keyCode == KeyEvent.KEYCODE_DPAD_CENTER) {
+                    if (it.nativeKeyEvent.action == KeyEvent.ACTION_DOWN &&
+                        (it.nativeKeyEvent.keyCode == KeyEvent.KEYCODE_DPAD_CENTER ||
+                                it.nativeKeyEvent.keyCode == KeyEvent.KEYCODE_ENTER)
+                    ) {
                         onClick()
                         true
                     } else false
@@ -618,19 +787,18 @@ fun OsdIconButton(
             Icon(
                 imageVector = icon,
                 contentDescription = label,
-                tint = if (isFocused) Color.White else Color.White.copy(alpha = 0.9f),
-                modifier = Modifier.size(28.dp)
+                tint = Color.White,
+                modifier = Modifier.size(24.dp)
             )
         }
-        
-        Spacer(Modifier.height(12.dp))
-        
-        // Tooltip label appears when focused
+
+        Spacer(Modifier.height(8.dp))
+
         AnimatedVisibility(visible = isFocused, enter = fadeIn(), exit = fadeOut()) {
             Text(
                 text = label,
                 color = Color.White,
-                fontSize = 12.sp,
+                fontSize = 11.sp,
                 fontWeight = FontWeight.Medium,
                 maxLines = 1
             )
@@ -638,29 +806,46 @@ fun OsdIconButton(
     }
 }
 
-@OptIn(ExperimentalTvMaterial3Api::class)
+// ═══════════════════════════════════════════════════
+//  TRACK OPTION ITEM (for Quality / Audio / Subs)
+// ═══════════════════════════════════════════════════
+
 @Composable
-fun TrackMenuItem(
+private fun TrackOption(
     title: String,
     isSelected: Boolean,
+    modifier: Modifier = Modifier,
     onClick: () -> Unit
 ) {
     var isFocused by remember { mutableStateOf(false) }
-    
+
+    val bgColor by animateColorAsState(
+        when {
+            isFocused -> UltraTokens.Accent
+            isSelected -> UltraTokens.AccentTint
+            else -> Color.Transparent
+        },
+        tween(200),
+        label = "trackBg"
+    )
+
     Box(
-        modifier = Modifier
+        modifier = modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(8.dp))
-            .background(if (isFocused) UltraTokens.Accent else if (isSelected) Color.White.copy(0.1f) else Color.Transparent)
+            .clip(RoundedCornerShape(10.dp))
+            .background(bgColor)
             .focusable()
             .onFocusChanged { isFocused = it.isFocused }
             .onKeyEvent {
-                if (it.nativeKeyEvent.action == KeyEvent.ACTION_DOWN && it.nativeKeyEvent.keyCode == KeyEvent.KEYCODE_DPAD_CENTER) {
+                if (it.nativeKeyEvent.action == KeyEvent.ACTION_DOWN &&
+                    (it.nativeKeyEvent.keyCode == KeyEvent.KEYCODE_DPAD_CENTER ||
+                            it.nativeKeyEvent.keyCode == KeyEvent.KEYCODE_ENTER)
+                ) {
                     onClick()
                     true
                 } else false
             }
-            .padding(16.dp)
+            .padding(horizontal = 16.dp, vertical = 14.dp)
     ) {
         Row(
             modifier = Modifier.fillMaxWidth(),
@@ -669,25 +854,175 @@ fun TrackMenuItem(
         ) {
             Text(
                 text = title,
-                color = if (isFocused) Color.White else Color.LightGray,
-                fontSize = 16.sp,
+                color = if (isFocused) Color.White else if (isSelected) UltraTokens.Accent else UltraTokens.Fg2,
+                fontSize = 15.sp,
                 fontWeight = if (isSelected || isFocused) FontWeight.Bold else FontWeight.Normal
             )
             if (isSelected) {
                 Icon(
-                    imageVector = Icons.Rounded.Check,
+                    Icons.Rounded.Check,
                     contentDescription = null,
                     tint = if (isFocused) Color.White else UltraTokens.Accent,
-                    modifier = Modifier.size(20.dp)
+                    modifier = Modifier.size(18.dp)
                 )
             }
         }
     }
 }
 
+// ═══════════════════════════════════════════════════
+//  SETTINGS PANEL (In-Player Quick Settings)
+// ═══════════════════════════════════════════════════
+
+@Composable
+private fun SettingsPanel(
+    focusRequester: FocusRequester,
+    onDismiss: () -> Unit
+) {
+    // Settings state
+    var selectedAspect by remember { mutableStateOf("Fit") }
+    var selectedDecoder by remember { mutableStateOf("Auto") }
+    var selectedSleep by remember { mutableStateOf("Off") }
+
+    LazyColumn(
+        verticalArrangement = Arrangement.spacedBy(4.dp),
+        modifier = Modifier.fillMaxSize().focusRestorer()
+    ) {
+        // ── Aspect Ratio ──
+        item {
+            SettingSectionHeader("ASPECT RATIO")
+        }
+        val aspectOptions = listOf("Fit", "Fill", "16:9", "4:3", "Stretch")
+        items(aspectOptions.size) { index ->
+            SettingRadioItem(
+                title = aspectOptions[index],
+                isSelected = selectedAspect == aspectOptions[index],
+                modifier = if (index == 0) Modifier.focusRequester(focusRequester) else Modifier,
+                onClick = { selectedAspect = aspectOptions[index] }
+            )
+        }
+
+        // ── Decoder ──
+        item {
+            Spacer(Modifier.height(12.dp))
+            SettingSectionHeader("DECODER")
+        }
+        val decoderOptions = listOf("Auto", "Hardware (HW)", "Software (SW)")
+        items(decoderOptions.size) { index ->
+            SettingRadioItem(
+                title = decoderOptions[index],
+                isSelected = selectedDecoder == decoderOptions[index],
+                onClick = { selectedDecoder = decoderOptions[index] }
+            )
+        }
+
+        // ── Sleep Timer ──
+        item {
+            Spacer(Modifier.height(12.dp))
+            SettingSectionHeader("SLEEP TIMER")
+        }
+        val sleepOptions = listOf("Off", "15 min", "30 min", "1 hour", "2 hours")
+        items(sleepOptions.size) { index ->
+            SettingRadioItem(
+                title = sleepOptions[index],
+                isSelected = selectedSleep == sleepOptions[index],
+                onClick = { selectedSleep = sleepOptions[index] }
+            )
+        }
+    }
+}
+
+@Composable
+private fun SettingSectionHeader(title: String) {
+    Text(
+        text = title,
+        color = UltraTokens.Accent,
+        fontSize = 11.sp,
+        fontWeight = FontWeight.Bold,
+        letterSpacing = 2.sp,
+        modifier = Modifier.padding(vertical = 8.dp, horizontal = 4.dp)
+    )
+}
+
+@Composable
+private fun SettingRadioItem(
+    title: String,
+    isSelected: Boolean,
+    modifier: Modifier = Modifier,
+    onClick: () -> Unit
+) {
+    var isFocused by remember { mutableStateOf(false) }
+
+    val bgColor by animateColorAsState(
+        when {
+            isFocused -> UltraTokens.Accent
+            isSelected -> UltraTokens.AccentTint
+            else -> Color.Transparent
+        },
+        tween(150),
+        label = "settingBg"
+    )
+
+    Row(
+        modifier = modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(8.dp))
+            .background(bgColor)
+            .focusable()
+            .onFocusChanged { isFocused = it.isFocused }
+            .onKeyEvent {
+                if (it.nativeKeyEvent.action == KeyEvent.ACTION_DOWN &&
+                    (it.nativeKeyEvent.keyCode == KeyEvent.KEYCODE_DPAD_CENTER ||
+                            it.nativeKeyEvent.keyCode == KeyEvent.KEYCODE_ENTER)
+                ) {
+                    onClick()
+                    true
+                } else false
+            }
+            .padding(horizontal = 14.dp, vertical = 12.dp),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text(
+            text = title,
+            color = if (isFocused) Color.White else if (isSelected) UltraTokens.Accent else UltraTokens.Fg2,
+            fontSize = 14.sp,
+            fontWeight = if (isSelected || isFocused) FontWeight.SemiBold else FontWeight.Normal
+        )
+
+        // Radio indicator
+        Box(
+            modifier = Modifier
+                .size(18.dp)
+                .clip(CircleShape)
+                .border(
+                    2.dp,
+                    if (isFocused) Color.White
+                    else if (isSelected) UltraTokens.Accent
+                    else UltraTokens.Fg4,
+                    CircleShape
+                ),
+            contentAlignment = Alignment.Center
+        ) {
+            if (isSelected) {
+                Box(
+                    modifier = Modifier
+                        .size(10.dp)
+                        .clip(CircleShape)
+                        .background(if (isFocused) Color.White else UltraTokens.Accent)
+                )
+            }
+        }
+    }
+}
+
+// ═══════════════════════════════════════════════════
+//  ZAP DRAWER (Left side channel list)
+// ═══════════════════════════════════════════════════
+
 @OptIn(ExperimentalTvMaterial3Api::class)
 @Composable
-internal fun LiveDrawer(
+private fun ZapDrawer(
     channels: List<TvChannel>,
     currentUrl: String,
     onPick: (TvChannel) -> Unit,
@@ -696,7 +1031,9 @@ internal fun LiveDrawer(
     BackHandler { onDismiss() }
 
     val listState = rememberLazyListState()
-    val initialIdx = remember(channels) { channels.indexOfFirst { it.url == currentUrl }.coerceAtLeast(0) }
+    val initialIdx = remember(channels) {
+        channels.indexOfFirst { it.url == currentUrl }.coerceAtLeast(0)
+    }
     val currentFocus = remember { FocusRequester() }
     var focusSet by remember { mutableStateOf(false) }
 
@@ -715,27 +1052,27 @@ internal fun LiveDrawer(
         Row(
             modifier = Modifier
                 .fillMaxHeight()
-                .background(Color(0xFA09090C)) // Highly opaque glass look
+                .background(UltraTokens.SurfacePanel)
         ) {
-            // Icon Menu
+            // Icon Sidebar
             Column(
                 modifier = Modifier
-                    .width(72.dp)
+                    .width(64.dp)
                     .fillMaxHeight()
-                    .background(Color(0xFF0B0A12))
-                    .padding(vertical = 24.dp)
+                    .background(UltraTokens.BgDeep)
+                    .padding(vertical = 20.dp)
                     .focusGroup()
                     .focusRestorer()
                     .verticalScroll(rememberScrollState()),
                 horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.spacedBy(20.dp),
+                verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
-                DrawerIconButton(Icons.Default.Search, "Search", onClick = {})
-                DrawerIconButton(Icons.Default.List, "EPG", onClick = {})
-                DrawerIconButton(Icons.Default.Favorite, "Add to Fav", onClick = {})
-                DrawerIconButton(Icons.Default.PlayArrow, "Tracks", onClick = {})
-                DrawerIconButton(Icons.Default.Info, "Aspect", onClick = {})
-                DrawerIconButton(Icons.Default.Settings, "Settings", onClick = {})
+                DrawerIcon(Icons.Default.Search, "Search", onClick = {})
+                DrawerIcon(Icons.Default.List, "EPG", onClick = {})
+                DrawerIcon(Icons.Default.Favorite, "Favorites", onClick = {})
+                DrawerIcon(Icons.Default.PlayArrow, "Tracks", onClick = {})
+                DrawerIcon(Icons.Default.AspectRatio, "Aspect", onClick = {})
+                DrawerIcon(Icons.Default.Settings, "Settings", onClick = {})
             }
 
             // Channel List
@@ -743,7 +1080,7 @@ internal fun LiveDrawer(
                 modifier = Modifier
                     .fillMaxHeight()
                     .width(360.dp)
-                    .padding(horizontal = 16.dp, vertical = 24.dp),
+                    .padding(horizontal = 16.dp, vertical = 20.dp)
             ) {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
@@ -753,28 +1090,47 @@ internal fun LiveDrawer(
                     Text(
                         "All Channels",
                         color = Color.White,
-                        fontSize = 18.sp,
+                        fontSize = 16.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                    Text(
+                        "${channels.size}",
+                        color = UltraTokens.Fg4,
+                        fontSize = 13.sp,
                         fontWeight = FontWeight.Bold
                     )
                 }
-                Spacer(Modifier.height(16.dp))
+
+                Spacer(Modifier.height(4.dp))
+
+                // Separator
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(1.dp)
+                        .background(Color.White.copy(alpha = 0.06f))
+                )
+
+                Spacer(Modifier.height(12.dp))
+
                 LazyColumn(
                     state = listState,
-                    verticalArrangement = Arrangement.spacedBy(4.dp),
-                    modifier = Modifier.fillMaxSize().focusRestorer()
+                    verticalArrangement = Arrangement.spacedBy(2.dp),
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .focusRestorer()
                 ) {
                     items(channels.size) { index ->
-                        val e = channels[index]
-                        val isCurrent = e.url == currentUrl
+                        val channel = channels[index]
+                        val isCurrent = channel.url == currentUrl
                         val interaction = remember { MutableInteractionSource() }
                         val focused by interaction.collectIsFocusedAsState()
-                        val highlight = isCurrent || focused
 
                         Card(
-                            onClick = { onPick(e) },
+                            onClick = { onPick(channel) },
                             modifier = if (isCurrent) Modifier.focusRequester(currentFocus) else Modifier,
                             interactionSource = interaction,
-                            shape = CardDefaults.shape(RoundedCornerShape(4.dp)),
+                            shape = CardDefaults.shape(RoundedCornerShape(8.dp)),
                             colors = ultraCardColors(
                                 containerColor = Color.Transparent,
                                 focusedContainerColor = UltraTokens.Accent,
@@ -782,24 +1138,74 @@ internal fun LiveDrawer(
                             ),
                         ) {
                             Row(
-                                Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 12.dp),
-                                verticalAlignment = Alignment.CenterVertically,
+                                Modifier
+                                    .fillMaxWidth()
+                                    .padding(horizontal = 12.dp, vertical = 10.dp),
+                                verticalAlignment = Alignment.CenterVertically
                             ) {
+                                // Channel number
                                 Text(
                                     (index + 1).toString(),
-                                    color = if (isCurrent) UltraTokens.Accent else Color.White.copy(alpha = 0.5f),
-                                    fontSize = 14.sp,
+                                    color = if (isCurrent && !focused) UltraTokens.Accent
+                                    else if (focused) Color.White
+                                    else UltraTokens.Fg4,
+                                    fontSize = 13.sp,
                                     fontWeight = FontWeight.Bold,
-                                    modifier = Modifier.width(32.dp),
+                                    modifier = Modifier.width(32.dp)
                                 )
                                 Spacer(Modifier.width(8.dp))
+
+                                // Channel logo
+                                Box(
+                                    modifier = Modifier
+                                        .size(36.dp)
+                                        .clip(RoundedCornerShape(6.dp))
+                                        .background(
+                                            if (focused) Color.White.copy(alpha = 0.15f)
+                                            else UltraTokens.Surface3
+                                        ),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    if (!channel.logo.isNullOrEmpty()) {
+                                        AsyncImage(
+                                            model = channel.logo,
+                                            contentDescription = null,
+                                            contentScale = ContentScale.Fit,
+                                            modifier = Modifier
+                                                .fillMaxSize()
+                                                .padding(4.dp)
+                                        )
+                                    } else {
+                                        Text(
+                                            channel.name.take(2).uppercase(),
+                                            color = if (focused) Color.White else UltraTokens.Fg4,
+                                            fontSize = 10.sp,
+                                            fontWeight = FontWeight.Bold
+                                        )
+                                    }
+                                }
+
+                                Spacer(Modifier.width(10.dp))
+
                                 Column(Modifier.weight(1f)) {
                                     Text(
-                                        e.name,
-                                        color = if (isCurrent && !highlight) UltraTokens.Accent else Color.White,
-                                        fontSize = 15.sp,
-                                        fontWeight = if (isCurrent) FontWeight.Bold else FontWeight.Medium,
+                                        channel.name,
+                                        color = if (isCurrent && !focused) UltraTokens.Accent
+                                        else Color.White,
+                                        fontSize = 14.sp,
+                                        fontWeight = if (isCurrent || focused) FontWeight.Bold else FontWeight.Medium,
                                         maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis
+                                    )
+                                }
+
+                                // Current indicator
+                                if (isCurrent && !focused) {
+                                    Box(
+                                        modifier = Modifier
+                                            .size(6.dp)
+                                            .clip(CircleShape)
+                                            .background(UltraTokens.Accent)
                                     )
                                 }
                             }
@@ -809,18 +1215,23 @@ internal fun LiveDrawer(
             }
         }
 
+        // Transparent overlay to dismiss
         Box(
             Modifier
                 .weight(1f)
                 .fillMaxHeight()
-                .background(Color(0x33000000))
+                .background(Color.Black.copy(alpha = 0.3f))
         )
     }
 }
 
+// ═══════════════════════════════════════════════════
+//  DRAWER ICON BUTTON
+// ═══════════════════════════════════════════════════
+
 @OptIn(ExperimentalTvMaterial3Api::class)
 @Composable
-private fun DrawerIconButton(
+private fun DrawerIcon(
     icon: ImageVector,
     label: String,
     onClick: () -> Unit,
@@ -828,16 +1239,17 @@ private fun DrawerIconButton(
 ) {
     val interaction = remember { MutableInteractionSource() }
     val focused by interaction.collectIsFocusedAsState()
+
     IconButton(
         onClick = onClick,
         interactionSource = interaction,
-        modifier = Modifier.size(48.dp),
+        modifier = Modifier.size(44.dp),
     ) {
         Icon(
             icon,
             contentDescription = label,
             tint = if (focused) Color.Black else tint,
-            modifier = Modifier.size(24.dp),
+            modifier = Modifier.size(22.dp),
         )
     }
 }
