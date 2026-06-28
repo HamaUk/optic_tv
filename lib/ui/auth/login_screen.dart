@@ -400,7 +400,10 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
                                 onPressed: _busy ? null : () => _submit(s),
                                 style: ElevatedButton.styleFrom(
                                   backgroundColor: isFocused ? const Color(0xFF1a1a1a) : const Color(0xFF121212),
-                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(22)),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(22),
+                                    side: BorderSide(color: Colors.white.withOpacity(0.2), width: 1),
+                                  ),
                                 ),
                                 child: Text(
                                   s.loginButton.toUpperCase(),
@@ -501,7 +504,10 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
           style: ElevatedButton.styleFrom(
             backgroundColor: const Color(0xFF121212),
             foregroundColor: Colors.white,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(22)),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(22),
+              side: BorderSide(color: Colors.white.withOpacity(0.2), width: 1),
+            ),
             elevation: 0,
           ),
           child: Text(

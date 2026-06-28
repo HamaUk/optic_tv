@@ -360,7 +360,9 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen>
                       backgroundColor: const Color(0xFF121212),
                       shadowColor: Colors.transparent,
                       shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(28)),
+                        borderRadius: BorderRadius.circular(28),
+                        side: BorderSide(color: Colors.white.withOpacity(0.2), width: 1),
+                      ),
                     ),
                     onPressed: _nextPage,
                     child: Row(
@@ -473,10 +475,12 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen>
           borderWidth: 2,
           child: ElevatedButton(
             style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.transparent,
+              backgroundColor: const Color(0xFF121212),
               shadowColor: Colors.transparent,
               shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(16)),
+                borderRadius: BorderRadius.circular(16),
+                side: BorderSide(color: Colors.white.withOpacity(0.2), width: 1),
+              ),
             ),
             onPressed: () {
               ref.read(appLocaleProvider.notifier).setLocale(Locale(code));
@@ -600,7 +604,11 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen>
         borderRadius: BorderRadius.circular(22),
         borderWidth: 2.5,
         child: Material(
-          color: Colors.transparent,
+          color: const Color(0xFF121212),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+            side: BorderSide(color: Colors.white.withOpacity(0.2), width: 1),
+          ),
           child: InkWell(
             borderRadius: BorderRadius.circular(20),
             onTap: onTap,
