@@ -572,6 +572,89 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
                 },
               ),
             ),
+          // Server Selector (Top Horizontal List)
+          if (!_isFullscreen)
+            Positioned(
+              top: 56,
+              left: 0,
+              right: 0,
+              child: Builder(builder: (context) {
+                final sLoc = AppStrings(ref.watch(appLocaleProvider));
+                List<Map<String, dynamic>> servers = [
+                  {'index': 0, 'name': sLoc.serverName(1).toUpperCase()},
+                ];
+
+                if (_current.url2 != null && _current.url2!.trim().isNotEmpty) {
+                  final n = (_current.url2Name != null && _current.url2Name!.trim().isNotEmpty) ? _current.url2Name! : sLoc.serverName(2);
+                  servers.add({'index': 1, 'name': n.toUpperCase()});
+                }
+
+                if (_current.url3 != null && _current.url3!.trim().isNotEmpty) {
+                  final n = (_current.url3Name != null && _current.url3Name!.trim().isNotEmpty) ? _current.url3Name! : sLoc.serverName(3);
+                  servers.add({'index': 2, 'name': n.toUpperCase()});
+                }
+
+                if (servers.length <= 1) return const SizedBox.shrink();
+
+                return SizedBox(
+                  height: 36,
+                  child: ListView.builder(
+                    scrollDirection: Axis.horizontal,
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    itemCount: servers.length,
+                    itemBuilder: (context, i) {
+                      final s = servers[i];
+                      final isSelected = _activeServerIndex == s['index'];
+                      return Padding(
+                        padding: const EdgeInsets.only(right: 8.0),
+                        child: Material(
+                          color: Colors.black.withOpacity(0.65),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(18),
+                            side: BorderSide(
+                              color: isSelected ? Colors.redAccent : Colors.white24,
+                              width: isSelected ? 1.5 : 1.0,
+                            ),
+                          ),
+                          clipBehavior: Clip.antiAlias,
+                          child: InkWell(
+                            onTap: () {
+                              if (_activeServerIndex != s['index']) {
+                                setState(() {
+                                  _activeServerIndex = s['index'];
+                                  _retryCount = 0;
+                                });
+                                _reopenCurrentStream();
+                              }
+                            },
+                            child: Padding(
+                              padding: const EdgeInsets.symmetric(horizontal: 14),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  if (isSelected) ...[
+                                    const Icon(Icons.play_circle_outline, color: Colors.white, size: 16),
+                                    const SizedBox(width: 6),
+                                  ],
+                                  Text(
+                                    s['name'],
+                                    style: TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 12,
+                                      fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+                );
+              }),
+            ),
           // Quality and Fullscreen (Bottom Right)
           if (!_isFullscreen)
             Positioned(

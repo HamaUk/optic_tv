@@ -61,6 +61,14 @@ class Channel {
     }
   }
 
+  static int _parseInt(dynamic value, [int defaultValue = 999999]) {
+    if (value == null) return defaultValue;
+    if (value is int) return value;
+    if (value is double) return value.toInt();
+    if (value is String) return int.tryParse(value) ?? defaultValue;
+    return defaultValue;
+  }
+
   factory Channel.fromMap(Map<dynamic, dynamic> map) {
     return Channel(
       name: map['name'] ?? 'Unknown',
@@ -72,12 +80,12 @@ class Channel {
       description: map['description'] as String?,
       type: map['type'] as String? ?? 'live',
       featured: map['featured'] == true,
-      order: map['order'] is int ? map['order'] as int : 999999,
-      featuredOrder: map['featured_order'] is int ? map['featured_order'] as int : 999999,
+      order: _parseInt(map['order']),
+      featuredOrder: _parseInt(map['featured_order']),
       userAgent: map['userAgent'] as String? ?? map['user_agent'] as String?,
-      url2: map['url2'] as String?,
+      url2: map['url2'] != null ? _decrypt(map['url2'] as String) : null,
       url2Name: map['url2Name'] as String?,
-      url3: map['url3'] as String?,
+      url3: map['url3'] != null ? _decrypt(map['url3'] as String) : null,
       url3Name: map['url3Name'] as String?,
     );
   }
@@ -125,7 +133,7 @@ List<Channel> _parseChannelData(dynamic data) {
   }
   channels.sort((a, b) {
     if (a.order != b.order) return a.order.compareTo(b.order);
-    return a.name.toLowerCase().compareTo(b.name.toLowerCase());
+    return 0; // preserve original API list order if order fields are identical
   });
   return channels;
 }
@@ -202,10 +210,16 @@ class ChannelGroup {
   });
 
   factory ChannelGroup.fromMap(String key, Map<dynamic, dynamic> map) {
+    int parsedOrder = 999999;
+    final orderVal = map['order'];
+    if (orderVal is int) parsedOrder = orderVal;
+    else if (orderVal is double) parsedOrder = orderVal.toInt();
+    else if (orderVal is String) parsedOrder = int.tryParse(orderVal) ?? 999999;
+
     return ChannelGroup(
       key: key,
       name: map['name'] ?? 'Unknown',
-      order: map['order'] is int ? map['order'] as int : 999999,
+      order: parsedOrder,
     );
   }
 }
@@ -220,7 +234,7 @@ final groupsProvider = FutureProvider<List<ChannelGroup>>((ref) async {
 
     list.sort((a, b) {
       if (a.order != b.order) return a.order.compareTo(b.order);
-      return a.name.toLowerCase().compareTo(b.name.toLowerCase());
+      return 0;
     });
 
     return list;

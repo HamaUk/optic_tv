@@ -215,6 +215,12 @@ class AppStrings {
     return 'Clock in player';
   }
 
+  String serverName(int number) {
+    if (isKurmanji) return 'PÊŞKÊŞKER $number';
+    if (isSorani) return 'سێرڤەری $number';
+    return 'SERVER $number';
+  }
+
   String get clockSub {
     if (isKurmanji) return 'Dema lîstikvan nîşan bide';
     if (isSorani) return 'پیشاندانی کات لە شریتی سەرەوە';

@@ -791,16 +791,17 @@ class _FullscreenPlayerPageState extends ConsumerState<FullscreenPlayerPage> {
   }
 
   Widget _buildHorizontalServerSelection(Color accent) {
+    final sLoc = AppStrings(ref.watch(appLocaleProvider));
     List<Map<String, dynamic>> servers = [
-      {'index': 0, 'name': 'Server 1', 'url': _currentChannel.url},
+      {'index': 0, 'name': sLoc.serverName(1), 'url': _currentChannel.url},
     ];
 
     if (_currentChannel.url2 != null && _currentChannel.url2!.trim().isNotEmpty) {
-      final n = (_currentChannel.url2Name != null && _currentChannel.url2Name!.trim().isNotEmpty) ? _currentChannel.url2Name! : 'Server 2';
+      final n = (_currentChannel.url2Name != null && _currentChannel.url2Name!.trim().isNotEmpty) ? _currentChannel.url2Name! : sLoc.serverName(2);
       servers.add({'index': 1, 'name': n, 'url': _currentChannel.url2!});
     }
     if (_currentChannel.url3 != null && _currentChannel.url3!.trim().isNotEmpty) {
-      final n = (_currentChannel.url3Name != null && _currentChannel.url3Name!.trim().isNotEmpty) ? _currentChannel.url3Name! : 'Server 3';
+      final n = (_currentChannel.url3Name != null && _currentChannel.url3Name!.trim().isNotEmpty) ? _currentChannel.url3Name! : sLoc.serverName(3);
       servers.add({'index': 2, 'name': n, 'url': _currentChannel.url3!});
     }
 
