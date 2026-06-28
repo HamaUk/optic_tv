@@ -22,7 +22,6 @@ import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.input.key.nativeKeyEvent
 import androidx.compose.ui.input.key.onKeyEvent
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
@@ -233,25 +232,29 @@ fun PlayerScreen(
             .focusRequester(focusRequester)
             .focusable()
             .onKeyEvent { keyEvent ->
-                if (keyEvent.nativeKeyEvent.action == KeyEvent.ACTION_DOWN) {
+                if (keyEvent.type == androidx.compose.ui.input.key.KeyEventType.KeyDown) {
                     controlHideTrigger++ 
                     infoBannerHideTrigger++
                     
-                    when (val code = keyEvent.nativeKeyEvent.keyCode) {
-                        in KeyEvent.KEYCODE_0..KeyEvent.KEYCODE_9 -> {
-                            val digit = code - KeyEvent.KEYCODE_0
-                            if (channelNumberInput.length < 4) {
-                                channelNumberInput += digit.toString()
-                            }
-                            true
-                        }
-                        KeyEvent.KEYCODE_DPAD_CENTER,
-                        KeyEvent.KEYCODE_ENTER -> {
+                    when (keyEvent.key) {
+                        androidx.compose.ui.input.key.Key.Zero -> { if (channelNumberInput.length < 4) channelNumberInput += "0"; true }
+                        androidx.compose.ui.input.key.Key.One -> { if (channelNumberInput.length < 4) channelNumberInput += "1"; true }
+                        androidx.compose.ui.input.key.Key.Two -> { if (channelNumberInput.length < 4) channelNumberInput += "2"; true }
+                        androidx.compose.ui.input.key.Key.Three -> { if (channelNumberInput.length < 4) channelNumberInput += "3"; true }
+                        androidx.compose.ui.input.key.Key.Four -> { if (channelNumberInput.length < 4) channelNumberInput += "4"; true }
+                        androidx.compose.ui.input.key.Key.Five -> { if (channelNumberInput.length < 4) channelNumberInput += "5"; true }
+                        androidx.compose.ui.input.key.Key.Six -> { if (channelNumberInput.length < 4) channelNumberInput += "6"; true }
+                        androidx.compose.ui.input.key.Key.Seven -> { if (channelNumberInput.length < 4) channelNumberInput += "7"; true }
+                        androidx.compose.ui.input.key.Key.Eight -> { if (channelNumberInput.length < 4) channelNumberInput += "8"; true }
+                        androidx.compose.ui.input.key.Key.Nine -> { if (channelNumberInput.length < 4) channelNumberInput += "9"; true }
+                        androidx.compose.ui.input.key.Key.DirectionCenter,
+                        androidx.compose.ui.input.key.Key.NumPadEnter,
+                        androidx.compose.ui.input.key.Key.Enter -> {
                             showControls = !showControls
                             showChannelInfoBanner = false
                             true
                         }
-                        KeyEvent.KEYCODE_BACK -> {
+                        androidx.compose.ui.input.key.Key.Back -> {
                             if (showControls) {
                                 showControls = false
                                 true
