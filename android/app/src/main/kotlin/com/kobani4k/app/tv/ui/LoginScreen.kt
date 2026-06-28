@@ -140,7 +140,7 @@ fun LoginScreen(onLoginSuccess: () -> Unit) {
 
                 AnimatedVisibility(visible = errorMessage != null) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(painter = painterResource(id = R.drawable.mtrl_ic_error), contentDescription = null, tint = TextError, modifier = Modifier.size(20.dp))
+                        Text("!", color = TextError, fontFamily = PoppinsFamily, fontWeight = FontWeight.Bold, fontSize = 20.sp)
                         Spacer(modifier = Modifier.width(8.dp))
                         Text(
                             text = errorMessage ?: "",
@@ -327,11 +327,12 @@ fun KeypadButton(
             contentAlignment = Alignment.Center
         ) {
             if (label == "DEL") {
-                Icon(
-                    painter = painterResource(id = R.drawable.material_ic_clear_black_24dp),
-                    contentDescription = "Delete",
-                    modifier = Modifier.size(24.dp),
-                    tint = if (isFocused) CanvasColor else BrandGold
+                Text(
+                    text = "⌫",
+                    fontFamily = PoppinsFamily,
+                    fontSize = 24.sp,
+                    color = if (isFocused) CanvasColor else BrandGold,
+                    fontWeight = FontWeight.Bold
                 )
             } else if (label == "CLR") {
                 Text(

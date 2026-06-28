@@ -17,6 +17,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.key.nativeKeyEvent
+import androidx.compose.ui.input.key.onKeyEvent
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.Font
@@ -451,7 +453,7 @@ fun ChannelCard(
             .height(96.dp)
             .scale(scale)
             .onFocusChanged { isFocused = it.isFocused }
-            .androidx.compose.ui.input.key.onKeyEvent { keyEvent ->
+            .onKeyEvent { keyEvent ->
                 if (keyEvent.nativeKeyEvent.action == android.view.KeyEvent.ACTION_DOWN) {
                     when (keyEvent.nativeKeyEvent.keyCode) {
                         android.view.KeyEvent.KEYCODE_BACK -> {
