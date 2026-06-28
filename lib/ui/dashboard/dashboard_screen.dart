@@ -673,7 +673,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
     // Landscape: side rail + content column.
     // Wrap content in SafeArea to guard against right-side notch/camera.
     final isTv = ref.watch(deviceTypeProvider).asData?.value == DeviceType.tv;
-    final contentDir = s.locale.languageCode == 'ckb' ? TextDirection.rtl : TextDirection.ltr;
+    final contentDir = TextDirection.ltr;
     final insets = MediaQuery.paddingOf(context);
     final bodyColumn = Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
