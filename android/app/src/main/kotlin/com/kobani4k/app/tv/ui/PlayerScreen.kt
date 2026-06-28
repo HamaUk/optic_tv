@@ -271,7 +271,7 @@ fun PlayerScreen(
                             }
                             false
                         }
-                        KeyEvent.KEYCODE_BACK -> {
+                        KeyEvent.KEYCODE_BACK, KeyEvent.KEYCODE_ESCAPE -> {
                             when {
                                 activeMenu != ActiveMenu.NONE -> { activeMenu = ActiveMenu.NONE; true }
                                 showControls -> { showControls = false; true }
