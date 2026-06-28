@@ -164,7 +164,7 @@ fun DashboardScreen(
                     ) {
                         Button(
                             onClick = onLogout,
-                            shape = RoundedCornerShape(12.dp),
+                            shape = ButtonDefaults.shape(RoundedCornerShape(12.dp)),
                             colors = ButtonDefaults.colors(
                                 containerColor = UltraTokens.Surface2,
                                 contentColor = UltraTokens.Fg,
