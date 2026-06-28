@@ -25,17 +25,28 @@ import 'package:flutter_jailbreak_detection/flutter_jailbreak_detection.dart';
 void main() async {
   HttpOverrides.global = GlobalSecurityHttpOverrides();
   WidgetsFlutterBinding.ensureInitialized();
-  
-  await Firebase.initializeApp(
-    options: DefaultFirebaseOptions.currentPlatform,
-  );
-  await NotificationService().initialize();
 
-  
-  // RASP Security Check: Block Rooted / Jailbroken Devices
+  // Firebase MUST be initialized before runApp so MethodChannels work
+  try {
+    await Firebase.initializeApp(
+      options: DefaultFirebaseOptions.currentPlatform,
+    );
+  } catch (e) {
+    debugPrint('Firebase initialization failed: $e');
+  }
+
+  // Notifications init can fail safely
+  try {
+    await NotificationService().initialize();
+  } catch (e) {
+    debugPrint('Notification init failed: $e');
+  }
+
+  // RASP Security Check (with timeout to prevent hangs)
   if (!identical(0, 0.0) && Platform.isAndroid || Platform.isIOS) {
     try {
-      final bool jailbroken = await FlutterJailbreakDetection.jailbroken;
+      final bool jailbroken = await FlutterJailbreakDetection.jailbroken
+          .timeout(const Duration(seconds: 3), onTimeout: () => false);
       if (jailbroken) {
         debugPrint('Security violation: Device is rooted/jailbroken.');
         SystemNavigator.pop();
@@ -50,7 +61,6 @@ void main() async {
 
   try {
     PocketBaseService().initialize('http://64.225.76.43', prefs);
-    // We will handle notifications via PocketBase later if needed, or simply not initialize FCM.
   } catch (e) {
     debugPrint('PocketBase initialization failed: $e');
   }
@@ -174,27 +184,29 @@ class _OpticTvAppState extends ConsumerState<OpticTvApp> with WidgetsBindingObse
         GlobalCupertinoLocalizations.delegate,
       ],
       supportedLocales: const [Locale('en')],
-      home: Consumer(
-        builder: (context, ref, child) {
-          final securityCheckAsync = ref.watch(securityCheckProvider);
-          
-          return securityCheckAsync.when(
-            data: (maliciousApps) {
-              if (maliciousApps.isNotEmpty) {
-                return _buildSecurityWarning(maliciousApps);
-              }
+      home: widget.isFirstLaunch
+        ? const OnboardingScreen()
+        : Consumer(
+            builder: (context, ref, child) {
+              final securityCheckAsync = ref.watch(securityCheckProvider);
               
-              if (widget.isFirstLaunch) return const OnboardingScreen();
-              return session.loggedIn ? const DashboardScreen() : const LoginScreen();
+              return securityCheckAsync.when(
+                data: (maliciousApps) {
+                  if (maliciousApps.isNotEmpty) {
+                    return _buildSecurityWarning(maliciousApps);
+                  }
+                  return session.loggedIn ? const DashboardScreen() : const LoginScreen();
+                },
+                loading: () => const Scaffold(
+                  backgroundColor: Colors.black,
+                  body: Center(child: CircularProgressIndicator(color: Color(0xFFE5A922))),
+                ),
+                error: (_, __) {
+                  return session.loggedIn ? const DashboardScreen() : const LoginScreen();
+                },
+              );
             },
-            loading: () => const Scaffold(backgroundColor: Colors.black, body: Center(child: CircularProgressIndicator())),
-            error: (_, __) {
-              if (widget.isFirstLaunch) return const OnboardingScreen();
-              return session.loggedIn ? const DashboardScreen() : const LoginScreen();
-            },
-          );
-        },
-      ),
+          ),
     );
   }
 

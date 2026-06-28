@@ -79,5 +79,11 @@ class SecurityService {
 }
 
 final securityCheckProvider = FutureProvider<List<String>>((ref) async {
-  return SecurityService.checkMaliciousApps();
+  try {
+    return await SecurityService.checkMaliciousApps()
+        .timeout(const Duration(seconds: 5), onTimeout: () => <String>[]);
+  } catch (e) {
+    debugPrint('Security check failed: $e');
+    return <String>[];
+  }
 });
