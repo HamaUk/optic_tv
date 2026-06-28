@@ -291,7 +291,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen>
               // Logo with glow
               Container(
                 decoration: BoxDecoration(
-                  shape: BoxShape.circle,
+                  borderRadius: BorderRadius.circular(28),
                   boxShadow: [
                     BoxShadow(
                       color: const Color(0xFFE5A922).withValues(alpha: 0.3),
@@ -300,12 +300,13 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen>
                     ),
                   ],
                 ),
-                child: ClipOval(
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(28),
                   child: Image.asset(
                     'assets/images/logo.png',
-                    width: 130,
-                    height: 130,
-                    fit: BoxFit.cover,
+                    width: 140,
+                    height: 140,
+                    fit: BoxFit.contain,
                     errorBuilder: (_, __, ___) => const Icon(
                       Icons.live_tv,
                       size: 100,
@@ -438,11 +439,11 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen>
               ),
               const SizedBox(height: 48),
 
-              _buildLangBtn('🇮🇶  کوردی (سۆرانی)', 'ckb', 0),
+              _buildLangBtn('کوردی (سۆرانی)', 'ckb', 0),
               const SizedBox(height: 16),
-              _buildLangBtn('🇹🇷  Kurdî (Kurmancî)', 'kmr', 1),
+              _buildLangBtn('Kurdî (Kurmancî)', 'kmr', 1),
               const SizedBox(height: 16),
-              _buildLangBtn('🇬🇧  English', 'en', 2),
+              _buildLangBtn('English', 'en', 2),
             ],
           ),
         ),
