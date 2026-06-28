@@ -250,18 +250,6 @@ class _FullscreenPlayerPageState extends ConsumerState<FullscreenPlayerPage> {
     });
   }
 
-  void _scrollToActiveChannel() {
-    if (!_scrollController.hasClients) return;
-    const cardWidth = 116.0; // 100 card width + 16 horizontal margins
-    final targetOffset = _currentIndex * cardWidth - (MediaQuery.of(context).size.width / 2) + (cardWidth / 2);
-    final clampedOffset = targetOffset.clamp(0.0, _scrollController.position.maxScrollExtent);
-    _scrollController.animateTo(
-      clampedOffset,
-      duration: const Duration(milliseconds: 300),
-      curve: Curves.easeInOut,
-    );
-  }
-
   void _showAspectDialog() {
     final options = [
       {'label': 'Default (Auto Fit)', 'fit': BoxFit.contain},

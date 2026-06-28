@@ -48,7 +48,6 @@ class _TvPlayerLauncherState extends ConsumerState<TvPlayerLauncher> {
 
   Future<void> _initPlayer() async {
     final c = widget.channels[widget.initialIndex];
-    await _player.init();
     await _player.open(c.url, headers: {
       'User-Agent': c.userAgent ?? 'SmartIPTV',
       'X-Optic-Security-Token': 'k4k-secure-stream-99X'
