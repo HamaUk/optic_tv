@@ -778,7 +778,10 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
                           child: IntrinsicHeight(
                             child: Column(
                               children: [
-                                KobaniWordmark(height: isCompact ? 18 : 24),
+                                GestureDetector(
+                                  onTap: _onLogoTapForAdminPortal,
+                                  child: KobaniWordmark(height: isCompact ? 18 : 24),
+                                ),
                                 SizedBox(height: isCompact ? 20 : 60),
                                 _railItem(s, 0, Icons.grid_view_rounded, s.navHome, _navIndex == 0, isCompact: isCompact),
                                 SizedBox(height: isCompact ? 8 : 16),
@@ -882,22 +885,25 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
           ),
           const SizedBox(width: 8),
           // Glass Logo Container
-          Expanded(
-            child: _glassContainer(
-              borderRadius: BorderRadius.circular(14),
-              child: InkWell(
-                onTap: _onLogoTapForAdminPortal,
+          if (!landscape)
+            Expanded(
+              child: _glassContainer(
                 borderRadius: BorderRadius.circular(14),
-                child: SizedBox(
-                  width: double.infinity,
-                  height: tv ? 48 : (landscape ? 36 : 44),
-                  child: Center(
-                    child: KobaniWordmark(height: tv ? 30 : (landscape ? 18 : 26)),
+                child: InkWell(
+                  onTap: _onLogoTapForAdminPortal,
+                  borderRadius: BorderRadius.circular(14),
+                  child: SizedBox(
+                    width: double.infinity,
+                    height: tv ? 48 : 44,
+                    child: Center(
+                      child: KobaniWordmark(height: tv ? 30 : 26),
+                    ),
                   ),
                 ),
               ),
-            ),
-          ),
+            )
+          else
+            const Spacer(),
           const SizedBox(width: 8),
           // Glass Search Toggle
           _glassContainer(
