@@ -713,8 +713,9 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
     final picker = ImagePicker();
     final file = await picker.pickImage(
       source: ImageSource.gallery,
-      maxWidth: 512,
-      imageQuality: 85,
+      maxWidth: 96,
+      maxHeight: 96,
+      imageQuality: 40,
     );
     if (file == null || !mounted) return;
     try {
@@ -727,7 +728,12 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
               bytes[3] == 0x47)
           ? 'image/png'
           : 'image/jpeg';
-      controller.text = 'data:$mime;base64,$b64';
+      final b64String = 'data:$mime;base64,$b64';
+      if (b64String.length > 4900) {
+        _snack('Image is still too large (${b64String.length} chars). Please use an image URL instead.', error: true);
+        return;
+      }
+      controller.text = b64String;
       setState(() {});
       after?.call();
       _snack('Logo image attached');
