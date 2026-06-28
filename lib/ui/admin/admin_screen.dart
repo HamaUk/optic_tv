@@ -14,6 +14,9 @@ import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
 
 import '../../core/theme.dart';
+import '../../services/settings_service.dart';
+import '../../services/notification_service.dart';
+import '../player/fullscreen_player_page.dart';
 import '../../services/auth_service.dart';
 import '../../widgets/channel_logo_image.dart';
 import '../../services/tmdb_service.dart';
@@ -3592,11 +3595,23 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
         'timestamp': DateTime.now().toUtc().toIso8601String(),
       };
 
-      // 1. Broadcast to all active units
+      // 1. Broadcast to all active units (local in-app popup)
       await _notifBroadcastRef.set(notifObj);
       
       // 2. Save to history
       await _notifHistoryRef.push().set(notifObj);
+
+      // 3. Send Native Push Notification via OneSignal
+      try {
+        await NotificationService().sendPushNotification(
+          title: title,
+          body: body,
+          imageUrl: img.isEmpty ? null : img,
+        );
+      } catch (e) {
+        debugPrint('OneSignal push failed: $e');
+        // We still continue even if push fails
+      }
 
       _notifTitleController.clear();
       _notifBodyController.clear();
