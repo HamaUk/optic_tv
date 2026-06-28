@@ -14,6 +14,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
@@ -254,15 +255,54 @@ fun DashboardScreen(
                         Text("NO CATEGORIES FOUND", color = TextSecondary, fontFamily = PoppinsFamily, fontSize = 16.sp, fontWeight = FontWeight.Medium)
                     }
                 } else {
-                    LazyVerticalGrid(
-                        columns = GridCells.Fixed(4),
-                        horizontalArrangement = Arrangement.spacedBy(16.dp),
-                        verticalArrangement = Arrangement.spacedBy(16.dp),
-                        modifier = Modifier.fillMaxSize()
+                    val heroChannel = remember(allChannels, selectedMenu) { 
+                        allChannels.firstOrNull { ch -> 
+                            when (selectedMenu) {
+                                TvMenu.LIVE_TV -> ch.type == "live" && !ch.group.contains("sport", ignoreCase = true)
+                                TvMenu.MOVIES -> ch.type == "movie"
+                                TvMenu.SPORTS -> ch.group.contains("sport", ignoreCase = true) || ch.type == "sports"
+                                else -> false
+                            }
+                        } 
+                    }
+                    
+                    androidx.compose.foundation.lazy.LazyColumn(
+                        modifier = Modifier.fillMaxSize(),
+                        contentPadding = PaddingValues(bottom = 32.dp)
                     ) {
+                        if (heroChannel != null && selectedMenu != TvMenu.FAVORITES) {
+                            item {
+                                HeroCarousel(
+                                    channel = heroChannel,
+                                    onPlay = { onChannelSelected(heroChannel) }
+                                )
+                                Spacer(modifier = Modifier.height(32.dp))
+                            }
+                        }
+                        
                         items(categories.size) { index ->
                             val cat = categories[index]
-                            CategoryCard(title = cat, onClick = { activeCategory = cat })
+                            val catChannels = allChannels.filter { ch -> 
+                                when (selectedMenu) {
+                                    TvMenu.LIVE_TV -> ch.type == "live" && !ch.group.contains("sport", ignoreCase = true) && (ch.group.trim().ifEmpty { "General" } == cat)
+                                    TvMenu.MOVIES -> ch.type == "movie" && (ch.group.trim().ifEmpty { "General" } == cat)
+                                    TvMenu.SPORTS -> (ch.group.contains("sport", ignoreCase = true) || ch.type == "sports") && (ch.group.trim().ifEmpty { "Sports" } == cat)
+                                    TvMenu.FAVORITES -> favoritesSet.contains(ch.url)
+                                    else -> false
+                                }
+                            }
+                            
+                            if (catChannels.isNotEmpty()) {
+                                ContentRow(
+                                    title = cat,
+                                    channels = catChannels,
+                                    favoritesSet = favoritesSet,
+                                    onChannelSelected = onChannelSelected,
+                                    onToggleFavorite = { toggleFavorite(it) },
+                                    onViewAll = { activeCategory = cat }
+                                )
+                                Spacer(modifier = Modifier.height(24.dp))
+                            }
                         }
                     }
                 }
@@ -285,7 +325,8 @@ fun DashboardScreen(
                                 isFavorite = favoritesSet.contains(ch.url),
                                 onClick = { onChannelSelected(ch) },
                                 onToggleFavorite = { toggleFavorite(ch.url) },
-                                onBackPress = { activeCategory = null }
+                                onBackPress = { activeCategory = null },
+                                modifier = Modifier.fillMaxWidth()
                             )
                         }
                     }
@@ -424,7 +465,8 @@ fun ChannelCard(
     isFavorite: Boolean,
     onClick: () -> Unit,
     onToggleFavorite: () -> Unit,
-    onBackPress: () -> Unit
+    onBackPress: () -> Unit,
+    modifier: Modifier = Modifier
 ) {
     var isFocused by remember { mutableStateOf(false) }
     val scale by animateFloatAsState(targetValue = if (isFocused) 1.05f else 1.0f)
@@ -449,8 +491,7 @@ fun ChannelCard(
                 shape = RoundedCornerShape(16.dp)
             )
         ),
-        modifier = Modifier
-            .fillMaxWidth()
+        modifier = modifier
             .height(96.dp)
             .scale(scale)
             .onFocusChanged { isFocused = it.isFocused }
@@ -589,6 +630,94 @@ fun SettingsCard(
                 maxLines = 2,
                 overflow = TextOverflow.Ellipsis
             )
+        }
+    }
+}
+
+@OptIn(ExperimentalTvMaterial3Api::class)
+@Composable
+fun HeroCarousel(channel: TvChannel, onPlay: () -> Unit) {
+    var isFocused by remember { mutableStateOf(false) }
+    val scale by animateFloatAsState(targetValue = if (isFocused) 1.02f else 1.0f)
+    
+    Surface(
+        onClick = onPlay,
+        shape = ClickableSurfaceDefaults.shape(shape = RoundedCornerShape(16.dp)),
+        colors = ClickableSurfaceDefaults.colors(containerColor = SurfaceColor, focusedContainerColor = SurfaceElevatedColor),
+        border = ClickableSurfaceDefaults.border(
+            border = Border(androidx.compose.foundation.BorderStroke(1.dp, SurfaceColor), RoundedCornerShape(16.dp)),
+            focusedBorder = Border(androidx.compose.foundation.BorderStroke(3.dp, BrandGold), RoundedCornerShape(16.dp))
+        ),
+        modifier = Modifier.fillMaxWidth().height(320.dp).scale(scale).onFocusChanged { isFocused = it.isFocused }
+    ) {
+        Box(modifier = Modifier.fillMaxSize()) {
+            if (!channel.logo.isNullOrEmpty()) {
+                AsyncImage(
+                    model = channel.logo,
+                    contentDescription = null,
+                    contentScale = androidx.compose.ui.layout.ContentScale.Crop,
+                    modifier = Modifier.matchParentSize().alpha(0.6f)
+                )
+            }
+            Box(
+                modifier = Modifier.matchParentSize().background(
+                    androidx.compose.ui.graphics.Brush.horizontalGradient(
+                        colors = listOf(CanvasColor.copy(alpha = 0.9f), CanvasColor.copy(alpha = 0.5f), Color.Transparent)
+                    )
+                )
+            )
+            Column(modifier = Modifier.align(Alignment.CenterStart).padding(32.dp).fillMaxWidth(0.6f)) {
+                Text(if (channel.type == "movie") "FEATURED MOVIE" else "FEATURED CHANNEL", color = BrandGold, fontFamily = PoppinsFamily, fontSize = 12.sp, fontWeight = FontWeight.Bold, letterSpacing = 2.sp)
+                Spacer(modifier = Modifier.height(8.dp))
+                Text(channel.name.uppercase(), color = TextPrimary, fontFamily = PoppinsFamily, fontSize = 36.sp, fontWeight = FontWeight.Bold, maxLines = 2, overflow = TextOverflow.Ellipsis)
+                Spacer(modifier = Modifier.height(16.dp))
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(painter = painterResource(id = R.drawable.ic_play), contentDescription = null, tint = CanvasColor, modifier = Modifier.size(24.dp).background(BrandGold, RoundedCornerShape(50)).padding(6.dp))
+                    Spacer(modifier = Modifier.width(12.dp))
+                    Text("WATCH NOW", color = TextPrimary, fontFamily = PoppinsFamily, fontSize = 16.sp, fontWeight = FontWeight.Bold)
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun ContentRow(title: String, channels: List<TvChannel>, favoritesSet: Set<String>, onChannelSelected: (TvChannel) -> Unit, onToggleFavorite: (String) -> Unit, onViewAll: () -> Unit) {
+    Column(modifier = Modifier.fillMaxWidth()) {
+        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+            Text(title.uppercase(), color = TextPrimary, fontFamily = PoppinsFamily, fontSize = 18.sp, fontWeight = FontWeight.Bold)
+            if (channels.size > 15) {
+                Text("VIEW ALL", color = BrandGold, fontFamily = PoppinsFamily, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+            }
+        }
+        Spacer(modifier = Modifier.height(16.dp))
+        androidx.compose.foundation.lazy.LazyRow(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+            items(minOf(channels.size, 15)) { index ->
+                val ch = channels[index]
+                ChannelCard(
+                    channel = ch,
+                    isFavorite = favoritesSet.contains(ch.url),
+                    onClick = { onChannelSelected(ch) },
+                    onToggleFavorite = { onToggleFavorite(ch.url) },
+                    onBackPress = {},
+                    modifier = Modifier.width(280.dp)
+                )
+            }
+            if (channels.size > 15) {
+                item {
+                    @OptIn(ExperimentalTvMaterial3Api::class)
+                    Surface(
+                        onClick = onViewAll,
+                        shape = ClickableSurfaceDefaults.shape(shape = RoundedCornerShape(16.dp)),
+                        colors = ClickableSurfaceDefaults.colors(containerColor = SurfaceColor, focusedContainerColor = BrandGold, contentColor = BrandGold, focusedContentColor = CanvasColor),
+                        modifier = Modifier.width(140.dp).height(96.dp)
+                    ) {
+                        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                            Text("VIEW ALL", fontFamily = PoppinsFamily, fontSize = 14.sp, fontWeight = FontWeight.Bold)
+                        }
+                    }
+                }
+            }
         }
     }
 }
