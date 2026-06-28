@@ -740,7 +740,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                       final updateData = ref.read(updateManagerProvider).asData?.value;
                       final localVersionCode = ref.read(appVersionCodeProvider).asData?.value ?? 0;
                       if (updateData != null && updateData.isActive && updateData.versionCode > localVersionCode) {
-                        UpdatePromptDialog.show(context, updateData);
+                        UpdatePromptDialog.show(context, updateData, s);
                       } else {
                         ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(s.locale.languageCode == 'kmr' ? 'Sepan nûjen e' : (s.locale.languageCode == 'ckb' ? 'ئەپەکە نوێکراوەتەوە' : 'App is up to date'))));
                       }

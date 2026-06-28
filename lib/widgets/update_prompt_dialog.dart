@@ -188,6 +188,7 @@ class _UpdatePromptDialogState extends State<UpdatePromptDialog> {
           ),
         ),
       ),
-    );
+    ),
+  );
   }
 }
