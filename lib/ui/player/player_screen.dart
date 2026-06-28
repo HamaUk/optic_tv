@@ -645,9 +645,9 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
           // Server Selector (Top Horizontal List)
           if (!_isFullscreen)
             Positioned(
-              top: 56,
-              left: 0,
-              right: 0,
+              top: 16,
+              left: 80,
+              right: 16,
               child: Builder(builder: (context) {
                 final sLoc = AppStrings(ref.watch(appLocaleProvider));
                 List<Map<String, dynamic>> servers = [
