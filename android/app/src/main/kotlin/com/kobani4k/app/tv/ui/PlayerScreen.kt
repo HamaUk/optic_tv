@@ -220,9 +220,9 @@ fun PlayerScreen(
                     wakeUpControls()
 
                     val isUp = keyEvent.nativeKeyEvent.keyCode == KeyEvent.KEYCODE_DPAD_UP ||
-                            keyEvent.nativeKeyEvent.keyCode == KeyEvent.KEYCODE_CHANNEL_UP
+                            keyEvent.nativeKeyEvent.keyCode == KeyEvent.KEYCODE_CHANNEL_UP || keyEvent.nativeKeyEvent.keyCode == KeyEvent.KEYCODE_NUMPAD_8
                     val isDown = keyEvent.nativeKeyEvent.keyCode == KeyEvent.KEYCODE_DPAD_DOWN ||
-                            keyEvent.nativeKeyEvent.keyCode == KeyEvent.KEYCODE_CHANNEL_DOWN
+                            keyEvent.nativeKeyEvent.keyCode == KeyEvent.KEYCODE_CHANNEL_DOWN || keyEvent.nativeKeyEvent.keyCode == KeyEvent.KEYCODE_NUMPAD_2
 
                     // Quick Zap when controls are hidden
                     if (!showControls && !showZapList && activeMenu == ActiveMenu.NONE) {
@@ -250,21 +250,21 @@ fun PlayerScreen(
                     }
 
                     when (keyEvent.nativeKeyEvent.keyCode) {
-                        KeyEvent.KEYCODE_DPAD_CENTER, KeyEvent.KEYCODE_ENTER -> {
+                        KeyEvent.KEYCODE_DPAD_CENTER, KeyEvent.KEYCODE_ENTER, KeyEvent.KEYCODE_NUMPAD_ENTER -> {
                             if (!showZapList && !showControls) {
                                 showZapList = true
                                 return@onKeyEvent true
                             }
                             false
                         }
-                        KeyEvent.KEYCODE_DPAD_DOWN -> {
+                        KeyEvent.KEYCODE_DPAD_DOWN, KeyEvent.KEYCODE_NUMPAD_2 -> {
                             if (!showZapList && !showControls) {
                                 showControls = true
                                 return@onKeyEvent true
                             }
                             false
                         }
-                        KeyEvent.KEYCODE_DPAD_LEFT -> {
+                        KeyEvent.KEYCODE_DPAD_LEFT, KeyEvent.KEYCODE_NUMPAD_4 -> {
                             if (!showZapList && !showControls) {
                                 showZapList = true
                                 return@onKeyEvent true
@@ -279,7 +279,7 @@ fun PlayerScreen(
                                 else -> { onBack(); true }
                             }
                         }
-                        KeyEvent.KEYCODE_MEDIA_PLAY_PAUSE -> {
+                        KeyEvent.KEYCODE_MEDIA_PLAY_PAUSE, KeyEvent.KEYCODE_MEDIA_PLAY, KeyEvent.KEYCODE_MEDIA_PAUSE, KeyEvent.KEYCODE_SPACE -> {
                             if (isPlayingState) exoPlayer.pause() else exoPlayer.play()
                             true
                         }
@@ -783,7 +783,7 @@ private fun OsdButton(
                 .onKeyEvent {
                     if (it.nativeKeyEvent.action == KeyEvent.ACTION_DOWN &&
                         (it.nativeKeyEvent.keyCode == KeyEvent.KEYCODE_DPAD_CENTER ||
-                                it.nativeKeyEvent.keyCode == KeyEvent.KEYCODE_ENTER)
+                                it.nativeKeyEvent.keyCode == KeyEvent.KEYCODE_ENTER || it.nativeKeyEvent.keyCode == KeyEvent.KEYCODE_NUMPAD_ENTER)
                     ) {
                         onClick()
                         true
@@ -846,7 +846,7 @@ private fun TrackOption(
             .onKeyEvent {
                 if (it.nativeKeyEvent.action == KeyEvent.ACTION_DOWN &&
                     (it.nativeKeyEvent.keyCode == KeyEvent.KEYCODE_DPAD_CENTER ||
-                            it.nativeKeyEvent.keyCode == KeyEvent.KEYCODE_ENTER)
+                            it.nativeKeyEvent.keyCode == KeyEvent.KEYCODE_ENTER || it.nativeKeyEvent.keyCode == KeyEvent.KEYCODE_NUMPAD_ENTER)
                 ) {
                     onClick()
                     true
@@ -980,7 +980,7 @@ private fun SettingRadioItem(
             .onKeyEvent {
                 if (it.nativeKeyEvent.action == KeyEvent.ACTION_DOWN &&
                     (it.nativeKeyEvent.keyCode == KeyEvent.KEYCODE_DPAD_CENTER ||
-                            it.nativeKeyEvent.keyCode == KeyEvent.KEYCODE_ENTER)
+                            it.nativeKeyEvent.keyCode == KeyEvent.KEYCODE_ENTER || it.nativeKeyEvent.keyCode == KeyEvent.KEYCODE_NUMPAD_ENTER)
                 ) {
                     onClick()
                     true

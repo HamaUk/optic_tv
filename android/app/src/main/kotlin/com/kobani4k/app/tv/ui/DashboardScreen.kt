@@ -321,7 +321,7 @@ private fun DashboardHeader(onSettingsClick: () -> Unit) {
                     .onKeyEvent { ev ->
                         if (ev.nativeKeyEvent.action == KeyEvent.ACTION_DOWN &&
                             (ev.nativeKeyEvent.keyCode == KeyEvent.KEYCODE_DPAD_CENTER ||
-                                    ev.nativeKeyEvent.keyCode == KeyEvent.KEYCODE_ENTER)
+                                    ev.nativeKeyEvent.keyCode == KeyEvent.KEYCODE_ENTER || ev.nativeKeyEvent.keyCode == KeyEvent.KEYCODE_NUMPAD_ENTER)
                         ) {
                             onSettingsClick()
                             true
@@ -825,7 +825,7 @@ private fun ThemeOptionRow(
             .onKeyEvent { ev ->
                 if (ev.nativeKeyEvent.action == KeyEvent.ACTION_DOWN &&
                     (ev.nativeKeyEvent.keyCode == KeyEvent.KEYCODE_DPAD_CENTER ||
-                            ev.nativeKeyEvent.keyCode == KeyEvent.KEYCODE_ENTER)
+                            ev.nativeKeyEvent.keyCode == KeyEvent.KEYCODE_ENTER || ev.nativeKeyEvent.keyCode == KeyEvent.KEYCODE_NUMPAD_ENTER)
                 ) {
                     onClick()
                     true
@@ -1221,7 +1221,7 @@ private fun SettingsToggleRow(
             .onKeyEvent { ev ->
                 if (ev.nativeKeyEvent.action == KeyEvent.ACTION_DOWN &&
                     (ev.nativeKeyEvent.keyCode == KeyEvent.KEYCODE_DPAD_CENTER ||
-                            ev.nativeKeyEvent.keyCode == KeyEvent.KEYCODE_ENTER)
+                            ev.nativeKeyEvent.keyCode == KeyEvent.KEYCODE_ENTER || ev.nativeKeyEvent.keyCode == KeyEvent.KEYCODE_NUMPAD_ENTER)
                 ) {
                     onToggle()
                     true
@@ -1312,7 +1312,7 @@ private fun SettingsRadioRow(
             .onKeyEvent { ev ->
                 if (ev.nativeKeyEvent.action == KeyEvent.ACTION_DOWN &&
                     (ev.nativeKeyEvent.keyCode == KeyEvent.KEYCODE_DPAD_CENTER ||
-                            ev.nativeKeyEvent.keyCode == KeyEvent.KEYCODE_ENTER)
+                            ev.nativeKeyEvent.keyCode == KeyEvent.KEYCODE_ENTER || ev.nativeKeyEvent.keyCode == KeyEvent.KEYCODE_NUMPAD_ENTER)
                 ) {
                     onClick()
                     true
@@ -1392,7 +1392,7 @@ private fun SettingsActionButton(
             .onKeyEvent { ev ->
                 if (ev.nativeKeyEvent.action == KeyEvent.ACTION_DOWN &&
                     (ev.nativeKeyEvent.keyCode == KeyEvent.KEYCODE_DPAD_CENTER ||
-                            ev.nativeKeyEvent.keyCode == KeyEvent.KEYCODE_ENTER)
+                            ev.nativeKeyEvent.keyCode == KeyEvent.KEYCODE_ENTER || ev.nativeKeyEvent.keyCode == KeyEvent.KEYCODE_NUMPAD_ENTER)
                 ) {
                     onClick()
                     true
@@ -1634,7 +1634,7 @@ private fun ChannelItem(
             .onKeyEvent { ev ->
                 if (ev.nativeKeyEvent.action == KeyEvent.ACTION_DOWN &&
                     (ev.nativeKeyEvent.keyCode == KeyEvent.KEYCODE_DPAD_CENTER ||
-                            ev.nativeKeyEvent.keyCode == KeyEvent.KEYCODE_ENTER)
+                            ev.nativeKeyEvent.keyCode == KeyEvent.KEYCODE_ENTER || ev.nativeKeyEvent.keyCode == KeyEvent.KEYCODE_NUMPAD_ENTER)
                 ) {
                     onClick()
                     true
