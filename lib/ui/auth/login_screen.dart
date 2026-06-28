@@ -86,17 +86,25 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
   }
 
   Future<void> _submit(AppStrings s) async {
+    FocusScope.of(context).unfocus();
     final code = _codeController.text.trim();
     if (code.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(s.loginErrorEmpty)),
+        SnackBar(content: Text(s.loginErrorEmpty, style: const TextStyle(color: Colors.white)), backgroundColor: Colors.redAccent),
       );
       return;
     }
     setState(() => _busy = true);
-    await ref.read(sessionProvider.notifier).loginWithCode(code);
+    final success = await ref.read(sessionProvider.notifier).loginWithCode(code);
     if (!mounted) return;
     setState(() => _busy = false);
+    
+    if (!success) {
+      final error = ref.read(sessionProvider).error ?? 'Invalid code.';
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(error, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)), backgroundColor: Colors.redAccent),
+      );
+    }
   }
 
   @override
@@ -263,6 +271,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
                       hint: s.loginHint,
                       icon: Icons.key_rounded,
                       obscure: true,
+                      onSubmitted: (_) => _submit(s),
                     ),
                     const SizedBox(height: 24),
                     _buildPrimaryButton(
@@ -443,6 +452,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
     required String hint,
     required IconData icon,
     bool obscure = false,
+    ValueChanged<String>? onSubmitted,
   }) {
     return Container(
       decoration: BoxDecoration(
@@ -457,6 +467,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
       child: TextField(
         controller: controller,
         obscureText: obscure,
+        onSubmitted: onSubmitted,
         style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.w900, letterSpacing: 1),
         decoration: InputDecoration(
           hintText: hint.toUpperCase(),
