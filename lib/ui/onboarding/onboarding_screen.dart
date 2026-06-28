@@ -106,7 +106,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
           Image.asset('assets/images/logo.png', width: 140, height: 140),
           const SizedBox(height: 32),
           Text(
-            t('Welcome to KOBANI 4K', 'بەخێربێیت بۆ KOBANI 4K'),
+            t('Welcome to KOBANI 4K', 'KOBANI 4K بەخێربێیت بۆ'),
             style: const TextStyle(color: Colors.white, fontSize: 36, fontWeight: FontWeight.w900, letterSpacing: 1.5),
             textAlign: TextAlign.center,
           ),
