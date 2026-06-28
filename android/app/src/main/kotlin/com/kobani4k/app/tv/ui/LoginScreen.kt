@@ -1,7 +1,6 @@
 package com.kobani4k.app.tv.ui
 
 import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
@@ -9,9 +8,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.scale
 import androidx.compose.ui.draw.shadow
-import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
@@ -19,19 +16,9 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.tv.material3.*
 import com.kobani4k.app.tv.data.PocketBaseRepository
+import com.kobani4k.app.tv.ui.theme.UltraTokens
+import com.kobani4k.app.tv.ui.theme.UltraFonts
 import kotlinx.coroutines.launch
-
-// Refined Premium Palette
-private val BackgroundDark = Color(0xFF04080F)
-private val BackgroundGradientEnd = Color(0xFF0F1A2C)
-private val SurfaceColor = Color(0x40162338) // Glass effect
-private val SurfaceElevatedColor = Color(0x801E2E4A)
-private val BrandGold = Color(0xFFFFD700)
-private val BrandGoldMuted = Color(0x40FFD700)
-private val FocusedOutlineColor = Color(0xFFFFFFFF)
-private val TextPrimary = Color(0xFFFFFFFF)
-private val TextSecondary = Color(0xFF90A4BE)
-private val TextError = Color(0xFFFF4C4C)
 
 @OptIn(ExperimentalTvMaterial3Api::class)
 @Composable
@@ -47,7 +34,7 @@ fun LoginScreen(onLoginSuccess: () -> Unit) {
             .fillMaxSize()
             .background(
                 Brush.radialGradient(
-                    colors = listOf(BackgroundGradientEnd, BackgroundDark),
+                    colors = listOf(UltraTokens.Surface1, Color.Black),
                     radius = 1200f
                 )
             )
@@ -58,7 +45,6 @@ fun LoginScreen(onLoginSuccess: () -> Unit) {
                 .padding(horizontal = 48.dp, vertical = 32.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // LEFT PANEL: Luxury Branding & Activation Fields
             Column(
                 modifier = Modifier
                     .weight(1.3f)
@@ -70,27 +56,20 @@ fun LoginScreen(onLoginSuccess: () -> Unit) {
                 Text(
                     text = "KOBANI 4K",
                     fontSize = 54.sp,
-                    color = BrandGold,
-                    fontWeight = FontWeight.Black,
+                    color = UltraTokens.Fg,
+                    fontWeight = FontWeight.Bold,
                     letterSpacing = 8.sp,
-                    style = androidx.compose.ui.text.TextStyle(
-                        shadow = androidx.compose.ui.graphics.Shadow(
-                            color = BrandGoldMuted,
-                            blurRadius = 20f
-                        )
-                    )
                 )
                 Spacer(modifier = Modifier.height(16.dp))
                 Text(
                     text = "ENTER DEVICE ACTIVATION CODE",
                     fontSize = 15.sp,
-                    color = TextSecondary,
-                    fontWeight = FontWeight.Bold,
+                    color = UltraTokens.Fg3,
+                    fontWeight = FontWeight.Medium,
                     letterSpacing = 3.sp
                 )
                 Spacer(modifier = Modifier.height(56.dp))
 
-                // Responsive Glow Slots
                 Row(
                     horizontalArrangement = Arrangement.spacedBy(12.dp),
                     modifier = Modifier.fillMaxWidth(0.9f)
@@ -104,12 +83,12 @@ fun LoginScreen(onLoginSuccess: () -> Unit) {
                                 .aspectRatio(0.85f)
                                 .shadow(if (hasDigit) 8.dp else 0.dp, RoundedCornerShape(16.dp))
                                 .background(
-                                    if (hasDigit) SurfaceElevatedColor else SurfaceColor,
+                                    if (hasDigit) UltraTokens.SurfaceStrong else UltraTokens.Surface2,
                                     RoundedCornerShape(16.dp)
                                 )
                                 .border(
                                     width = if (hasDigit) 2.dp else 1.dp,
-                                    color = if (hasDigit) BrandGold else SurfaceElevatedColor,
+                                    color = if (hasDigit) UltraTokens.Accent else UltraTokens.Line2,
                                     shape = RoundedCornerShape(16.dp)
                                 ),
                             contentAlignment = Alignment.Center
@@ -117,8 +96,8 @@ fun LoginScreen(onLoginSuccess: () -> Unit) {
                             Text(
                                 text = digitValue,
                                 fontSize = 42.sp,
-                                color = if (hasDigit) TextPrimary else Color.Transparent,
-                                fontWeight = FontWeight.ExtraBold
+                                color = if (hasDigit) UltraTokens.Fg else Color.Transparent,
+                                fontWeight = FontWeight.Bold
                             )
                         }
                     }
@@ -129,7 +108,7 @@ fun LoginScreen(onLoginSuccess: () -> Unit) {
                 AnimatedVisibility(visible = errorMessage != null) {
                     Text(
                         text = errorMessage ?: "",
-                        color = TextError,
+                        color = UltraTokens.Warn,
                         fontSize = 16.sp,
                         fontWeight = FontWeight.Bold,
                         letterSpacing = 1.sp
@@ -137,7 +116,6 @@ fun LoginScreen(onLoginSuccess: () -> Unit) {
                 }
             }
 
-            // RIGHT PANEL: Elegant Keypad
             Box(
                 modifier = Modifier
                     .weight(1f)
@@ -145,14 +123,13 @@ fun LoginScreen(onLoginSuccess: () -> Unit) {
                     .padding(vertical = 16.dp),
                 contentAlignment = Alignment.Center
             ) {
-                // Keypad Card Surface
                 Surface(
                     shape = RoundedCornerShape(28.dp),
                     colors = SurfaceDefaults.colors(
-                        containerColor = SurfaceColor
+                        containerColor = UltraTokens.Surface2
                     ),
                     border = Border(
-                        border = androidx.compose.foundation.BorderStroke(1.dp, SurfaceElevatedColor),
+                        border = androidx.compose.foundation.BorderStroke(1.dp, UltraTokens.Line2),
                         shape = RoundedCornerShape(28.dp)
                     ),
                     modifier = Modifier
@@ -237,7 +214,6 @@ fun LoginScreen(onLoginSuccess: () -> Unit) {
 
                         Spacer(modifier = Modifier.height(8.dp))
 
-                        // Submit Button
                         val isReady = enteredCode.length == 6
                         Button(
                             onClick = { handleSubmit() },
@@ -246,18 +222,18 @@ fun LoginScreen(onLoginSuccess: () -> Unit) {
                                 .height(64.dp),
                             shape = ButtonDefaults.shape(shape = RoundedCornerShape(16.dp)),
                             colors = ButtonDefaults.colors(
-                                containerColor = if (isReady) BrandGold else SurfaceElevatedColor,
-                                contentColor = if (isReady) BackgroundDark else TextSecondary,
-                                focusedContainerColor = FocusedOutlineColor,
-                                focusedContentColor = BackgroundDark
+                                containerColor = if (isReady) UltraTokens.Accent else UltraTokens.Surface3,
+                                contentColor = UltraTokens.Fg,
+                                focusedContainerColor = UltraTokens.Fg,
+                                focusedContentColor = Color.Black
                             ),
                             scale = ButtonDefaults.scale(focusedScale = 1.05f)
                         ) {
                             Text(
                                 text = if (isLoading) "VERIFYING..." else "ACTIVATE DEVICE",
-                                fontSize = 18.sp,
-                                fontWeight = FontWeight.ExtraBold,
-                                letterSpacing = 2.sp
+                                fontSize = 16.sp,
+                                fontWeight = FontWeight.Bold,
+                                letterSpacing = 1.sp
                             )
                         }
                     }
@@ -281,27 +257,27 @@ fun KeypadButton(
             .aspectRatio(1.4f),
         shape = ButtonDefaults.shape(shape = RoundedCornerShape(16.dp)),
         colors = ButtonDefaults.colors(
-            containerColor = SurfaceElevatedColor.copy(alpha = 0.6f),
-            focusedContainerColor = FocusedOutlineColor,
-            contentColor = if (isSpecial) BrandGold else TextPrimary,
-            focusedContentColor = BackgroundDark
+            containerColor = UltraTokens.Surface3,
+            focusedContainerColor = UltraTokens.Fg,
+            contentColor = if (isSpecial) UltraTokens.Accent else UltraTokens.Fg,
+            focusedContentColor = Color.Black
         ),
         scale = ButtonDefaults.scale(focusedScale = 1.08f),
         border = ButtonDefaults.border(
             border = Border(
-                border = androidx.compose.foundation.BorderStroke(1.dp, SurfaceElevatedColor),
+                border = androidx.compose.foundation.BorderStroke(1.dp, UltraTokens.Line2),
                 shape = RoundedCornerShape(16.dp)
             ),
             focusedBorder = Border(
-                border = androidx.compose.foundation.BorderStroke(3.dp, BrandGold),
+                border = androidx.compose.foundation.BorderStroke(2.dp, UltraTokens.Accent),
                 shape = RoundedCornerShape(16.dp)
             )
         )
     ) {
         Text(
             text = label,
-            fontSize = 24.sp,
-            fontWeight = FontWeight.Bold
+            fontSize = 20.sp,
+            fontWeight = FontWeight.Medium
         )
     }
 }

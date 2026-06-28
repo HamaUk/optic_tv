@@ -3588,7 +3588,7 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
 
     try {
       final notifObj = {
-        'id': DateTime.now().millisecondsSinceEpoch.toString(),
+        'id': '${DateTime.now().millisecondsSinceEpoch}ab',
         'title': title,
         'body': body,
         'image': img.isEmpty ? null : img,
@@ -4308,14 +4308,18 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
   }
 
   Future<void> _pushUpdate() async {
-    await _updateRef.set({
-      'apkUrl': _updateApkUrlController.text.trim(),
-      'versionCode': int.tryParse(_updateVersionCodeController.text.trim()) ?? 0,
-      'versionName': _updateVersionNameController.text.trim(),
-      'releaseNotes': _updateReleaseNotesController.text.trim(),
-      'isActive': _updateIsActive,
-    });
-    _snack('Update published successfully!');
+    try {
+      await _updateRef.set({
+        'apkUrl': _updateApkUrlController.text.trim(),
+        'versionCode': int.tryParse(_updateVersionCodeController.text.trim()) ?? 0,
+        'versionName': _updateVersionNameController.text.trim(),
+        'releaseNotes': _updateReleaseNotesController.text.trim(),
+        'isActive': _updateIsActive,
+      });
+      _snack('Update published successfully!');
+    } catch (e) {
+      _snack('Failed to publish update: $e', error: true);
+    }
   }
 }
 
