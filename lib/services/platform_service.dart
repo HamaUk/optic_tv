@@ -3,12 +3,20 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:device_info_plus/device_info_plus.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 enum DeviceType { phone, tv, web }
 
 class PlatformService {
   static Future<DeviceType> getDeviceType() async {
     if (kIsWeb) return DeviceType.web;
+
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final mode = prefs.getString('device_mode');
+      if (mode == 'tv') return DeviceType.tv;
+      if (mode == 'phone') return DeviceType.phone;
+    } catch (_) {}
 
     if (Platform.isAndroid) {
       final deviceInfo = DeviceInfoPlugin();
