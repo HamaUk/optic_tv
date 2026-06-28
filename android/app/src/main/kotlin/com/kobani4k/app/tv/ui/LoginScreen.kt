@@ -53,22 +53,22 @@ fun LoginScreen(onLoginSuccess: () -> Unit) {
         Box(
             modifier = Modifier
                 .offset(x = (-300).dp, y = (-200).dp)
-                .size(700.dp)
+                .size(800.dp)
                 .background(
                     Brush.radialGradient(
-                        colors = listOf(UltraTokens.Accent.copy(alpha = 0.2f), Color.Transparent),
-                        radius = 700f + (gradientOffset / 5f)
+                        colors = listOf(UltraTokens.Accent.copy(alpha = 0.35f), Color.Transparent),
+                        radius = 800f + (gradientOffset / 4f)
                     )
                 )
         )
         Box(
             modifier = Modifier
                 .offset(x = 350.dp, y = 200.dp)
-                .size(800.dp)
+                .size(900.dp)
                 .background(
                     Brush.radialGradient(
-                        colors = listOf(Color(0xFF6C20D6).copy(alpha = 0.15f), Color.Transparent),
-                        radius = 800f - (gradientOffset / 5f)
+                        colors = listOf(UltraTokens.Accent2.copy(alpha = 0.25f), Color.Transparent),
+                        radius = 900f - (gradientOffset / 4f)
                     )
                 )
         )
@@ -126,13 +126,17 @@ fun LoginScreen(onLoginSuccess: () -> Unit) {
                     modifier = Modifier.padding(bottom = 8.dp)
                 )
 
+                var isInputFocused by remember { mutableStateOf(false) }
+                val animatedBorder by animateColorAsState(if (isInputFocused) UltraTokens.Accent else Color.White.copy(alpha = 0.15f))
+                
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(56.dp)
-                        .background(Color(0xFF1A1B22), RoundedCornerShape(12.dp))
-                        .border(1.dp, Color.White.copy(alpha = 0.05f), RoundedCornerShape(12.dp))
-                        .padding(horizontal = 20.dp),
+                        .height(64.dp)
+                        .background(Color(0xFF1A1B22), RoundedCornerShape(16.dp))
+                        .border(2.dp, animatedBorder, RoundedCornerShape(16.dp))
+                        .padding(horizontal = 24.dp)
+                        .androidx.compose.ui.focus.onFocusChanged { isInputFocused = it.isFocused },
                     contentAlignment = Alignment.CenterStart
                 ) {
                     androidx.compose.foundation.text.BasicTextField(
@@ -199,15 +203,15 @@ fun LoginScreen(onLoginSuccess: () -> Unit) {
                         }
                     },
                     modifier = Modifier
-                        .width(240.dp)
-                        .height(48.dp)
+                        .width(260.dp)
+                        .height(56.dp)
                         .scale(buttonScale),
-                    shape = ButtonDefaults.shape(RoundedCornerShape(12.dp)),
+                    shape = ButtonDefaults.shape(RoundedCornerShape(16.dp)),
                     colors = ButtonDefaults.colors(
                         containerColor = UltraTokens.Accent,
                         contentColor = Color.White,
-                        focusedContainerColor = UltraTokens.AccentGlow,
-                        focusedContentColor = Color.White
+                        focusedContainerColor = Color.White,
+                        focusedContentColor = UltraTokens.Accent
                     )
                 ) {
                     Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {

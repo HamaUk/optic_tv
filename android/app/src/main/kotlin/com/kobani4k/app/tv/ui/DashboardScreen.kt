@@ -27,6 +27,10 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.focusRestorer
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.ui.draw.scale
+import androidx.compose.ui.graphics.Brush
 import androidx.tv.material3.*
 import coil.compose.AsyncImage
 import com.kobani4k.app.tv.data.PocketBaseRepository
@@ -101,18 +105,18 @@ fun DashboardScreen(
             // Sidebar
             Column(
                 modifier = Modifier
-                    .width(260.dp)
+                    .width(280.dp)
                     .fillMaxHeight()
-                    .background(UltraTokens.Surface1)
-                    .padding(vertical = 24.dp)
+                    .background(Color(0xFF0C0B10))
+                    .padding(vertical = 32.dp)
             ) {
                 Text(
-                    text = "CATEGORIES",
+                    text = "DISCOVER",
                     color = UltraTokens.Fg3,
-                    fontSize = 12.sp,
-                    fontWeight = FontWeight.Bold,
-                    letterSpacing = 1.5.sp,
-                    modifier = Modifier.padding(start = 24.dp, end = 24.dp, bottom = 16.dp)
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.Black,
+                    letterSpacing = 2.sp,
+                    modifier = Modifier.padding(start = 32.dp, end = 32.dp, bottom = 24.dp)
                 )
                 
                 LazyColumn(
@@ -216,28 +220,16 @@ fun CategoryItem(
 ) {
     var isFocused by remember { mutableStateOf(false) }
     
-    val bgColor = when {
-        isFocused -> UltraTokens.AccentSoft
-        isSelected -> UltraTokens.Surface2
-        else -> Color.Transparent
-    }
-    
-    val contentColor = when {
-        isFocused -> UltraTokens.Accent
-        isSelected -> UltraTokens.Fg
-        else -> UltraTokens.Fg2
-    }
+    val animatedScale by animateFloatAsState(if (isFocused) 1.05f else 1f)
+    val animatedBg by animateColorAsState(if (isFocused) UltraTokens.Accent else if (isSelected) Color.White.copy(alpha = 0.1f) else Color.Transparent)
+    val animatedContent by animateColorAsState(if (isFocused) Color.White else if (isSelected) UltraTokens.Fg else UltraTokens.Fg3)
 
     Box(
         modifier = modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(8.dp))
-            .background(bgColor)
-            .border(
-                width = if (isFocused) 2.dp else 0.dp,
-                color = if (isFocused) UltraTokens.Accent else Color.Transparent,
-                shape = RoundedCornerShape(8.dp)
-            )
+            .scale(animatedScale)
+            .clip(RoundedCornerShape(50))
+            .background(animatedBg)
             .clickable(onClick = onClick)
             .focusable()
             .onFocusChanged { state ->
@@ -250,9 +242,10 @@ fun CategoryItem(
     ) {
         Text(
             text = title,
-            color = contentColor,
+            color = animatedContent,
             fontSize = 16.sp,
-            fontWeight = if (isSelected || isFocused) FontWeight.SemiBold else FontWeight.Medium,
+            fontWeight = if (isSelected || isFocused) FontWeight.Bold else FontWeight.Medium,
+            letterSpacing = 0.5.sp,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis
         )
@@ -267,22 +260,25 @@ fun ChannelCard(
 ) {
     var isFocused by remember { mutableStateOf(false) }
 
+    val animatedScale by animateFloatAsState(if (isFocused) 1.08f else 1f)
+
     Card(
         onClick = onClick,
-        shape = CardDefaults.shape(RoundedCornerShape(10.dp)),
+        shape = CardDefaults.shape(RoundedCornerShape(12.dp)),
         colors = ultraCardColors(
-            containerColor = UltraTokens.Surface2,
-            focusedContainerColor = UltraTokens.AccentSoft
+            containerColor = Color(0xFF1A1A24),
+            focusedContainerColor = Color(0xFF1A1A24)
         ),
         border = CardDefaults.border(
             focusedBorder = Border(
-                border = androidx.compose.foundation.BorderStroke(2.dp, UltraTokens.Accent),
-                shape = RoundedCornerShape(10.dp)
+                border = androidx.compose.foundation.BorderStroke(3.dp, UltraTokens.Accent),
+                shape = RoundedCornerShape(12.dp)
             )
         ),
         modifier = Modifier
             .fillMaxWidth()
-            .aspectRatio(1f) // Square card
+            .aspectRatio(16f / 9f)
+            .scale(animatedScale)
             .onFocusChanged { isFocused = it.isFocused }
     ) {
         Column(
@@ -316,15 +312,18 @@ fun ChannelCard(
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .background(if (isFocused) UltraTokens.Accent else UltraTokens.Surface3)
-                    .padding(vertical = 8.dp, horizontal = 12.dp),
-                contentAlignment = Alignment.Center
+                    .background(
+                        if (isFocused) UltraTokens.GradientAccent 
+                        else Brush.verticalGradient(listOf(Color.Transparent, Color(0xCC000000)))
+                    )
+                    .padding(vertical = 12.dp, horizontal = 16.dp),
+                contentAlignment = Alignment.CenterStart
             ) {
                 Text(
                     text = channel.name,
-                    color = if (isFocused) Color.White else UltraTokens.Fg,
-                    fontSize = 14.sp,
-                    fontWeight = FontWeight.Medium,
+                    color = Color.White,
+                    fontSize = 15.sp,
+                    fontWeight = if (isFocused) FontWeight.Bold else FontWeight.Medium,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
                 )

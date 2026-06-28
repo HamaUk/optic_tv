@@ -9,12 +9,17 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
+
 object UltraTokens {
-    val Accent       = Color(0xFF3881A1)
-    val Accent2      = Color(0xFF51AAFF)
-    val AccentGlow   = Color(0x8C3881A1)
-    val AccentSoft   = Color(0x243881A1)
-    val AccentTint   = Color(0x1A3881A1)
+    val Accent       = Color(0xFF6C20D6) // Deep modern purple
+    val Accent2      = Color(0xFF00E5FF) // Neon Cyan
+    val AccentGlow   = Color(0x996C20D6)
+    val AccentSoft   = Color(0x336C20D6)
+    val AccentTint   = Color(0x1A6C20D6)
+
+    val GradientAccent = Brush.linearGradient(listOf(Color(0xFF8A2BE2), Color(0xFF4B0082)))
 
     val Live = Color(0xFFFF3A2F)
     val Hd   = Color(0xFF00E5A0)
@@ -101,17 +106,17 @@ object UltraType {
     )
     val ScreenTitle = TextStyle(
         fontFamily = UltraFonts.Sans,
-        fontSize = 36.sp,
-        lineHeight = 40.sp,
+        fontSize = 42.sp,
+        lineHeight = 48.sp,
         letterSpacing = (-0.5).sp,
-        fontWeight = FontWeight.SemiBold,
+        fontWeight = FontWeight.Bold,
     )
     val RailTitle = TextStyle(
         fontFamily = UltraFonts.Sans,
-        fontSize = 28.sp,
-        lineHeight = 32.sp,
+        fontSize = 32.sp,
+        lineHeight = 36.sp,
         letterSpacing = (-0.3).sp,
-        fontWeight = FontWeight.SemiBold,
+        fontWeight = FontWeight.Bold,
     )
     val SerifTitle = TextStyle(
         fontFamily = UltraFonts.Serif,

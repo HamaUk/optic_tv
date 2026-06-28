@@ -296,13 +296,13 @@ fun PlayerScreen(
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(160.dp)
+                        .height(200.dp)
                         .background(
                             Brush.verticalGradient(
-                                colors = listOf(Color.Black.copy(alpha = 0.85f), Color.Transparent)
+                                colors = listOf(Color.Black.copy(alpha = 0.95f), Color.Black.copy(alpha = 0.6f), Color.Transparent)
                             )
                         )
-                        .padding(horizontal = 48.dp, vertical = 32.dp),
+                        .padding(horizontal = 48.dp, vertical = 40.dp),
                     contentAlignment = Alignment.TopStart
                 ) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
@@ -327,14 +327,14 @@ fun PlayerScreen(
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(220.dp)
+                        .height(260.dp)
                         .align(Alignment.BottomCenter)
                         .background(
                             Brush.verticalGradient(
-                                colors = listOf(Color.Transparent, Color.Black.copy(alpha = 0.95f))
+                                colors = listOf(Color.Transparent, Color.Black.copy(alpha = 0.7f), Color.Black.copy(alpha = 0.98f))
                             )
                         )
-                        .padding(horizontal = 48.dp, vertical = 32.dp),
+                        .padding(horizontal = 48.dp, vertical = 40.dp),
                     contentAlignment = Alignment.BottomStart
                 ) {
                     Row(
@@ -439,7 +439,7 @@ internal fun LiveDrawer(
         Row(
             modifier = Modifier
                 .fillMaxHeight()
-                .background(Color(0xE60F0E17))
+                .background(Color(0xFA09090C)) // Highly opaque glass look
         ) {
             // Icon Menu
             Column(
@@ -511,7 +511,7 @@ internal fun LiveDrawer(
                             ) {
                                 Text(
                                     (index + 1).toString(),
-                                    color = Color.White,
+                                    color = if (isCurrent) UltraTokens.Accent else Color.White.copy(alpha = 0.5f),
                                     fontSize = 14.sp,
                                     fontWeight = FontWeight.Bold,
                                     modifier = Modifier.width(32.dp),
@@ -521,8 +521,8 @@ internal fun LiveDrawer(
                                     Text(
                                         e.name,
                                         color = if (isCurrent && !highlight) UltraTokens.Accent else Color.White,
-                                        fontSize = 14.sp,
-                                        fontWeight = FontWeight.Normal,
+                                        fontSize = 15.sp,
+                                        fontWeight = if (isCurrent) FontWeight.Bold else FontWeight.Medium,
                                         maxLines = 1,
                                     )
                                 }
