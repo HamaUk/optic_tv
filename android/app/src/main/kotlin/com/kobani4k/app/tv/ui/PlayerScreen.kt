@@ -87,11 +87,22 @@ fun PlayerScreen(
     var showControls by remember { mutableStateOf(false) }
     var activeMenu by remember { mutableStateOf(ActiveMenu.NONE) }
     var controlsActivityTrigger by remember { mutableStateOf(0) }
+    
+    var showZapBanner by remember { mutableStateOf(false) }
+    var zapBannerTrigger by remember { mutableStateOf(0) }
 
     var channelsList by remember { mutableStateOf<List<TvChannel>>(emptyList()) }
 
     LaunchedEffect(Unit) {
         channelsList = repository.getChannels()
+    }
+
+    // Auto-hide the Quick Zap banner after 3 seconds
+    LaunchedEffect(showZapBanner, zapBannerTrigger) {
+        if (showZapBanner) {
+            delay(3000)
+            showZapBanner = false
+        }
     }
 
     // Auto-hide controls after 5 seconds of inactivity
@@ -218,7 +229,11 @@ fun PlayerScreen(
                                     currentStreamUrl = ch.url
                                     currentChannelName = ch.name
                                     currentLogoUrl = ch.logo
-                                    showControls = true
+                                    
+                                    // PRO FIX: Show the dedicated Zap Banner, Hide full controls
+                                    showControls = false 
+                                    showZapBanner = true
+                                    zapBannerTrigger++
                                 }
                             }
                             return@onKeyEvent true
@@ -276,6 +291,104 @@ fun PlayerScreen(
         if (isBuffering) {
             Box(Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.4f)), contentAlignment = Alignment.Center) {
                 CircularProgressIndicator(color = UltraTokens.Accent, modifier = Modifier.size(64.dp))
+            }
+        }
+
+        // ==========================================
+        // DEDICATED QUICK ZAP BANNER (Professional)
+        // ==========================================
+        AnimatedVisibility(
+            visible = showZapBanner && !showControls && !showZapList,
+            enter = slideInVertically { it } + fadeIn(tween(300)),
+            exit = slideOutVertically { it } + fadeOut(tween(300)),
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .padding(start = 48.dp, end = 48.dp, bottom = 48.dp) // Floating effect
+        ) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(20.dp))
+                    .background(Brush.horizontalGradient(
+                        colors = listOf(
+                            Color(0xF00A0A0F), // Solid dark
+                            Color(0xE60A0A0F)  // Slightly transparent
+                        )
+                    ))
+                    .padding(horizontal = 32.dp, vertical = 24.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    // Channel Logo
+                    if (!currentLogoUrl.isNullOrEmpty()) {
+                        Box(
+                            modifier = Modifier
+                                .size(80.dp)
+                                .clip(RoundedCornerShape(12.dp))
+                                .background(Color.White.copy(0.05f))
+                                .padding(8.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            AsyncImage(
+                                model = currentLogoUrl,
+                                contentDescription = null,
+                                modifier = Modifier.fillMaxSize()
+                            )
+                        }
+                        Spacer(Modifier.width(24.dp))
+                    }
+                    
+                    // Channel Info
+                    Column {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Box(modifier = Modifier.size(8.dp).clip(CircleShape).background(Color.Red))
+                            Spacer(Modifier.width(8.dp))
+                            Text(
+                                text = "LIVE NOW",
+                                color = UltraTokens.Accent,
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.Bold,
+                                letterSpacing = 2.sp
+                            )
+                        }
+                        Spacer(Modifier.height(4.dp))
+                        Text(
+                            text = currentChannelName,
+                            color = Color.White,
+                            fontSize = 36.sp,
+                            fontWeight = FontWeight.Bold,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                    }
+                }
+
+                // Action Hint & System Clock
+                Column(horizontalAlignment = Alignment.End) {
+                    AndroidView(
+                        factory = { ctx ->
+                            TextClock(ctx).apply {
+                                format12Hour = "hh:mm a"
+                                format24Hour = "HH:mm"
+                                textSize = 24f
+                                setTextColor(android.graphics.Color.WHITE)
+                                typeface = android.graphics.Typeface.DEFAULT_BOLD
+                            }
+                        }
+                    )
+                    Spacer(Modifier.height(8.dp))
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text("Press ", color = Color.Gray, fontSize = 14.sp)
+                        Icon(
+                            imageVector = Icons.Rounded.RadioButtonChecked, // Center D-Pad Icon representation
+                            contentDescription = null,
+                            tint = Color.White,
+                            modifier = Modifier.size(16.dp)
+                        )
+                        Text(" for Options", color = Color.Gray, fontSize = 14.sp)
+                    }
+                }
             }
         }
 
