@@ -183,17 +183,33 @@ final channelsProvider = StreamProvider<List<Channel>>((ref) {
     }
   });
 
-  void fetchChannels() {
-    pb.send('/api/kobani-init').then((response) {
+  void fetchChannels() async {
+    try {
+      final response = await pb.send('/api/kobani-init');
       final List<dynamic> data = response as List<dynamic>;
+
+      // The custom /api/kobani-init route misses the 'order' field.
+      // We fetch it natively and merge it back into the payload.
+      final rawRecords = await pb.collection('managedPlaylist').getFullList(fields: 'id,order');
+      final orderMap = { for (var r in rawRecords) r.id: r.getIntValue('order', 999999) };
+      
+      for (var item in data) {
+        if (item is Map) {
+          final id = item['id'];
+          if (id != null && orderMap.containsKey(id)) {
+            item['order'] = orderMap[id];
+          }
+        }
+      }
+
       final channels = _parseChannelData(data);
       if (!controller.isClosed) {
         controller.add(channels);
         _saveChannelCache(channels);
       }
-    }).catchError((Object e) {
+    } catch (e) {
       if (!controller.isClosed) controller.addError(e);
-    });
+    }
   }
 
   // Step 2 — fetch from encrypted route
