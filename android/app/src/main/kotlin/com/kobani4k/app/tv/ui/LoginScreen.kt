@@ -444,8 +444,8 @@ private fun KeypadButton(
             .clip(RoundedCornerShape(12.dp))
             .background(bgColor)
             .border(1.dp, borderColor, RoundedCornerShape(12.dp))
-            .focusable()
             .onFocusChanged { isFocused = it.isFocused }
+            .focusable()
             .onKeyEvent { keyEvent ->
                 if (keyEvent.nativeKeyEvent.action == KeyEvent.ACTION_DOWN) {
                     when (keyEvent.nativeKeyEvent.keyCode) {
@@ -515,8 +515,8 @@ private fun LoginButton(
             .clip(RoundedCornerShape(14.dp))
             .background(bgColor)
             .border(2.dp, borderColor, RoundedCornerShape(14.dp))
-            .focusable()
             .onFocusChanged { isFocused = it.isFocused }
+            .focusable()
             .onKeyEvent { keyEvent ->
                 if (keyEvent.nativeKeyEvent.action == KeyEvent.ACTION_DOWN) {
                     when (keyEvent.nativeKeyEvent.keyCode) {

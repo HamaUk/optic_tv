@@ -316,8 +316,8 @@ private fun DashboardHeader(onSettingsClick: () -> Unit) {
                     .scale(settingsScale)
                     .clip(CircleShape)
                     .background(settingsBg)
-                    .focusable()
                     .onFocusChanged { settingsFocused = it.isFocused }
+                    .focusable()
                     .onKeyEvent { ev ->
                         if (ev.nativeKeyEvent.action == KeyEvent.ACTION_DOWN &&
                             (ev.nativeKeyEvent.keyCode == KeyEvent.KEYCODE_DPAD_CENTER ||
@@ -548,11 +548,11 @@ private fun SettingsCategoryItem(
             .scale(scale)
             .clip(RoundedCornerShape(10.dp))
             .background(bgColor)
-            .focusable()
             .onFocusChanged {
                 isFocused = it.isFocused
                 if (it.isFocused) onFocus()
             }
+            .focusable()
             .padding(horizontal = 16.dp, vertical = 14.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
@@ -820,8 +820,8 @@ private fun ThemeOptionRow(
             .fillMaxWidth()
             .clip(RoundedCornerShape(12.dp))
             .background(bgColor)
-            .focusable()
             .onFocusChanged { isFocused = it.isFocused }
+            .focusable()
             .onKeyEvent { ev ->
                 if (ev.nativeKeyEvent.action == KeyEvent.ACTION_DOWN &&
                     (ev.nativeKeyEvent.keyCode == KeyEvent.KEYCODE_DPAD_CENTER ||
@@ -1216,8 +1216,8 @@ private fun SettingsToggleRow(
             .clip(RoundedCornerShape(14.dp))
             .background(bgColor)
             .border(1.5.dp, borderColor, RoundedCornerShape(14.dp))
-            .focusable()
             .onFocusChanged { isFocused = it.isFocused }
+            .focusable()
             .onKeyEvent { ev ->
                 if (ev.nativeKeyEvent.action == KeyEvent.ACTION_DOWN &&
                     (ev.nativeKeyEvent.keyCode == KeyEvent.KEYCODE_DPAD_CENTER ||
@@ -1307,8 +1307,8 @@ private fun SettingsRadioRow(
             .fillMaxWidth()
             .clip(RoundedCornerShape(8.dp))
             .background(bgColor)
-            .focusable()
             .onFocusChanged { isFocused = it.isFocused }
+            .focusable()
             .onKeyEvent { ev ->
                 if (ev.nativeKeyEvent.action == KeyEvent.ACTION_DOWN &&
                     (ev.nativeKeyEvent.keyCode == KeyEvent.KEYCODE_DPAD_CENTER ||
@@ -1387,8 +1387,8 @@ private fun SettingsActionButton(
             .clip(RoundedCornerShape(14.dp))
             .background(bgColor)
             .border(1.5.dp, borderColor, RoundedCornerShape(14.dp))
-            .focusable()
             .onFocusChanged { isFocused = it.isFocused }
+            .focusable()
             .onKeyEvent { ev ->
                 if (ev.nativeKeyEvent.action == KeyEvent.ACTION_DOWN &&
                     (ev.nativeKeyEvent.keyCode == KeyEvent.KEYCODE_DPAD_CENTER ||
@@ -1511,11 +1511,11 @@ private fun CategoryItem(
             .scale(scale)
             .clip(RoundedCornerShape(10.dp))
             .background(bgColor)
-            .focusable()
             .onFocusChanged {
                 isFocused = it.isFocused
                 if (it.isFocused) onFocus()
             }
+            .focusable()
             .padding(horizontal = 16.dp, vertical = 15.dp),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
@@ -1626,11 +1626,11 @@ private fun ChannelItem(
             .scale(scale)
             .clip(RoundedCornerShape(10.dp))
             .background(bgColor)
-            .focusable()
             .onFocusChanged {
                 isFocused = it.isFocused
                 if (it.isFocused) onFocus()
             }
+            .focusable()
             .onKeyEvent { ev ->
                 if (ev.nativeKeyEvent.action == KeyEvent.ACTION_DOWN &&
                     (ev.nativeKeyEvent.keyCode == KeyEvent.KEYCODE_DPAD_CENTER ||

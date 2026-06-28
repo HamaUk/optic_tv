@@ -778,8 +778,8 @@ private fun OsdButton(
                 .clip(CircleShape)
                 .background(bgColor)
                 .border(2.dp, borderColor, CircleShape)
-                .focusable()
                 .onFocusChanged { isFocused = it.isFocused }
+                .focusable()
                 .onKeyEvent {
                     if (it.nativeKeyEvent.action == KeyEvent.ACTION_DOWN &&
                         (it.nativeKeyEvent.keyCode == KeyEvent.KEYCODE_DPAD_CENTER ||
@@ -841,8 +841,8 @@ private fun TrackOption(
             .fillMaxWidth()
             .clip(RoundedCornerShape(10.dp))
             .background(bgColor)
-            .focusable()
             .onFocusChanged { isFocused = it.isFocused }
+            .focusable()
             .onKeyEvent {
                 if (it.nativeKeyEvent.action == KeyEvent.ACTION_DOWN &&
                     (it.nativeKeyEvent.keyCode == KeyEvent.KEYCODE_DPAD_CENTER ||
@@ -975,8 +975,8 @@ private fun SettingRadioItem(
             .fillMaxWidth()
             .clip(RoundedCornerShape(8.dp))
             .background(bgColor)
-            .focusable()
             .onFocusChanged { isFocused = it.isFocused }
+            .focusable()
             .onKeyEvent {
                 if (it.nativeKeyEvent.action == KeyEvent.ACTION_DOWN &&
                     (it.nativeKeyEvent.keyCode == KeyEvent.KEYCODE_DPAD_CENTER ||
