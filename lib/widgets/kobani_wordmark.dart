@@ -87,10 +87,10 @@ class _KobaniWordmarkState extends State<KobaniWordmark>
                         '4K',
                         textAlign: TextAlign.center,
                         style: GoogleFonts.orbitron(
-                          fontSize: fontSize * 0.65,
+                          fontSize: fontSize,
                           fontWeight: FontWeight.w900,
                           color: Colors.white,
-                          letterSpacing: letterSpacing * 1.8,
+                          letterSpacing: letterSpacing * 1.2,
                           height: 0.95,
                         ),
                       ),
