@@ -1,4 +1,5 @@
 import 'dart:async';
+import '../../services/platform_service.dart';
 import 'dart:ui';
 import 'dart:math' as math;
 import 'package:pocketbase/pocketbase.dart';
@@ -131,7 +132,12 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
       Navigator.push(
         context,
         MaterialPageRoute(builder: (context) => const AdminScreen()),
-      );
+      ).then((_) {
+        if (mounted) {
+          ref.invalidate(channelsProvider);
+          ref.invalidate(groupsProvider);
+        }
+      });
     }
   }
 
@@ -573,7 +579,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
           );
         }
 
-        const isTv = false;
+        final isTv = ref.watch(deviceTypeProvider).asData?.value == DeviceType.tv;
 
         if (isTv) {
           return TvDashboardScreen(allChannels: channels, managedGroups: managedGroups);
@@ -666,7 +672,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
 
     // Landscape: side rail + content column.
     // Wrap content in SafeArea to guard against right-side notch/camera.
-    const isTv = false;
+    final isTv = ref.watch(deviceTypeProvider).asData?.value == DeviceType.tv;
     final contentDir = s.locale.languageCode == 'ckb' ? TextDirection.rtl : TextDirection.ltr;
     final insets = MediaQuery.paddingOf(context);
     final bodyColumn = Column(
@@ -1047,7 +1053,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
     List<ChannelGroup> managedGroups,
     List<Channel> fullChannels,
   ) {
-    const isTv = false;
+    final isTv = ref.watch(deviceTypeProvider).asData?.value == DeviceType.tv;
     final isLandscape = MediaQuery.orientationOf(context) == Orientation.landscape;
     final crossCount = isTv ? 6 : (isLandscape ? 5 : 3);
     
@@ -1598,7 +1604,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
     int animMs,
   ) {
     const kTileRadius = 24.0;
-    const isTv = false;
+    final isTv = ref.watch(deviceTypeProvider).asData?.value == DeviceType.tv;
     final focused = isTv && (_focusedChannel == channel);
     
     return TvFocusWrapper(
@@ -1704,7 +1710,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
   ) {
     const kTileRadius = 18.0;
 
-    const isTv = false;
+    final isTv = ref.watch(deviceTypeProvider).asData?.value == DeviceType.tv;
     final focused = isTv && (_focusedChannel == channel);
 
     return TvFocusWrapper(
