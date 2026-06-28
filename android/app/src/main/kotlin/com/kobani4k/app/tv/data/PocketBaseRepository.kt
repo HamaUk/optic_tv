@@ -17,7 +17,14 @@ data class TvChannel(
     val url: String = "",
     val group: String = "General",
     val logo: String? = null,
-    val type: String = "live"
+    val type: String = "live",
+    val order: Int = 999999
+)
+
+data class TvChannelGroup(
+    val key: String,
+    val name: String,
+    val order: Int
 )
 
 class PocketBaseRepository {
@@ -128,14 +135,15 @@ class PocketBaseRepository {
                             if (logo == "null") logo = null
                             
                             val type = child.optString("type", "live")
+                            val order = child.optInt("order", 999999)
                             
                             if (url.isNotEmpty()) {
-                                channels.add(TvChannel(name, url, group, logo, type))
+                                channels.add(TvChannel(name, url, group, logo, type, order))
                             }
                         }
                     }
                     
-                    channels.sortBy { it.name.lowercase() }
+                    channels.sortBy { it.order }
                     
                     if (channels.isEmpty()) {
                         if (cont.isActive) cont.resume(defaultMockChannels())
@@ -158,8 +166,54 @@ class PocketBaseRepository {
                 url = "https://storage.googleapis.com/exoplayer-test-media-0/BigBuckBunny_320x180.mp4",
                 group = if (isEven) "LIVE" else "MOVIES",
                 logo = null,
-                type = if (isEven) "live" else "movie"
+                type = if (isEven) "live" else "movie",
+                order = index
             )
         }
+    }
+
+    suspend fun getGroups(): List<TvChannelGroup> = suspendCancellableCoroutine { cont ->
+        val request = Request.Builder()
+            .url("$baseUrl/channelGroups/records?perPage=500")
+            .build()
+
+        client.newCall(request).enqueue(object : Callback {
+            override fun onFailure(call: Call, e: IOException) {
+                if (cont.isActive) cont.resume(emptyList())
+            }
+
+            override fun onResponse(call: Call, response: Response) {
+                if (!response.isSuccessful) {
+                    if (cont.isActive) cont.resume(emptyList())
+                    return
+                }
+
+                try {
+                    val bodyString = response.body?.string() ?: ""
+                    val json = JSONObject(bodyString)
+                    val items = json.optJSONArray("items")
+                    
+                    val groups = mutableListOf<TvChannelGroup>()
+                    if (items != null) {
+                        for (i in 0 until items.length()) {
+                            val child = items.getJSONObject(i)
+                            val id = child.optString("id", "")
+                            val name = child.optString("name", "Unknown")
+                            val order = child.optInt("order", 999999)
+                            if (id.isNotEmpty()) {
+                                groups.add(TvChannelGroup(id, name, order))
+                            }
+                        }
+                    }
+                    
+                    groups.sortBy { it.order }
+                    
+                    if (cont.isActive) cont.resume(groups)
+                } catch (e: Exception) {
+                    e.printStackTrace()
+                    if (cont.isActive) cont.resume(emptyList())
+                }
+            }
+        })
     }
 }

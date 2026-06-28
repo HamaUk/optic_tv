@@ -31,7 +31,10 @@ import androidx.tv.material3.*
 import coil.compose.AsyncImage
 import com.kobani4k.app.tv.data.PocketBaseRepository
 import com.kobani4k.app.tv.data.TvChannel
+import com.kobani4k.app.tv.data.TvChannelGroup
 import com.kobani4k.app.tv.ui.theme.UltraTokens
+import kotlinx.coroutines.async
+import kotlinx.coroutines.coroutineScope
 import com.kobani4k.app.tv.ui.theme.ultraCardColors
 
 @OptIn(ExperimentalTvMaterial3Api::class)
@@ -42,14 +45,28 @@ fun DashboardScreen(
 ) {
     val repository = remember { PocketBaseRepository() }
     var allChannels by remember { mutableStateOf<List<TvChannel>>(emptyList()) }
+    var allGroups by remember { mutableStateOf<List<TvChannelGroup>>(emptyList()) }
     var isLoading by remember { mutableStateOf(true) }
 
     LaunchedEffect(Unit) {
-        allChannels = repository.getChannels()
+        coroutineScope {
+            val groupsDeferred = async { repository.getGroups() }
+            val channelsDeferred = async { repository.getChannels() }
+            allGroups = groupsDeferred.await()
+            allChannels = channelsDeferred.await()
+        }
         isLoading = false
     }
 
     val focusRequester = remember { FocusRequester() }
+
+    val categories = remember(allChannels, allGroups) {
+        if (allGroups.isNotEmpty()) {
+            allGroups.map { it.name }
+        } else {
+            allChannels.map { it.group.ifEmpty { "General" } }.distinct().sorted()
+        }
+    }
 
     LaunchedEffect(isLoading, categories) {
         if (!isLoading && categories.isNotEmpty()) {
@@ -57,12 +74,6 @@ fun DashboardScreen(
                 focusRequester.requestFocus()
             } catch (e: Exception) {}
         }
-    }
-
-    val categories = remember(allChannels) {
-        val groups = allChannels.map { it.group.ifEmpty { "General" } }.distinct().sorted()
-        // Put "General" or empty at the end, or specific order if needed. Here alphabetical is fine.
-        groups
     }
     
     var selectedCategory by rememberSaveable { mutableStateOf<String?>(null) }
