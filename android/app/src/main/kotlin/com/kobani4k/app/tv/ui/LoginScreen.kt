@@ -118,22 +118,69 @@ fun LoginScreen(onLoginSuccess: () -> Unit) {
 
                 Spacer(modifier = Modifier.height(48.dp))
                 
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(
-                        painter = painterResource(id = R.drawable.ic_login),
-                        contentDescription = null,
-                        tint = BrandGold,
-                        modifier = Modifier.size(24.dp)
-                    )
-                    Spacer(modifier = Modifier.width(12.dp))
-                    Text(
-                        text = if (isLoading) "VERIFYING CODE..." else "WAITING FOR INPUT...",
-                        color = if (isLoading) BrandGold else TextSecondary,
-                        fontFamily = PoppinsFamily,
-                        fontSize = 14.sp,
-                        fontWeight = FontWeight.Bold,
-                        letterSpacing = 2.sp
-                    )
+                val isReady = enteredCode.length == 6
+                
+                AnimatedVisibility(visible = !isReady && errorMessage == null) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(
+                            painter = painterResource(id = R.drawable.ic_login),
+                            contentDescription = null,
+                            tint = BrandGold,
+                            modifier = Modifier.size(24.dp)
+                        )
+                        Spacer(modifier = Modifier.width(12.dp))
+                        Text(
+                            text = "WAITING FOR INPUT...",
+                            color = TextSecondary,
+                            fontFamily = PoppinsFamily,
+                            fontSize = 14.sp,
+                            fontWeight = FontWeight.Bold,
+                            letterSpacing = 2.sp
+                        )
+                    }
+                }
+                
+                AnimatedVisibility(visible = isReady) {
+                    Button(
+                        onClick = { 
+                            if (!isLoading) {
+                                isLoading = true
+                                errorMessage = null
+                                scope.launch {
+                                    val result = repository.verifyLoginCode(enteredCode)
+                                    isLoading = false
+                                    when (result) {
+                                        "SUCCESS" -> onLoginSuccess()
+                                        "ERROR" -> errorMessage = "NETWORK ERROR"
+                                        else -> errorMessage = "INVALID OR EXPIRED CODE"
+                                    }
+                                }
+                            }
+                        },
+                        modifier = Modifier
+                            .fillMaxWidth(0.6f)
+                            .height(56.dp),
+                        shape = ButtonDefaults.shape(shape = RoundedCornerShape(12.dp)),
+                        colors = ButtonDefaults.colors(
+                            containerColor = BrandGold,
+                            contentColor = CanvasColor,
+                            focusedContainerColor = FocusedOutlineColor,
+                            focusedContentColor = CanvasColor
+                        ),
+                        scale = ButtonDefaults.scale(focusedScale = 1.05f)
+                    ) {
+                        if (isLoading) {
+                            CircularProgressIndicator(color = CanvasColor, modifier = Modifier.size(24.dp))
+                        } else {
+                            Text(
+                                text = "ACTIVATE",
+                                fontFamily = PoppinsFamily,
+                                fontSize = 18.sp,
+                                fontWeight = FontWeight.Bold,
+                                letterSpacing = 1.sp
+                            )
+                        }
+                    }
                 }
 
                 Spacer(modifier = Modifier.height(16.dp))
@@ -272,7 +319,7 @@ fun LoginScreen(onLoginSuccess: () -> Unit) {
                                 CircularProgressIndicator(color = CanvasColor, modifier = Modifier.size(24.dp))
                             } else {
                                 Text(
-                                    text = "LOGIN",
+                                    text = "ACTIVATE",
                                     fontFamily = PoppinsFamily,
                                     fontSize = 18.sp,
                                     fontWeight = FontWeight.Bold,
