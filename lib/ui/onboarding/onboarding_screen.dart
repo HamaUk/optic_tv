@@ -341,9 +341,9 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen>
                 spacing: 10,
                 runSpacing: 10,
                 children: [
-                  _chip('🎬 4K HDR'),
-                  _chip('⚡ Ultra Fast'),
-                  _chip('🌐 Multi-Language'),
+                  _chip(t('🎬 4K HDR', '🎬 4K و HDR')),
+                  _chip(t('⚡ Ultra Fast', '⚡ خێرایەکی زۆر')),
+                  _chip(t('🌐 Multi-Language', '🌐 فرەزمان')),
                 ],
               ),
               const SizedBox(height: 48),
