@@ -1,7 +1,8 @@
+// LoginScreen.kt
 package com.kobani4k.app.tv.ui
 
 import android.view.KeyEvent
-import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.*
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -10,99 +11,122 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.rounded.Backspace
-import androidx.compose.material.icons.rounded.Close
-import androidx.compose.material.icons.rounded.LiveTv
-import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material.icons.rounded.*
 import androidx.compose.material3.Icon
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.scale
-import androidx.compose.ui.focus.FocusDirection
-import androidx.compose.ui.focus.FocusRequester
-import androidx.compose.ui.focus.focusRequester
-import androidx.compose.ui.focus.onFocusChanged
-import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.input.key.onKeyEvent
+import androidx.compose.ui.draw.*
+import androidx.compose.ui.focus.*
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.*
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.input.key.*
 import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.tv.material3.*
 import com.kobani4k.app.tv.data.PocketBaseRepository
 import com.kobani4k.app.tv.ui.theme.UltraTokens
-import com.kobani4k.app.tv.ui.theme.UltraType
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import kotlin.math.cos
+import kotlin.math.sin
 
 private const val MAX_CODE_LENGTH = 10
+private const val KEYPAD_ROWS = 4
+private const val KEYPAD_COLS = 3
 
 @OptIn(ExperimentalTvMaterial3Api::class)
 @Composable
 fun LoginScreen(onLoginSuccess: () -> Unit) {
     val repository = remember { PocketBaseRepository() }
     val scope = rememberCoroutineScope()
+    val focusManager = LocalFocusManager.current
+    val keyboardController = LocalSoftwareKeyboardController.current
 
+    // State
     var loginCode by remember { mutableStateOf("") }
     var isLoading by remember { mutableStateOf(false) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
+    var isSuccess by remember { mutableStateOf(false) }
+    var showSuccessOverlay by remember { mutableStateOf(false) }
 
-    // Background animation
-    val infiniteTransition = rememberInfiniteTransition(label = "bg")
-    val orbPulse by infiniteTransition.animateFloat(
+    // Focus states for navigation
+    val focusRequesters = remember { List(KEYPAD_ROWS * KEYPAD_COLS + 1) { FocusRequester() } }
+    val loginButtonRequester = focusRequesters.last()
+    var currentFocusIndex by remember { mutableStateOf(0) }
+
+    // Auto-focus on first key
+    LaunchedEffect(Unit) {
+        delay(300)
+        focusRequesters[0].requestFocus()
+    }
+
+    // ─── Background Animation ───
+    val infiniteTransition = rememberInfiniteTransition(label = "bgAnim")
+    val orb1X by infiniteTransition.animateFloat(
         initialValue = 0f,
-        targetValue = 1000f,
+        targetValue = 100f,
         animationSpec = infiniteRepeatable(
-            animation = tween(20000, easing = LinearEasing),
+            animation = tween(15000, easing = LinearEasing),
             repeatMode = RepeatMode.Reverse
         ),
-        label = "orbPulse"
+        label = "orb1X"
+    )
+    val orb1Y by infiniteTransition.animateFloat(
+        initialValue = 0f,
+        targetValue = -80f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(12000, easing = LinearEasing),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "orb1Y"
+    )
+    val orb2X by infiniteTransition.animateFloat(
+        initialValue = 0f,
+        targetValue = -120f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(18000, easing = LinearEasing),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "orb2X"
+    )
+    val orb2Y by infiniteTransition.animateFloat(
+        initialValue = 0f,
+        targetValue = 100f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(14000, easing = LinearEasing),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "orb2Y"
+    )
+    val orb3Scale by infiniteTransition.animateFloat(
+        initialValue = 0.8f,
+        targetValue = 1.2f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(10000, easing = EaseInOutSine),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "orb3Scale"
     )
 
-    val focusRequester1 = remember { FocusRequester() }
-
-    LaunchedEffect(Unit) {
-        delay(200)
-        runCatching { focusRequester1.requestFocus() }
-    }
-
-    fun onDigitPress(digit: String) {
-        if (loginCode.length < MAX_CODE_LENGTH && !isLoading) {
-            errorMessage = null
-            loginCode += digit
-        }
-    }
-
-    fun onBackspace() {
-        if (loginCode.isNotEmpty() && !isLoading) {
-            loginCode = loginCode.dropLast(1)
-        }
-    }
-
-    fun onClear() {
-        if (!isLoading) {
-            loginCode = ""
-            errorMessage = null
-        }
-    }
-
-    fun onLogin() {
-        if (loginCode.isNotBlank() && !isLoading) {
-            isLoading = true
-            errorMessage = null
-            scope.launch {
-                val result = repository.verifyLoginCode(loginCode)
-                isLoading = false
-                when (result) {
-                    "SUCCESS" -> onLoginSuccess()
-                    "ERROR" -> errorMessage = "NETWORK ERROR"
-                    else -> errorMessage = "INVALID OR EXPIRED CODE"
-                }
-            }
+    // ─── Particles ───
+    val particles = remember {
+        List(12) { index ->
+            Particle(
+                x = (0..100).random() / 100f,
+                y = (0..100).random() / 100f,
+                size = (2..5).random().dp,
+                speed = (8..20).random() / 10f,
+                angle = (0..360).random().toFloat(),
+                delay = (0..10000).random().toLong()
+            )
         }
     }
 
@@ -110,266 +134,523 @@ fun LoginScreen(onLoginSuccess: () -> Unit) {
         modifier = Modifier
             .fillMaxSize()
             .background(UltraTokens.BgDeep)
+            .onKeyEvent { keyEvent ->
+                if (keyEvent.nativeKeyEvent.action == KeyEvent.ACTION_DOWN) {
+                    when (keyEvent.nativeKeyEvent.keyCode) {
+                        KeyEvent.KEYCODE_BACK -> {
+                            // Handle back button if needed
+                            true
+                        }
+                        else -> false
+                    }
+                } else false
+            }
     ) {
-        // ─── Animated Orbs ───
+        // ─── Animated Background Orbs ───
         Box(
             modifier = Modifier
-                .offset(x = (-200).dp, y = (-150).dp)
+                .offset(
+                    x = (-150 + orb1X * 2).dp,
+                    y = (-100 + orb1Y * 2).dp
+                )
                 .size(700.dp)
                 .background(
                     Brush.radialGradient(
-                        colors = listOf(UltraTokens.Accent.copy(alpha = 0.15f), Color.Transparent),
-                        radius = 700f + (orbPulse / 5f)
+                        colors = listOf(
+                            UltraTokens.Accent.copy(alpha = 0.08f),
+                            Color.Transparent
+                        ),
+                        radius = 700f
                     )
                 )
         )
         Box(
             modifier = Modifier
-                .offset(x = 500.dp, y = 250.dp)
+                .offset(
+                    x = (400 + orb2X * 2).dp,
+                    y = (200 + orb2Y * 2).dp
+                )
                 .size(800.dp)
                 .background(
                     Brush.radialGradient(
-                        colors = listOf(UltraTokens.Accent2.copy(alpha = 0.10f), Color.Transparent),
-                        radius = 800f - (orbPulse / 5f)
+                        colors = listOf(
+                            UltraTokens.Accent2.copy(alpha = 0.06f),
+                            Color.Transparent
+                        ),
+                        radius = 800f
+                    )
+                )
+        )
+        Box(
+            modifier = Modifier
+                .offset(x = 150.dp, y = (-50).dp)
+                .size(400.dp)
+                .scale(orb3Scale)
+                .background(
+                    Brush.radialGradient(
+                        colors = listOf(
+                            Color(0xFF6C3CE1).copy(alpha = 0.04f),
+                            Color.Transparent
+                        ),
+                        radius = 400f
                     )
                 )
         )
 
-        // ─── Main Two-Column Layout ───
-        Row(
-            modifier = Modifier.fillMaxSize(),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            // ═══ LEFT SIDE — Brand Hero ═══
-            Box(
+        // ─── Particles ───
+        particles.forEach { particle ->
+            ParticleView(
+                particle = particle,
                 modifier = Modifier
-                    .weight(0.42f)
-                    .fillMaxHeight(),
-                contentAlignment = Alignment.Center
-            ) {
-                Column(
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.Center
-                ) {
-                    // Animated logo icon
-                    val logoScale by infiniteTransition.animateFloat(
-                        initialValue = 1f,
-                        targetValue = 1.08f,
-                        animationSpec = infiniteRepeatable(
-                            animation = tween(3000, easing = EaseInOutSine),
-                            repeatMode = RepeatMode.Reverse
+            )
+        }
+
+        // ─── Main Container ───
+        Box(
+            modifier = Modifier.fillMaxSize(),
+            contentAlignment = Alignment.Center
+        ) {
+            // ─── Glass Card ───
+            Column(
+                modifier = Modifier
+                    .width(520.dp)
+                    .clip(RoundedCornerShape(32.dp))
+                    .background(
+                        Brush.verticalGradient(
+                            colors = listOf(
+                                UltraTokens.Surface1.copy(alpha = 0.75f),
+                                UltraTokens.Surface1.copy(alpha = 0.6f)
+                            )
+                        )
+                    )
+                    .border(
+                        width = 1.dp,
+                        brush = Brush.verticalGradient(
+                            colors = listOf(
+                                Color.White.copy(alpha = 0.08f),
+                                Color.White.copy(alpha = 0.02f)
+                            )
                         ),
-                        label = "logoScale"
+                        shape = RoundedCornerShape(32.dp)
                     )
-
-                    Box(
-                        modifier = Modifier
-                            .size(100.dp)
-                            .scale(logoScale)
-                            .clip(CircleShape)
-                            .background(
-                                Brush.radialGradient(
-                                    colors = listOf(
-                                        UltraTokens.Accent.copy(alpha = 0.3f),
-                                        UltraTokens.Accent.copy(alpha = 0.05f),
-                                        Color.Transparent
-                                    )
-                                )
-                            ),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Icon(
-                            Icons.Rounded.LiveTv,
-                            contentDescription = "Logo",
-                            tint = UltraTokens.Accent,
-                            modifier = Modifier.size(52.dp)
-                        )
-                    }
-
-                    Spacer(Modifier.height(32.dp))
-
-                    Row(
-                        horizontalArrangement = Arrangement.Center,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Text(
-                            text = "KOBANI",
-                            fontSize = 42.sp,
-                            fontWeight = FontWeight.Black,
-                            letterSpacing = 3.sp,
-                            color = Color.White
-                        )
-                        Spacer(Modifier.width(8.dp))
-                        Text(
-                            text = "4K",
-                            fontSize = 42.sp,
-                            fontWeight = FontWeight.Black,
-                            letterSpacing = 3.sp,
-                            color = UltraTokens.Accent
-                        )
-                    }
-
-                    Spacer(Modifier.height(12.dp))
-
-                    Text(
-                        text = "PREMIUM STREAMING",
-                        fontSize = 14.sp,
-                        fontWeight = FontWeight.Medium,
-                        letterSpacing = 4.sp,
-                        color = UltraTokens.Fg3,
-                        textAlign = TextAlign.Center
+                    .shadow(
+                        elevation = 40.dp,
+                        shape = RoundedCornerShape(32.dp),
+                        clip = false,
+                        ambientColor = Color.Black.copy(alpha = 0.5f),
+                        spotColor = Color.Black.copy(alpha = 0.3f)
                     )
+                    .padding(horizontal = 44.dp, vertical = 40.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Center
+            ) {
+                // ─── Logo Section ───
+                LogoSection()
 
-                    Spacer(Modifier.height(48.dp))
+                Spacer(modifier = Modifier.height(28.dp))
 
-                    // Decorative line
-                    Box(
-                        modifier = Modifier
-                            .width(60.dp)
-                            .height(3.dp)
-                            .clip(RoundedCornerShape(2.dp))
-                            .background(UltraTokens.GradientHero)
+                // ─── Code Display ───
+                CodeDisplay(
+                    code = loginCode,
+                    isError = errorMessage != null,
+                    isActive = loginCode.isNotEmpty() || errorMessage != null,
+                    maxLength = MAX_CODE_LENGTH
+                )
+
+                Spacer(modifier = Modifier.height(6.dp))
+
+                // ─── Error Message ───
+                if (errorMessage != null) {
+                    ErrorMessage(
+                        message = errorMessage ?: "",
+                        onDismiss = { errorMessage = null }
                     )
+                } else {
+                    Spacer(modifier = Modifier.height(24.dp))
                 }
+
+                Spacer(modifier = Modifier.height(12.dp))
+
+                // ─── Keypad ───
+                KeypadGrid(
+                    focusRequesters = focusRequesters.take(KEYPAD_ROWS * KEYPAD_COLS),
+                    onDigitPress = { digit ->
+                        if (loginCode.length < MAX_CODE_LENGTH && !isLoading) {
+                            errorMessage = null
+                            loginCode += digit
+                        }
+                    },
+                    onBackspace = {
+                        if (loginCode.isNotEmpty() && !isLoading) {
+                            loginCode = loginCode.dropLast(1)
+                            errorMessage = null
+                        }
+                    },
+                    onClear = {
+                        if (!isLoading) {
+                            loginCode = ""
+                            errorMessage = null
+                        }
+                    },
+                    isLoading = isLoading
+                )
+
+                Spacer(modifier = Modifier.height(24.dp))
+
+                // ─── Login Button ───
+                LoginButton(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .focusRequester(loginButtonRequester)
+                        .focusable(),
+                    isLoading = isLoading,
+                    enabled = loginCode.isNotBlank() && !isLoading,
+                    onClick = {
+                        if (loginCode.isNotBlank() && !isLoading) {
+                            isLoading = true
+                            errorMessage = null
+                            scope.launch {
+                                val result = repository.verifyLoginCode(loginCode)
+                                isLoading = false
+                                when (result) {
+                                    "SUCCESS" -> {
+                                        isSuccess = true
+                                        showSuccessOverlay = true
+                                        delay(1500)
+                                        onLoginSuccess()
+                                    }
+                                    "ERROR" -> errorMessage = "NETWORK ERROR"
+                                    else -> errorMessage = "INVALID OR EXPIRED CODE"
+                                }
+                            }
+                        }
+                    }
+                )
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                // ─── Footer ───
+                Text(
+                    text = "v2.1.0 · Premium Streaming",
+                    fontSize = 11.sp,
+                    fontWeight = FontWeight.Medium,
+                    letterSpacing = 2.sp,
+                    color = UltraTokens.Fg4.copy(alpha = 0.5f)
+                )
             }
 
-            // ═══ RIGHT SIDE — Login Card ═══
-            Box(
-                modifier = Modifier
-                    .weight(0.58f)
-                    .fillMaxHeight(),
-                contentAlignment = Alignment.Center
-            ) {
-                // Glassmorphism card
-                Column(
+            // ─── Success Overlay ───
+            if (showSuccessOverlay) {
+                SuccessOverlay(
                     modifier = Modifier
-                        .width(480.dp)
-                        .clip(RoundedCornerShape(28.dp))
-                        .background(UltraTokens.Surface1.copy(alpha = 0.85f))
-                        .border(
-                            1.dp,
-                            Brush.linearGradient(
-                                colors = listOf(
-                                    Color.White.copy(alpha = 0.08f),
-                                    Color.White.copy(alpha = 0.02f)
-                                )
-                            ),
-                            RoundedCornerShape(28.dp)
-                        )
-                        .padding(horizontal = 40.dp, vertical = 36.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally
-                ) {
-                    Text(
-                        text = "Activation Code",
-                        fontSize = 22.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = Color.White
-                    )
-
-                    Spacer(Modifier.height(6.dp))
-
-                    Text(
-                        text = "Enter your code using the keypad below",
-                        fontSize = 14.sp,
-                        color = UltraTokens.Fg3,
-                        textAlign = TextAlign.Center
-                    )
-
-                    Spacer(Modifier.height(28.dp))
-
-                    // ─── Code Display ───
-                    CodeDisplay(code = loginCode)
-
-                    Spacer(Modifier.height(8.dp))
-
-                    // Error message
-                    if (errorMessage != null) {
-                        Text(
-                            text = errorMessage ?: "",
-                            color = UltraTokens.Warn,
-                            fontSize = 13.sp,
-                            fontWeight = FontWeight.SemiBold,
-                            textAlign = TextAlign.Center,
-                            modifier = Modifier.padding(vertical = 4.dp)
-                        )
-                    }
-
-                    Spacer(Modifier.height(16.dp))
-
-                    // ─── Numeric Keypad ───
-                    NumericKeypad(
-                        onDigit = ::onDigitPress,
-                        onBackspace = ::onBackspace,
-                        onClear = ::onClear,
-                        firstKeyFocusRequester = focusRequester1
-                    )
-
-                    Spacer(Modifier.height(24.dp))
-
-                    // ─── Login Button ───
-                    LoginButton(
-                        isLoading = isLoading,
-                        enabled = loginCode.isNotBlank(),
-                        onClick = ::onLogin
-                    )
-                }
+                        .width(520.dp)
+                        .height(460.dp)
+                        .clip(RoundedCornerShape(32.dp))
+                )
             }
         }
     }
 }
 
-// ═══════════════════════════════════════════════════
-//  Code Display — PIN-style digit boxes
-// ═══════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════════
+//  Logo Section
+// ═══════════════════════════════════════════════════════════════
 
 @Composable
-private fun CodeDisplay(code: String) {
+private fun LogoSection() {
+    val infiniteTransition = rememberInfiniteTransition(label = "logoAnim")
+    val logoScale by infiniteTransition.animateFloat(
+        initialValue = 1f,
+        targetValue = 1.06f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(3000, easing = EaseInOutSine),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "logoScale"
+    )
+    val glowPulse by infiniteTransition.animateFloat(
+        initialValue = 0.3f,
+        targetValue = 0.8f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(2500, easing = EaseInOutSine),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "glowPulse"
+    )
+
+    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+        // Logo icon with glow
+        Box(
+            modifier = Modifier
+                .size(80.dp)
+                .scale(logoScale)
+                .shadow(
+                    elevation = 20.dp,
+                    shape = CircleShape,
+                    clip = false,
+                    ambientColor = UltraTokens.Accent.copy(alpha = glowPulse * 0.3f),
+                    spotColor = UltraTokens.Accent.copy(alpha = glowPulse * 0.2f)
+                )
+                .clip(CircleShape)
+                .background(
+                    Brush.radialGradient(
+                        colors = listOf(
+                            UltraTokens.Accent.copy(alpha = 0.25f),
+                            UltraTokens.Accent.copy(alpha = 0.05f),
+                            Color.Transparent
+                        )
+                    )
+                ),
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(
+                imageVector = Icons.Rounded.LiveTv,
+                contentDescription = "Logo",
+                tint = UltraTokens.Accent,
+                modifier = Modifier.size(44.dp)
+            )
+        }
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        // Brand name
+        Row(
+            horizontalArrangement = Arrangement.Center,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                text = "KOBANI",
+                fontSize = 38.sp,
+                fontWeight = FontWeight.Black,
+                letterSpacing = 4.sp,
+                color = Color.White,
+                style = TextStyle(
+                    shadow = Shadow(
+                        color = Color.Black.copy(alpha = 0.3f),
+                        blurRadius = 10f
+                    )
+                )
+            )
+            Spacer(modifier = Modifier.width(6.dp))
+            Text(
+                text = "4K",
+                fontSize = 38.sp,
+                fontWeight = FontWeight.Black,
+                letterSpacing = 4.sp,
+                color = UltraTokens.Accent,
+                style = TextStyle(
+                    shadow = Shadow(
+                        color = UltraTokens.Accent.copy(alpha = 0.3f),
+                        blurRadius = 10f
+                    )
+                )
+            )
+        }
+
+        Spacer(modifier = Modifier.height(6.dp))
+
+        Text(
+            text = "PREMIUM STREAMING",
+            fontSize = 12.sp,
+            fontWeight = FontWeight.Medium,
+            letterSpacing = 5.sp,
+            color = UltraTokens.Fg3.copy(alpha = 0.6f)
+        )
+
+        Spacer(modifier = Modifier.height(14.dp))
+
+        // Decorative line
+        Box(
+            modifier = Modifier
+                .width(50.dp)
+                .height(2.dp)
+                .clip(RoundedCornerShape(2.dp))
+                .background(
+                    Brush.horizontalGradient(
+                        colors = listOf(
+                            Color.Transparent,
+                            UltraTokens.Accent.copy(alpha = 0.4f),
+                            Color.Transparent
+                        )
+                    )
+                )
+        )
+    }
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  Code Display
+// ═══════════════════════════════════════════════════════════════
+
+@Composable
+private fun CodeDisplay(
+    code: String,
+    isError: Boolean,
+    isActive: Boolean,
+    maxLength: Int
+) {
+    val borderColor by animateColorAsState(
+        targetValue = when {
+            isError -> Color(0xFFFF4757)
+            isActive -> UltraTokens.Accent.copy(alpha = 0.4f)
+            else -> Color.White.copy(alpha = 0.06f)
+        },
+        animationSpec = tween(300),
+        label = "codeBorder"
+    )
+
+    val glowColor by animateColorAsState(
+        targetValue = when {
+            isError -> Color(0xFFFF4757).copy(alpha = 0.08f)
+            isActive -> UltraTokens.Accent.copy(alpha = 0.06f)
+            else -> Color.Transparent
+        },
+        animationSpec = tween(300),
+        label = "codeGlow"
+    )
+
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .height(56.dp)
-            .clip(RoundedCornerShape(14.dp))
-            .background(UltraTokens.BgDeep)
-            .border(
-                1.dp,
-                if (code.isNotEmpty()) UltraTokens.Accent.copy(alpha = 0.4f) else Color.White.copy(alpha = 0.08f),
-                RoundedCornerShape(14.dp)
-            ),
+            .height(64.dp)
+            .shadow(
+                elevation = 0.dp,
+                shape = RoundedCornerShape(16.dp),
+                clip = false,
+                ambientColor = glowColor,
+                spotColor = glowColor
+            )
+            .clip(RoundedCornerShape(16.dp))
+            .background(UltraTokens.BgDeep.copy(alpha = 0.7f))
+            .border(1.5.dp, borderColor, RoundedCornerShape(16.dp))
+            .padding(horizontal = 20.dp),
         contentAlignment = Alignment.Center
     ) {
         if (code.isEmpty()) {
-            Text(
-                text = "• • • • • •",
-                fontSize = 24.sp,
-                color = UltraTokens.Fg4,
-                letterSpacing = 6.sp,
-                fontWeight = FontWeight.Bold,
-                textAlign = TextAlign.Center
-            )
+            Row(
+                horizontalArrangement = Arrangement.Center,
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                repeat(6) {
+                    Box(
+                        modifier = Modifier
+                            .size(8.dp)
+                            .clip(CircleShape)
+                            .background(Color.White.copy(alpha = 0.12f))
+                    )
+                    if (it < 5) Spacer(modifier = Modifier.width(10.dp))
+                }
+                // Cursor blink when empty
+                Box(
+                    modifier = Modifier
+                        .size(2.dp, 28.dp)
+                        .clip(RoundedCornerShape(2.dp))
+                        .background(UltraTokens.Accent)
+                        .alpha(if (isActive) 1f else 0f)
+                )
+            }
         } else {
+            Row(
+                horizontalArrangement = Arrangement.Center,
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                code.forEachIndexed { index, char ->
+                    AnimatedContent(
+                        targetState = char,
+                        transitionSpec = {
+                            fadeIn(animationSpec = tween(200)) +
+                                    scaleIn(initialScale = 0.6f, animationSpec = spring(
+                                        dampingRatio = Spring.DampingRatioMediumBouncy,
+                                        stiffness = Spring.StiffnessLow
+                                    ))
+                        },
+                        label = "digitAnim"
+                    ) { digit ->
+                        Text(
+                            text = digit.toString(),
+                            fontSize = 30.sp,
+                            fontWeight = FontWeight.Bold,
+                            letterSpacing = 2.sp,
+                            color = if (isError) Color(0xFFFF4757) else UltraTokens.Accent,
+                            modifier = Modifier.width(28.dp),
+                            textAlign = TextAlign.Center
+                        )
+                    }
+                    if (index < code.length - 1 || index < maxLength - 1) {
+                        Spacer(modifier = Modifier.width(4.dp))
+                    }
+                }
+                // Cursor blink after last digit
+                if (code.length < maxLength) {
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Box(
+                        modifier = Modifier
+                            .size(2.dp, 28.dp)
+                            .clip(RoundedCornerShape(2.dp))
+                            .background(UltraTokens.Accent)
+                            .alpha(if (isActive) 1f else 0f)
+                    )
+                }
+            }
+        }
+    }
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  Error Message
+// ═══════════════════════════════════════════════════════════════
+
+@Composable
+private fun ErrorMessage(
+    message: String,
+    onDismiss: () -> Unit
+) {
+    AnimatedVisibility(
+        visible = true,
+        enter = fadeIn() + slideInVertically(initialOffsetY = { -20 }),
+        exit = fadeOut() + slideOutVertically(targetOffsetY = { -20 })
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(24.dp)
+                .padding(horizontal = 8.dp),
+            horizontalArrangement = Arrangement.Center,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Icon(
+                imageVector = Icons.Rounded.Warning,
+                contentDescription = null,
+                tint = Color(0xFFFF4757),
+                modifier = Modifier.size(16.dp)
+            )
+            Spacer(modifier = Modifier.width(8.dp))
             Text(
-                text = code,
-                fontSize = 28.sp,
-                color = UltraTokens.Accent,
-                letterSpacing = 8.sp,
-                fontWeight = FontWeight.Bold,
+                text = message,
+                color = Color(0xFFFF4757),
+                fontSize = 13.sp,
+                fontWeight = FontWeight.SemiBold,
+                letterSpacing = 0.5.sp,
                 textAlign = TextAlign.Center
             )
         }
     }
 }
 
-// ═══════════════════════════════════════════════════
-//  Numeric Keypad — 4x3 grid, fully D-pad navigable
-// ═══════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════════
+//  Keypad Grid
+// ═══════════════════════════════════════════════════════════════
 
 @OptIn(ExperimentalTvMaterial3Api::class)
 @Composable
-private fun NumericKeypad(
-    onDigit: (String) -> Unit,
+private fun KeypadGrid(
+    focusRequesters: List<FocusRequester>,
+    onDigitPress: (String) -> Unit,
     onBackspace: () -> Unit,
     onClear: () -> Unit,
-    firstKeyFocusRequester: FocusRequester
+    isLoading: Boolean
 ) {
     val keys = listOf(
         listOf("1", "2", "3"),
@@ -378,32 +659,52 @@ private fun NumericKeypad(
         listOf("CLR", "0", "⌫")
     )
 
+    var focusedKey by remember { mutableStateOf<Pair<Int, Int>?>(null) }
+
     Column(
-        verticalArrangement = Arrangement.spacedBy(8.dp),
+        verticalArrangement = Arrangement.spacedBy(10.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         modifier = Modifier.fillMaxWidth()
     ) {
         keys.forEachIndexed { rowIndex, row ->
             Row(
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                horizontalArrangement = Arrangement.spacedBy(10.dp),
                 modifier = Modifier.fillMaxWidth()
             ) {
                 row.forEachIndexed { colIndex, key ->
-                    val isFirstKey = rowIndex == 0 && colIndex == 0
+                    val index = rowIndex * KEYPAD_COLS + colIndex
+                    val isFocused = focusedKey == (rowIndex to colIndex)
+
                     KeypadButton(
                         label = key,
                         modifier = Modifier
                             .weight(1f)
-                            .then(
-                                if (isFirstKey) Modifier.focusRequester(firstKeyFocusRequester)
-                                else Modifier
-                            ),
-                        onClick = {
-                            when (key) {
-                                "CLR" -> onClear()
-                                "⌫" -> onBackspace()
-                                else -> onDigit(key)
+                            .height(56.dp)
+                            .focusRequester(focusRequesters[index])
+                            .focusable()
+                            .onFocusChanged { focusState ->
+                                if (focusState.isFocused) {
+                                    focusedKey = rowIndex to colIndex
+                                }
                             }
+                            .onKeyEvent { keyEvent ->
+                                if (keyEvent.nativeKeyEvent.action == KeyEvent.ACTION_DOWN) {
+                                    when (keyEvent.nativeKeyEvent.keyCode) {
+                                        KeyEvent.KEYCODE_DPAD_CENTER,
+                                        KeyEvent.KEYCODE_ENTER,
+                                        KeyEvent.KEYCODE_NUMPAD_ENTER,
+                                        KeyEvent.KEYCODE_BUTTON_A -> {
+                                            handleKeyPress(key, onDigitPress, onBackspace, onClear)
+                                            true
+                                        }
+                                        else -> false
+                                    }
+                                } else false
+                            },
+                        isFocused = isFocused,
+                        isLoading = isLoading,
+                        onClick = {
+                            handleKeyPress(key, onDigitPress, onBackspace, onClear)
                         }
                     )
                 }
@@ -412,150 +713,526 @@ private fun NumericKeypad(
     }
 }
 
+private fun handleKeyPress(
+    key: String,
+    onDigitPress: (String) -> Unit,
+    onBackspace: () -> Unit,
+    onClear: () -> Unit
+) {
+    when (key) {
+        "CLR" -> onClear()
+        "⌫" -> onBackspace()
+        else -> onDigitPress(key)
+    }
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  Keypad Button
+// ═══════════════════════════════════════════════════════════════
+
 @Composable
 private fun KeypadButton(
     label: String,
     modifier: Modifier = Modifier,
+    isFocused: Boolean,
+    isLoading: Boolean,
     onClick: () -> Unit
 ) {
-    var isFocused by remember { mutableStateOf(false) }
+    val isSpecial = label == "CLR" || label == "⌫"
+
     val scale by animateFloatAsState(
-        if (isFocused) 1.08f else 1f,
-        animationSpec = tween(150),
+        targetValue = if (isFocused) 1.06f else 1f,
+        animationSpec = spring(
+            dampingRatio = Spring.DampingRatioMediumBouncy,
+            stiffness = Spring.StiffnessLow
+        ),
         label = "keyScale"
     )
+
     val bgColor by animateColorAsState(
-        if (isFocused) UltraTokens.Accent else UltraTokens.Surface3,
+        targetValue = when {
+            isLoading -> UltraTokens.Surface3
+            isFocused -> UltraTokens.Accent
+            else -> UltraTokens.Surface3.copy(alpha = 0.6f)
+        },
         animationSpec = tween(150),
         label = "keyBg"
     )
+
     val borderColor by animateColorAsState(
-        if (isFocused) UltraTokens.Accent else Color.White.copy(alpha = 0.06f),
+        targetValue = when {
+            isFocused -> UltraTokens.Accent.copy(alpha = 0.6f)
+            else -> Color.White.copy(alpha = 0.04f)
+        },
         animationSpec = tween(150),
         label = "keyBorder"
     )
 
-    val isSpecial = label == "CLR" || label == "⌫"
+    val glowColor by animateColorAsState(
+        targetValue = if (isFocused) UltraTokens.Accent.copy(alpha = 0.15f) else Color.Transparent,
+        animationSpec = tween(150),
+        label = "keyGlow"
+    )
+
+    // Ripple effect for press
+    var rippleScale by remember { mutableStateOf(0f) }
+    var rippleAlpha by remember { mutableStateOf(0f) }
+
+    LaunchedEffect(isFocused) {
+        if (isFocused) {
+            rippleScale = 1f
+            rippleAlpha = 1f
+            delay(300)
+            rippleAlpha = 0f
+        }
+    }
 
     Box(
         modifier = modifier
-            .height(52.dp)
             .scale(scale)
-            .clip(RoundedCornerShape(12.dp))
+            .shadow(
+                elevation = if (isFocused) 16.dp else 4.dp,
+                shape = RoundedCornerShape(14.dp),
+                clip = false,
+                ambientColor = glowColor,
+                spotColor = glowColor
+            )
+            .clip(RoundedCornerShape(14.dp))
             .background(bgColor)
-            .border(1.dp, borderColor, RoundedCornerShape(12.dp))
-            .onFocusChanged { isFocused = it.isFocused }
+            .border(1.5.dp, borderColor, RoundedCornerShape(14.dp))
             .focusable()
             .onKeyEvent { keyEvent ->
                 if (keyEvent.nativeKeyEvent.action == KeyEvent.ACTION_DOWN) {
                     when (keyEvent.nativeKeyEvent.keyCode) {
-                        KeyEvent.KEYCODE_DPAD_CENTER, KeyEvent.KEYCODE_ENTER, KeyEvent.KEYCODE_NUMPAD_ENTER -> {
+                        KeyEvent.KEYCODE_DPAD_CENTER,
+                        KeyEvent.KEYCODE_ENTER,
+                        KeyEvent.KEYCODE_NUMPAD_ENTER -> {
                             onClick()
                             true
                         }
                         else -> false
                     }
                 } else false
-            },
+            }
+            .clickable(
+                enabled = !isLoading,
+                onClick = onClick
+            ),
         contentAlignment = Alignment.Center
     ) {
-        if (label == "⌫") {
-            Icon(
-                Icons.Rounded.Backspace,
-                contentDescription = "Backspace",
-                tint = if (isFocused) Color.White else UltraTokens.Fg2,
-                modifier = Modifier.size(24.dp)
+        // Ripple overlay
+        if (isFocused) {
+            Box(
+                modifier = Modifier
+                    .size(100.dp)
+                    .scale(rippleScale)
+                    .alpha(rippleAlpha * 0.3f)
+                    .clip(CircleShape)
+                    .background(UltraTokens.Accent.copy(alpha = 0.2f))
             )
-        } else {
-            Text(
-                text = label,
-                fontSize = if (isSpecial) 14.sp else 22.sp,
-                fontWeight = if (isSpecial) FontWeight.Bold else FontWeight.SemiBold,
-                letterSpacing = if (isSpecial) 1.sp else 0.sp,
-                color = if (isFocused) Color.White else if (isSpecial) UltraTokens.Fg3 else UltraTokens.Fg
+        }
+
+        // Focus ring glow
+        if (isFocused) {
+            Box(
+                modifier = Modifier
+                    .matchParentSize()
+                    .clip(RoundedCornerShape(14.dp))
+                    .background(
+                        Brush.radialGradient(
+                            colors = listOf(
+                                UltraTokens.Accent.copy(alpha = 0.05f),
+                                Color.Transparent
+                            ),
+                            radius = 80f
+                        )
+                    )
             )
+        }
+
+        when {
+            label == "⌫" -> {
+                Icon(
+                    imageVector = Icons.Rounded.Backspace,
+                    contentDescription = "Backspace",
+                    tint = if (isFocused) Color.White else UltraTokens.Fg2,
+                    modifier = Modifier.size(24.dp)
+                )
+            }
+            isSpecial -> {
+                Text(
+                    text = label,
+                    fontSize = 13.sp,
+                    fontWeight = FontWeight.Bold,
+                    letterSpacing = 1.sp,
+                    color = if (isFocused) Color.White else UltraTokens.Fg3
+                )
+            }
+            else -> {
+                Text(
+                    text = label,
+                    fontSize = 24.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = if (isFocused) Color.White else UltraTokens.Fg
+                )
+            }
         }
     }
 }
 
-// ═══════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════════
 //  Login Button
-// ═══════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════════
 
 @OptIn(ExperimentalTvMaterial3Api::class)
 @Composable
 private fun LoginButton(
+    modifier: Modifier = Modifier,
     isLoading: Boolean,
     enabled: Boolean,
     onClick: () -> Unit
 ) {
     var isFocused by remember { mutableStateOf(false) }
+
     val scale by animateFloatAsState(
-        if (isLoading) 0.96f else if (isFocused) 1.04f else 1f,
+        targetValue = when {
+            isLoading -> 0.97f
+            isFocused -> 1.04f
+            else -> 1f
+        },
         animationSpec = spring(
             dampingRatio = Spring.DampingRatioMediumBouncy,
             stiffness = Spring.StiffnessLow
         ),
         label = "btnScale"
     )
-    val bgColor by animateColorAsState(
-        if (isFocused) UltraTokens.Accent else if (enabled) UltraTokens.Accent.copy(alpha = 0.7f) else UltraTokens.Surface3,
+
+    val bgBrush by animateColorAsState(
+        targetValue = when {
+            isLoading -> UltraTokens.Surface3
+            isFocused -> UltraTokens.Accent
+            enabled -> UltraTokens.Accent.copy(alpha = 0.85f)
+            else -> UltraTokens.Surface3.copy(alpha = 0.5f)
+        },
+        animationSpec = tween(300),
         label = "btnBg"
     )
-    val borderColor by animateColorAsState(
-        if (isFocused) Color.White.copy(alpha = 0.3f) else Color.Transparent,
-        label = "btnBorder"
+
+    val glowColor by animateColorAsState(
+        targetValue = if (isFocused && enabled) UltraTokens.Accent.copy(alpha = 0.2f) else Color.Transparent,
+        animationSpec = tween(300),
+        label = "btnGlow"
+    )
+
+    // Shimmer animation for loading state
+    val shimmerOffset by animateFloat(
+        targetValue = if (isLoading) 2f else 0f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(1500, easing = LinearEasing),
+            repeatMode = RepeatMode.Restart
+        ),
+        label = "shimmerOffset"
     )
 
     Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .height(54.dp)
+        modifier = modifier
+            .height(58.dp)
             .scale(scale)
-            .clip(RoundedCornerShape(14.dp))
-            .background(bgColor)
-            .border(2.dp, borderColor, RoundedCornerShape(14.dp))
-            .onFocusChanged { isFocused = it.isFocused }
-            .focusable()
+            .shadow(
+                elevation = if (isFocused) 24.dp else 8.dp,
+                shape = RoundedCornerShape(16.dp),
+                clip = false,
+                ambientColor = glowColor,
+                spotColor = glowColor
+            )
+            .clip(RoundedCornerShape(16.dp))
+            .background(
+                if (isLoading) UltraTokens.Surface3 else
+                    Brush.horizontalGradient(
+                        colors = listOf(
+                            UltraTokens.Accent,
+                            UltraTokens.Accent2
+                        )
+                    )
+            )
+            .border(
+                width = if (isFocused) 2.dp else 0.dp,
+                color = Color.White.copy(alpha = if (isFocused) 0.2f else 0f),
+                shape = RoundedCornerShape(16.dp)
+            )
+            .onFocusChanged { focusState ->
+                isFocused = focusState.isFocused
+            }
+            .focusable(enabled = !isLoading)
             .onKeyEvent { keyEvent ->
                 if (keyEvent.nativeKeyEvent.action == KeyEvent.ACTION_DOWN) {
                     when (keyEvent.nativeKeyEvent.keyCode) {
-                        KeyEvent.KEYCODE_DPAD_CENTER, KeyEvent.KEYCODE_ENTER, KeyEvent.KEYCODE_NUMPAD_ENTER -> {
-                            onClick()
+                        KeyEvent.KEYCODE_DPAD_CENTER,
+                        KeyEvent.KEYCODE_ENTER,
+                        KeyEvent.KEYCODE_NUMPAD_ENTER -> {
+                            if (enabled && !isLoading) onClick()
                             true
                         }
                         else -> false
                     }
                 } else false
-            },
+            }
+            .clickable(
+                enabled = enabled && !isLoading,
+                onClick = onClick
+            ),
         contentAlignment = Alignment.Center
     ) {
+        // Shimmer overlay
+        if (isLoading) {
+            Box(
+                modifier = Modifier
+                    .matchParentSize()
+                    .clip(RoundedCornerShape(16.dp))
+                    .background(
+                        Brush.horizontalGradient(
+                            colors = listOf(
+                                Color.Transparent,
+                                Color.White.copy(alpha = 0.1f),
+                                Color.Transparent
+                            ),
+                            startX = shimmerOffset * 2f - 1f,
+                            endX = shimmerOffset * 2f + 1f
+                        )
+                    )
+            )
+        }
+
+        // Focus glow overlay
+        if (isFocused && !isLoading) {
+            Box(
+                modifier = Modifier
+                    .matchParentSize()
+                    .clip(RoundedCornerShape(16.dp))
+                    .background(
+                        Brush.radialGradient(
+                            colors = listOf(
+                                Color.White.copy(alpha = 0.05f),
+                                Color.Transparent
+                            ),
+                            radius = 100f
+                        )
+                    )
+            )
+        }
+
         if (isLoading) {
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.Center
             ) {
                 CircularProgressIndicator(
-                    modifier = Modifier.size(20.dp),
+                    modifier = Modifier.size(22.dp),
                     color = Color.White,
                     strokeWidth = 2.5.dp
                 )
-                Spacer(Modifier.width(12.dp))
+                Spacer(modifier = Modifier.width(14.dp))
                 Text(
-                    text = "Authenticating...",
-                    fontSize = 15.sp,
+                    text = "AUTHENTICATING...",
+                    fontSize = 14.sp,
                     fontWeight = FontWeight.SemiBold,
-                    color = Color.White
+                    letterSpacing = 2.sp,
+                    color = Color.White.copy(alpha = 0.8f)
                 )
             }
         } else {
-            Text(
-                text = "LOG IN",
-                fontSize = 16.sp,
-                fontWeight = FontWeight.Bold,
-                letterSpacing = 2.sp,
-                color = if (enabled) Color.White else UltraTokens.Fg4
-            )
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.Center
+            ) {
+                Icon(
+                    imageVector = Icons.Rounded.PlayArrow,
+                    contentDescription = null,
+                    tint = if (enabled) Color.White else UltraTokens.Fg4,
+                    modifier = Modifier.size(22.dp)
+                )
+                Spacer(modifier = Modifier.width(10.dp))
+                Text(
+                    text = "ACTIVATE",
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.Bold,
+                    letterSpacing = 4.sp,
+                    color = if (enabled) Color.White else UltraTokens.Fg4
+                )
+            }
         }
     }
 }
+
+// ═══════════════════════════════════════════════════════════════
+//  Success Overlay
+// ═══════════════════════════════════════════════════════════════
+
+@Composable
+private fun SuccessOverlay(
+    modifier: Modifier = Modifier
+) {
+    var scale by remember { mutableStateOf(0f) }
+    var alpha by remember { mutableStateOf(0f) }
+
+    LaunchedEffect(Unit) {
+        scale = 0f
+        alpha = 0f
+        delay(100)
+        scale = 1f
+        alpha = 1f
+    }
+
+    Box(
+        modifier = modifier
+            .background(Color.Black.copy(alpha = 0.7f))
+            .padding(40.dp),
+        contentAlignment = Alignment.Center
+    ) {
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center
+        ) {
+            // Animated checkmark
+            Box(
+                modifier = Modifier
+                    .size(100.dp)
+                    .scale(scale)
+                    .alpha(alpha)
+                    .clip(CircleShape)
+                    .background(
+                        Brush.radialGradient(
+                            colors = listOf(
+                                UltraTokens.Accent.copy(alpha = 0.3f),
+                                Color.Transparent
+                            )
+                        )
+                    ),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = Icons.Rounded.CheckCircle,
+                    contentDescription = "Success",
+                    tint = UltraTokens.Accent,
+                    modifier = Modifier.size(60.dp)
+                )
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            // Success text with animation
+            AnimatedVisibility(
+                visible = true,
+                enter = fadeIn(animationSpec = tween(500, delayMillis = 300)) +
+                        slideInVertically(initialOffsetY = { 20 })
+            ) {
+                Text(
+                    text = "ACTIVATED!",
+                    fontSize = 28.sp,
+                    fontWeight = FontWeight.Black,
+                    letterSpacing = 4.sp,
+                    color = Color.White
+                )
+            }
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            AnimatedVisibility(
+                visible = true,
+                enter = fadeIn(animationSpec = tween(500, delayMillis = 500))
+            ) {
+                Text(
+                    text = "Your device is now ready",
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.Medium,
+                    color = UltraTokens.Fg3
+                )
+            }
+        }
+    }
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  Particle System
+// ═══════════════════════════════════════════════════════════════
+
+private data class Particle(
+    val x: Float,
+    val y: Float,
+    val size: Dp,
+    val speed: Float,
+    val angle: Float,
+    val delay: Long
+)
+
+@Composable
+private fun ParticleView(
+    particle: Particle,
+    modifier: Modifier = Modifier
+) {
+    val infiniteTransition = rememberInfiniteTransition(label = "particleAnim")
+    val offsetX by infiniteTransition.animateFloat(
+        initialValue = particle.x,
+        targetValue = particle.x + cos(particle.angle) * 0.3f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(
+                durationMillis = (10000 / particle.speed).toInt(),
+                easing = LinearEasing,
+                delayMillis = particle.delay.toInt()
+            ),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "particleX"
+    )
+    val offsetY by infiniteTransition.animateFloat(
+        initialValue = particle.y,
+        targetValue = particle.y + sin(particle.angle) * 0.3f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(
+                durationMillis = (12000 / particle.speed).toInt(),
+                easing = LinearEasing,
+                delayMillis = particle.delay.toInt()
+            ),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "particleY"
+    )
+    val alpha by infiniteTransition.animateFloat(
+        initialValue = 0.2f,
+        targetValue = 0.8f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(
+                durationMillis = (2000 / particle.speed).toInt(),
+                easing = EaseInOutSine,
+                delayMillis = particle.delay.toInt()
+            ),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "particleAlpha"
+    )
+
+    Box(
+        modifier = modifier
+            .offset(
+                x = (offsetX * 1000).dp,
+                y = (offsetY * 1000).dp
+            )
+            .size(particle.size)
+            .alpha(alpha)
+            .clip(CircleShape)
+            .background(
+                Brush.radialGradient(
+                    colors = listOf(
+                        UltraTokens.Accent.copy(alpha = 0.5f),
+                        Color.Transparent
+                    )
+                )
+            )
+    )
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  Extension: Color.copy with alpha
+// ═══════════════════════════════════════════════════════════════
+
+private fun Color.copy(alpha: Float): Color = this.copy(alpha = alpha)
