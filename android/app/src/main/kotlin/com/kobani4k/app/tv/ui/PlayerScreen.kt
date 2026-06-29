@@ -85,28 +85,24 @@ private fun isUp(keyCode: Int) = keyCode in setOf(
     KeyEvent.KEYCODE_DPAD_UP,
     KeyEvent.KEYCODE_CHANNEL_UP,
     KeyEvent.KEYCODE_PAGE_UP,
-    KeyEvent.KEYCODE_NUMPAD_8,
-    KeyEvent.KEYCODE_NUMPAD_UP
+    KeyEvent.KEYCODE_NUMPAD_8
 )
 
 private fun isDown(keyCode: Int) = keyCode in setOf(
     KeyEvent.KEYCODE_DPAD_DOWN,
     KeyEvent.KEYCODE_CHANNEL_DOWN,
     KeyEvent.KEYCODE_PAGE_DOWN,
-    KeyEvent.KEYCODE_NUMPAD_2,
-    KeyEvent.KEYCODE_NUMPAD_DOWN
+    KeyEvent.KEYCODE_NUMPAD_2
 )
 
 private fun isLeft(keyCode: Int) = keyCode in setOf(
     KeyEvent.KEYCODE_DPAD_LEFT,
-    KeyEvent.KEYCODE_NUMPAD_4,
-    KeyEvent.KEYCODE_NUMPAD_LEFT
+    KeyEvent.KEYCODE_NUMPAD_4
 )
 
 private fun isRight(keyCode: Int) = keyCode in setOf(
     KeyEvent.KEYCODE_DPAD_RIGHT,
-    KeyEvent.KEYCODE_NUMPAD_6,
-    KeyEvent.KEYCODE_NUMPAD_RIGHT
+    KeyEvent.KEYCODE_NUMPAD_6
 )
 
 private fun isMenu(keyCode: Int) = keyCode in setOf(
@@ -438,7 +434,7 @@ fun PlayerScreen(
             exit    = slideOutVertically { it } + fadeOut(tween(220)),
             modifier = Modifier
                 .align(Alignment.BottomCenter)
-                .padding(horizontal = 48.dp, bottom = 48.dp)
+                .padding(start = 48.dp, end = 48.dp, bottom = 48.dp)
         ) {
             ZapBanner(
                 channelName = currentChannelName,
