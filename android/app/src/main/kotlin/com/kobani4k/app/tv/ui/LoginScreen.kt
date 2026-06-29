@@ -135,7 +135,7 @@ fun LoginScreen(onLoginSuccess: () -> Unit) {
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(UltraTokens.BgBase)
+            .background(UltraTokens.Background)
             .onKeyEvent { keyEvent ->
                 if (keyEvent.nativeKeyEvent.action == KeyEvent.ACTION_DOWN) {
                     val code = keyEvent.nativeKeyEvent.keyCode
@@ -179,7 +179,7 @@ fun LoginScreen(onLoginSuccess: () -> Unit) {
                 .background(
                     Brush.radialGradient(
                         colors = listOf(
-                            UltraTokens.Brand500.copy(alpha = 0.08f),
+                            UltraTokens.Blue.copy(alpha = 0.08f),
                             Color.Transparent
                         ),
                         radius = 700f
@@ -196,7 +196,7 @@ fun LoginScreen(onLoginSuccess: () -> Unit) {
                 .background(
                     Brush.radialGradient(
                         colors = listOf(
-                            UltraTokens.Brand400.copy(alpha = 0.06f),
+                            UltraTokens.Blue.copy(alpha = 0.06f),
                             Color.Transparent
                         ),
                         radius = 800f
@@ -240,8 +240,8 @@ fun LoginScreen(onLoginSuccess: () -> Unit) {
                     .background(
                         Brush.verticalGradient(
                             colors = listOf(
-                                UltraTokens.SurfaceBase.copy(alpha = 0.75f),
-                                UltraTokens.SurfaceBase.copy(alpha = 0.6f)
+                                UltraTokens.Surface.copy(alpha = 0.75f),
+                                UltraTokens.Surface.copy(alpha = 0.6f)
                             )
                         )
                     )
@@ -357,7 +357,7 @@ fun LoginScreen(onLoginSuccess: () -> Unit) {
                     fontSize = 11.sp,
                     fontWeight = FontWeight.Medium,
                     letterSpacing = 2.sp,
-                    color = UltraTokens.FgDisabled.copy(alpha = 0.5f)
+                    color = UltraTokens.Divider.copy(alpha = 0.5f)
                 )
             }
 
@@ -429,10 +429,10 @@ private fun LogoSection() {
                 fontSize = 28.sp,
                 fontWeight = FontWeight.Black,
                 letterSpacing = 4.sp,
-                color = UltraTokens.Brand500,
+                color = UltraTokens.Blue,
                 style = TextStyle(
                     shadow = Shadow(
-                        color = UltraTokens.Brand500.copy(alpha = 0.3f),
+                        color = UltraTokens.Blue.copy(alpha = 0.3f),
                         blurRadius = 10f
                     )
                 )
@@ -446,7 +446,7 @@ private fun LogoSection() {
             fontSize = 10.sp,
             fontWeight = FontWeight.Medium,
             letterSpacing = 4.sp,
-            color = UltraTokens.FgTertiary.copy(alpha = 0.6f)
+            color = UltraTokens.TextSecondary.copy(alpha = 0.6f)
         )
 
         Spacer(modifier = Modifier.height(10.dp))
@@ -461,7 +461,7 @@ private fun LogoSection() {
                     Brush.horizontalGradient(
                         colors = listOf(
                             Color.Transparent,
-                            UltraTokens.Brand500.copy(alpha = 0.4f),
+                            UltraTokens.Blue.copy(alpha = 0.4f),
                             Color.Transparent
                         )
                     )
@@ -496,7 +496,7 @@ private fun CodeDisplay(
     val borderColor by animateColorAsState(
         targetValue = when {
             isError -> Color(0xFFFF4757)
-            isActive -> UltraTokens.Brand500.copy(alpha = 0.4f)
+            isActive -> UltraTokens.Blue.copy(alpha = 0.4f)
             else -> Color.White.copy(alpha = 0.06f)
         },
         animationSpec = tween(300),
@@ -506,7 +506,7 @@ private fun CodeDisplay(
     val glowColor by animateColorAsState(
         targetValue = when {
             isError -> Color(0xFFFF4757).copy(alpha = 0.08f)
-            isActive -> UltraTokens.Brand500.copy(alpha = 0.06f)
+            isActive -> UltraTokens.Blue.copy(alpha = 0.06f)
             else -> Color.Transparent
         },
         animationSpec = tween(300),
@@ -525,7 +525,7 @@ private fun CodeDisplay(
                 spotColor = glowColor
             )
             .clip(RoundedCornerShape(12.dp))
-            .background(UltraTokens.BgBase.copy(alpha = 0.7f))
+            .background(UltraTokens.Background.copy(alpha = 0.7f))
             .border(1.5.dp, borderColor, RoundedCornerShape(12.dp))
             .padding(horizontal = 16.dp),
         contentAlignment = Alignment.Center
@@ -550,7 +550,7 @@ private fun CodeDisplay(
                     modifier = Modifier
                         .size(2.dp, 28.dp)
                         .clip(RoundedCornerShape(2.dp))
-                        .background(UltraTokens.Brand500)
+                        .background(UltraTokens.Blue)
                         .alpha(actualCursorAlpha)
                 )
             }
@@ -577,7 +577,7 @@ private fun CodeDisplay(
                             fontSize = 24.sp,
                             fontWeight = FontWeight.Bold,
                             letterSpacing = 2.sp,
-                            color = if (isError) Color(0xFFFF4757) else UltraTokens.Brand500,
+                            color = if (isError) Color(0xFFFF4757) else UltraTokens.Blue,
                             modifier = Modifier.width(24.dp),
                             textAlign = TextAlign.Center
                         )
@@ -593,7 +593,7 @@ private fun CodeDisplay(
                         modifier = Modifier
                             .size(2.dp, 28.dp)
                             .clip(RoundedCornerShape(2.dp))
-                            .background(UltraTokens.Brand500)
+                            .background(UltraTokens.Blue)
                             .alpha(actualCursorAlpha)
                     )
                 }
@@ -755,9 +755,9 @@ private fun KeypadButton(
 
     val bgColor by animateColorAsState(
         targetValue = when {
-            isLoading -> UltraTokens.SurfaceOverlay
-            isFocused -> UltraTokens.Brand500
-            else -> UltraTokens.SurfaceOverlay.copy(alpha = 0.6f)
+            isLoading -> UltraTokens.SurfaceHover
+            isFocused -> UltraTokens.Blue
+            else -> UltraTokens.SurfaceHover.copy(alpha = 0.6f)
         },
         animationSpec = tween(150),
         label = "keyBg"
@@ -765,7 +765,7 @@ private fun KeypadButton(
 
     val borderColor by animateColorAsState(
         targetValue = when {
-            isFocused -> UltraTokens.Brand500.copy(alpha = 0.6f)
+            isFocused -> UltraTokens.Blue.copy(alpha = 0.6f)
             else -> Color.White.copy(alpha = 0.04f)
         },
         animationSpec = tween(150),
@@ -773,7 +773,7 @@ private fun KeypadButton(
     )
 
     val glowColor by animateColorAsState(
-        targetValue = if (isFocused) UltraTokens.Brand500.copy(alpha = 0.15f) else Color.Transparent,
+        targetValue = if (isFocused) UltraTokens.Blue.copy(alpha = 0.15f) else Color.Transparent,
         animationSpec = tween(150),
         label = "keyGlow"
     )
@@ -833,7 +833,7 @@ private fun KeypadButton(
                     .scale(rippleScale)
                     .alpha(rippleAlpha * 0.3f)
                     .clip(CircleShape)
-                    .background(UltraTokens.Brand500.copy(alpha = 0.2f))
+                    .background(UltraTokens.Blue.copy(alpha = 0.2f))
             )
         }
 
@@ -846,7 +846,7 @@ private fun KeypadButton(
                     .background(
                         Brush.radialGradient(
                             colors = listOf(
-                                UltraTokens.Brand500.copy(alpha = 0.05f),
+                                UltraTokens.Blue.copy(alpha = 0.05f),
                                 Color.Transparent
                             ),
                             radius = 80f
@@ -860,7 +860,7 @@ private fun KeypadButton(
                 Icon(
                     imageVector = Icons.Rounded.Backspace,
                     contentDescription = "Backspace",
-                    tint = if (isFocused) Color.White else UltraTokens.FgSecondary,
+                    tint = if (isFocused) Color.White else UltraTokens.TextSecondary,
                     modifier = Modifier.size(24.dp)
                 )
             }
@@ -870,7 +870,7 @@ private fun KeypadButton(
                     fontSize = 13.sp,
                     fontWeight = FontWeight.Bold,
                     letterSpacing = 1.sp,
-                    color = if (isFocused) Color.White else UltraTokens.FgTertiary
+                    color = if (isFocused) Color.White else UltraTokens.TextSecondary
                 )
             }
             else -> {
@@ -878,7 +878,7 @@ private fun KeypadButton(
                     text = label,
                     fontSize = 24.sp,
                     fontWeight = FontWeight.SemiBold,
-                    color = if (isFocused) Color.White else UltraTokens.FgPrimary
+                    color = if (isFocused) Color.White else UltraTokens.Text
                 )
             }
         }
@@ -913,7 +913,7 @@ private fun LoginButton(
     )
 
     val glowColor by animateColorAsState(
-        targetValue = if (isFocused && enabled) UltraTokens.Brand500.copy(alpha = 0.2f) else Color.Transparent,
+        targetValue = if (isFocused && enabled) UltraTokens.Blue.copy(alpha = 0.2f) else Color.Transparent,
         animationSpec = tween(300),
         label = "btnGlow"
     )
@@ -941,12 +941,12 @@ private fun LoginButton(
             )
             .clip(RoundedCornerShape(16.dp))
             .then(
-                if (isLoading) Modifier.background(UltraTokens.SurfaceOverlay)
+                if (isLoading) Modifier.background(UltraTokens.SurfaceHover)
                 else Modifier.background(
                     Brush.horizontalGradient(
                         colors = listOf(
-                            UltraTokens.Brand500,
-                            UltraTokens.Brand400
+                            UltraTokens.Blue,
+                            UltraTokens.Blue
                         )
                     )
                 )
@@ -1041,7 +1041,7 @@ private fun LoginButton(
                 Icon(
                     imageVector = Icons.Rounded.PlayArrow,
                     contentDescription = null,
-                    tint = if (enabled) Color.White else UltraTokens.FgDisabled,
+                    tint = if (enabled) Color.White else UltraTokens.Divider,
                     modifier = Modifier.size(22.dp)
                 )
                 Spacer(modifier = Modifier.width(10.dp))
@@ -1050,7 +1050,7 @@ private fun LoginButton(
                     fontSize = 16.sp,
                     fontWeight = FontWeight.Bold,
                     letterSpacing = 4.sp,
-                    color = if (enabled) Color.White else UltraTokens.FgDisabled
+                    color = if (enabled) Color.White else UltraTokens.Divider
                 )
             }
         }
@@ -1096,7 +1096,7 @@ private fun SuccessOverlay(
                     .background(
                         Brush.radialGradient(
                             colors = listOf(
-                                UltraTokens.Brand500.copy(alpha = 0.3f),
+                                UltraTokens.Blue.copy(alpha = 0.3f),
                                 Color.Transparent
                             )
                         )
@@ -1106,7 +1106,7 @@ private fun SuccessOverlay(
                 Icon(
                     imageVector = Icons.Rounded.CheckCircle,
                     contentDescription = "Success",
-                    tint = UltraTokens.Brand500,
+                    tint = UltraTokens.Blue,
                     modifier = Modifier.size(60.dp)
                 )
             }
@@ -1138,7 +1138,7 @@ private fun SuccessOverlay(
                     text = "Your device is now ready",
                     fontSize = 14.sp,
                     fontWeight = FontWeight.Medium,
-                    color = UltraTokens.FgTertiary
+                    color = UltraTokens.TextSecondary
                 )
             }
         }
@@ -1216,7 +1216,7 @@ private fun ParticleView(
             .background(
                 Brush.radialGradient(
                     colors = listOf(
-                        UltraTokens.Brand500.copy(alpha = 0.5f),
+                        UltraTokens.Blue.copy(alpha = 0.5f),
                         Color.Transparent
                     )
                 )
