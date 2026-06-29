@@ -235,8 +235,8 @@ fun LoginScreen(onLoginSuccess: () -> Unit) {
             // ─── Glass Card ───
             Column(
                 modifier = Modifier
-                    .width(420.dp)
-                    .clip(RoundedCornerShape(32.dp))
+                    .width(380.dp)
+                    .clip(RoundedCornerShape(24.dp))
                     .background(
                         Brush.verticalGradient(
                             colors = listOf(
@@ -253,23 +253,23 @@ fun LoginScreen(onLoginSuccess: () -> Unit) {
                                 Color.White.copy(alpha = 0.02f)
                             )
                         ),
-                        shape = RoundedCornerShape(32.dp)
+                        shape = RoundedCornerShape(24.dp)
                     )
                     .shadow(
                         elevation = 40.dp,
-                        shape = RoundedCornerShape(32.dp),
+                        shape = RoundedCornerShape(24.dp),
                         clip = false,
                         ambientColor = Color.Black.copy(alpha = 0.5f),
                         spotColor = Color.Black.copy(alpha = 0.3f)
                     )
-                    .padding(horizontal = 32.dp, vertical = 32.dp),
+                    .padding(horizontal = 24.dp, vertical = 24.dp),
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.Center
             ) {
                 // ─── Logo Section ───
                 LogoSection()
 
-                Spacer(modifier = Modifier.height(28.dp))
+                Spacer(modifier = Modifier.height(16.dp))
 
                 // ─── Code Display ───
                 CodeDisplay(
@@ -288,10 +288,10 @@ fun LoginScreen(onLoginSuccess: () -> Unit) {
                         onDismiss = { errorMessage = null }
                     )
                 } else {
-                    Spacer(modifier = Modifier.height(24.dp))
+                    Spacer(modifier = Modifier.height(16.dp))
                 }
 
-                Spacer(modifier = Modifier.height(12.dp))
+                Spacer(modifier = Modifier.height(6.dp))
 
                 // ─── Keypad ───
                 KeypadGrid(
@@ -317,12 +317,13 @@ fun LoginScreen(onLoginSuccess: () -> Unit) {
                     isLoading = isLoading
                 )
 
-                Spacer(modifier = Modifier.height(24.dp))
+                Spacer(modifier = Modifier.height(16.dp))
 
                 // ─── Login Button ───
                 LoginButton(
                     modifier = Modifier
                         .fillMaxWidth()
+                        .height(48.dp)
                         .focusRequester(loginButtonRequester)
                         .focusable(),
                     isLoading = isLoading,
@@ -404,7 +405,7 @@ private fun LogoSection() {
         // Logo icon with glow
         Box(
             modifier = Modifier
-                .size(64.dp)
+                .size(48.dp)
                 .scale(logoScale)
                 .shadow(
                     elevation = 20.dp,
@@ -429,11 +430,11 @@ private fun LogoSection() {
                 imageVector = Icons.Rounded.LiveTv,
                 contentDescription = "Logo",
                 tint = UltraTokens.Accent,
-                modifier = Modifier.size(44.dp)
+                modifier = Modifier.size(32.dp)
             )
         }
 
-        Spacer(modifier = Modifier.height(16.dp))
+        Spacer(modifier = Modifier.height(12.dp))
 
         // Brand name
         Row(
@@ -442,7 +443,7 @@ private fun LogoSection() {
         ) {
             Text(
                 text = "KOBANI",
-                fontSize = 38.sp,
+                fontSize = 28.sp,
                 fontWeight = FontWeight.Black,
                 letterSpacing = 4.sp,
                 color = Color.White,
@@ -456,7 +457,7 @@ private fun LogoSection() {
             Spacer(modifier = Modifier.width(6.dp))
             Text(
                 text = "4K",
-                fontSize = 38.sp,
+                fontSize = 28.sp,
                 fontWeight = FontWeight.Black,
                 letterSpacing = 4.sp,
                 color = UltraTokens.Accent,
@@ -469,17 +470,17 @@ private fun LogoSection() {
             )
         }
 
-        Spacer(modifier = Modifier.height(6.dp))
+        Spacer(modifier = Modifier.height(4.dp))
 
         Text(
             text = "PREMIUM STREAMING",
-            fontSize = 12.sp,
+            fontSize = 10.sp,
             fontWeight = FontWeight.Medium,
-            letterSpacing = 5.sp,
+            letterSpacing = 4.sp,
             color = UltraTokens.Fg3.copy(alpha = 0.6f)
         )
 
-        Spacer(modifier = Modifier.height(14.dp))
+        Spacer(modifier = Modifier.height(10.dp))
 
         // Decorative line
         Box(
@@ -546,18 +547,18 @@ private fun CodeDisplay(
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .height(54.dp)
+            .height(48.dp)
             .shadow(
                 elevation = 0.dp,
-                shape = RoundedCornerShape(16.dp),
+                shape = RoundedCornerShape(12.dp),
                 clip = false,
                 ambientColor = glowColor,
                 spotColor = glowColor
             )
-            .clip(RoundedCornerShape(16.dp))
+            .clip(RoundedCornerShape(12.dp))
             .background(UltraTokens.BgDeep.copy(alpha = 0.7f))
-            .border(1.5.dp, borderColor, RoundedCornerShape(16.dp))
-            .padding(horizontal = 20.dp),
+            .border(1.5.dp, borderColor, RoundedCornerShape(12.dp))
+            .padding(horizontal = 16.dp),
         contentAlignment = Alignment.Center
     ) {
         if (code.isEmpty()) {
@@ -604,11 +605,11 @@ private fun CodeDisplay(
                     ) { digit ->
                         Text(
                             text = digit.toString(),
-                            fontSize = 30.sp,
+                            fontSize = 24.sp,
                             fontWeight = FontWeight.Bold,
                             letterSpacing = 2.sp,
                             color = if (isError) Color(0xFFFF4757) else UltraTokens.Accent,
-                            modifier = Modifier.width(28.dp),
+                            modifier = Modifier.width(24.dp),
                             textAlign = TextAlign.Center
                         )
                     }
@@ -696,13 +697,13 @@ private fun KeypadGrid(
     var focusedKey by remember { mutableStateOf<Pair<Int, Int>?>(null) }
 
     Column(
-        verticalArrangement = Arrangement.spacedBy(10.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         modifier = Modifier.fillMaxWidth()
     ) {
         keys.forEachIndexed { rowIndex, row ->
             Row(
-                horizontalArrangement = Arrangement.spacedBy(10.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
                 modifier = Modifier.fillMaxWidth()
             ) {
                 row.forEachIndexed { colIndex, key ->
@@ -713,7 +714,7 @@ private fun KeypadGrid(
                         label = key,
                         modifier = Modifier
                             .weight(1f)
-                            .height(56.dp)
+                            .height(44.dp)
                             .focusRequester(focusRequesters[index])
                             .onFocusChanged { focusState ->
                                 if (focusState.isFocused) {
@@ -786,7 +787,7 @@ private fun KeypadButton(
     val bgColor by animateColorAsState(
         targetValue = when {
             isLoading -> UltraTokens.Surface3
-            isFocused -> UltraTokens.Accent
+            isFocused -> Color.White
             else -> UltraTokens.Surface3.copy(alpha = 0.6f)
         },
         animationSpec = tween(150),
@@ -795,7 +796,7 @@ private fun KeypadButton(
 
     val borderColor by animateColorAsState(
         targetValue = when {
-            isFocused -> UltraTokens.Accent.copy(alpha = 0.6f)
+            isFocused -> Color.White.copy(alpha = 0.8f)
             else -> Color.White.copy(alpha = 0.04f)
         },
         animationSpec = tween(150),
@@ -890,25 +891,25 @@ private fun KeypadButton(
                 Icon(
                     imageVector = Icons.Rounded.Backspace,
                     contentDescription = "Backspace",
-                    tint = if (isFocused) Color.White else UltraTokens.Fg2,
-                    modifier = Modifier.size(24.dp)
+                    tint = if (isFocused) UltraTokens.BgDeep else UltraTokens.Fg2,
+                    modifier = Modifier.size(20.dp)
                 )
             }
             isSpecial -> {
                 Text(
                     text = label,
-                    fontSize = 13.sp,
+                    fontSize = 12.sp,
                     fontWeight = FontWeight.Bold,
                     letterSpacing = 1.sp,
-                    color = if (isFocused) Color.White else UltraTokens.Fg3
+                    color = if (isFocused) UltraTokens.BgDeep else UltraTokens.Fg3
                 )
             }
             else -> {
                 Text(
                     text = label,
-                    fontSize = 24.sp,
+                    fontSize = 20.sp,
                     fontWeight = FontWeight.SemiBold,
-                    color = if (isFocused) Color.White else UltraTokens.Fg
+                    color = if (isFocused) UltraTokens.BgDeep else UltraTokens.Fg
                 )
             }
         }
@@ -960,11 +961,11 @@ private fun LoginButton(
 
     Box(
         modifier = modifier
-            .height(64.dp)
+            .height(48.dp)
             .scale(scale)
             .shadow(
                 elevation = if (isFocused) 24.dp else 8.dp,
-                shape = RoundedCornerShape(16.dp),
+                shape = RoundedCornerShape(12.dp),
                 clip = false,
                 ambientColor = glowColor,
                 spotColor = glowColor
