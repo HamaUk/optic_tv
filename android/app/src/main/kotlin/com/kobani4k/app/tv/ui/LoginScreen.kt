@@ -943,17 +943,14 @@ private fun LoginButton(
             .then(
                 if (isLoading) Modifier.background(UltraTokens.SurfaceHover)
                 else Modifier.background(
-                    Brush.horizontalGradient(
-                        colors = listOf(
-                            UltraTokens.Blue,
-                            UltraTokens.Blue
-                        )
-                    )
+                    if (isFocused) UltraTokens.Blue
+                    else if (enabled) UltraTokens.Surface
+                    else UltraTokens.Background
                 )
             )
             .border(
-                width = if (isFocused) 2.dp else 0.dp,
-                color = Color.White.copy(alpha = if (isFocused) 0.2f else 0f),
+                width = if (isFocused || enabled) 2.dp else 1.dp,
+                color = if (isFocused) Color.White else if (enabled) UltraTokens.Blue.copy(alpha = 0.4f) else UltraTokens.Divider,
                 shape = RoundedCornerShape(16.dp)
             )
             .onFocusChanged { focusState ->
@@ -1041,7 +1038,7 @@ private fun LoginButton(
                 Icon(
                     imageVector = Icons.Rounded.PlayArrow,
                     contentDescription = null,
-                    tint = if (enabled) Color.White else UltraTokens.Divider,
+                    tint = if (isFocused) Color.White else if (enabled) UltraTokens.Text else UltraTokens.TextSecondary.copy(alpha = 0.3f),
                     modifier = Modifier.size(22.dp)
                 )
                 Spacer(modifier = Modifier.width(10.dp))
@@ -1050,7 +1047,7 @@ private fun LoginButton(
                     fontSize = 16.sp,
                     fontWeight = FontWeight.Bold,
                     letterSpacing = 4.sp,
-                    color = if (enabled) Color.White else UltraTokens.Divider
+                    color = if (isFocused) Color.White else if (enabled) UltraTokens.Text else UltraTokens.TextSecondary.copy(alpha = 0.3f)
                 )
             }
         }

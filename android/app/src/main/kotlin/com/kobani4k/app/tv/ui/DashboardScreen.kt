@@ -145,7 +145,7 @@ fun DashboardScreen(
                         channelCounts = allChannels.groupingBy { it.group.ifEmpty { "General" } }.eachCount(),
                         focusRequester = categoryFocusRequester,
                         modifier = Modifier
-                            .width(UltraTokens.SidebarExpanded)
+                            .width(UltraTokens.SideBar)
                             .fillMaxHeight()
                     )
 
