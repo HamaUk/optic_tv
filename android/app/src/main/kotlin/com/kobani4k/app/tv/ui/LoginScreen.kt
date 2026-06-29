@@ -402,39 +402,9 @@ private fun LogoSection() {
     )
 
     Column(horizontalAlignment = Alignment.CenterHorizontally) {
-        // Logo icon with glow
-        Box(
-            modifier = Modifier
-                .size(48.dp)
-                .scale(logoScale)
-                .shadow(
-                    elevation = 20.dp,
-                    shape = CircleShape,
-                    clip = false,
-                    ambientColor = UltraTokens.Accent.copy(alpha = glowPulse * 0.3f),
-                    spotColor = UltraTokens.Accent.copy(alpha = glowPulse * 0.2f)
-                )
-                .clip(CircleShape)
-                .background(
-                    Brush.radialGradient(
-                        colors = listOf(
-                            UltraTokens.Accent.copy(alpha = 0.25f),
-                            UltraTokens.Accent.copy(alpha = 0.05f),
-                            Color.Transparent
-                        )
-                    )
-                ),
-            contentAlignment = Alignment.Center
-        ) {
-            Icon(
-                imageVector = Icons.Rounded.LiveTv,
-                contentDescription = "Logo",
-                tint = UltraTokens.Accent,
-                modifier = Modifier.size(32.dp)
-            )
-        }
+        // Removed TV Icon Box
 
-        Spacer(modifier = Modifier.height(12.dp))
+
 
         // Brand name
         Row(
@@ -787,7 +757,7 @@ private fun KeypadButton(
     val bgColor by animateColorAsState(
         targetValue = when {
             isLoading -> UltraTokens.Surface3
-            isFocused -> Color.White
+            isFocused -> UltraTokens.Accent
             else -> UltraTokens.Surface3.copy(alpha = 0.6f)
         },
         animationSpec = tween(150),
@@ -796,7 +766,7 @@ private fun KeypadButton(
 
     val borderColor by animateColorAsState(
         targetValue = when {
-            isFocused -> Color.White.copy(alpha = 0.8f)
+            isFocused -> UltraTokens.Accent.copy(alpha = 0.6f)
             else -> Color.White.copy(alpha = 0.04f)
         },
         animationSpec = tween(150),
@@ -891,25 +861,25 @@ private fun KeypadButton(
                 Icon(
                     imageVector = Icons.Rounded.Backspace,
                     contentDescription = "Backspace",
-                    tint = if (isFocused) UltraTokens.BgDeep else UltraTokens.Fg2,
-                    modifier = Modifier.size(20.dp)
+                    tint = if (isFocused) Color.White else UltraTokens.Fg2,
+                    modifier = Modifier.size(24.dp)
                 )
             }
             isSpecial -> {
                 Text(
                     text = label,
-                    fontSize = 12.sp,
+                    fontSize = 13.sp,
                     fontWeight = FontWeight.Bold,
                     letterSpacing = 1.sp,
-                    color = if (isFocused) UltraTokens.BgDeep else UltraTokens.Fg3
+                    color = if (isFocused) Color.White else UltraTokens.Fg3
                 )
             }
             else -> {
                 Text(
                     text = label,
-                    fontSize = 20.sp,
+                    fontSize = 24.sp,
                     fontWeight = FontWeight.SemiBold,
-                    color = if (isFocused) UltraTokens.BgDeep else UltraTokens.Fg
+                    color = if (isFocused) Color.White else UltraTokens.Fg
                 )
             }
         }
