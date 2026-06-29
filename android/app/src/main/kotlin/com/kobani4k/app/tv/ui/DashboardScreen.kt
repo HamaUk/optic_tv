@@ -108,7 +108,7 @@ fun DashboardScreen(
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .background(UltraTokens.BgDeep)
+                .background(UltraTokens.Background)
         ) {
             // ═══ TOP HEADER BAR ═══
             DashboardHeader(onSettingsClick = { showSettings = true })
@@ -117,14 +117,14 @@ fun DashboardScreen(
                 Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
                         CircularProgressIndicator(
-                            color = UltraTokens.Accent,
+                            color = UltraTokens.Blue,
                             modifier = Modifier.size(48.dp),
                             strokeWidth = 3.dp
                         )
                         Spacer(Modifier.height(16.dp))
                         Text(
                             "Loading channels...",
-                            color = UltraTokens.Fg3,
+                            color = UltraTokens.TextSecondary,
                             fontSize = 14.sp
                         )
                     }
@@ -200,8 +200,8 @@ private fun DashboardHeader(onSettingsClick: () -> Unit) {
             .background(
                 Brush.verticalGradient(
                     colors = listOf(
-                        UltraTokens.Surface1.copy(alpha = 0.95f),
-                        UltraTokens.Surface1.copy(alpha = 0.4f),
+                        UltraTokens.Surface.copy(alpha = 0.95f),
+                        UltraTokens.Surface.copy(alpha = 0.4f),
                         Color.Transparent
                     )
                 )
@@ -226,7 +226,7 @@ private fun DashboardHeader(onSettingsClick: () -> Unit) {
             Icon(
                 Icons.Rounded.LiveTv,
                 contentDescription = "Logo",
-                tint = UltraTokens.Accent,
+                tint = UltraTokens.Blue,
                 modifier = Modifier.size(28.dp)
             )
             Spacer(Modifier.width(12.dp))
@@ -239,7 +239,7 @@ private fun DashboardHeader(onSettingsClick: () -> Unit) {
             )
             Text(
                 " 4K",
-                color = UltraTokens.Accent,
+                color = UltraTokens.Blue,
                 fontSize = 18.sp,
                 fontWeight = FontWeight.Black,
                 letterSpacing = 2.sp
@@ -251,7 +251,7 @@ private fun DashboardHeader(onSettingsClick: () -> Unit) {
                 Modifier
                     .width(1.dp)
                     .height(20.dp)
-                    .background(UltraTokens.Fg4.copy(alpha = 0.4f))
+                    .background(UltraTokens.Divider.copy(alpha = 0.4f))
             )
 
             Spacer(Modifier.width(20.dp))
@@ -305,7 +305,7 @@ private fun DashboardHeader(onSettingsClick: () -> Unit) {
                 label = "settingsScale"
             )
             val settingsBg by animateColorAsState(
-                if (settingsFocused) UltraTokens.Accent else Color.Transparent,
+                if (settingsFocused) UltraTokens.Blue else Color.Transparent,
                 tween(200),
                 label = "settingsBg"
             )
@@ -332,7 +332,7 @@ private fun DashboardHeader(onSettingsClick: () -> Unit) {
                 Icon(
                     Icons.Rounded.Settings,
                     contentDescription = "Settings",
-                    tint = if (settingsFocused) Color.White else UltraTokens.Fg3,
+                    tint = if (settingsFocused) Color.White else UltraTokens.TextSecondary,
                     modifier = Modifier.size(20.dp)
                 )
             }
@@ -376,7 +376,7 @@ private fun SettingsOverlay(
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(UltraTokens.BgDeep.copy(alpha = 0.97f))
+            .background(UltraTokens.Background.copy(alpha = 0.97f))
     ) {
         Row(modifier = Modifier.fillMaxSize()) {
             // ═══ LEFT SIDEBAR — Settings Categories ═══
@@ -384,7 +384,7 @@ private fun SettingsOverlay(
                 modifier = Modifier
                     .width(280.dp)
                     .fillMaxHeight()
-                    .background(UltraTokens.Surface1)
+                    .background(UltraTokens.Surface)
                     .padding(vertical = 24.dp)
             ) {
                 // Header
@@ -395,7 +395,7 @@ private fun SettingsOverlay(
                     Icon(
                         Icons.Rounded.Settings,
                         contentDescription = null,
-                        tint = UltraTokens.Accent,
+                        tint = UltraTokens.Blue,
                         modifier = Modifier.size(24.dp)
                     )
                     Spacer(Modifier.width(12.dp))
@@ -451,9 +451,9 @@ private fun SettingsOverlay(
                         .padding(horizontal = 24.dp, vertical = 8.dp)
                 ) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        Text("Press ", color = UltraTokens.Fg4, fontSize = 12.sp)
-                        Text("BACK", color = UltraTokens.Accent, fontSize = 12.sp, fontWeight = FontWeight.Bold)
-                        Text(" to close", color = UltraTokens.Fg4, fontSize = 12.sp)
+                        Text("Press ", color = UltraTokens.Divider, fontSize = 12.sp)
+                        Text("BACK", color = UltraTokens.Blue, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                        Text(" to close", color = UltraTokens.Divider, fontSize = 12.sp)
                     }
                 }
             }
@@ -519,8 +519,8 @@ private fun SettingsCategoryItem(
 
     val bgColor by animateColorAsState(
         when {
-            isFocused -> UltraTokens.Accent
-            isSelected -> UltraTokens.AccentTint
+            isFocused -> UltraTokens.Blue
+            isSelected -> UltraTokens.SurfaceHover
             else -> Color.Transparent
         },
         tween(200),
@@ -529,8 +529,8 @@ private fun SettingsCategoryItem(
     val iconTint by animateColorAsState(
         when {
             isFocused -> Color.White
-            isSelected -> UltraTokens.Accent
-            else -> UltraTokens.Fg4
+            isSelected -> UltraTokens.Blue
+            else -> UltraTokens.Divider
         },
         tween(200),
         label = "setCatIcon"
@@ -565,7 +565,7 @@ private fun SettingsCategoryItem(
         Spacer(Modifier.width(14.dp))
         Text(
             text = label,
-            color = if (isFocused) Color.White else if (isSelected) UltraTokens.Fg else UltraTokens.Fg3,
+            color = if (isFocused) Color.White else if (isSelected) UltraTokens.Text else UltraTokens.TextSecondary,
             fontSize = 14.sp,
             fontWeight = if (isSelected || isFocused) FontWeight.SemiBold else FontWeight.Normal
         )
@@ -703,7 +703,7 @@ private fun ParentalControlsSection(
                 modifier = Modifier
                     .fillMaxWidth()
                     .clip(RoundedCornerShape(12.dp))
-                    .background(UltraTokens.Surface2)
+                    .background(UltraTokens.SurfaceHover)
                     .padding(20.dp),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
@@ -711,7 +711,7 @@ private fun ParentalControlsSection(
                 Column {
                     Text(
                         "Current PIN",
-                        color = UltraTokens.Fg3,
+                        color = UltraTokens.TextSecondary,
                         fontSize = 12.sp,
                         fontWeight = FontWeight.Medium
                     )
@@ -727,7 +727,7 @@ private fun ParentalControlsSection(
                 Icon(
                     Icons.Rounded.Edit,
                     contentDescription = "Change PIN",
-                    tint = UltraTokens.Accent,
+                    tint = UltraTokens.Blue,
                     modifier = Modifier.size(20.dp)
                 )
             }
@@ -739,20 +739,20 @@ private fun ParentalControlsSection(
                 modifier = Modifier
                     .fillMaxWidth()
                     .clip(RoundedCornerShape(10.dp))
-                    .background(UltraTokens.Accent.copy(alpha = 0.08f))
+                    .background(UltraTokens.Blue.copy(alpha = 0.08f))
                     .padding(16.dp),
                 verticalAlignment = Alignment.Top
             ) {
                 Icon(
                     Icons.Rounded.Info,
                     contentDescription = null,
-                    tint = UltraTokens.Accent,
+                    tint = UltraTokens.Blue,
                     modifier = Modifier.size(18.dp)
                 )
                 Spacer(Modifier.width(12.dp))
                 Text(
                     "When enabled, restricted channels will require the PIN before playback.",
-                    color = UltraTokens.Fg3,
+                    color = UltraTokens.TextSecondary,
                     fontSize = 13.sp
                 )
             }
@@ -777,7 +777,7 @@ private fun AppearanceSection(
         SettingsSubHeader("THEME")
 
         val themes = listOf(
-            Triple("Dark", UltraTokens.Surface1, "Standard dark theme"),
+            Triple("Dark", UltraTokens.Surface, "Standard dark theme"),
             Triple("AMOLED", Color.Black, "Pure black for OLED screens"),
             Triple("Blue", Color(0xFF0A1628), "Deep navy blue theme"),
         )
@@ -807,9 +807,9 @@ private fun ThemeOptionRow(
 
     val bgColor by animateColorAsState(
         when {
-            isFocused -> UltraTokens.Accent
-            isSelected -> UltraTokens.AccentTint
-            else -> UltraTokens.Surface2
+            isFocused -> UltraTokens.Blue
+            isSelected -> UltraTokens.SurfaceHover
+            else -> UltraTokens.SurfaceHover
         },
         tween(200),
         label = "themeBg"
@@ -850,13 +850,13 @@ private fun ThemeOptionRow(
         Column(modifier = Modifier.weight(1f)) {
             Text(
                 name,
-                color = if (isFocused) Color.White else UltraTokens.Fg,
+                color = if (isFocused) Color.White else UltraTokens.Text,
                 fontSize = 15.sp,
                 fontWeight = FontWeight.SemiBold
             )
             Text(
                 description,
-                color = if (isFocused) Color.White.copy(alpha = 0.7f) else UltraTokens.Fg4,
+                color = if (isFocused) Color.White.copy(alpha = 0.7f) else UltraTokens.Divider,
                 fontSize = 12.sp
             )
         }
@@ -867,7 +867,7 @@ private fun ThemeOptionRow(
                 .clip(CircleShape)
                 .border(
                     2.dp,
-                    if (isFocused) Color.White else if (isSelected) UltraTokens.Accent else UltraTokens.Fg4,
+                    if (isFocused) Color.White else if (isSelected) UltraTokens.Blue else UltraTokens.Divider,
                     CircleShape
                 ),
             contentAlignment = Alignment.Center
@@ -877,7 +877,7 @@ private fun ThemeOptionRow(
                     modifier = Modifier
                         .size(10.dp)
                         .clip(CircleShape)
-                        .background(if (isFocused) Color.White else UltraTokens.Accent)
+                        .background(if (isFocused) Color.White else UltraTokens.Blue)
                 )
             }
         }
@@ -900,17 +900,17 @@ private fun StorageSection() {
             modifier = Modifier
                 .fillMaxWidth()
                 .clip(RoundedCornerShape(14.dp))
-                .background(UltraTokens.Surface2)
+                .background(UltraTokens.SurfaceHover)
                 .padding(20.dp),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
             Column {
-                Text("Image Cache", color = UltraTokens.Fg3, fontSize = 12.sp)
+                Text("Image Cache", color = UltraTokens.TextSecondary, fontSize = 12.sp)
                 Spacer(Modifier.height(4.dp))
                 Text(
                     "Cached channel logos and images",
-                    color = UltraTokens.Fg,
+                    color = UltraTokens.Text,
                     fontSize = 15.sp,
                     fontWeight = FontWeight.Medium
                 )
@@ -918,7 +918,7 @@ private fun StorageSection() {
             Icon(
                 Icons.Rounded.Image,
                 contentDescription = null,
-                tint = UltraTokens.Fg4,
+                tint = UltraTokens.Divider,
                 modifier = Modifier.size(24.dp)
             )
         }
@@ -930,7 +930,7 @@ private fun StorageSection() {
             icon = Icons.Rounded.DeleteSweep,
             title = "Clear Image Cache",
             description = "Remove all cached channel logos",
-            accentColor = UltraTokens.Warn,
+            accentColor = UltraTokens.Movie,
             onClick = { /* Clear cache logic */ }
         )
 
@@ -940,7 +940,7 @@ private fun StorageSection() {
             icon = Icons.Rounded.Refresh,
             title = "Refresh Channel Data",
             description = "Re-download all channel and group data",
-            accentColor = UltraTokens.Accent,
+            accentColor = UltraTokens.Blue,
             onClick = { /* Refresh logic */ }
         )
     }
@@ -962,14 +962,14 @@ private fun AboutSection() {
             modifier = Modifier
                 .fillMaxWidth()
                 .clip(RoundedCornerShape(16.dp))
-                .background(UltraTokens.Surface2)
+                .background(UltraTokens.SurfaceHover)
                 .padding(24.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Icon(
                 Icons.Rounded.LiveTv,
                 contentDescription = null,
-                tint = UltraTokens.Accent,
+                tint = UltraTokens.Blue,
                 modifier = Modifier.size(48.dp)
             )
             Spacer(Modifier.height(12.dp))
@@ -983,7 +983,7 @@ private fun AboutSection() {
                 )
                 Text(
                     "4K",
-                    color = UltraTokens.Accent,
+                    color = UltraTokens.Blue,
                     fontSize = 24.sp,
                     fontWeight = FontWeight.Black,
                     letterSpacing = 2.sp
@@ -992,7 +992,7 @@ private fun AboutSection() {
             Spacer(Modifier.height(4.dp))
             Text(
                 "Premium Streaming",
-                color = UltraTokens.Fg4,
+                color = UltraTokens.Divider,
                 fontSize = 13.sp,
                 letterSpacing = 2.sp
             )
@@ -1016,10 +1016,10 @@ private fun AboutSection() {
                     .padding(vertical = 8.dp),
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
-                Text(label, color = UltraTokens.Fg3, fontSize = 14.sp)
+                Text(label, color = UltraTokens.TextSecondary, fontSize = 14.sp)
                 Text(
                     value,
-                    color = UltraTokens.Fg,
+                    color = UltraTokens.Text,
                     fontSize = 14.sp,
                     fontWeight = FontWeight.Medium
                 )
@@ -1054,7 +1054,7 @@ private fun AccountSection(
             modifier = Modifier
                 .fillMaxWidth()
                 .clip(RoundedCornerShape(14.dp))
-                .background(UltraTokens.Surface2)
+                .background(UltraTokens.SurfaceHover)
                 .padding(20.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
@@ -1062,13 +1062,13 @@ private fun AccountSection(
                 modifier = Modifier
                     .size(52.dp)
                     .clip(CircleShape)
-                    .background(UltraTokens.AccentSoft),
+                    .background(UltraTokens.SurfaceHover),
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
                     Icons.Rounded.Person,
                     contentDescription = null,
-                    tint = UltraTokens.Accent,
+                    tint = UltraTokens.Blue,
                     modifier = Modifier.size(28.dp)
                 )
             }
@@ -1086,12 +1086,12 @@ private fun AccountSection(
                         Modifier
                             .size(6.dp)
                             .clip(CircleShape)
-                            .background(UltraTokens.Ok)
+                            .background(UltraTokens.Sports)
                     )
                     Spacer(Modifier.width(6.dp))
                     Text(
                         "Activated via login code",
-                        color = UltraTokens.Fg3,
+                        color = UltraTokens.TextSecondary,
                         fontSize = 13.sp
                     )
                 }
@@ -1126,7 +1126,7 @@ private fun AccountSection(
             icon = Icons.Rounded.Logout,
             title = "Sign Out",
             description = "Log out and return to the login screen",
-            accentColor = UltraTokens.Warn,
+            accentColor = UltraTokens.Movie,
             onClick = onLogout
         )
     }
@@ -1142,7 +1142,7 @@ private fun StatCard(
     Row(
         modifier = modifier
             .clip(RoundedCornerShape(12.dp))
-            .background(UltraTokens.Surface2)
+            .background(UltraTokens.SurfaceHover)
             .padding(16.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
@@ -1150,15 +1150,15 @@ private fun StatCard(
             modifier = Modifier
                 .size(40.dp)
                 .clip(RoundedCornerShape(10.dp))
-                .background(UltraTokens.AccentTint),
+                .background(UltraTokens.SurfaceHover),
             contentAlignment = Alignment.Center
         ) {
-            Icon(icon, contentDescription = null, tint = UltraTokens.Accent, modifier = Modifier.size(20.dp))
+            Icon(icon, contentDescription = null, tint = UltraTokens.Blue, modifier = Modifier.size(20.dp))
         }
         Spacer(Modifier.width(12.dp))
         Column {
             Text(value, color = Color.White, fontSize = 22.sp, fontWeight = FontWeight.Bold)
-            Text(label, color = UltraTokens.Fg4, fontSize = 12.sp)
+            Text(label, color = UltraTokens.Divider, fontSize = 12.sp)
         }
     }
 }
@@ -1181,7 +1181,7 @@ private fun SectionHeader(title: String) {
 private fun SettingsSubHeader(title: String) {
     Text(
         text = title,
-        color = UltraTokens.Accent,
+        color = UltraTokens.Blue,
         fontSize = 11.sp,
         fontWeight = FontWeight.Bold,
         letterSpacing = 2.sp,
@@ -1200,12 +1200,12 @@ private fun SettingsToggleRow(
     var isFocused by remember { mutableStateOf(false) }
 
     val bgColor by animateColorAsState(
-        if (isFocused) UltraTokens.Accent.copy(alpha = 0.15f) else UltraTokens.Surface2,
+        if (isFocused) UltraTokens.Blue.copy(alpha = 0.15f) else UltraTokens.SurfaceHover,
         tween(200),
         label = "toggleBg"
     )
     val borderColor by animateColorAsState(
-        if (isFocused) UltraTokens.Accent else Color.Transparent,
+        if (isFocused) UltraTokens.Blue else Color.Transparent,
         tween(200),
         label = "toggleBorder"
     )
@@ -1233,21 +1233,21 @@ private fun SettingsToggleRow(
         Icon(
             icon,
             contentDescription = null,
-            tint = if (isFocused) UltraTokens.Accent else UltraTokens.Fg4,
+            tint = if (isFocused) UltraTokens.Blue else UltraTokens.Divider,
             modifier = Modifier.size(22.dp)
         )
         Spacer(Modifier.width(16.dp))
         Column(modifier = Modifier.weight(1f)) {
             Text(
                 title,
-                color = if (isFocused) Color.White else UltraTokens.Fg,
+                color = if (isFocused) Color.White else UltraTokens.Text,
                 fontSize = 15.sp,
                 fontWeight = FontWeight.SemiBold
             )
             Spacer(Modifier.height(2.dp))
             Text(
                 description,
-                color = if (isFocused) Color.White.copy(alpha = 0.7f) else UltraTokens.Fg4,
+                color = if (isFocused) Color.White.copy(alpha = 0.7f) else UltraTokens.Divider,
                 fontSize = 12.sp
             )
         }
@@ -1255,7 +1255,7 @@ private fun SettingsToggleRow(
 
         // Toggle switch
         val toggleBg by animateColorAsState(
-            if (isEnabled) UltraTokens.Accent else UltraTokens.Surface3,
+            if (isEnabled) UltraTokens.Blue else UltraTokens.SurfaceSelected,
             tween(200),
             label = "switchBg"
         )
@@ -1294,8 +1294,8 @@ private fun SettingsRadioRow(
 
     val bgColor by animateColorAsState(
         when {
-            isFocused -> UltraTokens.Accent
-            isSelected -> UltraTokens.AccentTint
+            isFocused -> UltraTokens.Blue
+            isSelected -> UltraTokens.SurfaceHover
             else -> Color.Transparent
         },
         tween(150),
@@ -1324,7 +1324,7 @@ private fun SettingsRadioRow(
     ) {
         Text(
             text = title,
-            color = if (isFocused) Color.White else if (isSelected) UltraTokens.Accent else UltraTokens.Fg2,
+            color = if (isFocused) Color.White else if (isSelected) UltraTokens.Blue else UltraTokens.Fg2,
             fontSize = 14.sp,
             fontWeight = if (isSelected || isFocused) FontWeight.SemiBold else FontWeight.Normal
         )
@@ -1336,8 +1336,8 @@ private fun SettingsRadioRow(
                 .border(
                     2.dp,
                     if (isFocused) Color.White
-                    else if (isSelected) UltraTokens.Accent
-                    else UltraTokens.Fg4,
+                    else if (isSelected) UltraTokens.Blue
+                    else UltraTokens.Divider,
                     CircleShape
                 ),
             contentAlignment = Alignment.Center
@@ -1347,7 +1347,7 @@ private fun SettingsRadioRow(
                     modifier = Modifier
                         .size(10.dp)
                         .clip(CircleShape)
-                        .background(if (isFocused) Color.White else UltraTokens.Accent)
+                        .background(if (isFocused) Color.White else UltraTokens.Blue)
                 )
             }
         }
@@ -1365,7 +1365,7 @@ private fun SettingsActionButton(
     var isFocused by remember { mutableStateOf(false) }
 
     val bgColor by animateColorAsState(
-        if (isFocused) accentColor else UltraTokens.Surface2,
+        if (isFocused) accentColor else UltraTokens.SurfaceHover,
         tween(200),
         label = "actionBg"
     )
@@ -1411,13 +1411,13 @@ private fun SettingsActionButton(
         Column {
             Text(
                 title,
-                color = if (isFocused) Color.White else UltraTokens.Fg,
+                color = if (isFocused) Color.White else UltraTokens.Text,
                 fontSize = 15.sp,
                 fontWeight = FontWeight.SemiBold
             )
             Text(
                 description,
-                color = if (isFocused) Color.White.copy(alpha = 0.7f) else UltraTokens.Fg4,
+                color = if (isFocused) Color.White.copy(alpha = 0.7f) else UltraTokens.Divider,
                 fontSize = 12.sp
             )
         }
@@ -1440,7 +1440,7 @@ private fun CategoryPane(
     Column(modifier = modifier) {
         Text(
             text = "CATEGORIES",
-            color = UltraTokens.Fg4,
+            color = UltraTokens.Divider,
             fontSize = 11.sp,
             fontWeight = FontWeight.Bold,
             letterSpacing = 2.sp,
@@ -1452,7 +1452,7 @@ private fun CategoryPane(
             modifier = Modifier
                 .fillMaxSize()
                 .clip(RoundedCornerShape(16.dp))
-                .background(UltraTokens.Surface1.copy(alpha = 0.5f))
+                .background(UltraTokens.Surface.copy(alpha = 0.5f))
                 .focusRestorer()
         ) {
             items(categories) { category ->
@@ -1483,8 +1483,8 @@ private fun CategoryItem(
 
     val bgColor by animateColorAsState(
         when {
-            isFocused -> UltraTokens.Accent
-            isSelected -> UltraTokens.AccentTint
+            isFocused -> UltraTokens.Blue
+            isSelected -> UltraTokens.SurfaceHover
             else -> Color.Transparent
         },
         tween(200),
@@ -1493,8 +1493,8 @@ private fun CategoryItem(
     val textColor by animateColorAsState(
         when {
             isFocused -> Color.White
-            isSelected -> UltraTokens.Accent
-            else -> UltraTokens.Fg3
+            isSelected -> UltraTokens.Blue
+            else -> UltraTokens.TextSecondary
         },
         tween(200),
         label = "catText"
@@ -1535,14 +1535,14 @@ private fun CategoryItem(
                 .clip(RoundedCornerShape(6.dp))
                 .background(
                     if (isFocused) Color.White.copy(alpha = 0.2f)
-                    else if (isSelected) UltraTokens.AccentSoft
-                    else UltraTokens.Surface3
+                    else if (isSelected) UltraTokens.SurfaceHover
+                    else UltraTokens.SurfaceSelected
                 )
                 .padding(horizontal = 8.dp, vertical = 3.dp)
         ) {
             Text(
                 text = count.toString(),
-                color = if (isFocused) Color.White else UltraTokens.Fg4,
+                color = if (isFocused) Color.White else UltraTokens.Divider,
                 fontSize = 11.sp,
                 fontWeight = FontWeight.Bold
             )
@@ -1566,21 +1566,21 @@ private fun ChannelPane(
             modifier = Modifier
                 .fillMaxWidth()
                 .clip(RoundedCornerShape(topStart = 14.dp, topEnd = 14.dp))
-                .background(UltraTokens.Accent.copy(alpha = 0.08f))
+                .background(UltraTokens.Blue.copy(alpha = 0.08f))
                 .padding(horizontal = 16.dp, vertical = 10.dp),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
             Text(
                 "CHANNELS",
-                color = UltraTokens.Accent,
+                color = UltraTokens.Blue,
                 fontSize = 11.sp,
                 fontWeight = FontWeight.Bold,
                 letterSpacing = 2.sp
             )
             Text(
                 "${channels.size}",
-                color = UltraTokens.Fg4,
+                color = UltraTokens.Divider,
                 fontSize = 11.sp,
                 fontWeight = FontWeight.Bold
             )
@@ -1590,7 +1590,7 @@ private fun ChannelPane(
             modifier = Modifier
                 .fillMaxSize()
                 .clip(RoundedCornerShape(bottomStart = 14.dp, bottomEnd = 14.dp))
-                .background(UltraTokens.Surface1.copy(alpha = 0.5f))
+                .background(UltraTokens.Surface.copy(alpha = 0.5f))
                 .focusRestorer(),
             contentPadding = PaddingValues(vertical = 6.dp)
         ) {
@@ -1614,7 +1614,7 @@ private fun ChannelItem(
     var isFocused by remember { mutableStateOf(false) }
     val scale by animateFloatAsState(if (isFocused) 1.02f else 1f, tween(150), label = "chScale")
     val bgColor by animateColorAsState(
-        if (isFocused) UltraTokens.Accent else Color.Transparent,
+        if (isFocused) UltraTokens.Blue else Color.Transparent,
         tween(200),
         label = "chBg"
     )
@@ -1649,7 +1649,7 @@ private fun ChannelItem(
                 .clip(RoundedCornerShape(8.dp))
                 .background(
                     if (isFocused) Color.White.copy(alpha = 0.15f)
-                    else UltraTokens.Surface3
+                    else UltraTokens.SurfaceSelected
                 ),
             contentAlignment = Alignment.Center
         ) {
@@ -1665,7 +1665,7 @@ private fun ChannelItem(
             } else {
                 Text(
                     channel.name.take(2).uppercase(),
-                    color = if (isFocused) Color.White else UltraTokens.Fg3,
+                    color = if (isFocused) Color.White else UltraTokens.TextSecondary,
                     fontSize = 13.sp,
                     fontWeight = FontWeight.Bold
                 )
@@ -1677,7 +1677,7 @@ private fun ChannelItem(
         Column(modifier = Modifier.weight(1f)) {
             Text(
                 text = channel.name,
-                color = if (isFocused) Color.White else UltraTokens.Fg,
+                color = if (isFocused) Color.White else UltraTokens.Text,
                 fontSize = 14.sp,
                 fontWeight = if (isFocused) FontWeight.Bold else FontWeight.Medium,
                 maxLines = 1,
@@ -1686,7 +1686,7 @@ private fun ChannelItem(
             Spacer(Modifier.height(2.dp))
             Text(
                 text = channel.group.ifEmpty { "General" },
-                color = if (isFocused) Color.White.copy(alpha = 0.7f) else UltraTokens.Fg4,
+                color = if (isFocused) Color.White.copy(alpha = 0.7f) else UltraTokens.Divider,
                 fontSize = 11.sp,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis
@@ -1698,7 +1698,7 @@ private fun ChannelItem(
                 modifier = Modifier
                     .size(6.dp)
                     .clip(CircleShape)
-                    .background(if (isFocused) Color.White else UltraTokens.Ok.copy(alpha = 0.6f))
+                    .background(if (isFocused) Color.White else UltraTokens.Sports.copy(alpha = 0.6f))
             )
         }
     }
@@ -1720,7 +1720,7 @@ private fun PreviewPane(
     ) { ch ->
         if (ch == null) {
             Box(modifier = modifier, contentAlignment = Alignment.Center) {
-                Text("Select a channel", color = UltraTokens.Fg4, fontSize = 16.sp)
+                Text("Select a channel", color = UltraTokens.Divider, fontSize = 16.sp)
             }
             return@Crossfade
         }
@@ -1739,7 +1739,7 @@ private fun PreviewPane(
                         .background(
                             Brush.radialGradient(
                                 colors = listOf(
-                                    UltraTokens.Accent.copy(alpha = 0.15f),
+                                    UltraTokens.Blue.copy(alpha = 0.15f),
                                     Color.Black
                                 )
                             )
@@ -1758,7 +1758,7 @@ private fun PreviewPane(
                 } else {
                     Text(
                         text = ch.name.take(3).uppercase(),
-                        color = UltraTokens.Accent.copy(alpha = 0.4f),
+                        color = UltraTokens.Blue.copy(alpha = 0.4f),
                         fontSize = 64.sp,
                         fontWeight = FontWeight.Black,
                         modifier = Modifier.align(Alignment.Center)
@@ -1808,7 +1808,7 @@ private fun PreviewPane(
             Column(modifier = Modifier.padding(horizontal = 16.dp)) {
                 Text(
                     text = ch.group.ifEmpty { "General" }.uppercase(),
-                    color = UltraTokens.Accent,
+                    color = UltraTokens.Blue,
                     fontSize = 12.sp,
                     fontWeight = FontWeight.Bold,
                     letterSpacing = 2.sp
@@ -1831,19 +1831,19 @@ private fun PreviewPane(
                     verticalAlignment = Alignment.CenterVertically,
                     modifier = Modifier
                         .clip(RoundedCornerShape(8.dp))
-                        .background(UltraTokens.Surface2)
+                        .background(UltraTokens.SurfaceHover)
                         .padding(horizontal = 16.dp, vertical = 10.dp)
                 ) {
                     Icon(
                         Icons.Rounded.PlayCircle,
                         contentDescription = null,
-                        tint = UltraTokens.Accent,
+                        tint = UltraTokens.Blue,
                         modifier = Modifier.size(20.dp)
                     )
                     Spacer(Modifier.width(10.dp))
                     Text(
-                        text = "Press OK to watch",
-                        color = UltraTokens.Fg3,
+                        text = "Press Sports to watch",
+                        color = UltraTokens.TextSecondary,
                         fontSize = 14.sp
                     )
                 }
@@ -1857,12 +1857,12 @@ private fun PreviewPane(
                     Box(
                         modifier = Modifier
                             .clip(RoundedCornerShape(4.dp))
-                            .background(UltraTokens.Hd.copy(alpha = 0.15f))
+                            .background(UltraTokens.Sports.copy(alpha = 0.15f))
                             .padding(horizontal = 8.dp, vertical = 3.dp)
                     ) {
                         Text(
                             text = ch.type.uppercase(),
-                            color = UltraTokens.Hd,
+                            color = UltraTokens.Sports,
                             fontSize = 10.sp,
                             fontWeight = FontWeight.Bold,
                             letterSpacing = 1.sp
