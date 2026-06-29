@@ -138,9 +138,29 @@ fun LoginScreen(onLoginSuccess: () -> Unit) {
             .background(UltraTokens.BgDeep)
             .onKeyEvent { keyEvent ->
                 if (keyEvent.nativeKeyEvent.action == KeyEvent.ACTION_DOWN) {
-                    when (keyEvent.nativeKeyEvent.keyCode) {
-                        KeyEvent.KEYCODE_BACK -> {
-                            // Handle back button if needed
+                    val code = keyEvent.nativeKeyEvent.keyCode
+                    when {
+                        code in KeyEvent.KEYCODE_0..KeyEvent.KEYCODE_9 -> {
+                            val digit = (code - KeyEvent.KEYCODE_0).toString()
+                            if (loginCode.length < MAX_CODE_LENGTH && !isLoading) {
+                                errorMessage = null
+                                loginCode += digit
+                            }
+                            true
+                        }
+                        code in KeyEvent.KEYCODE_NUMPAD_0..KeyEvent.KEYCODE_NUMPAD_9 -> {
+                            val digit = (code - KeyEvent.KEYCODE_NUMPAD_0).toString()
+                            if (loginCode.length < MAX_CODE_LENGTH && !isLoading) {
+                                errorMessage = null
+                                loginCode += digit
+                            }
+                            true
+                        }
+                        code == KeyEvent.KEYCODE_DEL || code == KeyEvent.KEYCODE_FORWARD_DEL -> {
+                            if (loginCode.isNotEmpty() && !isLoading) {
+                                loginCode = loginCode.dropLast(1)
+                                errorMessage = null
+                            }
                             true
                         }
                         else -> false
@@ -491,6 +511,18 @@ private fun CodeDisplay(
     isActive: Boolean,
     maxLength: Int
 ) {
+    val infiniteTransition = rememberInfiniteTransition(label = "cursorAnim")
+    val cursorAlpha by infiniteTransition.animateFloat(
+        initialValue = 0f,
+        targetValue = 1f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(500, easing = LinearEasing),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "cursorAlpha"
+    )
+    val actualCursorAlpha = if (isActive) cursorAlpha else 0f
+
     val borderColor by animateColorAsState(
         targetValue = when {
             isError -> Color(0xFFFF4757)
@@ -549,7 +581,7 @@ private fun CodeDisplay(
                         .size(2.dp, 28.dp)
                         .clip(RoundedCornerShape(2.dp))
                         .background(UltraTokens.Accent)
-                        .alpha(if (isActive) 1f else 0f)
+                        .alpha(actualCursorAlpha)
                 )
             }
         } else {
@@ -592,7 +624,7 @@ private fun CodeDisplay(
                             .size(2.dp, 28.dp)
                             .clip(RoundedCornerShape(2.dp))
                             .background(UltraTokens.Accent)
-                            .alpha(if (isActive) 1f else 0f)
+                            .alpha(actualCursorAlpha)
                     )
                 }
             }
@@ -971,7 +1003,7 @@ private fun LoginButton(
                     }
                 } else false
             }
-            .focusable(enabled = !isLoading)
+            .focusable(enabled = !isLoading),
         contentAlignment = Alignment.Center
     ) {
         // Shimmer overlay

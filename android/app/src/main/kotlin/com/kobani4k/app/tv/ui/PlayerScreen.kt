@@ -78,6 +78,7 @@ private fun isConfirm(keyCode: Int) = keyCode in setOf(
 private fun isBack(keyCode: Int) = keyCode in setOf(
     KeyEvent.KEYCODE_BACK,
     KeyEvent.KEYCODE_ESCAPE,
+    KeyEvent.KEYCODE_MEDIA_CLOSE,
     KeyEvent.KEYCODE_BUTTON_B       // gamepad back
 )
 
@@ -108,6 +109,9 @@ private fun isRight(keyCode: Int) = keyCode in setOf(
 private fun isMenu(keyCode: Int) = keyCode in setOf(
     KeyEvent.KEYCODE_MENU,
     KeyEvent.KEYCODE_F1,            // some Chinese remotes send F1 for menu
+    KeyEvent.KEYCODE_F2,
+    KeyEvent.KEYCODE_F3,
+    KeyEvent.KEYCODE_TV_INPUT,
     KeyEvent.KEYCODE_SETTINGS
 )
 
@@ -141,6 +145,8 @@ fun PlayerScreen(
     // ── Player state ──
     var isBuffering    by remember { mutableStateOf(true) }
     var isPlayingState by remember { mutableStateOf(true) }
+    var retryCount     by remember { mutableStateOf(0) }
+    var streamFailed   by remember { mutableStateOf(false) }
 
     // ── UI visibility ──
     var showZapList  by remember { mutableStateOf(false) }
@@ -166,11 +172,17 @@ fun PlayerScreen(
         }
     }
 
-    // Auto-hide controls after 5 s of inactivity (only when no sub-menu is open)
+    // Auto-hide controls after 5 s of inactivity (or 15s if sub-menu is open)
     LaunchedEffect(showControls, controlsActivityTrigger, activeMenu) {
-        if (showControls && activeMenu == ActiveMenu.NONE) {
-            delay(5_000)
-            showControls = false
+        if (showControls) {
+            if (activeMenu == ActiveMenu.NONE) {
+                delay(5_000)
+                showControls = false
+            } else {
+                delay(15_000)
+                activeMenu = ActiveMenu.NONE
+                showControls = false
+            }
         }
     }
 
@@ -217,6 +229,8 @@ fun PlayerScreen(
 
     // Load / switch stream — stops the old one cleanly before preparing new
     LaunchedEffect(currentStreamUrl) {
+        retryCount = 0
+        streamFailed = false
         TvViewerService.joinChannel(currentStreamUrl)
         isBuffering = true
         exoPlayer.stop()
@@ -242,28 +256,42 @@ fun PlayerScreen(
             override fun onPlaybackStateChanged(state: Int) {
                 isBuffering    = state == Media3Player.STATE_BUFFERING
                 isPlayingState = exoPlayer.isPlaying
+                if (state == Media3Player.STATE_READY) {
+                    retryCount = 0
+                    streamFailed = false
+                }
                 // Live stream ended (stream server restarted) → reconnect with backoff
                 if (state == Media3Player.STATE_ENDED) {
-                    scope.launch {
-                        delay(2_000)
-                        try {
-                            exoPlayer.seekToDefaultPosition()
-                            exoPlayer.prepare()
-                            exoPlayer.play()
-                        } catch (_: Exception) {}
+                    if (retryCount < 3) {
+                        retryCount++
+                        scope.launch {
+                            delay(2_000L * retryCount)
+                            try {
+                                exoPlayer.seekToDefaultPosition()
+                                exoPlayer.prepare()
+                                exoPlayer.play()
+                            } catch (_: Exception) {}
+                        }
+                    } else {
+                        streamFailed = true
                     }
                 }
             }
             override fun onPlayerError(error: PlaybackException) {
                 isBuffering = false
                 // Network / codec error → reconnect with backoff
-                scope.launch {
-                    delay(3_000)
-                    try {
-                        exoPlayer.seekToDefaultPosition()
-                        exoPlayer.prepare()
-                        exoPlayer.play()
-                    } catch (_: Exception) {}
+                if (retryCount < 3) {
+                    retryCount++
+                    scope.launch {
+                        delay(3_000L * retryCount)
+                        try {
+                            exoPlayer.seekToDefaultPosition()
+                            exoPlayer.prepare()
+                            exoPlayer.play()
+                        } catch (_: Exception) {}
+                    }
+                } else {
+                    streamFailed = true
                 }
             }
             override fun onIsPlayingChanged(isPlaying: Boolean) {
@@ -386,7 +414,7 @@ fun PlayerScreen(
         }
 
         // ── Buffering overlay ──────────────────────────────────
-        if (isBuffering) {
+        if (isBuffering && !streamFailed) {
             Box(
                 modifier = Modifier
                     .fillMaxSize()
@@ -422,6 +450,37 @@ fun PlayerScreen(
                         "Loading stream…",
                         color = UltraTokens.Fg3,
                         fontSize = 12.sp
+                    )
+                }
+            }
+        }
+
+        if (streamFailed) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(Color.Black.copy(alpha = 0.8f)),
+                contentAlignment = Alignment.Center
+            ) {
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Icon(
+                        imageVector = Icons.Rounded.ErrorOutline,
+                        contentDescription = "Error",
+                        tint = Color(0xFFFF4757),
+                        modifier = Modifier.size(64.dp)
+                    )
+                    Spacer(Modifier.height(16.dp))
+                    Text(
+                        "Stream Offline",
+                        color = Color.White,
+                        fontSize = 24.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                    Spacer(Modifier.height(8.dp))
+                    Text(
+                        "Please try another channel.",
+                        color = UltraTokens.Fg3,
+                        fontSize = 14.sp
                     )
                 }
             }
