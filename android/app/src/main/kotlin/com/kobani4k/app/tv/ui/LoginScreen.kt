@@ -324,8 +324,7 @@ fun LoginScreen(onLoginSuccess: () -> Unit) {
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(48.dp)
-                        .focusRequester(loginButtonRequester)
-                        .focusable(),
+                        .focusRequester(loginButtonRequester),
                     isLoading = isLoading,
                     enabled = loginCode.isNotBlank() && !isLoading,
                     onClick = {

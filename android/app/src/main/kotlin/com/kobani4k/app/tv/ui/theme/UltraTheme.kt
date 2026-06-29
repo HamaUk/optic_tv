@@ -32,61 +32,65 @@ import androidx.tv.material3.*
 // ═══════════════════════════════════════════════════
 
 object UltraTokens {
-    // Primary Palette
-    val Accent       = Color(0xFF00A8FF) // Electric Blue
-    val Accent2      = Color(0xFF00E5FF) // Neon Cyan
-    val AccentWarm   = Color(0xFFF59E0B) // Warm Amber (CTA)
-    val AccentGlow   = Color(0x9900A8FF)
-    val AccentSoft   = Color(0x3300A8FF)
-    val AccentTint   = Color(0x1A00A8FF)
+    // ═══════════════════════════════════════════════════
+    //  Premium TV Palette
+    // ═══════════════════════════════════════════════════
 
-    val GradientAccent = Brush.linearGradient(listOf(Color(0xFF00A8FF), Color(0xFF0066CC)))
-    val GradientHero   = Brush.linearGradient(listOf(Color(0xFF00A8FF), Color(0xFF00E5FF)))
+    // Primary Palette (Vibrant, high-contrast, premium)
+    val Accent       = Color(0xFF00C6FF) // Vivid Cyan-Blue
+    val Accent2      = Color(0xFF0072FF) // Deep Royal Blue
+    val AccentWarm   = Color(0xFFFF3366) // Neon Coral (CTA)
+    val AccentGlow   = Color(0x9900C6FF)
+    val AccentSoft   = Color(0x3300C6FF)
+    val AccentTint   = Color(0x1A00C6FF)
 
-    // Status
-    val Live = Color(0xFFFF3A2F)
-    val Hd   = Color(0xFF00E5A0)
-    val Uhd  = Color(0xFFFFB547)
-    val Ok   = Color(0xFF7FFFAF)
-    val Warn = Color(0xFFFF6B6B)
+    val GradientAccent = Brush.linearGradient(listOf(Color(0xFF00C6FF), Color(0xFF0072FF)))
+    val GradientHero   = Brush.linearGradient(listOf(Color(0xFF00C6FF), Color(0xFF00E5FF)))
+    
+    // Status (High-luminance for TV)
+    val Live = Color(0xFFFF2A2A)
+    val Hd   = Color(0xFF00FFB2)
+    val Uhd  = Color(0xFFFFBE0B)
+    val Ok   = Color(0xFF38E54D)
+    val Warn = Color(0xFFFF5722)
 
-    // Foreground
-    val Fg  = Color(0xFFEAECF0)
-    val Fg2 = Color(0xFFC0C5D0)
-    val Fg3 = Color(0xFF6B7280)
-    val Fg4 = Color(0xFF4B5563)
+    // Foreground (Crisp legibility)
+    val Fg  = Color(0xFFFFFFFF)
+    val Fg2 = Color(0xFFE2E8F0)
+    val Fg3 = Color(0xFF94A3B8)
+    val Fg4 = Color(0xFF64748B)
 
-    // Borders
-    val Line      = Color(0x14FFFFFF)
-    val Line2     = Color(0x24FFFFFF)
-    val LineFocus = Color(0xFF00A8FF)
+    // Borders (Subtle glass reflections)
+    val Line      = Color(0x1AFFFFFF)
+    val Line2     = Color(0x26FFFFFF)
+    val LineFocus = Color(0xFF00C6FF)
 
-    // Surfaces (dark with depth)
-    val BgDeep        = Color(0xFF06070B)
-    val Surface1      = Color(0xFF0D0E14)
-    val Surface2      = Color(0xFF14151E)
-    val Surface3      = Color(0xFF1C1D28)
-    val SurfaceGlass  = Color(0x3314151E) // Glassmorphism
-    val SurfacePanel  = Color(0xE60D0E14) // Opaque panel
-    val Scrim         = Color(0x73000000)
-    val ScrimStrong   = Color(0xD9000000)
+    // Surfaces (OLED true-blacks and rich dark-blues)
+    val BgDeep        = Color(0xFF030509) // Absolute OLED Black
+    val Surface1      = Color(0xFF0B111A) // Deep Navy Base
+    val Surface2      = Color(0xFF111827) // Elevated Surface
+    val Surface3      = Color(0xFF1E293B) // Floating Element
+    val SurfaceGlass  = Color(0x40111827) // Rich Glassmorphism
+    val SurfacePanel  = Color(0xE60B111A) // Opaque dark panel
+    val Scrim         = Color(0x8C000000)
+    val ScrimStrong   = Color(0xEE000000)
 
     // CTA
-    val CtaBg      = Color(0xFF00A8FF)
-    val CtaFgOnCta = Color(0xFFFFFFFF)
+    val CtaBg      = Color(0xFF00C6FF)
+    val CtaFgOnCta = Color(0xFF030509)
 
-    // Radii
-    val RadiusXs: Dp = 6.dp
-    val RadiusSm: Dp = 10.dp
-    val RadiusMd: Dp = 14.dp
-    val RadiusLg: Dp = 20.dp
-    val RadiusXl: Dp = 28.dp
+    // Radii (Softer, modern curves)
+    val RadiusXs: Dp = 8.dp
+    val RadiusSm: Dp = 12.dp
+    val RadiusMd: Dp = 16.dp
+    val RadiusLg: Dp = 24.dp
+    val RadiusXl: Dp = 32.dp
 
     // Layout dimensions
-    val SidebarCollapsed: Dp = 92.dp
-    val SidebarExpanded:  Dp = 240.dp
-    val TopBarHeight:     Dp = 72.dp
-    val EdgeGutter:       Dp = 48.dp
+    val SidebarCollapsed: Dp = 96.dp
+    val SidebarExpanded:  Dp = 280.dp
+    val TopBarHeight:     Dp = 80.dp
+    val EdgeGutter:       Dp = 56.dp
 }
 
 object UltraFonts {
@@ -102,57 +106,59 @@ object UltraFonts {
 object UltraType {
     val HeroDisplay = TextStyle(
         fontFamily = UltraFonts.Sans,
-        fontSize = 48.sp,
-        lineHeight = 52.sp,
-        letterSpacing = (-1.5).sp,
+        fontSize = 54.sp,
+        lineHeight = 58.sp,
+        letterSpacing = (-2).sp,
         fontWeight = FontWeight.Black,
     )
     val ScreenTitle = TextStyle(
         fontFamily = UltraFonts.Sans,
-        fontSize = 36.sp,
-        lineHeight = 42.sp,
-        letterSpacing = (-0.5).sp,
-        fontWeight = FontWeight.Bold,
+        fontSize = 40.sp,
+        lineHeight = 46.sp,
+        letterSpacing = (-1).sp,
+        fontWeight = FontWeight.ExtraBold,
     )
     val SectionTitle = TextStyle(
         fontFamily = UltraFonts.Sans,
-        fontSize = 24.sp,
-        lineHeight = 30.sp,
+        fontSize = 28.sp,
+        lineHeight = 34.sp,
         fontWeight = FontWeight.Bold,
+        letterSpacing = (-0.5).sp,
     )
     val CardTitle = TextStyle(
         fontFamily = UltraFonts.Sans,
-        fontSize = 18.sp,
-        lineHeight = 24.sp,
-        fontWeight = FontWeight.SemiBold,
+        fontSize = 20.sp,
+        lineHeight = 26.sp,
+        fontWeight = FontWeight.Bold,
     )
     val Body = TextStyle(
         fontFamily = UltraFonts.Sans,
         fontSize = 16.sp,
-        lineHeight = 22.sp,
+        lineHeight = 24.sp,
     )
     val Body2 = TextStyle(
         fontFamily = UltraFonts.Sans,
         fontSize = 14.sp,
-        lineHeight = 20.sp,
+        lineHeight = 22.sp,
     )
     val Caption = TextStyle(
         fontFamily = UltraFonts.Sans,
         fontSize = 12.sp,
         lineHeight = 16.sp,
+        fontWeight = FontWeight.Medium,
         color = UltraTokens.Fg3,
     )
     val Eyebrow = TextStyle(
         fontFamily = UltraFonts.Sans,
-        fontSize = 12.sp,
-        letterSpacing = 2.sp,
+        fontSize = 13.sp,
+        letterSpacing = 2.5.sp,
         fontWeight = FontWeight.Bold,
         color = UltraTokens.Accent,
     )
     val KeypadDigit = TextStyle(
         fontFamily = UltraFonts.Sans,
-        fontSize = 28.sp,
-        fontWeight = FontWeight.Bold,
+        fontSize = 32.sp,
+        fontWeight = FontWeight.Black,
     )
     val Mono = TextStyle(fontFamily = UltraFonts.Mono, fontSize = 14.sp)
 }

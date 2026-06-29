@@ -342,7 +342,19 @@ fun PlayerScreen(
                 if (keyEvent.nativeKeyEvent.action != KeyEvent.ACTION_DOWN) return@onKeyEvent false
                 val code = keyEvent.nativeKeyEvent.keyCode
 
-                // Every key wakes the controls HUD
+                // ── Back ──
+                // Handle back BEFORE waking up controls, otherwise waking controls 
+                // intercepts the back press in an infinite loop!
+                if (isBack(code)) {
+                    return@onKeyEvent when {
+                        activeMenu != ActiveMenu.NONE -> { activeMenu = ActiveMenu.NONE; true }
+                        showControls                  -> { showControls = false; true }
+                        showZapList                   -> { showZapList  = false; true }
+                        else                          -> { onBack(); true }
+                    }
+                }
+
+                // Every OTHER key wakes the controls HUD
                 wakeUpControls()
 
                 // ── Quick Zap (channel surf without opening OSD) ──
@@ -379,16 +391,6 @@ fun PlayerScreen(
                     if (isMenu(code)) {
                         showControls = true
                         return@onKeyEvent true
-                    }
-                }
-
-                // ── Back ──
-                if (isBack(code)) {
-                    return@onKeyEvent when {
-                        activeMenu != ActiveMenu.NONE -> { activeMenu = ActiveMenu.NONE; true }
-                        showControls                  -> { showControls = false; true }
-                        showZapList                   -> { showZapList  = false; true }
-                        else                          -> { onBack(); true }
                     }
                 }
 
