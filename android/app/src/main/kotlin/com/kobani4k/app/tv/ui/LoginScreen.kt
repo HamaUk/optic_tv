@@ -215,7 +215,7 @@ fun LoginScreen(onLoginSuccess: () -> Unit) {
             // ─── Glass Card ───
             Column(
                 modifier = Modifier
-                    .width(520.dp)
+                    .width(420.dp)
                     .clip(RoundedCornerShape(32.dp))
                     .background(
                         Brush.verticalGradient(
@@ -242,7 +242,7 @@ fun LoginScreen(onLoginSuccess: () -> Unit) {
                         ambientColor = Color.Black.copy(alpha = 0.5f),
                         spotColor = Color.Black.copy(alpha = 0.3f)
                     )
-                    .padding(horizontal = 44.dp, vertical = 40.dp),
+                    .padding(horizontal = 32.dp, vertical = 32.dp),
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.Center
             ) {
@@ -384,7 +384,7 @@ private fun LogoSection() {
         // Logo icon with glow
         Box(
             modifier = Modifier
-                .size(80.dp)
+                .size(64.dp)
                 .scale(logoScale)
                 .shadow(
                     elevation = 20.dp,
@@ -514,7 +514,7 @@ private fun CodeDisplay(
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .height(64.dp)
+            .height(54.dp)
             .shadow(
                 elevation = 0.dp,
                 shape = RoundedCornerShape(16.dp),
@@ -683,7 +683,6 @@ private fun KeypadGrid(
                             .weight(1f)
                             .height(56.dp)
                             .focusRequester(focusRequesters[index])
-                            .focusable()
                             .onFocusChanged { focusState ->
                                 if (focusState.isFocused) {
                                     focusedKey = rowIndex to colIndex
@@ -702,7 +701,8 @@ private fun KeypadGrid(
                                         else -> false
                                     }
                                 } else false
-                            },
+                            }
+                            .focusable(),
                         isFocused = isFocused,
                         isLoading = isLoading,
                         onClick = {
@@ -808,7 +808,8 @@ private fun KeypadButton(
                     when (keyEvent.nativeKeyEvent.keyCode) {
                         KeyEvent.KEYCODE_DPAD_CENTER,
                         KeyEvent.KEYCODE_ENTER,
-                        KeyEvent.KEYCODE_NUMPAD_ENTER -> {
+                        KeyEvent.KEYCODE_NUMPAD_ENTER,
+                        KeyEvent.KEYCODE_BUTTON_A -> {
                             onClick()
                             true
                         }
@@ -909,17 +910,6 @@ private fun LoginButton(
         label = "btnScale"
     )
 
-    val bgBrush by animateColorAsState(
-        targetValue = when {
-            isLoading -> UltraTokens.Surface3
-            isFocused -> UltraTokens.Accent
-            enabled -> UltraTokens.Accent.copy(alpha = 0.85f)
-            else -> UltraTokens.Surface3.copy(alpha = 0.5f)
-        },
-        animationSpec = tween(300),
-        label = "btnBg"
-    )
-
     val glowColor by animateColorAsState(
         targetValue = if (isFocused && enabled) UltraTokens.Accent.copy(alpha = 0.2f) else Color.Transparent,
         animationSpec = tween(300),
@@ -938,7 +928,7 @@ private fun LoginButton(
 
     Box(
         modifier = modifier
-            .height(58.dp)
+            .height(64.dp)
             .scale(scale)
             .shadow(
                 elevation = if (isFocused) 24.dp else 8.dp,
@@ -967,13 +957,13 @@ private fun LoginButton(
             .onFocusChanged { focusState ->
                 isFocused = focusState.isFocused
             }
-            .focusable(enabled = !isLoading)
             .onKeyEvent { keyEvent ->
                 if (keyEvent.nativeKeyEvent.action == KeyEvent.ACTION_DOWN) {
                     when (keyEvent.nativeKeyEvent.keyCode) {
                         KeyEvent.KEYCODE_DPAD_CENTER,
                         KeyEvent.KEYCODE_ENTER,
-                        KeyEvent.KEYCODE_NUMPAD_ENTER -> {
+                        KeyEvent.KEYCODE_NUMPAD_ENTER,
+                        KeyEvent.KEYCODE_BUTTON_A -> {
                             if (enabled && !isLoading) onClick()
                             true
                         }
@@ -981,10 +971,7 @@ private fun LoginButton(
                     }
                 } else false
             }
-            .clickable(
-                enabled = enabled && !isLoading,
-                onClick = onClick
-            ),
+            .focusable(enabled = !isLoading)
         contentAlignment = Alignment.Center
     ) {
         // Shimmer overlay
