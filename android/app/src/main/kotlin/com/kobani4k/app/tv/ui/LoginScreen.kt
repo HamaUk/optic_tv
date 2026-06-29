@@ -24,6 +24,8 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.key.*
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
+import androidx.compose.foundation.clickable
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -560,11 +562,11 @@ private fun CodeDisplay(
                     AnimatedContent(
                         targetState = char,
                         transitionSpec = {
-                            fadeIn(animationSpec = tween(200)) +
+                            (fadeIn(animationSpec = tween(200)) +
                                     scaleIn(initialScale = 0.6f, animationSpec = spring(
                                         dampingRatio = Spring.DampingRatioMediumBouncy,
                                         stiffness = Spring.StiffnessLow
-                                    ))
+                                    ))) togetherWith fadeOut(animationSpec = tween(200))
                         },
                         label = "digitAnim"
                     ) { digit ->
@@ -925,13 +927,13 @@ private fun LoginButton(
     )
 
     // Shimmer animation for loading state
-    val shimmerOffset by animateFloat(
+    val shimmerOffset by animateFloatAsState(
         targetValue = if (isLoading) 2f else 0f,
         animationSpec = infiniteRepeatable(
             animation = tween(1500, easing = LinearEasing),
             repeatMode = RepeatMode.Restart
         ),
-        label = "shimmerOffset"
+        label = "shimmer"
     )
 
     Box(
@@ -946,14 +948,16 @@ private fun LoginButton(
                 spotColor = glowColor
             )
             .clip(RoundedCornerShape(16.dp))
-            .background(
-                if (isLoading) UltraTokens.Surface3 else
+            .then(
+                if (isLoading) Modifier.background(UltraTokens.Surface3)
+                else Modifier.background(
                     Brush.horizontalGradient(
                         colors = listOf(
                             UltraTokens.Accent,
                             UltraTokens.Accent2
                         )
                     )
+                )
             )
             .border(
                 width = if (isFocused) 2.dp else 0.dp,
