@@ -1324,7 +1324,7 @@ private fun SettingsRadioRow(
     ) {
         Text(
             text = title,
-            color = if (isFocused) Color.White else if (isSelected) UltraTokens.Blue else UltraTokens.Fg2,
+            color = if (isFocused) Color.White else if (isSelected) UltraTokens.Blue else UltraTokens.TextSecondary,
             fontSize = 14.sp,
             fontWeight = if (isSelected || isFocused) FontWeight.SemiBold else FontWeight.Normal
         )
