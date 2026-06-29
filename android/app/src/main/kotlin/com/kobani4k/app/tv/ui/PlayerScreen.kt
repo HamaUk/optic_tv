@@ -450,7 +450,7 @@ fun PlayerScreen(
                     Spacer(Modifier.height(4.dp))
                     Text(
                         "Loading stream…",
-                        color = UltraTokens.FgPrimaryTertiary,
+                        color = UltraTokens.FgTertiary,
                         fontSize = 12.sp
                     )
                 }
@@ -481,7 +481,7 @@ fun PlayerScreen(
                     Spacer(Modifier.height(8.dp))
                     Text(
                         "Please try another channel.",
-                        color = UltraTokens.FgPrimaryTertiary,
+                        color = UltraTokens.FgTertiary,
                         fontSize = 14.sp
                     )
                 }
@@ -612,7 +612,7 @@ private fun ZapBanner(
                 } else {
                     Text(
                         channelName.take(2).uppercase(),
-                        color = UltraTokens.FgPrimaryTertiary,
+                        color = UltraTokens.FgTertiary,
                         fontSize = 13.sp,
                         fontWeight = FontWeight.Bold
                     )
@@ -1016,7 +1016,7 @@ private fun ChannelChip(channelName: String, logoUrl: String?) {
             } else {
                 Text(
                     channelName.take(2).uppercase(),
-                    color = UltraTokens.FgPrimaryTertiary,
+                    color = UltraTokens.FgTertiary,
                     fontSize = 8.sp,
                     fontWeight = FontWeight.Bold
                 )
@@ -1083,7 +1083,7 @@ private fun SubMenuPanel(
                 )
                 Text(
                     "← Back",
-                    color = UltraTokens.FgPrimaryDisabled,
+                    color = UltraTokens.FgDisabled,
                     fontSize = 11.sp
                 )
             }
@@ -1173,7 +1173,7 @@ private fun TrackOption(
                 text       = title,
                 color      = if (isFocused) Color.White
                              else if (isSelected) UltraTokens.Brand500
-                             else UltraTokens.FgPrimarySecondary,
+                             else UltraTokens.FgSecondary,
                 fontSize   = 14.sp,
                 fontWeight = if (isSelected || isFocused) FontWeight.Bold else FontWeight.Normal
             )
@@ -1290,7 +1290,7 @@ private fun SettingRadioItem(
             text       = title,
             color      = if (isFocused) Color.White
                          else if (isSelected) UltraTokens.Brand500
-                         else UltraTokens.FgPrimarySecondary,
+                         else UltraTokens.FgSecondary,
             fontSize   = 13.sp,
             fontWeight = if (isSelected || isFocused) FontWeight.SemiBold else FontWeight.Normal
         )
@@ -1303,7 +1303,7 @@ private fun SettingRadioItem(
                 .run {
                     val borderColor = if (isFocused) Color.White
                                       else if (isSelected) UltraTokens.Brand500
-                                      else UltraTokens.FgPrimaryDisabled
+                                      else UltraTokens.FgDisabled
                     // draw border via padding trick — avoids extra composable
                     background(borderColor)
                         .padding(1.5.dp)
@@ -1402,7 +1402,7 @@ private fun ZapDrawer(
                     )
                     Text(
                         "${channels.size}",
-                        color = UltraTokens.FgPrimaryDisabled,
+                        color = UltraTokens.FgDisabled,
                         fontSize = 12.sp,
                         fontWeight = FontWeight.Bold
                     )
@@ -1451,7 +1451,7 @@ private fun ZapDrawer(
                                     (index + 1).toString(),
                                     color = if (isCurrent && !focused) UltraTokens.Brand500
                                             else if (focused) Color.White
-                                            else UltraTokens.FgPrimaryDisabled,
+                                            else UltraTokens.FgDisabled,
                                     fontSize = 12.sp,
                                     fontWeight = FontWeight.Bold,
                                     modifier = Modifier.width(30.dp)
@@ -1479,7 +1479,7 @@ private fun ZapDrawer(
                                     } else {
                                         Text(
                                             channel.name.take(2).uppercase(),
-                                            color = if (focused) Color.White else UltraTokens.FgPrimaryDisabled,
+                                            color = if (focused) Color.White else UltraTokens.FgDisabled,
                                             fontSize = 9.sp,
                                             fontWeight = FontWeight.Bold
                                         )
@@ -1570,7 +1570,7 @@ private fun DrawerSideIcon(
         // Small label always visible for TV discoverability
         Text(
             label,
-            color = if (focused) UltraTokens.Brand500 else UltraTokens.FgPrimaryDisabled,
+            color = if (focused) UltraTokens.Brand500 else UltraTokens.FgDisabled,
             fontSize = 9.sp,
             fontWeight = if (focused) FontWeight.Bold else FontWeight.Normal
         )

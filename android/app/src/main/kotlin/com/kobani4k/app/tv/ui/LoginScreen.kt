@@ -357,7 +357,7 @@ fun LoginScreen(onLoginSuccess: () -> Unit) {
                     fontSize = 11.sp,
                     fontWeight = FontWeight.Medium,
                     letterSpacing = 2.sp,
-                    color = UltraTokens.FgPrimaryDisabled.copy(alpha = 0.5f)
+                    color = UltraTokens.FgDisabled.copy(alpha = 0.5f)
                 )
             }
 
@@ -446,7 +446,7 @@ private fun LogoSection() {
             fontSize = 10.sp,
             fontWeight = FontWeight.Medium,
             letterSpacing = 4.sp,
-            color = UltraTokens.FgPrimaryTertiary.copy(alpha = 0.6f)
+            color = UltraTokens.FgTertiary.copy(alpha = 0.6f)
         )
 
         Spacer(modifier = Modifier.height(10.dp))
@@ -860,7 +860,7 @@ private fun KeypadButton(
                 Icon(
                     imageVector = Icons.Rounded.Backspace,
                     contentDescription = "Backspace",
-                    tint = if (isFocused) Color.White else UltraTokens.FgPrimarySecondary,
+                    tint = if (isFocused) Color.White else UltraTokens.FgSecondary,
                     modifier = Modifier.size(24.dp)
                 )
             }
@@ -870,7 +870,7 @@ private fun KeypadButton(
                     fontSize = 13.sp,
                     fontWeight = FontWeight.Bold,
                     letterSpacing = 1.sp,
-                    color = if (isFocused) Color.White else UltraTokens.FgPrimaryTertiary
+                    color = if (isFocused) Color.White else UltraTokens.FgTertiary
                 )
             }
             else -> {
@@ -1041,7 +1041,7 @@ private fun LoginButton(
                 Icon(
                     imageVector = Icons.Rounded.PlayArrow,
                     contentDescription = null,
-                    tint = if (enabled) Color.White else UltraTokens.FgPrimaryDisabled,
+                    tint = if (enabled) Color.White else UltraTokens.FgDisabled,
                     modifier = Modifier.size(22.dp)
                 )
                 Spacer(modifier = Modifier.width(10.dp))
@@ -1050,7 +1050,7 @@ private fun LoginButton(
                     fontSize = 16.sp,
                     fontWeight = FontWeight.Bold,
                     letterSpacing = 4.sp,
-                    color = if (enabled) Color.White else UltraTokens.FgPrimaryDisabled
+                    color = if (enabled) Color.White else UltraTokens.FgDisabled
                 )
             }
         }
@@ -1138,7 +1138,7 @@ private fun SuccessOverlay(
                     text = "Your device is now ready",
                     fontSize = 14.sp,
                     fontWeight = FontWeight.Medium,
-                    color = UltraTokens.FgPrimaryTertiary
+                    color = UltraTokens.FgTertiary
                 )
             }
         }
