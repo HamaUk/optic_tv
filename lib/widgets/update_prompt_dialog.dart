@@ -29,7 +29,7 @@ class UpdatePromptDialog extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return PopScope(
-      canPop: true,
+      canPop: false,
       child: Dialog(
         backgroundColor: Colors.transparent,
         elevation: 0,
@@ -84,39 +84,31 @@ class UpdatePromptDialog extends StatelessWidget {
                       textAlign: TextAlign.center,
                     ),
                   ),
-                  const SizedBox(height: 32),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: SizedBox(
-                          height: 50,
-                          child: TextButton(
-                            style: TextButton.styleFrom(
-                              foregroundColor: Colors.white70,
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                            ),
-                            onPressed: () => Navigator.of(context).pop(),
-                            child: Text(strings.updateLater, style: const TextStyle(fontWeight: FontWeight.bold, letterSpacing: 1.5)),
-                          ),
-                        ),
+                  const SizedBox(height: 24),
+                  const Text(
+                    'Go to our channel to download the latest APK',
+                    style: TextStyle(color: Colors.white70, fontSize: 13, fontStyle: FontStyle.italic),
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 16),
+                  SizedBox(
+                    width: double.infinity,
+                    height: 54,
+                    child: ElevatedButton.icon(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppTheme.primaryGold,
+                        foregroundColor: Colors.black,
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        elevation: 8,
+                        shadowColor: AppTheme.primaryGold.withOpacity(0.4),
                       ),
-                      const SizedBox(width: 16),
-                      Expanded(
-                        flex: 2,
-                        child: SizedBox(
-                          height: 50,
-                          child: ElevatedButton(
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: AppTheme.primaryGold,
-                              foregroundColor: Colors.black,
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                            ),
-                            onPressed: _openTelegram,
-                            child: Text(strings.updateDownload, style: const TextStyle(fontWeight: FontWeight.bold, letterSpacing: 1.5)),
-                          ),
-                        ),
+                      onPressed: _openTelegram,
+                      icon: const Icon(Icons.telegram, size: 28),
+                      label: const Text(
+                        'KOBANI TELEGRAM',
+                        style: TextStyle(fontWeight: FontWeight.w900, letterSpacing: 1.5, fontSize: 16),
                       ),
-                    ],
+                    ),
                   ),
                 ],
               ),
