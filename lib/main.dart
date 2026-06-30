@@ -60,7 +60,7 @@ void main() async {
   final prefs = await SharedPreferences.getInstance();
 
   try {
-    PocketBaseService().initialize('http://64.225.76.43', prefs);
+    PocketBaseService().initialize('https://api.optictv.cloud', prefs);
   } catch (e) {
     debugPrint('PocketBase initialization failed: $e');
   }

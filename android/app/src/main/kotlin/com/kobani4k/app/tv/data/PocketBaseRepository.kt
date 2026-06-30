@@ -31,7 +31,7 @@ data class TvChannelGroup(
 
 class PocketBaseRepository {
     private val client = OkHttpClient()
-    private val baseUrl = "http://64.225.76.43/api/collections"
+    private val baseUrl = "https://api.optictv.cloud/api/collections"
 
     suspend fun verifyLoginCode(code: String): String = suspendCancellableCoroutine { cont ->
         val normalizedInput = code.replace("\\s+".toRegex(), "").lowercase()

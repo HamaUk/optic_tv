@@ -17,7 +17,7 @@ import java.util.UUID
 
 object TvViewerService {
     private val client = OkHttpClient()
-    private const val BASE_URL = "http://64.225.76.43/api/collections/liveViewers/records"
+    private const val BASE_URL = "https://api.optictv.cloud/api/collections/liveViewers/records"
     private val JSON = "application/json; charset=utf-8".toMediaType()
     
     private var deviceId: String? = null
