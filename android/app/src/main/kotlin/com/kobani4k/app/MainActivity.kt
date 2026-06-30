@@ -22,6 +22,7 @@ class MainActivity: FlutterActivity() {
 
     override fun onCreate(savedInstanceState: android.os.Bundle?) {
         super.onCreate(savedInstanceState)
+        GlobalProxyBypass.apply() // Enforce proxy bypass for ExoPlayer and native HTTP
         if (isTelevisionDevice()) {
             val intent = android.content.Intent(this, com.kobani4k.app.tv.TvMainActivity::class.java)
             startActivity(intent)

@@ -9,7 +9,17 @@ import 'package:path/path.dart' as p;
 import 'package:flutter/services.dart' show rootBundle;
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:googleapis_auth/auth_io.dart' hide ResponseType;
+import 'package:firebase_core/firebase_core.dart';
+import '../firebase_options.dart';
 import 'pocketbase_service.dart';
+
+@pragma('vm:entry-point')
+Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
+  await Firebase.initializeApp(
+    options: DefaultFirebaseOptions.currentPlatform,
+  );
+  log("Handling a background message: ${message.messageId}");
+}
 
 class NotificationService {
   static final NotificationService _instance = NotificationService._internal();
@@ -33,6 +43,9 @@ class NotificationService {
 
     // Setup local notifications for other app-specific alerts if needed
     await _setupFlutterLocalNotifications();
+
+    // Register background message handler
+    FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
 
     // Foreground message handler
     FirebaseMessaging.onMessage.listen((RemoteMessage message) {
@@ -72,8 +85,16 @@ class NotificationService {
             if (imageUrl != null && imageUrl.isNotEmpty) 'image': imageUrl,
           },
           'android': {
+            'priority': 'HIGH',
             'notification': {
               'channel_id': 'high_importance_channel',
+            }
+          },
+          'apns': {
+            'payload': {
+              'aps': {
+                'content-available': 1,
+              }
             }
           }
         }

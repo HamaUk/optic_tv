@@ -115,11 +115,20 @@ class OpticPlayer with WidgetsBindingObserver {
 
   String? _lastUrl;
   Map<String, String>? _lastHeaders;
+  String? _lastDrmScheme;
+  String? _lastDrmLicense;
 
-  Future<void> open(String url, {Map<String, String>? headers}) async {
+  Future<void> open(
+    String url, {
+    Map<String, String>? headers,
+    String? drmScheme,
+    String? drmLicense,
+  }) async {
     if (_disposed) return;
     _lastUrl = url;
     _lastHeaders = headers;
+    _lastDrmScheme = drmScheme;
+    _lastDrmLicense = drmLicense;
     // Ensure init is complete before opening
     if (!_initialized) {
       await _init();
@@ -131,6 +140,8 @@ class OpticPlayer with WidgetsBindingObserver {
     await _channel.invokeMethod('open', {
       'url': url,
       'headers': headers ?? {'User-Agent': 'SmartIPTV'},
+      'drmScheme': drmScheme,
+      'drmLicense': drmLicense,
     });
   }
 

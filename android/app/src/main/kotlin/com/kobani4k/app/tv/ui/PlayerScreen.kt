@@ -235,7 +235,71 @@ fun PlayerScreen(
         isBuffering = true
         exoPlayer.stop()
         exoPlayer.clearMediaItems()
-        exoPlayer.setMediaItem(MediaItem.fromUri(Uri.parse(currentStreamUrl)))
+        
+        val ch = channelsList.firstOrNull { it.url == currentStreamUrl }
+        var finalUrl = currentStreamUrl
+        var finalDrmScheme = ch?.drmScheme
+        var finalDrmLicense = ch?.drmLicense
+
+        if (currentStreamUrl.contains("|drmScheme=")) {
+            val parts = currentStreamUrl.split("|")
+            finalUrl = parts[0]
+            val params = parts[1].split("&")
+            for (param in params) {
+                if (param.startsWith("drmScheme=")) {
+                    finalDrmScheme = param.substringAfter("drmScheme=")
+                } else if (param.startsWith("drmLicense=")) {
+                    finalDrmLicense = param.substringAfter("drmLicense=")
+                }
+            }
+        }
+        
+        val builder = MediaItem.Builder().setUri(finalUrl)
+
+        if (finalUrl.contains("m3u8", ignoreCase = true)) {
+            builder.setMimeType(androidx.media3.common.MimeTypes.APPLICATION_M3U8)
+        } else if (finalUrl.contains("mpd", ignoreCase = true)) {
+            builder.setMimeType(androidx.media3.common.MimeTypes.APPLICATION_MPD)
+        }
+
+        if (!finalDrmScheme.isNullOrEmpty() && !finalDrmLicense.isNullOrEmpty()) {
+            val schemeUuid = when (finalDrmScheme.lowercase()) {
+                "widevine" -> androidx.media3.common.C.WIDEVINE_UUID
+                "playready" -> androidx.media3.common.C.PLAYREADY_UUID
+                "clearkey" -> androidx.media3.common.C.CLEARKEY_UUID
+                else -> androidx.media3.common.C.WIDEVINE_UUID
+            }
+            val drmConfigBuilder = MediaItem.DrmConfiguration.Builder(schemeUuid)
+            
+            if (finalDrmScheme.lowercase() == "clearkey" && finalDrmLicense.contains(":") && !finalDrmLicense.startsWith("http")) {
+                try {
+                    val keys = finalDrmLicense.split(",")
+                    val jsonKeys = keys.map { keyPair ->
+                        val parts = keyPair.split(":")
+                        if (parts.size == 2) {
+                            val kidHex = parts[0]
+                            val keyHex = parts[1]
+                            val kidBytes = kidHex.chunked(2).map { it.toInt(16).toByte() }.toByteArray()
+                            val keyBytes = keyHex.chunked(2).map { it.toInt(16).toByte() }.toByteArray()
+                            val kidB64 = android.util.Base64.encodeToString(kidBytes, android.util.Base64.URL_SAFE or android.util.Base64.NO_PADDING or android.util.Base64.NO_WRAP)
+                            val keyB64 = android.util.Base64.encodeToString(keyBytes, android.util.Base64.URL_SAFE or android.util.Base64.NO_PADDING or android.util.Base64.NO_WRAP)
+                            "{\"kty\":\"oct\",\"k\":\"${keyB64}\",\"kid\":\"${kidB64}\"}"
+                        } else ""
+                    }.filter { it.isNotEmpty() }.joinToString(",")
+                    
+                    val json = "{\"keys\":[$jsonKeys],\"type\":\"temporary\"}"
+                    val dataUri = "data:application/json;base64," + android.util.Base64.encodeToString(json.toByteArray(), android.util.Base64.NO_WRAP)
+                    drmConfigBuilder.setLicenseUri(dataUri)
+                } catch (e: Exception) {
+                    drmConfigBuilder.setLicenseUri(finalDrmLicense)
+                }
+            } else {
+                drmConfigBuilder.setLicenseUri(finalDrmLicense)
+            }
+            builder.setDrmConfiguration(drmConfigBuilder.build())
+        }
+
+        exoPlayer.setMediaItem(builder.build())
         exoPlayer.prepare()
         exoPlayer.playWhenReady = true
         exoPlayer.play()

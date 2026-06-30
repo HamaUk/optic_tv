@@ -241,6 +241,8 @@ class _FullscreenPlayerPageState extends ConsumerState<FullscreenPlayerPage> {
         'User-Agent': _currentChannel.userAgent ?? 'SmartIPTV',
         'X-Optic-Security-Token': 'k4k-secure-stream-99X',
       },
+      drmScheme: _currentChannel.drmScheme,
+      drmLicense: _currentChannel.drmLicense,
     );
     await widget.player.play();
     _resetHideTimer();
@@ -357,6 +359,8 @@ class _FullscreenPlayerPageState extends ConsumerState<FullscreenPlayerPage> {
     widget.player.open(
       url,
       headers: {'User-Agent': _currentChannel.userAgent ?? 'SmartIPTV'},
+      drmScheme: _currentChannel.drmScheme,
+      drmLicense: _currentChannel.drmLicense,
     );
     _resetHideTimer();
   }

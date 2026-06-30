@@ -26,6 +26,7 @@ import 'package:intl/intl.dart' hide TextDirection;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 enum _PublishShelf { liveTv, movies, custom }
+
 enum _LoginDuration { day, week, month, year, never }
 
 class AdminScreen extends StatefulWidget {
@@ -35,11 +36,12 @@ class AdminScreen extends StatefulWidget {
   State<AdminScreen> createState() => _AdminScreenState();
 }
 
-class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStateMixin {
+class _AdminScreenState extends State<AdminScreen>
+    with SingleTickerProviderStateMixin {
   static const _playlistPath = 'sync/global/managedPlaylist';
   static const _groupsPath = 'sync/global/channelGroups';
   static const _loginCodesPath = 'sync/global/loginCodes';
-  static const _announcementPath = 'sync/global/announcement/globalannounce12';
+  static const _announcementPath = 'sync/global/announcement/globalannounce1';
   static const _notifBroadcastPath = 'sync/global/notifications/broadcast';
   static const _notifHistoryPath = 'sync/global/notifications/history';
   static const _backupFileVersion = 1;
@@ -55,6 +57,8 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
   final _channelUrl2NameController = TextEditingController();
   final _channelUrl3Controller = TextEditingController();
   final _channelUrl3NameController = TextEditingController();
+  final _channelDrmSchemeController = TextEditingController();
+  final _channelDrmLicenseController = TextEditingController();
   final _newGroupController = TextEditingController();
   final _newLoginCodeController = TextEditingController();
   final _channelSearchController = TextEditingController();
@@ -112,12 +116,22 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
   bool _showBrokenOnly = false;
   _LoginDuration _selectedLoginDuration = _LoginDuration.month;
 
-  DatabaseReference get _playlistRef => PocketBaseDatabase.instance.ref(_playlistPath);
-  DatabaseReference get _groupsRef => PocketBaseDatabase.instance.ref(_groupsPath);
-  DatabaseReference get _loginCodesRef => PocketBaseDatabase.instance.ref(_loginCodesPath);
-  DatabaseReference get _announcementRef => PocketBaseDatabase.instance.ref(_announcementPath);
-  DatabaseReference get _notifBroadcastRef => PocketBaseDatabase.instance.ref(_notifBroadcastPath);
-  DatabaseReference get _notifHistoryRef => PocketBaseDatabase.instance.ref(_notifHistoryPath);
+  DatabaseReference get _playlistRef =>
+      PocketBaseDatabase.instance.ref(_playlistPath);
+  DatabaseReference get _groupsRef =>
+      PocketBaseDatabase.instance.ref(_groupsPath);
+  DatabaseReference get _loginCodesRef =>
+      PocketBaseDatabase.instance.ref(_loginCodesPath);
+  DatabaseReference get _announcementRef =>
+      PocketBaseDatabase.instance.ref(_announcementPath);
+  DatabaseReference get _notifBroadcastRef =>
+      PocketBaseDatabase.instance.ref(_notifBroadcastPath);
+  DatabaseReference get _notifHistoryRef =>
+      PocketBaseDatabase.instance.ref(_notifHistoryPath);
+  DatabaseReference get _activeSessionsRef =>
+      PocketBaseDatabase.instance.ref('sync/global/activeSessions');
+  DatabaseReference get _liveViewersRef =>
+      PocketBaseDatabase.instance.ref('sync/global/liveViewers');
 
   void initState() {
     super.initState();
@@ -125,7 +139,11 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
     _tabController = TabController(length: 9, vsync: this);
     _channelGroupController.text = 'Live TV';
     _channelSearchController.addListener(() {
-      setState(() => _channelSearchQuery = _channelSearchController.text.trim().toLowerCase());
+      setState(
+        () =>
+            _channelSearchQuery =
+                _channelSearchController.text.trim().toLowerCase(),
+      );
     });
   }
 
@@ -143,6 +161,8 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
     _channelUrl2NameController.dispose();
     _channelUrl3Controller.dispose();
     _channelUrl3NameController.dispose();
+    _channelDrmSchemeController.dispose();
+    _channelDrmLicenseController.dispose();
     _newGroupController.dispose();
     _newLoginCodeController.dispose();
     _channelSearchController.dispose();
@@ -171,9 +191,18 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
           inputDecorationTheme: InputDecorationTheme(
             filled: true,
             fillColor: Colors.white.withOpacity(0.06),
-            hintStyle: TextStyle(color: Colors.white.withOpacity(0.35), fontSize: 14),
-            labelStyle: TextStyle(color: Colors.white.withOpacity(0.5), fontSize: 13),
-            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+            hintStyle: TextStyle(
+              color: Colors.white.withOpacity(0.35),
+              fontSize: 14,
+            ),
+            labelStyle: TextStyle(
+              color: Colors.white.withOpacity(0.5),
+              fontSize: 13,
+            ),
+            contentPadding: const EdgeInsets.symmetric(
+              horizontal: 16,
+              vertical: 14,
+            ),
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(14),
               borderSide: BorderSide(color: Colors.white.withOpacity(0.12)),
@@ -184,15 +213,15 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
             ),
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(14),
-              borderSide: BorderSide(color: AppTheme.primaryGold.withOpacity(0.7), width: 1.5),
+              borderSide: BorderSide(
+                color: AppTheme.primaryGold.withOpacity(0.7),
+                width: 1.5,
+              ),
             ),
           ),
         ),
         child: Stack(
-          children: [
-            child,
-            if (!_isAuthenticated) _buildLoginShield(),
-          ],
+          children: [child, if (!_isAuthenticated) _buildLoginShield()],
         ),
       ),
     );
@@ -225,7 +254,11 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
                         const Center(
-                          child: Icon(Icons.shield_rounded, color: AppTheme.primaryGold, size: 72),
+                          child: Icon(
+                            Icons.shield_rounded,
+                            color: AppTheme.primaryGold,
+                            size: 72,
+                          ),
                         ),
                         const SizedBox(height: 24),
                         const Text(
@@ -243,8 +276,8 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
                           'RESTRICTED INFRASTRUCTURE ACCESS',
                           textAlign: TextAlign.center,
                           style: TextStyle(
-                            color: AppTheme.primaryGold.withOpacity(0.7), 
-                            fontSize: 11, 
+                            color: AppTheme.primaryGold.withOpacity(0.7),
+                            fontSize: 11,
                             fontWeight: FontWeight.w900,
                             letterSpacing: 1.2,
                           ),
@@ -269,11 +302,17 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
                             decoration: BoxDecoration(
                               color: Colors.redAccent.withOpacity(0.1),
                               borderRadius: BorderRadius.circular(12),
-                              border: Border.all(color: Colors.redAccent.withOpacity(0.3)),
+                              border: Border.all(
+                                color: Colors.redAccent.withOpacity(0.3),
+                              ),
                             ),
                             child: Text(
                               _authError!,
-                              style: const TextStyle(color: Colors.redAccent, fontSize: 12, fontWeight: FontWeight.w600),
+                              style: const TextStyle(
+                                color: Colors.redAccent,
+                                fontSize: 12,
+                                fontWeight: FontWeight.w600,
+                              ),
                               textAlign: TextAlign.center,
                             ),
                           ),
@@ -287,12 +326,25 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
                         const SizedBox(height: 24),
                         Row(
                           children: [
-                            const Expanded(child: Divider(color: Colors.white10)),
-                            Padding(
-                              padding: const EdgeInsets.symmetric(horizontal: 16),
-                              child: Text('OR', style: TextStyle(color: Colors.white.withOpacity(0.3), fontSize: 10, fontWeight: FontWeight.bold)),
+                            const Expanded(
+                              child: Divider(color: Colors.white10),
                             ),
-                            const Expanded(child: Divider(color: Colors.white10)),
+                            Padding(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 16,
+                              ),
+                              child: Text(
+                                'OR',
+                                style: TextStyle(
+                                  color: Colors.white.withOpacity(0.3),
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ),
+                            const Expanded(
+                              child: Divider(color: Colors.white10),
+                            ),
                           ],
                         ),
                         const SizedBox(height: 24),
@@ -301,8 +353,13 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
                         TextButton(
                           onPressed: () => Navigator.pop(context),
                           child: Text(
-                            'CANCEL & EXIT', 
-                            style: TextStyle(color: Colors.white.withOpacity(0.4), letterSpacing: 1, fontSize: 11, fontWeight: FontWeight.bold),
+                            'CANCEL & EXIT',
+                            style: TextStyle(
+                              color: Colors.white.withOpacity(0.4),
+                              letterSpacing: 1,
+                              fontSize: 11,
+                              fontWeight: FontWeight.bold,
+                            ),
                           ),
                         ),
                       ],
@@ -335,16 +392,30 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
         style: const TextStyle(color: Colors.white, fontSize: 15),
         decoration: InputDecoration(
           labelText: label,
-          labelStyle: TextStyle(color: Colors.white.withOpacity(0.4), fontSize: 14),
-          prefixIcon: Icon(icon, color: AppTheme.primaryGold.withOpacity(0.6), size: 20),
+          labelStyle: TextStyle(
+            color: Colors.white.withOpacity(0.4),
+            fontSize: 14,
+          ),
+          prefixIcon: Icon(
+            icon,
+            color: AppTheme.primaryGold.withOpacity(0.6),
+            size: 20,
+          ),
           border: InputBorder.none,
-          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+          contentPadding: const EdgeInsets.symmetric(
+            horizontal: 16,
+            vertical: 16,
+          ),
         ),
       ),
     );
   }
 
-  Widget _buildAdminButton({required VoidCallback? onPressed, required String label, bool isLoading = false}) {
+  Widget _buildAdminButton({
+    required VoidCallback? onPressed,
+    required String label,
+    bool isLoading = false,
+  }) {
     return Container(
       height: 56,
       decoration: BoxDecoration(
@@ -353,7 +424,11 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
           colors: [AppTheme.primaryGold, AppTheme.primaryGold.withOpacity(0.8)],
         ),
         boxShadow: [
-          BoxShadow(color: AppTheme.primaryGold.withOpacity(0.3), blurRadius: 15, offset: const Offset(0, 4)),
+          BoxShadow(
+            color: AppTheme.primaryGold.withOpacity(0.3),
+            blurRadius: 15,
+            offset: const Offset(0, 4),
+          ),
         ],
       ),
       child: ElevatedButton(
@@ -361,11 +436,29 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
         style: ElevatedButton.styleFrom(
           backgroundColor: Colors.transparent,
           shadowColor: Colors.transparent,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
         ),
-        child: isLoading
-            ? const SizedBox(width: 24, height: 24, child: CircularProgressIndicator(strokeWidth: 2.5, color: Colors.black))
-            : Text(label, style: const TextStyle(color: Colors.black, fontWeight: FontWeight.w900, fontSize: 14, letterSpacing: 1.2)),
+        child:
+            isLoading
+                ? const SizedBox(
+                  width: 24,
+                  height: 24,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2.5,
+                    color: Colors.black,
+                  ),
+                )
+                : Text(
+                  label,
+                  style: const TextStyle(
+                    color: Colors.black,
+                    fontWeight: FontWeight.w900,
+                    fontSize: 14,
+                    letterSpacing: 1.2,
+                  ),
+                ),
       ),
     );
   }
@@ -384,13 +477,24 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
         children: [
           const Icon(Icons.g_mobiledata_rounded, color: Colors.white, size: 28),
           const SizedBox(width: 8),
-          const Text('SIGN IN WITH GOOGLE', style: TextStyle(fontWeight: FontWeight.w700, letterSpacing: 0.5, fontSize: 13)),
+          const Text(
+            'SIGN IN WITH GOOGLE',
+            style: TextStyle(
+              fontWeight: FontWeight.w700,
+              letterSpacing: 0.5,
+              fontSize: 13,
+            ),
+          ),
         ],
       ),
     );
   }
 
-  Widget _glassContainer({required Widget child, required BorderRadius borderRadius, double blur = 12}) {
+  Widget _glassContainer({
+    required Widget child,
+    required BorderRadius borderRadius,
+    double blur = 12,
+  }) {
     return ClipRRect(
       borderRadius: borderRadius,
       child: BackdropFilter(
@@ -468,7 +572,8 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
       SnackBar(
         content: Text(msg),
         behavior: SnackBarBehavior.floating,
-        backgroundColor: error ? const Color(0xFF7F1D1D) : AppTheme.surfaceElevated,
+        backgroundColor:
+            error ? const Color(0xFF7F1D1D) : AppTheme.surfaceElevated,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       ),
     );
@@ -492,11 +597,19 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
       final file = File('${dir.path}/optic_tv_library_$day.json');
       await file.writeAsString(jsonStr);
       await Share.shareXFiles(
-        [XFile(file.path, mimeType: 'application/json', name: 'optic_tv_library_$day.json')],
+        [
+          XFile(
+            file.path,
+            mimeType: 'application/json',
+            name: 'optic_tv_library_$day.json',
+          ),
+        ],
         subject: 'KOBANI 4K library backup',
-        text: 'Channels, groups & movies (all playlist data). Keep this file safe.',
+        text:
+            'Channels, groups & movies (all playlist data). Keep this file safe.',
       );
-      if (mounted) _snack('Share sheet opened — save to Downloads, Drive, or Files.');
+      if (mounted)
+        _snack('Share sheet opened — save to Downloads, Drive, or Files.');
     } catch (e) {
       if (mounted) _snack('Export failed: $e', error: true);
     } finally {
@@ -506,28 +619,35 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
 
   Future<void> _importLibraryBackup() async {
     if (_backupBusy) return;
-    final confirm = await showDialog<bool>(
+    final confirm =
+        await showDialog<bool>(
           context: context,
-          builder: (ctx) => _adminEnglishLtr(
-            AlertDialog(
-              backgroundColor: AppTheme.surfaceElevated,
-              title: const Text('Import library backup?'),
-              content: const Text(
-                'This replaces ALL channels in managedPlaylist and ALL saved channel groups '
-                'with the contents of the backup file.\n\n'
-                'Login codes are NOT changed.\n\n'
-                'Continue?',
-              ),
-              actions: [
-                TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
-                FilledButton(
-                  style: FilledButton.styleFrom(backgroundColor: Colors.orange.shade800),
-                  onPressed: () => Navigator.pop(ctx, true),
-                  child: const Text('Import'),
+          builder:
+              (ctx) => _adminEnglishLtr(
+                AlertDialog(
+                  backgroundColor: AppTheme.surfaceElevated,
+                  title: const Text('Import library backup?'),
+                  content: const Text(
+                    'This replaces ALL channels in managedPlaylist and ALL saved channel groups '
+                    'with the contents of the backup file.\n\n'
+                    'Login codes are NOT changed.\n\n'
+                    'Continue?',
+                  ),
+                  actions: [
+                    TextButton(
+                      onPressed: () => Navigator.pop(ctx, false),
+                      child: const Text('Cancel'),
+                    ),
+                    FilledButton(
+                      style: FilledButton.styleFrom(
+                        backgroundColor: Colors.orange.shade800,
+                      ),
+                      onPressed: () => Navigator.pop(ctx, true),
+                      child: const Text('Import'),
+                    ),
+                  ],
                 ),
-              ],
-            ),
-          ),
+              ),
         ) ??
         false;
     if (!confirm || !mounted) return;
@@ -554,7 +674,8 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
       final text = await File(path).readAsString();
       final decoded = jsonDecode(text);
       if (decoded is! Map) {
-        if (mounted) _snack('Invalid backup: root must be a JSON object', error: true);
+        if (mounted)
+          _snack('Invalid backup: root must be a JSON object', error: true);
         return;
       }
       final root = Map<String, dynamic>.from(decoded);
@@ -564,20 +685,32 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
         return;
       }
       if (ver != null && ver != _backupFileVersion) {
-        if (mounted) _snack('Backup version $ver — importing anyway (may need manual check).');
+        if (mounted)
+          _snack(
+            'Backup version $ver — importing anyway (may need manual check).',
+          );
       }
       if (!root.containsKey('managedPlaylist')) {
-        if (mounted) _snack('Invalid backup: missing managedPlaylist', error: true);
+        if (mounted)
+          _snack('Invalid backup: missing managedPlaylist', error: true);
         return;
       }
       final playlist = root['managedPlaylist'];
       if (playlist != null && playlist is! Map && playlist is! List) {
-        if (mounted) _snack('Invalid backup: managedPlaylist must be object or array', error: true);
+        if (mounted)
+          _snack(
+            'Invalid backup: managedPlaylist must be object or array',
+            error: true,
+          );
         return;
       }
       var groupsRaw = root['channelGroups'];
       if (groupsRaw != null && groupsRaw is! Map) {
-        if (mounted) _snack('Invalid backup: channelGroups must be an object', error: true);
+        if (mounted)
+          _snack(
+            'Invalid backup: channelGroups must be an object',
+            error: true,
+          );
         return;
       }
       groupsRaw ??= <String, dynamic>{};
@@ -594,23 +727,30 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
   }
 
   Future<bool> _confirmDelete(String title, String body) async {
-    final r = await showDialog<bool>(
+    final r =
+        await showDialog<bool>(
           context: context,
-          builder: (ctx) => _adminEnglishLtr(
-            AlertDialog(
-              backgroundColor: AppTheme.surfaceElevated,
-              title: Text(title),
-              content: Text(body),
-              actions: [
-                TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
-                FilledButton(
-                  style: FilledButton.styleFrom(backgroundColor: Colors.redAccent),
-                  onPressed: () => Navigator.pop(ctx, true),
-                  child: const Text('Delete'),
+          builder:
+              (ctx) => _adminEnglishLtr(
+                AlertDialog(
+                  backgroundColor: AppTheme.surfaceElevated,
+                  title: Text(title),
+                  content: Text(body),
+                  actions: [
+                    TextButton(
+                      onPressed: () => Navigator.pop(ctx, false),
+                      child: const Text('Cancel'),
+                    ),
+                    FilledButton(
+                      style: FilledButton.styleFrom(
+                        backgroundColor: Colors.redAccent,
+                      ),
+                      onPressed: () => Navigator.pop(ctx, true),
+                      child: const Text('Delete'),
+                    ),
+                  ],
                 ),
-              ],
-            ),
-          ),
+              ),
         ) ??
         false;
     return r;
@@ -631,6 +771,8 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
     String? url2Name,
     String? url3,
     String? url3Name,
+    String? drmScheme,
+    String? drmLicense,
   }) {
     final map = <String, dynamic>{
       'name': name,
@@ -639,7 +781,8 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
     };
     if (logo.isNotEmpty) map['logo'] = logo;
     if (backdrop != null && backdrop.isNotEmpty) map['backdrop'] = backdrop;
-    if (subtitleUrl != null && subtitleUrl.isNotEmpty) map['subtitleUrl'] = subtitleUrl;
+    if (subtitleUrl != null && subtitleUrl.isNotEmpty)
+      map['subtitleUrl'] = subtitleUrl;
     if (type != null) map['type'] = type;
     if (featured == true) map['featured'] = true;
     if (order != null) map['order'] = order;
@@ -648,6 +791,8 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
     if (url2Name != null && url2Name.isNotEmpty) map['url2Name'] = url2Name;
     if (url3 != null && url3.isNotEmpty) map['url3'] = url3;
     if (url3Name != null && url3Name.isNotEmpty) map['url3Name'] = url3Name;
+    if (drmScheme != null && drmScheme.isNotEmpty) map['drmScheme'] = drmScheme;
+    if (drmLicense != null && drmLicense.isNotEmpty) map['drmLicense'] = drmLicense;
     return map;
   }
 
@@ -669,10 +814,16 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
     items.sort((a, b) {
       final av = a.value;
       final bv = b.value;
-      
+
       // Sort by group first to prevent interleaving of different groups' orders
-      final aGroup = (av is Map) ? '${av['group'] ?? av['category'] ?? 'General'}' : 'General';
-      final bGroup = (bv is Map) ? '${bv['group'] ?? bv['category'] ?? 'General'}' : 'General';
+      final aGroup =
+          (av is Map)
+              ? '${av['group'] ?? av['category'] ?? 'General'}'
+              : 'General';
+      final bGroup =
+          (bv is Map)
+              ? '${bv['group'] ?? bv['category'] ?? 'General'}'
+              : 'General';
       final groupComp = aGroup.toLowerCase().compareTo(bGroup.toLowerCase());
       if (groupComp != 0) return groupComp;
 
@@ -716,7 +867,10 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
     });
   }
 
-  Future<void> _pickLogoInto(TextEditingController controller, [VoidCallback? after]) async {
+  Future<void> _pickLogoInto(
+    TextEditingController controller, [
+    VoidCallback? after,
+  ]) async {
     final picker = ImagePicker();
     final file = await picker.pickImage(
       source: ImageSource.gallery,
@@ -728,16 +882,20 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
     try {
       final bytes = await file.readAsBytes();
       final b64 = base64Encode(bytes);
-      final mime = (bytes.length >= 8 &&
-              bytes[0] == 0x89 &&
-              bytes[1] == 0x50 &&
-              bytes[2] == 0x4E &&
-              bytes[3] == 0x47)
-          ? 'image/png'
-          : 'image/jpeg';
+      final mime =
+          (bytes.length >= 8 &&
+                  bytes[0] == 0x89 &&
+                  bytes[1] == 0x50 &&
+                  bytes[2] == 0x4E &&
+                  bytes[3] == 0x47)
+              ? 'image/png'
+              : 'image/jpeg';
       final b64String = 'data:$mime;base64,$b64';
       if (b64String.length > 4900) {
-        _snack('Image is still too large (${b64String.length} chars). Please use an image URL instead.', error: true);
+        _snack(
+          'Image is still too large (${b64String.length} chars). Please use an image URL instead.',
+          error: true,
+        );
         return;
       }
       controller.text = b64String;
@@ -760,11 +918,11 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
       final file = result.files.first;
       final bytes = file.bytes;
       if (bytes == null) return;
-      
+
       final b64 = base64Encode(bytes);
       final ext = file.extension?.toLowerCase() ?? 'srt';
       final mime = ext == 'vtt' ? 'text/vtt' : 'application/x-subrip';
-      
+
       _channelSubtitleUrlController.text = 'data:$mime;base64,$b64';
       setState(() {});
       _snack('Subtitle file attached (${file.name})');
@@ -790,27 +948,33 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
       final backdrop = _channelBackdropController.text.trim();
       final subUrl = _channelSubtitleUrlController.text.trim();
       final userAgent = _channelUserAgentController.text.trim();
-      await _playlistRef.push().set(_channelPayload(
-            name: name,
-            url: url,
-            group: group,
-            logo: logo,
-            backdrop: backdrop,
-            subtitleUrl: subUrl,
-            type: _channelType,
-            featured: _isFeaturedAdmin,
-            userAgent: userAgent,
-            url2: _channelUrl2Controller.text.trim(),
-            url2Name: _channelUrl2NameController.text.trim(),
-            url3: _channelUrl3Controller.text.trim(),
-            url3Name: _channelUrl3NameController.text.trim(),
-          ));
+      await _playlistRef.push().set(
+        _channelPayload(
+          name: name,
+          url: url,
+          group: group,
+          logo: logo,
+          backdrop: backdrop,
+          subtitleUrl: subUrl,
+          type: _channelType,
+          featured: _isFeaturedAdmin,
+          userAgent: userAgent,
+          url2: _channelUrl2Controller.text.trim(),
+          url2Name: _channelUrl2NameController.text.trim(),
+          url3: _channelUrl3Controller.text.trim(),
+          url3Name: _channelUrl3NameController.text.trim(),
+          drmScheme: _channelDrmSchemeController.text.trim(),
+          drmLicense: _channelDrmLicenseController.text.trim(),
+        ),
+      );
       _channelNameController.clear();
       _channelUrlController.clear();
       _channelUrl2Controller.clear();
       _channelUrl2NameController.clear();
       _channelUrl3Controller.clear();
       _channelUrl3NameController.clear();
+      _channelDrmSchemeController.clear();
+      _channelDrmLicenseController.clear();
       _channelLogoController.clear();
       _channelBackdropController.clear();
       _channelSubtitleUrlController.clear();
@@ -834,13 +998,17 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
     _channelUrl2NameController.text = '${val['url2Name'] ?? ''}';
     _channelUrl3Controller.text = '${val['url3'] ?? ''}';
     _channelUrl3NameController.text = '${val['url3Name'] ?? ''}';
-    _channelUserAgentController.text = '${val['userAgent'] ?? val['user_agent'] ?? 'SmartIPTV'}';
+    _channelDrmSchemeController.text = '${val['drmScheme'] ?? ''}';
+    _channelDrmLicenseController.text = '${val['drmLicense'] ?? ''}';
+    _channelUserAgentController.text =
+        '${val['userAgent'] ?? val['user_agent'] ?? 'SmartIPTV'}';
     final grpRaw = '${val['group'] ?? val['category'] ?? 'General'}';
     _channelLogoController.text = '${val['logo'] ?? val['icon_url'] ?? ''}';
     final gl = grpRaw.toLowerCase();
-    final shelf = (gl.contains('movie') || gl.contains('film') || gl.contains('cinema'))
-        ? _PublishShelf.movies
-        : gl.contains('live')
+    final shelf =
+        (gl.contains('movie') || gl.contains('film') || gl.contains('cinema'))
+            ? _PublishShelf.movies
+            : gl.contains('live')
             ? _PublishShelf.liveTv
             : _PublishShelf.custom;
     setState(() {
@@ -885,6 +1053,8 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
     String? url2Name,
     String? url3,
     String? url3Name,
+    String? drmScheme,
+    String? drmLicense,
   }) async {
     try {
       final ref = _playlistRef.child(key);
@@ -900,29 +1070,40 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
       if (userAgent != null && userAgent.trim().isNotEmpty) {
         updates['userAgent'] = userAgent.trim();
       } else {
-        await ref.child('userAgent').remove();
-        await ref.child('user_agent').remove();
+        updates['userAgent'] = '';
+        updates['user_agent'] = '';
       }
 
       if (backdrop != null && backdrop.trim().isNotEmpty) {
         updates['backdrop'] = backdrop.trim();
       } else {
-        await ref.child('backdrop').remove();
+        updates['backdrop'] = '';
       }
 
-      if (url2 != null && url2.trim().isNotEmpty) updates['url2'] = url2.trim(); else await ref.child('url2').remove();
-      if (url2Name != null && url2Name.trim().isNotEmpty) updates['url2Name'] = url2Name.trim(); else await ref.child('url2Name').remove();
-      if (url3 != null && url3.trim().isNotEmpty) updates['url3'] = url3.trim(); else await ref.child('url3').remove();
-      if (url3Name != null && url3Name.trim().isNotEmpty) updates['url3Name'] = url3Name.trim(); else await ref.child('url3Name').remove();
+      updates['url2'] =
+          (url2 != null && url2.trim().isNotEmpty) ? url2.trim() : '';
+      updates['url2Name'] =
+          (url2Name != null && url2Name.trim().isNotEmpty)
+              ? url2Name.trim()
+              : '';
+      updates['url3'] =
+          (url3 != null && url3.trim().isNotEmpty) ? url3.trim() : '';
+      updates['url3Name'] =
+          (url3Name != null && url3Name.trim().isNotEmpty)
+              ? url3Name.trim()
+              : '';
+      updates['drmScheme'] = (drmScheme != null && drmScheme.trim().isNotEmpty) ? drmScheme.trim() : '';
+      updates['drmLicense'] = (drmLicense != null && drmLicense.trim().isNotEmpty) ? drmLicense.trim() : '';
 
-      await ref.update(updates);
       final logoTrim = logo.trim();
       if (logoTrim.isEmpty) {
-        await ref.child('logo').remove();
-        await ref.child('icon_url').remove();
+        updates['logo'] = '';
+        updates['icon_url'] = '';
       } else {
-        await ref.update({'logo': logoTrim});
+        updates['logo'] = logoTrim;
       }
+
+      await ref.update(updates);
       _snack('Channel updated');
     } catch (e) {
       _snack('Error: $e', error: true);
@@ -930,7 +1111,10 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
   }
 
   Future<void> _deleteChannel(String key, String name) async {
-    final ok = await _confirmDelete('Remove channel?', '"$name" will be removed from the playlist.');
+    final ok = await _confirmDelete(
+      'Remove channel?',
+      '"$name" will be removed from the playlist.',
+    );
     if (!ok) return;
     try {
       await _playlistRef.child(key).remove();
@@ -963,7 +1147,10 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
   }
 
   Future<void> _deleteGroup(String key, String label) async {
-    final ok = await _confirmDelete('Remove group?', '"$label" will be removed from saved groups.');
+    final ok = await _confirmDelete(
+      'Remove group?',
+      '"$label" will be removed from saved groups.',
+    );
     if (!ok) return;
     try {
       await _groupsRef.child(key).remove();
@@ -1065,7 +1252,10 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
   }
 
   Future<void> _deleteLoginCode(String key, String code) async {
-    final ok = await _confirmDelete('Remove login code?', "Users won't be able to sign in with \"$code\".");
+    final ok = await _confirmDelete(
+      'Remove login code?',
+      "Users won't be able to sign in with \"$code\".",
+    );
     if (!ok) return;
     try {
       await _loginCodesRef.child(key).remove();
@@ -1089,8 +1279,18 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
     // Update order field for all items in this group.
     final updates = <String, dynamic>{};
     for (var i = 0; i < groupItems.length; i++) {
-      updates['${groupItems[i].key}/order'] = i;
+      final key = groupItems[i].key;
+      updates['$key/order'] = i;
+
+      // Optimistic local update to prevent UI snapback
+      final val = groupItems[i].value;
+      if (val is Map) {
+        val['order'] = i;
+      }
     }
+
+    setState(() {});
+
     try {
       await _playlistRef.update(updates);
     } catch (e) {
@@ -1109,8 +1309,17 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
 
     final updates = <String, dynamic>{};
     for (var i = 0; i < groupEntries.length; i++) {
-      updates['${groupEntries[i].key}/order'] = i;
+      final key = groupEntries[i].key;
+      updates['$key/order'] = i;
+
+      final val = groupEntries[i].value;
+      if (val is Map) {
+        val['order'] = i;
+      }
     }
+
+    setState(() {});
+
     try {
       await _groupsRef.update(updates);
     } catch (e) {
@@ -1128,13 +1337,27 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
     for (final rawLine in lines) {
       final line = rawLine.trim();
       if (line.startsWith('#EXTINF:')) {
-        final nameMatch = RegExp(r"""(?:tvg-name|name)\s*=\s*(?:"([^"]*)"|'([^']*)'|([^,\s\t]+))""", caseSensitive: false).firstMatch(line);
-        final logoMatch = RegExp(r"""(?:tvg-logo|logo|icon)\s*=\s*(?:"([^"]*)"|'([^']*)'|([^,\s\t]+))""", caseSensitive: false).firstMatch(line);
-        final groupMatch = RegExp(r"""(?:group-title|group|category)\s*=\s*(?:"([^"]*)"|'([^']*)'|([^,\s\t]+))""", caseSensitive: false).firstMatch(line);
+        final nameMatch = RegExp(
+          r"""(?:tvg-name|name)\s*=\s*(?:"([^"]*)"|'([^']*)'|([^,\s\t]+))""",
+          caseSensitive: false,
+        ).firstMatch(line);
+        final logoMatch = RegExp(
+          r"""(?:tvg-logo|logo|icon)\s*=\s*(?:"([^"]*)"|'([^']*)'|([^,\s\t]+))""",
+          caseSensitive: false,
+        ).firstMatch(line);
+        final groupMatch = RegExp(
+          r"""(?:group-title|group|category)\s*=\s*(?:"([^"]*)"|'([^']*)'|([^,\s\t]+))""",
+          caseSensitive: false,
+        ).firstMatch(line);
 
-        name = nameMatch?.group(1) ?? nameMatch?.group(2) ?? nameMatch?.group(3);
-        logo = logoMatch?.group(1) ?? logoMatch?.group(2) ?? logoMatch?.group(3);
-        group = groupMatch?.group(1) ?? groupMatch?.group(2) ?? groupMatch?.group(3);
+        name =
+            nameMatch?.group(1) ?? nameMatch?.group(2) ?? nameMatch?.group(3);
+        logo =
+            logoMatch?.group(1) ?? logoMatch?.group(2) ?? logoMatch?.group(3);
+        group =
+            groupMatch?.group(1) ??
+            groupMatch?.group(2) ??
+            groupMatch?.group(3);
 
         // Fallback: channel name after the last comma.
         if (name == null || name.isEmpty) {
@@ -1170,7 +1393,9 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
         allowedExtensions: const ['m3u', 'm3u8', 'txt'],
         withData: false,
       );
-      if (pick == null || pick.files.isEmpty || pick.files.single.path == null) {
+      if (pick == null ||
+          pick.files.isEmpty ||
+          pick.files.single.path == null) {
         setState(() {
           _importBusy = false;
           _importStatus = '';
@@ -1182,7 +1407,8 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
       setState(() {
         _importPreview = parsed;
         _importBusy = false;
-        _importStatus = 'Found ${parsed.length} channels. Tap "Import All" to save.';
+        _importStatus =
+            'Found ${parsed.length} channels. Tap "Import All" to save.';
       });
     } catch (e) {
       setState(() {
@@ -1204,17 +1430,20 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
       _importStatus = 'Downloading playlist...';
     });
     try {
-      final dio = Dio(BaseOptions(
-        connectTimeout: const Duration(seconds: 15),
-        receiveTimeout: const Duration(seconds: 30),
-        headers: {'User-Agent': 'SmartIPTV'},
-      ));
+      final dio = Dio(
+        BaseOptions(
+          connectTimeout: const Duration(seconds: 15),
+          receiveTimeout: const Duration(seconds: 30),
+          headers: {'User-Agent': 'SmartIPTV'},
+        ),
+      );
       final res = await dio.get<String>(url);
       final parsed = _parseM3u(res.data ?? '');
       setState(() {
         _importPreview = parsed;
         _importBusy = false;
-        _importStatus = 'Found ${parsed.length} channels. Tap "Import All" to save.';
+        _importStatus =
+            'Found ${parsed.length} channels. Tap "Import All" to save.';
       });
     } catch (e) {
       setState(() {
@@ -1238,17 +1467,25 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
       _importStatus = 'Fetching Xtream channels...';
     });
     try {
-      final dio = Dio(BaseOptions(
-        connectTimeout: const Duration(seconds: 15),
-        receiveTimeout: const Duration(seconds: 30),
-        headers: {'User-Agent': 'SmartIPTV'},
-      ));
-      final baseUrl = server.endsWith('/') ? server.substring(0, server.length - 1) : server;
-      final res = await dio.get('$baseUrl/player_api.php', queryParameters: {
-        'username': user,
-        'password': pass,
-        'action': 'get_live_streams',
-      });
+      final dio = Dio(
+        BaseOptions(
+          connectTimeout: const Duration(seconds: 15),
+          receiveTimeout: const Duration(seconds: 30),
+          headers: {'User-Agent': 'SmartIPTV'},
+        ),
+      );
+      final baseUrl =
+          server.endsWith('/')
+              ? server.substring(0, server.length - 1)
+              : server;
+      final res = await dio.get(
+        '$baseUrl/player_api.php',
+        queryParameters: {
+          'username': user,
+          'password': pass,
+          'action': 'get_live_streams',
+        },
+      );
       final data = res.data;
       final channels = <Map<String, String>>[];
       if (data is List) {
@@ -1272,7 +1509,8 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
       setState(() {
         _importPreview = channels;
         _importBusy = false;
-        _importStatus = 'Found ${channels.length} channels. Tap "Import All" to save.';
+        _importStatus =
+            'Found ${channels.length} channels. Tap "Import All" to save.';
       });
     } catch (e) {
       setState(() {
@@ -1319,7 +1557,8 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
       type: FileType.custom,
       allowedExtensions: const ['m3u', 'm3u8', 'txt'],
     );
-    if (pick == null || pick.files.isEmpty || pick.files.single.path == null) return;
+    if (pick == null || pick.files.isEmpty || pick.files.single.path == null)
+      return;
 
     setState(() {
       _importMoviesBusy = true;
@@ -1339,13 +1578,15 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
 
       setState(() {
         _importMoviesTotal = parsed.length;
-        _importMoviesStatus = 'Preparing to fetch metadata for ${parsed.length} movies...';
+        _importMoviesStatus =
+            'Preparing to fetch metadata for ${parsed.length} movies...';
       });
 
       final tmdb = TmdbService();
 
       for (final ch in parsed) {
-        if (!_importMoviesBusy) break; // Allow cancellation if needed (though no UI yet)
+        if (!_importMoviesBusy)
+          break; // Allow cancellation if needed (though no UI yet)
 
         final name = ch['name'] ?? 'Unknown';
         final url = ch['url'] ?? '';
@@ -1357,11 +1598,21 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
         });
 
         // 0. Clean the name for better TMDB matching
-        String searchName = name
-            .replaceAll(RegExp(r'\.(mp4|mkv|avi|ts|m3u8|mov)$', caseSensitive: false), '')
-            .replaceAll(RegExp(r'(1080p|720p|4k|uhd|bluray|h264|h265|web-dl|x264|x265)', caseSensitive: false), '')
-            .replaceAll('.', ' ')
-            .trim();
+        String searchName =
+            name
+                .replaceAll(
+                  RegExp(r'\.(mp4|mkv|avi|ts|m3u8|mov)$', caseSensitive: false),
+                  '',
+                )
+                .replaceAll(
+                  RegExp(
+                    r'(1080p|720p|4k|uhd|bluray|h264|h265|web-dl|x264|x265)',
+                    caseSensitive: false,
+                  ),
+                  '',
+                )
+                .replaceAll('.', ' ')
+                .trim();
 
         // 1. Fetch TMDB metadata
         final movie = await tmdb.findMovie(searchName);
@@ -1370,7 +1621,8 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
         await _playlistRef.push().set({
           'name': name,
           'url': url,
-          'group': ch['group'] ?? 'Movies', // Use M3U group or default to Movies
+          'group':
+              ch['group'] ?? 'Movies', // Use M3U group or default to Movies
           'type': 'movie',
           // Use TMDB poster if found, otherwise fallback to M3U logo
           'logo': movie?.posterUrl ?? ch['logo'],
@@ -1387,7 +1639,10 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
         await Future.delayed(const Duration(milliseconds: 50));
       }
 
-      _snack('Bulk import complete! ${_importMoviesDone} movies added.', error: false);
+      _snack(
+        'Bulk import complete! ${_importMoviesDone} movies added.',
+        error: false,
+      );
     } catch (e) {
       _snack('Import error: $e', error: true);
     } finally {
@@ -1403,19 +1658,27 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
     if (_selectedKeys.isEmpty) return;
     final confirmed = await showDialog<bool>(
       context: context,
-      builder: (context) => AlertDialog(
-        backgroundColor: AppTheme.surfaceElevated,
-        title: const Text('Bulk Delete'),
-        content: Text('Are you sure you want to delete ${_selectedKeys.length} items?'),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancel')),
-          FilledButton(
-            onPressed: () => Navigator.pop(context, true),
-            style: FilledButton.styleFrom(backgroundColor: Colors.redAccent),
-            child: const Text('Delete All'),
+      builder:
+          (context) => AlertDialog(
+            backgroundColor: AppTheme.surfaceElevated,
+            title: const Text('Bulk Delete'),
+            content: Text(
+              'Are you sure you want to delete ${_selectedKeys.length} items?',
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context, false),
+                child: const Text('Cancel'),
+              ),
+              FilledButton(
+                onPressed: () => Navigator.pop(context, true),
+                style: FilledButton.styleFrom(
+                  backgroundColor: Colors.redAccent,
+                ),
+                child: const Text('Delete All'),
+              ),
+            ],
           ),
-        ],
-      ),
     );
 
     if (confirmed == true) {
@@ -1454,13 +1717,15 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
         return;
       }
 
-      final dio = Dio(BaseOptions(
-        connectTimeout: const Duration(seconds: 8),
-        receiveTimeout: const Duration(seconds: 8),
-        followRedirects: true,
-        maxRedirects: 5,
-        headers: {'User-Agent': 'SmartIPTV'},
-      ));
+      final dio = Dio(
+        BaseOptions(
+          connectTimeout: const Duration(seconds: 8),
+          receiveTimeout: const Duration(seconds: 8),
+          followRedirects: true,
+          maxRedirects: 5,
+          headers: {'User-Agent': 'SmartIPTV'},
+        ),
+      );
 
       for (var i = 0; i < items.length; i++) {
         final entry = items[i];
@@ -1480,7 +1745,9 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
         } else {
           try {
             final res = await dio.head(url);
-            if (res.statusCode != null && res.statusCode! >= 200 && res.statusCode! < 400) {
+            if (res.statusCode != null &&
+                res.statusCode! >= 200 &&
+                res.statusCode! < 400) {
               _healthResults[key] = _ChannelHealthStatus(
                 name: name,
                 url: url,
@@ -1543,15 +1810,36 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
     final nameCtrl = TextEditingController(text: '${raw['name'] ?? ''}');
     final urlCtrl = TextEditingController(text: '${raw['url'] ?? ''}');
     final url2Ctrl = TextEditingController(text: '${raw['url2'] ?? ''}');
-    final url2NameCtrl = TextEditingController(text: '${raw['url2Name'] ?? ''}');
+    final url2NameCtrl = TextEditingController(
+      text: '${raw['url2Name'] ?? ''}',
+    );
     final url3Ctrl = TextEditingController(text: '${raw['url3'] ?? ''}');
-    final url3NameCtrl = TextEditingController(text: '${raw['url3Name'] ?? ''}');
-    final groupCtrl = TextEditingController(text: '${raw['group'] ?? raw['category'] ?? 'General'}');
-    final logoCtrl = TextEditingController(text: '${raw['logo'] ?? raw['icon_url'] ?? ''}');
-    final backdropCtrl = TextEditingController(text: '${raw['backdrop'] ?? ''}');
-    final userAgentCtrl = TextEditingController(text: '${raw['userAgent'] ?? raw['user_agent'] ?? ''}');
+    final url3NameCtrl = TextEditingController(
+      text: '${raw['url3Name'] ?? ''}',
+    );
+    final drmSchemeCtrl = TextEditingController(
+      text: '${raw['drmScheme'] ?? ''}',
+    );
+    final drmLicenseCtrl = TextEditingController(
+      text: '${raw['drmLicense'] ?? ''}',
+    );
+    final groupCtrl = TextEditingController(
+      text: '${raw['group'] ?? raw['category'] ?? 'General'}',
+    );
+    final logoCtrl = TextEditingController(
+      text: '${raw['logo'] ?? raw['icon_url'] ?? ''}',
+    );
+    final backdropCtrl = TextEditingController(
+      text: '${raw['backdrop'] ?? ''}',
+    );
+    final userAgentCtrl = TextEditingController(
+      text: '${raw['userAgent'] ?? raw['user_agent'] ?? ''}',
+    );
     String contentType = raw['type'] ?? 'live';
-    bool isFeatured = raw['featured'] == true || raw['featured'] == 'true' || raw['featured'] == '1';
+    bool isFeatured =
+        raw['featured'] == true ||
+        raw['featured'] == 'true' ||
+        raw['featured'] == '1';
 
     showModalBottomSheet<void>(
       context: context,
@@ -1562,180 +1850,312 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
           StatefulBuilder(
             builder: (ctx, setModalState) {
               return Padding(
-              padding: EdgeInsets.only(bottom: MediaQuery.viewInsetsOf(ctx).bottom),
-              child: Container(
-                decoration: const BoxDecoration(
-                  color: AppTheme.surfaceElevated,
-                  borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+                padding: EdgeInsets.only(
+                  bottom: MediaQuery.viewInsetsOf(ctx).bottom,
                 ),
-                padding: const EdgeInsets.fromLTRB(24, 16, 24, 28),
-                child: SingleChildScrollView(
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      Center(
-                        child: Container(
-                          width: 40,
-                          height: 4,
-                          decoration: BoxDecoration(
-                            color: Colors.white24,
-                            borderRadius: BorderRadius.circular(4),
+                child: Container(
+                  decoration: const BoxDecoration(
+                    color: AppTheme.surfaceElevated,
+                    borderRadius: BorderRadius.vertical(
+                      top: Radius.circular(24),
+                    ),
+                  ),
+                  padding: const EdgeInsets.fromLTRB(24, 16, 24, 28),
+                  child: SingleChildScrollView(
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        Center(
+                          child: Container(
+                            width: 40,
+                            height: 4,
+                            decoration: BoxDecoration(
+                              color: Colors.white24,
+                              borderRadius: BorderRadius.circular(4),
+                            ),
                           ),
                         ),
-                      ),
-                      const SizedBox(height: 16),
-                      Text('Edit channel', style: Theme.of(ctx).textTheme.titleLarge),
-                      const SizedBox(height: 20),
-                      _sheetField(nameCtrl, 'Name', Icons.live_tv_rounded),
-                      const SizedBox(height: 12),
-                      _sheetField(urlCtrl, 'Server 1 URL (Primary)', Icons.link_rounded, maxLines: 3),
-                      const SizedBox(height: 12),
-                      Row(
-                        children: [
-                          Expanded(child: _sheetField(url2NameCtrl, 'Server 2 Name', Icons.label_outline_rounded)),
-                          const SizedBox(width: 8),
-                          Expanded(flex: 2, child: _sheetField(url2Ctrl, 'Server 2 URL', Icons.link_rounded)),
-                        ],
-                      ),
-                      const SizedBox(height: 12),
-                      Row(
-                        children: [
-                          Expanded(child: _sheetField(url3NameCtrl, 'Server 3 Name', Icons.label_outline_rounded)),
-                          const SizedBox(width: 8),
-                          Expanded(flex: 2, child: _sheetField(url3Ctrl, 'Server 3 URL', Icons.link_rounded)),
-                        ],
-                      ),
-                      const SizedBox(height: 12),
-                      _sheetField(userAgentCtrl, 'User Agent (Optional)', Icons.language_rounded),
-                      const SizedBox(height: 12),
-                      _sheetField(groupCtrl, 'Group', Icons.folder_outlined),
-                      const SizedBox(height: 12),
-                      Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Expanded(
-                            child: _sheetField(logoCtrl, 'Logo URL or image', Icons.image_outlined, maxLines: 2),
-                          ),
-                          const SizedBox(width: 8),
-                          IconButton.filledTonal(
-                            tooltip: 'Pick from gallery',
-                            onPressed: () => _pickLogoInto(logoCtrl, () => setModalState(() {})),
-                            icon: const Icon(Icons.photo_library_outlined),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 12),
-                      Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Expanded(
-                            child: _sheetField(backdropCtrl, 'Hero Backdrop URL', Icons.wallpaper_rounded, maxLines: 2),
-                          ),
-                          const SizedBox(width: 8),
-                          IconButton.filledTonal(
-                            tooltip: 'Pick from gallery',
-                            onPressed: () => _pickLogoInto(backdropCtrl, () => setModalState(() {})),
-                            icon: const Icon(Icons.image_search_rounded),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 16),
-                      SwitchListTile(
-                        title: const Text('Featured in Carousel', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
-                        subtitle: const Text('Spotlight this in the home hero card', style: TextStyle(fontSize: 12)),
-                        value: isFeatured,
-                        activeColor: AppTheme.primaryGold,
-                        onChanged: (v) => setModalState(() => isFeatured = v),
-                      ),
-                      const SizedBox(height: 12),
-                      Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 16),
-                        child: Row(
+                        const SizedBox(height: 16),
+                        Text(
+                          'Edit channel',
+                          style: Theme.of(ctx).textTheme.titleLarge,
+                        ),
+                        const SizedBox(height: 20),
+                        _sheetField(nameCtrl, 'Name', Icons.live_tv_rounded),
+                        const SizedBox(height: 12),
+                        _sheetField(
+                          urlCtrl,
+                          'Server 1 URL (Primary)',
+                          Icons.link_rounded,
+                          maxLines: 3,
+                        ),
+                        const SizedBox(height: 12),
+                        Row(
                           children: [
-                            const Text('Type:', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
-                            const SizedBox(width: 16),
                             Expanded(
-                              child: SegmentedButton<String>(
-                                style: SegmentedButton.styleFrom(
-                                  visualDensity: VisualDensity.compact,
-                                  backgroundColor: Colors.black26,
-                                  selectedBackgroundColor: AppTheme.accentTeal.withOpacity(0.2),
-                                  selectedForegroundColor: AppTheme.accentTeal,
-                                ),
-                                segments: const [
-                                  ButtonSegment(value: 'live', label: Text('Live TV'), icon: Icon(Icons.live_tv_rounded, size: 16)),
-                                  ButtonSegment(value: 'movie', label: Text('Movie'), icon: Icon(Icons.movie_rounded, size: 16)),
-                                ],
-                                selected: {contentType},
-                                onSelectionChanged: (set) => setModalState(() => contentType = set.first),
+                              child: _sheetField(
+                                url2NameCtrl,
+                                'Server 2 Name',
+                                Icons.label_outline_rounded,
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              flex: 2,
+                              child: _sheetField(
+                                url2Ctrl,
+                                'Server 2 URL',
+                                Icons.link_rounded,
                               ),
                             ),
                           ],
                         ),
-                      ),
-                      const SizedBox(height: 24),
-                      Row(
-                        children: [
-                          Expanded(
-                            child: OutlinedButton(
-                              onPressed: () {
-                                Navigator.pop(ctx);
-                              },
-                              child: const Text('Cancel'),
+                        const SizedBox(height: 12),
+                        Row(
+                          children: [
+                            Expanded(
+                              child: _sheetField(
+                                url3NameCtrl,
+                                'Server 3 Name',
+                                Icons.label_outline_rounded,
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              flex: 2,
+                              child: _sheetField(
+                                url3Ctrl,
+                                'Server 3 URL',
+                                Icons.link_rounded,
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 12),
+                        Row(
+                          children: [
+                            Expanded(
+                              child: _drmSchemeDropdown(drmSchemeCtrl),
+                            ),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              flex: 2,
+                              child: _sheetField(
+                                drmLicenseCtrl,
+                                'DRM License Key',
+                                Icons.key_rounded,
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 12),
+                        _sheetField(
+                          userAgentCtrl,
+                          'User Agent (Optional)',
+                          Icons.language_rounded,
+                        ),
+                        const SizedBox(height: 12),
+                        _sheetField(groupCtrl, 'Group', Icons.folder_outlined),
+                        const SizedBox(height: 12),
+                        Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Expanded(
+                              child: _sheetField(
+                                logoCtrl,
+                                'Logo URL or image',
+                                Icons.image_outlined,
+                                maxLines: 2,
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            IconButton.filledTonal(
+                              tooltip: 'Pick from gallery',
+                              onPressed:
+                                  () => _pickLogoInto(
+                                    logoCtrl,
+                                    () => setModalState(() {}),
+                                  ),
+                              icon: const Icon(Icons.photo_library_outlined),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 12),
+                        Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Expanded(
+                              child: _sheetField(
+                                backdropCtrl,
+                                'Hero Backdrop URL',
+                                Icons.wallpaper_rounded,
+                                maxLines: 2,
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            IconButton.filledTonal(
+                              tooltip: 'Pick from gallery',
+                              onPressed:
+                                  () => _pickLogoInto(
+                                    backdropCtrl,
+                                    () => setModalState(() {}),
+                                  ),
+                              icon: const Icon(Icons.image_search_rounded),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 16),
+                        SwitchListTile(
+                          title: const Text(
+                            'Featured in Carousel',
+                            style: TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.bold,
                             ),
                           ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            flex: 2,
-                            child: FilledButton(
-                              onPressed: () {
-                                final name = nameCtrl.text.trim();
-                                final url = urlCtrl.text.trim();
-                                if (name.isEmpty || url.isEmpty) {
-                                  _snack('Name and URL are required', error: true);
-                                  return;
-                                }
-                                _updateChannel(
-                                  key,
-                                      name: name,
-                                      url: url,
-                                      group: groupCtrl.text.trim(),
-                                      logo: logoCtrl.text.trim(),
-                                      backdrop: backdropCtrl.text.trim(),
-                                      type: contentType,
-                                      featured: isFeatured,
-                                      userAgent: userAgentCtrl.text.trim(),
-                                      url2: url2Ctrl.text.trim(),
-                                      url2Name: url2NameCtrl.text.trim(),
-                                      url3: url3Ctrl.text.trim(),
-                                      url3Name: url3NameCtrl.text.trim(),
+                          subtitle: const Text(
+                            'Spotlight this in the home hero card',
+                            style: TextStyle(fontSize: 12),
+                          ),
+                          value: isFeatured,
+                          activeColor: AppTheme.primaryGold,
+                          onChanged: (v) => setModalState(() => isFeatured = v),
+                        ),
+                        const SizedBox(height: 12),
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 16),
+                          child: Row(
+                            children: [
+                              const Text(
+                                'Type:',
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                              const SizedBox(width: 16),
+                              Expanded(
+                                child: SegmentedButton<String>(
+                                  style: SegmentedButton.styleFrom(
+                                    visualDensity: VisualDensity.compact,
+                                    backgroundColor: Colors.black26,
+                                    selectedBackgroundColor: AppTheme.accentTeal
+                                        .withOpacity(0.2),
+                                    selectedForegroundColor:
+                                        AppTheme.accentTeal,
+                                  ),
+                                  segments: const [
+                                    ButtonSegment(
+                                      value: 'live',
+                                      label: Text('Live TV'),
+                                      icon: Icon(
+                                        Icons.live_tv_rounded,
+                                        size: 16,
+                                      ),
+                                    ),
+                                    ButtonSegment(
+                                      value: 'movie',
+                                      label: Text('Movie'),
+                                      icon: Icon(Icons.movie_rounded, size: 16),
+                                    ),
+                                  ],
+                                  selected: {contentType},
+                                  onSelectionChanged:
+                                      (set) => setModalState(
+                                        () => contentType = set.first,
+                                      ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(height: 24),
+                        Row(
+                          children: [
+                            Expanded(
+                              child: OutlinedButton(
+                                onPressed: () {
+                                  Navigator.pop(ctx);
+                                },
+                                child: const Text('Cancel'),
+                              ),
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              flex: 2,
+                              child: FilledButton(
+                                onPressed: () {
+                                  final name = nameCtrl.text.trim();
+                                  final url = urlCtrl.text.trim();
+                                  if (name.isEmpty || url.isEmpty) {
+                                    _snack(
+                                      'Name and URL are required',
+                                      error: true,
                                     );
-                                    if (mounted) Navigator.pop(ctx);
-                                  },
-                                  child: const Text('Save changes'),
+                                    return;
+                                  }
+                                  _updateChannel(
+                                    key,
+                                    name: name,
+                                    url: url,
+                                    group: groupCtrl.text.trim(),
+                                    logo: logoCtrl.text.trim(),
+                                    backdrop: backdropCtrl.text.trim(),
+                                    type: contentType,
+                                    featured: isFeatured,
+                                    userAgent: userAgentCtrl.text.trim(),
+                                    url2: url2Ctrl.text.trim(),
+                                    url2Name: url2NameCtrl.text.trim(),
+                                    url3: url3Ctrl.text.trim(),
+                                    url3Name: url3NameCtrl.text.trim(),
+                                    drmScheme: drmSchemeCtrl.text.trim(),
+                                    drmLicense: drmLicenseCtrl.text.trim(),
+                                  );
+                                  if (mounted) Navigator.pop(ctx);
+                                },
+                                child: const Text('Save changes'),
+                              ),
                             ),
-                          ),
-                        ],
-                      ),
-                    ],
+                          ],
+                        ),
+                      ],
+                    ),
                   ),
                 ),
-              ),
-            );
+              );
             },
           ),
         );
       },
     ).then((_) {
-      final toDispose = [nameCtrl, urlCtrl, url2Ctrl, url2NameCtrl, url3Ctrl, url3NameCtrl, groupCtrl, logoCtrl, backdropCtrl, userAgentCtrl];
+      final toDispose = [
+        nameCtrl,
+        urlCtrl,
+        url2Ctrl,
+        url2NameCtrl,
+        url3Ctrl,
+        url3NameCtrl,
+        drmSchemeCtrl,
+        drmLicenseCtrl,
+        groupCtrl,
+        logoCtrl,
+        backdropCtrl,
+        userAgentCtrl,
+      ];
       for (final c in toDispose) {
         c.dispose();
       }
     });
   }
 
-  Widget _field(TextEditingController controller, String label, IconData icon, {int maxLines = 1, FocusNode? focusNode}) {
+  Widget _field(
+    TextEditingController controller,
+    String label,
+    IconData icon, {
+    int maxLines = 1,
+    FocusNode? focusNode,
+  }) {
     return TextField(
       controller: controller,
       maxLines: maxLines,
@@ -1743,8 +2163,15 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
       style: const TextStyle(color: Colors.white, fontSize: 14),
       decoration: InputDecoration(
         labelText: label,
-        labelStyle: TextStyle(color: Colors.white.withOpacity(0.5), fontSize: 13),
-        prefixIcon: Icon(icon, color: AppTheme.primaryGold.withOpacity(0.8), size: 20),
+        labelStyle: TextStyle(
+          color: Colors.white.withOpacity(0.5),
+          fontSize: 13,
+        ),
+        prefixIcon: Icon(
+          icon,
+          color: AppTheme.primaryGold.withOpacity(0.8),
+          size: 20,
+        ),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(14),
           borderSide: BorderSide(color: Colors.white.withOpacity(0.12)),
@@ -1755,24 +2182,92 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(14),
-          borderSide: BorderSide(color: AppTheme.primaryGold.withOpacity(0.7), width: 1.5),
+          borderSide: BorderSide(
+            color: AppTheme.primaryGold.withOpacity(0.7),
+            width: 1.5,
+          ),
         ),
         filled: true,
         fillColor: Colors.white.withOpacity(0.06),
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 16,
+          vertical: 14,
+        ),
       ),
     );
   }
 
-  Widget _sheetField(TextEditingController c, String label, IconData icon, {int maxLines = 1}) {
+  Widget _drmSchemeDropdown(TextEditingController controller) {
+    final options = ['', 'clearkey', 'widevine', 'playready'];
+    final labels = <String, String>{'': 'None', 'clearkey': 'ClearKey', 'widevine': 'Widevine', 'playready': 'PlayReady'};
+    String currentValue = controller.text.trim().toLowerCase();
+    if (!options.contains(currentValue)) currentValue = '';
+    return StatefulBuilder(
+      builder: (context, setDropState) {
+        return Container(
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(color: Colors.white.withOpacity(0.12)),
+            color: Colors.white.withOpacity(0.06),
+          ),
+          padding: const EdgeInsets.symmetric(horizontal: 12),
+          child: DropdownButtonHideUnderline(
+            child: DropdownButton<String>(
+              value: currentValue,
+              isExpanded: true,
+              dropdownColor: const Color(0xFF1E1E2E),
+              icon: Icon(Icons.arrow_drop_down, color: AppTheme.primaryGold.withOpacity(0.8)),
+              style: const TextStyle(color: Colors.white, fontSize: 14),
+              items: options.map((value) {
+                return DropdownMenuItem<String>(
+                  value: value,
+                  child: Row(
+                    children: [
+                      Icon(
+                        value.isEmpty ? Icons.lock_open_rounded : Icons.security_rounded,
+                        color: value.isEmpty ? Colors.white38 : AppTheme.primaryGold.withOpacity(0.8),
+                        size: 18,
+                      ),
+                      const SizedBox(width: 10),
+                      Text(labels[value] ?? value),
+                    ],
+                  ),
+                );
+              }).toList(),
+              onChanged: (val) {
+                setDropState(() {
+                  currentValue = val ?? '';
+                  controller.text = val ?? '';
+                });
+              },
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _sheetField(
+    TextEditingController c,
+    String label,
+    IconData icon, {
+    int maxLines = 1,
+  }) {
     return TextField(
       controller: c,
       maxLines: maxLines,
       style: const TextStyle(color: Colors.white, fontSize: 14),
       decoration: InputDecoration(
         labelText: label,
-        labelStyle: TextStyle(color: Colors.white.withOpacity(0.5), fontSize: 13),
-        prefixIcon: Icon(icon, color: AppTheme.primaryGold.withOpacity(0.85), size: 20),
+        labelStyle: TextStyle(
+          color: Colors.white.withOpacity(0.5),
+          fontSize: 13,
+        ),
+        prefixIcon: Icon(
+          icon,
+          color: AppTheme.primaryGold.withOpacity(0.85),
+          size: 20,
+        ),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(14),
           borderSide: BorderSide(color: Colors.white.withOpacity(0.12)),
@@ -1783,11 +2278,17 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(14),
-          borderSide: BorderSide(color: AppTheme.primaryGold.withOpacity(0.7), width: 1.5),
+          borderSide: BorderSide(
+            color: AppTheme.primaryGold.withOpacity(0.7),
+            width: 1.5,
+          ),
         ),
         filled: true,
         fillColor: Colors.white.withOpacity(0.06),
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 16,
+          vertical: 14,
+        ),
       ),
     );
   }
@@ -1804,7 +2305,10 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
             Row(
               children: [
                 IconButton(
-                  icon: const Icon(Icons.arrow_back_rounded, color: Colors.white),
+                  icon: const Icon(
+                    Icons.arrow_back_rounded,
+                    color: Colors.white,
+                  ),
                   onPressed: () => Navigator.pop(context),
                 ),
                 const SizedBox(width: 8),
@@ -1814,7 +2318,11 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
                     color: AppTheme.primaryGold.withOpacity(0.1),
                     borderRadius: BorderRadius.circular(12),
                   ),
-                  child: const Icon(Icons.admin_panel_settings_rounded, color: AppTheme.primaryGold, size: 20),
+                  child: const Icon(
+                    Icons.admin_panel_settings_rounded,
+                    color: AppTheme.primaryGold,
+                    size: 20,
+                  ),
                 ),
                 const SizedBox(width: 12),
                 const Expanded(
@@ -1840,7 +2348,11 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
               indicatorSize: TabBarIndicatorSize.label,
               labelColor: AppTheme.primaryGold,
               unselectedLabelColor: Colors.white38,
-              labelStyle: const TextStyle(fontWeight: FontWeight.w900, fontSize: 12, letterSpacing: 1),
+              labelStyle: const TextStyle(
+                fontWeight: FontWeight.w900,
+                fontSize: 12,
+                letterSpacing: 1,
+              ),
               tabs: const [
                 Tab(text: 'OVERVIEW'),
                 Tab(text: 'CHANNELS'),
@@ -1921,8 +2433,6 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
     );
   }
 
-
-
   // ═══════════════════════════════════════════════════════════════
   //  Tab: Overview
   // ═══════════════════════════════════════════════════════════════
@@ -1933,7 +2443,10 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
         gradient: LinearGradient(
           begin: Alignment.topCenter,
           end: Alignment.bottomCenter,
-          colors: [AppTheme.backgroundBlack, AppTheme.surfaceGray.withOpacity(0.45)],
+          colors: [
+            AppTheme.backgroundBlack,
+            AppTheme.surfaceGray.withOpacity(0.45),
+          ],
         ),
       ),
       child: ListView(
@@ -1942,16 +2455,25 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
           StreamBuilder<DatabaseEvent>(
             stream: _playlistRef.onValue,
             builder: (context, snapPl) {
-              if (snapPl.connectionState == ConnectionState.waiting && !snapPl.hasData) {
+              if (snapPl.connectionState == ConnectionState.waiting &&
+                  !snapPl.hasData) {
                 return const SizedBox(
                   height: 240,
-                  child: Center(child: CircularProgressIndicator(color: AppTheme.primaryGold)),
+                  child: Center(
+                    child: CircularProgressIndicator(
+                      color: AppTheme.primaryGold,
+                    ),
+                  ),
                 );
               }
               if (!snapPl.hasData) {
                 return const SizedBox(
                   height: 240,
-                  child: Center(child: CircularProgressIndicator(color: AppTheme.primaryGold)),
+                  child: Center(
+                    child: CircularProgressIndicator(
+                      color: AppTheme.primaryGold,
+                    ),
+                  ),
                 );
               }
               final pl = snapPl.data?.snapshot.value;
@@ -1982,134 +2504,268 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
                         }
                       }
 
-                      return Column(
-                        mainAxisSize: MainAxisSize.min,
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Wrap(
-                            spacing: 12,
-                            runSpacing: 12,
-                            children: [
-                              _statTile(
-                                icon: Icons.live_tv_rounded,
-                                label: 'Channels',
-                                value: '${channels.length}',
-                                color: AppTheme.primaryGold,
-                              ),
-                              _statTile(
-                                icon: Icons.folder_special_rounded,
-                                label: 'Groups',
-                                value: '$gCount',
-                                color: AppTheme.accentTeal,
-                              ),
-                              _statTile(
-                                icon: Icons.vpn_key_rounded,
-                                label: 'Access codes',
-                                value: '$activeCodes / $cCount',
-                                color: AppTheme.primaryBlue,
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 28),
-                          _card(
-                            child: Column(
-                              mainAxisSize: MainAxisSize.min,
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text('Quick paths', style: Theme.of(context).textTheme.titleMedium),
-                                const SizedBox(height: 10),
-                                 _monoPath(_playlistPath),
-                                _monoPath(_groupsPath),
-                                _monoPath(_loginCodesPath),
-                                _monoPath(_announcementPath),
-                              ],
-                            ),
-                          ),
-                          const SizedBox(height: 20),
-                          _card(
-                            child: Column(
-                              mainAxisSize: MainAxisSize.min,
-                              crossAxisAlignment: CrossAxisAlignment.stretch,
-                              children: [
-                                Text('Shortcuts', style: Theme.of(context).textTheme.titleMedium),
-                                const SizedBox(height: 16),
-                                FilledButton.icon(
-                                  onPressed: () => _tabController.animateTo(3),
-                                  icon: const Icon(Icons.publish_rounded),
-                                  label: const Text('Add new content'),
-                                ),
-                                const SizedBox(height: 10),
-                                OutlinedButton.icon(
-                                  onPressed: () => _tabController.animateTo(1),
-                                  icon: const Icon(Icons.manage_search_rounded),
-                                  label: const Text('Browse & search channels'),
-                                ),
-                                const SizedBox(height: 10),
-                                OutlinedButton.icon(
-                                  onPressed: () => _tabController.animateTo(4),
-                                  icon: const Icon(Icons.file_download_rounded),
-                                  label: const Text('Import M3U / Xtream'),
-                                ),
-                                const SizedBox(height: 10),
-                                OutlinedButton.icon(
-                                  onPressed: () => _tabController.animateTo(5),
-                                  icon: const Icon(Icons.health_and_safety_rounded),
-                                  label: const Text('Check channel health'),
-                                ),
-                                const SizedBox(height: 10),
-                                OutlinedButton.icon(
-                                  onPressed: () => _tabController.animateTo(6),
-                                  icon: const Icon(Icons.key_rounded),
-                                  label: const Text('Groups & login codes'),
-                                ),
-                              ],
-                            ),
-                          ),
-                          const SizedBox(height: 20),
-                          _card(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text('Backup & restore', style: Theme.of(context).textTheme.titleMedium),
-                                const SizedBox(height: 8),
-                                Text(
-                                  'Export saves every channel (including Movies tab items) and saved groups '
-                                  'to a JSON file. Use Import to restore them if server data is lost. '
-                                  'Login codes are not included.',
-                                  style: TextStyle(fontSize: 13, color: Colors.white.withOpacity(0.5)),
-                                ),
-                                const SizedBox(height: 16),
-                                Row(
-                                  children: [
-                                    Expanded(
-                                      child: FilledButton.icon(
-                                        onPressed: _backupBusy ? null : _exportLibraryBackup,
-                                        icon: _backupBusy
-                                            ? const SizedBox(
-                                                width: 18,
-                                                height: 18,
-                                                child: CircularProgressIndicator(strokeWidth: 2, color: Colors.black),
-                                              )
-                                            : const Icon(Icons.save_alt_rounded),
-                                        label: const Text('Export library'),
+                      return StreamBuilder<DatabaseEvent>(
+                        stream: _activeSessionsRef.onValue,
+                        builder: (context, snapAS) {
+                          int activeSessionsCount = 0;
+                          if (snapAS.hasData) {
+                            final asv = snapAS.data?.snapshot.value;
+                            if (asv is Map) {
+                              final now = DateTime.now().toUtc();
+                              for (final v in asv.values) {
+                                if (v is Map) {
+                                  final lsStr = v['lastSeen'] as String?;
+                                  if (lsStr != null) {
+                                    final ls = DateTime.tryParse(lsStr);
+                                    if (ls != null &&
+                                        now.difference(ls).inMinutes < 5) {
+                                      activeSessionsCount++;
+                                    }
+                                  } else {
+                                    activeSessionsCount++;
+                                  }
+                                }
+                              }
+                            }
+                          }
+
+                          return StreamBuilder<DatabaseEvent>(
+                            stream: _liveViewersRef.onValue,
+                            builder: (context, snapLV) {
+                              int liveViewersCount = 0;
+                              if (snapLV.hasData) {
+                                final lvv = snapLV.data?.snapshot.value;
+                                if (lvv is Map) {
+                                  final now = DateTime.now().toUtc();
+                                  for (final v in lvv.values) {
+                                    if (v is Map) {
+                                      final lsStr = v['lastSeen'] as String?;
+                                      if (lsStr != null) {
+                                        final ls = DateTime.tryParse(lsStr);
+                                        // Viewers ping every 30s, so < 2 min is safe
+                                        if (ls != null &&
+                                            now.difference(ls).inMinutes < 2) {
+                                          liveViewersCount++;
+                                        }
+                                      }
+                                    }
+                                  }
+                                }
+                              }
+
+                              return Column(
+                                mainAxisSize: MainAxisSize.min,
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Wrap(
+                                    spacing: 12,
+                                    runSpacing: 12,
+                                    children: [
+                                      _statTile(
+                                        icon: Icons.live_tv_rounded,
+                                        label: 'Channels',
+                                        value: '${channels.length}',
+                                        color: AppTheme.primaryGold,
                                       ),
-                                    ),
-                                    const SizedBox(width: 12),
-                                    Expanded(
-                                      child: OutlinedButton.icon(
-                                        onPressed: _backupBusy ? null : _importLibraryBackup,
-                                        icon: const Icon(Icons.upload_file_rounded),
-                                        label: const Text('Import library'),
+                                      _statTile(
+                                        icon: Icons.folder_special_rounded,
+                                        label: 'Groups',
+                                        value: '$gCount',
+                                        color: AppTheme.accentTeal,
                                       ),
+                                      _statTile(
+                                        icon: Icons.vpn_key_rounded,
+                                        label: 'Access codes',
+                                        value: '$activeCodes / $cCount',
+                                        color: AppTheme.primaryBlue,
+                                      ),
+                                      _statTile(
+                                        icon: Icons.visibility_rounded,
+                                        label: 'Live Viewers',
+                                        value: '$liveViewersCount',
+                                        color: Colors.redAccent,
+                                      ),
+                                      _statTile(
+                                        icon: Icons.devices_rounded,
+                                        label: 'Active Apps',
+                                        value: '$activeSessionsCount',
+                                        color: Colors.greenAccent,
+                                      ),
+                                    ],
+                                  ),
+                                  const SizedBox(height: 28),
+                                  _card(
+                                    child: Column(
+                                      mainAxisSize: MainAxisSize.min,
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          'Quick paths',
+                                          style:
+                                              Theme.of(
+                                                context,
+                                              ).textTheme.titleMedium,
+                                        ),
+                                        const SizedBox(height: 10),
+                                        _monoPath(_playlistPath),
+                                        _monoPath(_groupsPath),
+                                        _monoPath(_loginCodesPath),
+                                        _monoPath(_announcementPath),
+                                      ],
                                     ),
-                                  ],
-                                ),
-                              ],
-                            ),
-                          ),
-                          const SizedBox(height: 28),
-                          _buildFeaturedManager(channels),
-                        ],
+                                  ),
+                                  const SizedBox(height: 20),
+                                  _card(
+                                    child: Column(
+                                      mainAxisSize: MainAxisSize.min,
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.stretch,
+                                      children: [
+                                        Text(
+                                          'Shortcuts',
+                                          style:
+                                              Theme.of(
+                                                context,
+                                              ).textTheme.titleMedium,
+                                        ),
+                                        const SizedBox(height: 16),
+                                        FilledButton.icon(
+                                          onPressed:
+                                              () => _tabController.animateTo(3),
+                                          icon: const Icon(
+                                            Icons.publish_rounded,
+                                          ),
+                                          label: const Text('Add new content'),
+                                        ),
+                                        const SizedBox(height: 10),
+                                        OutlinedButton.icon(
+                                          onPressed:
+                                              () => _tabController.animateTo(1),
+                                          icon: const Icon(
+                                            Icons.manage_search_rounded,
+                                          ),
+                                          label: const Text(
+                                            'Browse & search channels',
+                                          ),
+                                        ),
+                                        const SizedBox(height: 10),
+                                        OutlinedButton.icon(
+                                          onPressed:
+                                              () => _tabController.animateTo(4),
+                                          icon: const Icon(
+                                            Icons.file_download_rounded,
+                                          ),
+                                          label: const Text(
+                                            'Import M3U / Xtream',
+                                          ),
+                                        ),
+                                        const SizedBox(height: 10),
+                                        OutlinedButton.icon(
+                                          onPressed:
+                                              () => _tabController.animateTo(5),
+                                          icon: const Icon(
+                                            Icons.health_and_safety_rounded,
+                                          ),
+                                          label: const Text(
+                                            'Check channel health',
+                                          ),
+                                        ),
+                                        const SizedBox(height: 10),
+                                        OutlinedButton.icon(
+                                          onPressed:
+                                              () => _tabController.animateTo(6),
+                                          icon: const Icon(Icons.key_rounded),
+                                          label: const Text(
+                                            'Groups & login codes',
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                  const SizedBox(height: 20),
+                                  _card(
+                                    child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          'Backup & restore',
+                                          style:
+                                              Theme.of(
+                                                context,
+                                              ).textTheme.titleMedium,
+                                        ),
+                                        const SizedBox(height: 8),
+                                        Text(
+                                          'Export saves every channel (including Movies tab items) and saved groups '
+                                          'to a JSON file. Use Import to restore them if server data is lost. '
+                                          'Login codes are not included.',
+                                          style: TextStyle(
+                                            fontSize: 13,
+                                            color: Colors.white.withOpacity(
+                                              0.5,
+                                            ),
+                                          ),
+                                        ),
+                                        const SizedBox(height: 16),
+                                        Row(
+                                          children: [
+                                            Expanded(
+                                              child: FilledButton.icon(
+                                                onPressed:
+                                                    _backupBusy
+                                                        ? null
+                                                        : _exportLibraryBackup,
+                                                icon:
+                                                    _backupBusy
+                                                        ? const SizedBox(
+                                                          width: 18,
+                                                          height: 18,
+                                                          child:
+                                                              CircularProgressIndicator(
+                                                                strokeWidth: 2,
+                                                                color:
+                                                                    Colors
+                                                                        .black,
+                                                              ),
+                                                        )
+                                                        : const Icon(
+                                                          Icons
+                                                              .save_alt_rounded,
+                                                        ),
+                                                label: const Text(
+                                                  'Export library',
+                                                ),
+                                              ),
+                                            ),
+                                            const SizedBox(width: 12),
+                                            Expanded(
+                                              child: OutlinedButton.icon(
+                                                onPressed:
+                                                    _backupBusy
+                                                        ? null
+                                                        : _importLibraryBackup,
+                                                icon: const Icon(
+                                                  Icons.upload_file_rounded,
+                                                ),
+                                                label: const Text(
+                                                  'Import library',
+                                                ),
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                  const SizedBox(height: 28),
+                                  _buildFeaturedManager(channels),
+                                ],
+                              );
+                            },
+                          );
+                        },
                       );
                     },
                   );
@@ -2148,8 +2804,21 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
         children: [
           Icon(icon, color: color, size: 26),
           const SizedBox(height: 12),
-          Text(value, style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w800, color: Colors.white)),
-          Text(label, style: TextStyle(fontSize: 12, color: Colors.white.withOpacity(0.45))),
+          Text(
+            value,
+            style: const TextStyle(
+              fontSize: 22,
+              fontWeight: FontWeight.w800,
+              color: Colors.white,
+            ),
+          ),
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: 12,
+              color: Colors.white.withOpacity(0.45),
+            ),
+          ),
         ],
       ),
     );
@@ -2173,10 +2842,7 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
     return _glassContainer(
       borderRadius: BorderRadius.circular(22),
       blur: 15,
-      child: Padding(
-        padding: const EdgeInsets.all(20),
-        child: child,
-      ),
+      child: Padding(padding: const EdgeInsets.all(20), child: child),
     );
   }
 
@@ -2188,14 +2854,19 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
     return Container(
       decoration: BoxDecoration(
         gradient: LinearGradient(
-          colors: [AppTheme.backgroundBlack, AppTheme.surfaceGray.withOpacity(0.35)],
+          colors: [
+            AppTheme.backgroundBlack,
+            AppTheme.surfaceGray.withOpacity(0.35),
+          ],
         ),
       ),
       child: StreamBuilder<DatabaseEvent>(
         stream: _playlistRef.onValue,
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator(color: AppTheme.primaryGold));
+            return const Center(
+              child: CircularProgressIndicator(color: AppTheme.primaryGold),
+            );
           }
           final raw = snapshot.data?.snapshot.value;
           var items = _parsePlaylist(raw);
@@ -2210,18 +2881,19 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
           }
           final sortedGroups = groups.toList()..sort();
 
-          items = items.where((e) {
-            final v = e.value;
-            if (v is! Map) return false;
-            final name = '${v['name'] ?? ''}'.toLowerCase();
-            final url = '${v['url'] ?? ''}'.toLowerCase();
-            final grp = '${v['group'] ?? v['category'] ?? 'General'}';
-            if (_groupFilter != null && grp != _groupFilter) return false;
-            if (_channelSearchQuery.isEmpty) return true;
-            return name.contains(_channelSearchQuery) ||
-                url.contains(_channelSearchQuery) ||
-                grp.toLowerCase().contains(_channelSearchQuery);
-          }).toList();
+          items =
+              items.where((e) {
+                final v = e.value;
+                if (v is! Map) return false;
+                final name = '${v['name'] ?? ''}'.toLowerCase();
+                final url = '${v['url'] ?? ''}'.toLowerCase();
+                final grp = '${v['group'] ?? v['category'] ?? 'General'}';
+                if (_groupFilter != null && grp != _groupFilter) return false;
+                if (_channelSearchQuery.isEmpty) return true;
+                return name.contains(_channelSearchQuery) ||
+                    url.contains(_channelSearchQuery) ||
+                    grp.toLowerCase().contains(_channelSearchQuery);
+              }).toList();
 
           final header = Padding(
             padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
@@ -2233,28 +2905,34 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
                   children: [
                     Expanded(
                       child: FilledButton.icon(
-                        onPressed: () => _tabController.animateTo(3), // Publish tab
+                        onPressed:
+                            () => _tabController.animateTo(3), // Publish tab
                         icon: const Icon(Icons.add_rounded),
                         label: const Text('Add Channel'),
                         style: FilledButton.styleFrom(
                           padding: const EdgeInsets.symmetric(vertical: 16),
                           backgroundColor: AppTheme.primaryGold,
                           foregroundColor: Colors.black,
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(16),
+                          ),
                         ),
                       ),
                     ),
                     const SizedBox(width: 12),
                     Expanded(
                       child: FilledButton.icon(
-                        onPressed: () => _tabController.animateTo(4), // Import tab
+                        onPressed:
+                            () => _tabController.animateTo(4), // Import tab
                         icon: const Icon(Icons.file_upload_rounded),
                         label: const Text('Bulk Upload M3U'),
                         style: FilledButton.styleFrom(
                           padding: const EdgeInsets.symmetric(vertical: 16),
                           backgroundColor: AppTheme.accentTeal,
                           foregroundColor: Colors.black,
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(16),
+                          ),
                         ),
                       ),
                     ),
@@ -2269,27 +2947,39 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
                         style: const TextStyle(color: Colors.white),
                         decoration: InputDecoration(
                           hintText: 'Search name, URL, group…',
-                          hintStyle: TextStyle(color: Colors.white.withOpacity(0.35)),
-                          prefixIcon: Icon(Icons.search_rounded, color: AppTheme.primaryGold.withOpacity(0.8)),
-                          suffixIcon: _channelSearchQuery.isEmpty
-                              ? null
-                              : IconButton(
-                                  icon: const Icon(Icons.clear_rounded),
-                                  onPressed: () {
-                                    _channelSearchController.clear();
-                                    setState(() => _channelSearchQuery = '');
-                                  },
-                                ),
+                          hintStyle: TextStyle(
+                            color: Colors.white.withOpacity(0.35),
+                          ),
+                          prefixIcon: Icon(
+                            Icons.search_rounded,
+                            color: AppTheme.primaryGold.withOpacity(0.8),
+                          ),
+                          suffixIcon:
+                              _channelSearchQuery.isEmpty
+                                  ? null
+                                  : IconButton(
+                                    icon: const Icon(Icons.clear_rounded),
+                                    onPressed: () {
+                                      _channelSearchController.clear();
+                                      setState(() => _channelSearchQuery = '');
+                                    },
+                                  ),
                           filled: true,
                           fillColor: AppTheme.surfaceElevated,
-                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(16)),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(16),
+                          ),
                           enabledBorder: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(16),
-                            borderSide: BorderSide(color: Colors.white.withOpacity(0.08)),
+                            borderSide: BorderSide(
+                              color: Colors.white.withOpacity(0.08),
+                            ),
                           ),
                           focusedBorder: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(16),
-                            borderSide: BorderSide(color: AppTheme.primaryGold.withOpacity(0.5)),
+                            borderSide: BorderSide(
+                              color: AppTheme.primaryGold.withOpacity(0.5),
+                            ),
                           ),
                         ),
                       ),
@@ -2300,8 +2990,13 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
                         onPressed: _deleteBatch,
                         style: FilledButton.styleFrom(
                           backgroundColor: Colors.redAccent,
-                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 12,
+                          ),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
                         ),
                         icon: const Icon(Icons.delete_sweep_rounded, size: 20),
                         label: Text('Delete (${_selectedKeys.length})'),
@@ -2323,11 +3018,14 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
                               child: ChoiceChip(
                                 label: const Text('All groups'),
                                 selected: _groupFilter == null,
-                                onSelected: (_) => setState(() {
-                                  _groupFilter = null;
-                                  _selectedKeys.clear();
-                                }),
-                                selectedColor: AppTheme.primaryGold.withOpacity(0.35),
+                                onSelected:
+                                    (_) => setState(() {
+                                      _groupFilter = null;
+                                      _selectedKeys.clear();
+                                    }),
+                                selectedColor: AppTheme.primaryGold.withOpacity(
+                                  0.35,
+                                ),
                               ),
                             ),
                             ...sortedGroups.map(
@@ -2336,11 +3034,13 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
                                 child: ChoiceChip(
                                   label: Text(g),
                                   selected: _groupFilter == g,
-                                  onSelected: (_) => setState(() {
-                                    _groupFilter = g;
-                                    _selectedKeys.clear();
-                                  }),
-                                  selectedColor: AppTheme.primaryGold.withOpacity(0.35),
+                                  onSelected:
+                                      (_) => setState(() {
+                                        _groupFilter = g;
+                                        _selectedKeys.clear();
+                                      }),
+                                  selectedColor: AppTheme.primaryGold
+                                      .withOpacity(0.35),
                                 ),
                               ),
                             ),
@@ -2352,7 +3052,8 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
                       const SizedBox(width: 8),
                       TextButton.icon(
                         onPressed: () {
-                          final allFiltered = items.map((e) => '${e.key}').toSet();
+                          final allFiltered =
+                              items.map((e) => '${e.key}').toSet();
                           setState(() {
                             if (_selectedKeys.containsAll(allFiltered)) {
                               _selectedKeys.removeAll(allFiltered);
@@ -2362,13 +3063,21 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
                           });
                         },
                         icon: Icon(
-                          _selectedKeys.containsAll(items.map((e) => '${e.key}'))
+                          _selectedKeys.containsAll(
+                                items.map((e) => '${e.key}'),
+                              )
                               ? Icons.check_box_rounded
                               : Icons.check_box_outline_blank_rounded,
                           size: 18,
                           color: AppTheme.primaryGold,
                         ),
-                        label: const Text('Select All', style: TextStyle(fontSize: 12, color: AppTheme.primaryGold)),
+                        label: const Text(
+                          'Select All',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: AppTheme.primaryGold,
+                          ),
+                        ),
                       ),
                     ],
                   ],
@@ -2377,15 +3086,24 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
                   Padding(
                     padding: const EdgeInsets.only(top: 12),
                     child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 12,
+                      ),
                       decoration: BoxDecoration(
                         color: AppTheme.accentTeal.withOpacity(0.1),
                         borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: AppTheme.accentTeal.withOpacity(0.2)),
+                        border: Border.all(
+                          color: AppTheme.accentTeal.withOpacity(0.2),
+                        ),
                       ),
                       child: Row(
                         children: [
-                          Icon(Icons.drag_indicator_rounded, color: AppTheme.accentTeal, size: 20),
+                          Icon(
+                            Icons.drag_indicator_rounded,
+                            color: AppTheme.accentTeal,
+                            size: 20,
+                          ),
                           const SizedBox(width: 12),
                           Expanded(
                             child: Column(
@@ -2428,11 +3146,17 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
                     child: Column(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        Icon(Icons.search_off_rounded, size: 56, color: Colors.white.withOpacity(0.15)),
+                        Icon(
+                          Icons.search_off_rounded,
+                          size: 56,
+                          color: Colors.white.withOpacity(0.15),
+                        ),
                         const SizedBox(height: 12),
                         Text(
                           'No channels match',
-                          style: TextStyle(color: Colors.white.withOpacity(0.4)),
+                          style: TextStyle(
+                            color: Colors.white.withOpacity(0.4),
+                          ),
                         ),
                       ],
                     ),
@@ -2451,7 +3175,9 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
                   child: ReorderableListView.builder(
                     padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
                     itemCount: items.length,
-                    onReorder: (oldIndex, newIndex) => _moveChannel(items, oldIndex, newIndex),
+                    onReorder:
+                        (oldIndex, newIndex) =>
+                            _moveChannel(items, oldIndex, newIndex),
                     proxyDecorator: (child, index, animation) {
                       return Material(
                         elevation: 6,
@@ -2499,7 +3225,10 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
     );
   }
 
-  Widget _adminChannelListTile(MapEntry<dynamic, dynamic> entry, {int? position}) {
+  Widget _adminChannelListTile(
+    MapEntry<dynamic, dynamic> entry, {
+    int? position,
+  }) {
     final key = '${entry.key}';
     final val = entry.value as Map;
     final logo = val['logo'] ?? val['icon_url'];
@@ -2509,7 +3238,10 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
     final isSelected = _selectedKeys.contains(key);
 
     return Material(
-      color: isSelected ? AppTheme.accentTeal.withOpacity(0.12) : AppTheme.surfaceElevated,
+      color:
+          isSelected
+              ? AppTheme.accentTeal.withOpacity(0.12)
+              : AppTheme.surfaceElevated,
       borderRadius: BorderRadius.circular(20),
       child: InkWell(
         borderRadius: BorderRadius.circular(20),
@@ -2540,7 +3272,10 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
                     style: TextStyle(
                       fontSize: 11,
                       fontWeight: FontWeight.w800,
-                      color: isSelected ? AppTheme.accentTeal : AppTheme.primaryGold.withOpacity(0.6),
+                      color:
+                          isSelected
+                              ? AppTheme.accentTeal
+                              : AppTheme.primaryGold.withOpacity(0.6),
                     ),
                   ),
                 ),
@@ -2548,16 +3283,17 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
               ],
               ClipRRect(
                 borderRadius: BorderRadius.circular(14),
-                child: logo != null && '$logo'.isNotEmpty
-                    ? ChannelLogoImage(
-                        logo: '$logo',
-                        channelName: name,
-                        width: 50,
-                        height: 50,
-                        fit: BoxFit.cover,
-                        fallback: _channelPlaceholder(),
-                      )
-                    : _channelPlaceholder(),
+                child:
+                    logo != null && '$logo'.isNotEmpty
+                        ? ChannelLogoImage(
+                          logo: '$logo',
+                          channelName: name,
+                          width: 50,
+                          height: 50,
+                          fit: BoxFit.cover,
+                          fallback: _channelPlaceholder(),
+                        )
+                        : _channelPlaceholder(),
               ),
               const SizedBox(width: 14),
               Expanded(
@@ -2577,7 +3313,10 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
                     ),
                     const SizedBox(height: 4),
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 4,
+                      ),
                       decoration: BoxDecoration(
                         color: AppTheme.accentTeal.withOpacity(0.12),
                         borderRadius: BorderRadius.circular(8),
@@ -2607,11 +3346,19 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
       mainAxisSize: MainAxisSize.min,
       children: [
         if (_groupFilter != null && _channelSearchQuery.isEmpty)
-          Icon(Icons.drag_handle_rounded, color: Colors.white.withOpacity(0.3), size: 18),
+          Icon(
+            Icons.drag_handle_rounded,
+            color: Colors.white.withOpacity(0.3),
+            size: 18,
+          ),
         IconButton(
           visualDensity: VisualDensity.compact,
           tooltip: 'Copy URL',
-          icon: Icon(Icons.copy_rounded, color: AppTheme.primaryGold.withOpacity(0.85), size: 20),
+          icon: Icon(
+            Icons.copy_rounded,
+            color: AppTheme.primaryGold.withOpacity(0.85),
+            size: 20,
+          ),
           onPressed: url.isEmpty ? null : () => _copyUrl(url),
         ),
         IconButton(
@@ -2623,7 +3370,11 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
         IconButton(
           visualDensity: VisualDensity.compact,
           tooltip: 'Delete',
-          icon: const Icon(Icons.delete_outline_rounded, color: Colors.redAccent, size: 20),
+          icon: const Icon(
+            Icons.delete_outline_rounded,
+            color: Colors.redAccent,
+            size: 20,
+          ),
           onPressed: () => _deleteChannel(key, name),
         ),
       ],
@@ -2647,7 +3398,10 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
     return Container(
       decoration: BoxDecoration(
         gradient: LinearGradient(
-          colors: [AppTheme.backgroundBlack, AppTheme.surfaceGray.withOpacity(0.4)],
+          colors: [
+            AppTheme.backgroundBlack,
+            AppTheme.surfaceGray.withOpacity(0.4),
+          ],
         ),
       ),
       child: ListView(
@@ -2655,12 +3409,17 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
         children: [
           Text(
             'Publish channel',
-            style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800),
+            style: Theme.of(
+              context,
+            ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800),
           ),
           const SizedBox(height: 6),
           Text(
             'Streams appear in the app from managedPlaylist.',
-            style: TextStyle(color: Colors.white.withOpacity(0.45), fontSize: 13),
+            style: TextStyle(
+              color: Colors.white.withOpacity(0.45),
+              fontSize: 13,
+            ),
           ),
           const SizedBox(height: 24),
           _card(
@@ -2668,31 +3427,90 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                _field(_channelNameController, 'Channel name', Icons.label_outline_rounded),
+                _field(
+                  _channelNameController,
+                  'Channel name',
+                  Icons.label_outline_rounded,
+                ),
                 const SizedBox(height: 14),
-                _field(_channelUrlController, 'Server 1 URL (Primary)', Icons.link_rounded, maxLines: 3),
+                _field(
+                  _channelUrlController,
+                  'Server 1 URL (Primary)',
+                  Icons.link_rounded,
+                  maxLines: 3,
+                ),
                 const SizedBox(height: 14),
                 Row(
                   children: [
-                    Expanded(child: _field(_channelUrl2NameController, 'Server 2 Name', Icons.label_outline_rounded)),
+                    Expanded(
+                      child: _field(
+                        _channelUrl2NameController,
+                        'Server 2 Name',
+                        Icons.label_outline_rounded,
+                      ),
+                    ),
                     const SizedBox(width: 8),
-                    Expanded(flex: 2, child: _field(_channelUrl2Controller, 'Server 2 URL', Icons.link_rounded)),
+                    Expanded(
+                      flex: 2,
+                      child: _field(
+                        _channelUrl2Controller,
+                        'Server 2 URL',
+                        Icons.link_rounded,
+                      ),
+                    ),
                   ],
                 ),
                 const SizedBox(height: 14),
                 Row(
                   children: [
-                    Expanded(child: _field(_channelUrl3NameController, 'Server 3 Name', Icons.label_outline_rounded)),
+                    Expanded(
+                      child: _field(
+                        _channelUrl3NameController,
+                        'Server 3 Name',
+                        Icons.label_outline_rounded,
+                      ),
+                    ),
                     const SizedBox(width: 8),
-                    Expanded(flex: 2, child: _field(_channelUrl3Controller, 'Server 3 URL', Icons.link_rounded)),
+                    Expanded(
+                      flex: 2,
+                      child: _field(
+                        _channelUrl3Controller,
+                        'Server 3 URL',
+                        Icons.link_rounded,
+                      ),
+                    ),
                   ],
                 ),
                 const SizedBox(height: 14),
-                _field(_channelUserAgentController, 'User Agent (Optional)', Icons.language_rounded),
+                Row(
+                  children: [
+                    Expanded(
+                      child: _drmSchemeDropdown(_channelDrmSchemeController),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      flex: 2,
+                      child: _field(
+                        _channelDrmLicenseController,
+                        'DRM License Key',
+                        Icons.key_rounded,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 14),
+                _field(
+                  _channelUserAgentController,
+                  'User Agent (Optional)',
+                  Icons.language_rounded,
+                ),
                 const SizedBox(height: 14),
                 // Content Type Toggle
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 8,
+                  ),
                   decoration: BoxDecoration(
                     borderRadius: BorderRadius.circular(14),
                     color: Colors.black.withOpacity(0.2),
@@ -2701,7 +3519,9 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
                   child: Row(
                     children: [
                       Icon(
-                        _channelType == 'movie' ? Icons.movie_filter_rounded : Icons.live_tv_rounded,
+                        _channelType == 'movie'
+                            ? Icons.movie_filter_rounded
+                            : Icons.live_tv_rounded,
                         color: AppTheme.primaryGold.withOpacity(0.85),
                       ),
                       const SizedBox(width: 12),
@@ -2709,10 +3529,22 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            const Text('Content Type', style: TextStyle(fontSize: 12, color: Colors.white70)),
+                            const Text(
+                              'Content Type',
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: Colors.white70,
+                              ),
+                            ),
                             Text(
-                              _channelType == 'movie' ? 'VOD / MOVIE' : 'LIVE STREAM',
-                              style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.white),
+                              _channelType == 'movie'
+                                  ? 'VOD / MOVIE'
+                                  : 'LIVE STREAM',
+                              style: const TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.white,
+                              ),
                             ),
                           ],
                         ),
@@ -2720,7 +3552,9 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
                       Switch(
                         value: _channelType == 'movie',
                         onChanged: (isMovie) {
-                          setState(() => _channelType = isMovie ? 'movie' : 'live');
+                          setState(
+                            () => _channelType = isMovie ? 'movie' : 'live',
+                          );
                         },
                         activeColor: AppTheme.primaryGold,
                       ),
@@ -2733,15 +3567,29 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
                   dropdownColor: AppTheme.surfaceElevated,
                   decoration: InputDecoration(
                     labelText: 'App section',
-                    prefixIcon: Icon(Icons.category_rounded, color: AppTheme.primaryGold.withOpacity(0.85)),
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(14)),
+                    prefixIcon: Icon(
+                      Icons.category_rounded,
+                      color: AppTheme.primaryGold.withOpacity(0.85),
+                    ),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(14),
+                    ),
                     filled: true,
                     fillColor: Colors.black.withOpacity(0.2),
                   ),
                   items: const [
-                    DropdownMenuItem(value: _PublishShelf.liveTv, child: Text('Live TV (home / live lists)')),
-                    DropdownMenuItem(value: _PublishShelf.movies, child: Text('Movies (Movies tab)')),
-                    DropdownMenuItem(value: _PublishShelf.custom, child: Text('Custom group')),
+                    DropdownMenuItem(
+                      value: _PublishShelf.liveTv,
+                      child: Text('Live TV (home / live lists)'),
+                    ),
+                    DropdownMenuItem(
+                      value: _PublishShelf.movies,
+                      child: Text('Movies (Movies tab)'),
+                    ),
+                    DropdownMenuItem(
+                      value: _PublishShelf.custom,
+                      child: Text('Custom group'),
+                    ),
                   ],
                   onChanged: (v) {
                     if (v != null) _setPublishShelf(v);
@@ -2754,13 +3602,18 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
                     stream: _playlistRef.onValue,
                     builder: (context, snapshot) {
                       final List<String> options = [];
-                      if (snapshot.hasData && snapshot.data!.snapshot.value != null) {
-                        final items = _parsePlaylist(snapshot.data!.snapshot.value);
+                      if (snapshot.hasData &&
+                          snapshot.data!.snapshot.value != null) {
+                        final items = _parsePlaylist(
+                          snapshot.data!.snapshot.value,
+                        );
                         final set = <String>{};
                         for (final item in items) {
                           final val = item.value;
                           if (val is Map) {
-                            final g = '${val['group'] ?? val['category'] ?? ''}'.trim();
+                            final g =
+                                '${val['group'] ?? val['category'] ?? ''}'
+                                    .trim();
                             if (g.isNotEmpty) set.add(g);
                           }
                         }
@@ -2773,11 +3626,23 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
                         optionsBuilder: (TextEditingValue textEditingValue) {
                           if (textEditingValue.text.isEmpty) return options;
                           return options.where((String option) {
-                            return option.toLowerCase().contains(textEditingValue.text.toLowerCase());
+                            return option.toLowerCase().contains(
+                              textEditingValue.text.toLowerCase(),
+                            );
                           });
                         },
-                        fieldViewBuilder: (context, controller, focusNode, onFieldSubmitted) {
-                          return _field(controller, 'Group name (e.g., Action, Horror)', Icons.folder_outlined, focusNode: focusNode);
+                        fieldViewBuilder: (
+                          context,
+                          controller,
+                          focusNode,
+                          onFieldSubmitted,
+                        ) {
+                          return _field(
+                            controller,
+                            'Group name (e.g., Action, Horror)',
+                            Icons.folder_outlined,
+                            focusNode: focusNode,
+                          );
                         },
                         optionsViewBuilder: (context, onSelected, options) {
                           return Align(
@@ -2787,14 +3652,27 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
                               color: AppTheme.surfaceElevated,
                               borderRadius: BorderRadius.circular(12),
                               child: ConstrainedBox(
-                                constraints: const BoxConstraints(maxHeight: 200, maxWidth: 350),
+                                constraints: const BoxConstraints(
+                                  maxHeight: 200,
+                                  maxWidth: 350,
+                                ),
                                 child: ListView.builder(
                                   padding: const EdgeInsets.all(8),
                                   itemCount: options.length,
-                                  itemBuilder: (BuildContext context, int index) {
-                                    final String option = options.elementAt(index);
+                                  itemBuilder: (
+                                    BuildContext context,
+                                    int index,
+                                  ) {
+                                    final String option = options.elementAt(
+                                      index,
+                                    );
                                     return ListTile(
-                                      title: Text(option, style: const TextStyle(color: Colors.white)),
+                                      title: Text(
+                                        option,
+                                        style: const TextStyle(
+                                          color: Colors.white,
+                                        ),
+                                      ),
                                       onTap: () => onSelected(option),
                                     );
                                   },
@@ -2812,7 +3690,10 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
                   const SizedBox(height: 8),
                   Text(
                     'Saved under group: ${_resolvedPublishGroup()}',
-                    style: TextStyle(fontSize: 12, color: Colors.white.withOpacity(0.45)),
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: Colors.white.withOpacity(0.45),
+                    ),
                   ),
                 ],
                 const SizedBox(height: 14),
@@ -2820,7 +3701,12 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Expanded(
-                      child: _field(_channelLogoController, 'Logo URL (optional)', Icons.image_outlined, maxLines: 2),
+                      child: _field(
+                        _channelLogoController,
+                        'Logo URL (optional)',
+                        Icons.image_outlined,
+                        maxLines: 2,
+                      ),
                     ),
                     const SizedBox(width: 8),
                     Padding(
@@ -2838,7 +3724,12 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Expanded(
-                      child: _field(_channelSubtitleUrlController, 'Subtitle URL (Optional SRT/VTT)', Icons.subtitles_rounded, maxLines: 2),
+                      child: _field(
+                        _channelSubtitleUrlController,
+                        'Subtitle URL (Optional SRT/VTT)',
+                        Icons.subtitles_rounded,
+                        maxLines: 2,
+                      ),
                     ),
                     const SizedBox(width: 8),
                     Padding(
@@ -2853,7 +3744,13 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
                 ),
                 const SizedBox(height: 14),
                 SwitchListTile(
-                  title: const Text('Featured', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                  title: const Text(
+                    'Featured',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
                   value: _isFeaturedAdmin,
                   onChanged: (v) => setState(() => _isFeaturedAdmin = v),
                 ),
@@ -2862,20 +3759,36 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
                   padding: const EdgeInsets.symmetric(horizontal: 16),
                   child: Row(
                     children: [
-                      const Text('Content Type:', style: TextStyle(color: Colors.white70, fontWeight: FontWeight.bold)),
+                      const Text(
+                        'Content Type:',
+                        style: TextStyle(
+                          color: Colors.white70,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
                       const SizedBox(width: 16),
                       Expanded(
                         child: SegmentedButton<String>(
                           style: SegmentedButton.styleFrom(
-                            selectedBackgroundColor: AppTheme.accentTeal.withOpacity(0.2),
+                            selectedBackgroundColor: AppTheme.accentTeal
+                                .withOpacity(0.2),
                             selectedForegroundColor: AppTheme.accentTeal,
                           ),
                           segments: const [
-                            ButtonSegment(value: 'live', label: Text('Live TV'), icon: Icon(Icons.live_tv_rounded)),
-                            ButtonSegment(value: 'movie', label: Text('Movie'), icon: Icon(Icons.movie_rounded)),
+                            ButtonSegment(
+                              value: 'live',
+                              label: Text('Live TV'),
+                              icon: Icon(Icons.live_tv_rounded),
+                            ),
+                            ButtonSegment(
+                              value: 'movie',
+                              label: Text('Movie'),
+                              icon: Icon(Icons.movie_rounded),
+                            ),
                           ],
                           selected: {_channelType},
-                          onSelectionChanged: (set) => setState(() => _channelType = set.first),
+                          onSelectionChanged:
+                              (set) => setState(() => _channelType = set.first),
                         ),
                       ),
                     ],
@@ -2888,7 +3801,9 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
                   label: const Text('Save to database'),
                   style: FilledButton.styleFrom(
                     padding: const EdgeInsets.symmetric(vertical: 16),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(14),
+                    ),
                   ),
                 ),
               ],
@@ -2899,40 +3814,58 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
     );
   }
 
-
   Widget _buildGroupQuickPick() {
     return StreamBuilder<DatabaseEvent>(
       stream: _groupsRef.onValue,
       builder: (context, snapshot) {
-        if (!snapshot.hasData || snapshot.data?.snapshot.value == null) return const SizedBox.shrink();
+        if (!snapshot.hasData || snapshot.data?.snapshot.value == null)
+          return const SizedBox.shrink();
         final value = snapshot.data!.snapshot.value;
         if (value is! Map) return const SizedBox.shrink();
-        final names = value.entries
-            .map((e) => (e.value is Map) ? '${(e.value as Map)['name'] ?? ''}'.trim() : '')
-            .where((s) => s.isNotEmpty)
-            .toSet()
-            .toList()
-          ..sort();
+        final names =
+            value.entries
+                .map(
+                  (e) =>
+                      (e.value is Map)
+                          ? '${(e.value as Map)['name'] ?? ''}'.trim()
+                          : '',
+                )
+                .where((s) => s.isNotEmpty)
+                .toSet()
+                .toList()
+              ..sort();
         if (names.isEmpty) return const SizedBox.shrink();
         return Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('Quick pick group', style: TextStyle(fontSize: 12, color: Colors.white.withOpacity(0.45))),
+            Text(
+              'Quick pick group',
+              style: TextStyle(
+                fontSize: 12,
+                color: Colors.white.withOpacity(0.45),
+              ),
+            ),
             const SizedBox(height: 8),
             Wrap(
               spacing: 8,
               runSpacing: 8,
-              children: names
-                  .map(
-                    (n) => ActionChip(
-                      label: Text(n),
-                      onPressed: () => setState(() => _channelGroupController.text = n),
-                      backgroundColor: Colors.white.withOpacity(0.06),
-                      side: BorderSide(color: Colors.white.withOpacity(0.08)),
-                    ),
-                  )
-                  .toList(),
+              children:
+                  names
+                      .map(
+                        (n) => ActionChip(
+                          label: Text(n),
+                          onPressed:
+                              () => setState(
+                                () => _channelGroupController.text = n,
+                              ),
+                          backgroundColor: Colors.white.withOpacity(0.06),
+                          side: BorderSide(
+                            color: Colors.white.withOpacity(0.08),
+                          ),
+                        ),
+                      )
+                      .toList(),
             ),
           ],
         );
@@ -2948,7 +3881,10 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
     return Container(
       decoration: BoxDecoration(
         gradient: LinearGradient(
-          colors: [AppTheme.backgroundBlack, AppTheme.surfaceGray.withOpacity(0.4)],
+          colors: [
+            AppTheme.backgroundBlack,
+            AppTheme.surfaceGray.withOpacity(0.4),
+          ],
         ),
       ),
       child: ListView(
@@ -2956,12 +3892,17 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
         children: [
           Text(
             'Import playlist',
-            style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800),
+            style: Theme.of(
+              context,
+            ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800),
           ),
           const SizedBox(height: 6),
           Text(
             'Add channels from M3U files, URLs, or Xtream Codes.',
-            style: TextStyle(color: Colors.white.withOpacity(0.45), fontSize: 13),
+            style: TextStyle(
+              color: Colors.white.withOpacity(0.45),
+              fontSize: 13,
+            ),
           ),
           const SizedBox(height: 24),
 
@@ -2972,15 +3913,25 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
               children: [
                 Row(
                   children: [
-                    Icon(Icons.file_present_rounded, color: AppTheme.primaryGold, size: 22),
+                    Icon(
+                      Icons.file_present_rounded,
+                      color: AppTheme.primaryGold,
+                      size: 22,
+                    ),
                     const SizedBox(width: 10),
-                    Text('From file', style: Theme.of(context).textTheme.titleMedium),
+                    Text(
+                      'From file',
+                      style: Theme.of(context).textTheme.titleMedium,
+                    ),
                   ],
                 ),
                 const SizedBox(height: 8),
                 Text(
                   'Pick a .m3u or .m3u8 file from your device.',
-                  style: TextStyle(fontSize: 12, color: Colors.white.withOpacity(0.4)),
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: Colors.white.withOpacity(0.4),
+                  ),
                 ),
                 const SizedBox(height: 14),
                 FilledButton.icon(
@@ -3000,13 +3951,25 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
               children: [
                 Row(
                   children: [
-                    Icon(Icons.link_rounded, color: AppTheme.accentTeal, size: 22),
+                    Icon(
+                      Icons.link_rounded,
+                      color: AppTheme.accentTeal,
+                      size: 22,
+                    ),
                     const SizedBox(width: 10),
-                    Text('From URL', style: Theme.of(context).textTheme.titleMedium),
+                    Text(
+                      'From URL',
+                      style: Theme.of(context).textTheme.titleMedium,
+                    ),
                   ],
                 ),
                 const SizedBox(height: 12),
-                _field(_importUrlController, 'M3U playlist URL', Icons.link_rounded, maxLines: 2),
+                _field(
+                  _importUrlController,
+                  'M3U playlist URL',
+                  Icons.link_rounded,
+                  maxLines: 2,
+                ),
                 const SizedBox(height: 14),
                 FilledButton.icon(
                   onPressed: _importBusy ? null : _importFromUrl,
@@ -3025,17 +3988,36 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
               children: [
                 Row(
                   children: [
-                    Icon(Icons.dns_rounded, color: AppTheme.primaryBlue, size: 22),
+                    Icon(
+                      Icons.dns_rounded,
+                      color: AppTheme.primaryBlue,
+                      size: 22,
+                    ),
                     const SizedBox(width: 10),
-                    Text('Xtream Codes', style: Theme.of(context).textTheme.titleMedium),
+                    Text(
+                      'Xtream Codes',
+                      style: Theme.of(context).textTheme.titleMedium,
+                    ),
                   ],
                 ),
                 const SizedBox(height: 12),
-                _field(_xtreamServerController, 'Server URL (e.g. http://iptv.example.com)', Icons.dns_outlined),
+                _field(
+                  _xtreamServerController,
+                  'Server URL (e.g. http://iptv.example.com)',
+                  Icons.dns_outlined,
+                ),
                 const SizedBox(height: 10),
-                _field(_xtreamUserController, 'Username', Icons.person_outline_rounded),
+                _field(
+                  _xtreamUserController,
+                  'Username',
+                  Icons.person_outline_rounded,
+                ),
                 const SizedBox(height: 10),
-                _field(_xtreamPassController, 'Password', Icons.lock_outline_rounded),
+                _field(
+                  _xtreamPassController,
+                  'Password',
+                  Icons.lock_outline_rounded,
+                ),
                 const SizedBox(height: 14),
                 FilledButton.icon(
                   onPressed: _importBusy ? null : _importFromXtream,
@@ -3054,9 +4036,17 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
                 padding: const EdgeInsets.all(16),
                 child: Column(
                   children: [
-                    const CircularProgressIndicator(color: AppTheme.primaryGold),
+                    const CircularProgressIndicator(
+                      color: AppTheme.primaryGold,
+                    ),
                     const SizedBox(height: 12),
-                    Text(_importStatus, style: TextStyle(color: Colors.white.withOpacity(0.5), fontSize: 12)),
+                    Text(
+                      _importStatus,
+                      style: TextStyle(
+                        color: Colors.white.withOpacity(0.5),
+                        fontSize: 12,
+                      ),
+                    ),
                   ],
                 ),
               ),
@@ -3069,9 +4059,11 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
                 _importStatus,
                 style: TextStyle(
                   fontSize: 13,
-                  color: _importStatus.contains('Error') || _importStatus.contains('failed')
-                      ? Colors.redAccent
-                      : AppTheme.accentTeal,
+                  color:
+                      _importStatus.contains('Error') ||
+                              _importStatus.contains('failed')
+                          ? Colors.redAccent
+                          : AppTheme.accentTeal,
                 ),
                 textAlign: TextAlign.center,
               ),
@@ -3092,8 +4084,11 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
                     height: 260,
                     child: ListView.separated(
                       itemCount: _importPreview!.length,
-                      separatorBuilder: (_, __) =>
-                          Divider(height: 1, color: Colors.white.withOpacity(0.06)),
+                      separatorBuilder:
+                          (_, __) => Divider(
+                            height: 1,
+                            color: Colors.white.withOpacity(0.06),
+                          ),
                       itemBuilder: (context, i) {
                         final ch = _importPreview![i];
                         return ListTile(
@@ -3112,13 +4107,19 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
                           ),
                           title: Text(
                             ch['name'] ?? '',
-                            style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+                            style: const TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w600,
+                            ),
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                           ),
                           subtitle: Text(
                             ch['group'] ?? 'General',
-                            style: TextStyle(fontSize: 10, color: AppTheme.accentTeal.withOpacity(0.7)),
+                            style: TextStyle(
+                              fontSize: 10,
+                              color: AppTheme.accentTeal.withOpacity(0.7),
+                            ),
                           ),
                         );
                       },
@@ -3129,10 +4130,11 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
                     children: [
                       Expanded(
                         child: OutlinedButton(
-                          onPressed: () => setState(() {
-                            _importPreview = null;
-                            _importStatus = '';
-                          }),
+                          onPressed:
+                              () => setState(() {
+                                _importPreview = null;
+                                _importStatus = '';
+                              }),
                           child: const Text('Cancel'),
                         ),
                       ),
@@ -3168,7 +4170,10 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
     return Container(
       decoration: BoxDecoration(
         gradient: LinearGradient(
-          colors: [AppTheme.backgroundBlack, AppTheme.surfaceGray.withOpacity(0.35)],
+          colors: [
+            AppTheme.backgroundBlack,
+            AppTheme.surfaceGray.withOpacity(0.35),
+          ],
         ),
       ),
       child: ListView(
@@ -3176,12 +4181,17 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
         children: [
           Text(
             'Channel health',
-            style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800),
+            style: Theme.of(
+              context,
+            ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800),
           ),
           const SizedBox(height: 6),
           Text(
             'Check all channel URLs to find broken or unavailable streams.',
-            style: TextStyle(color: Colors.white.withOpacity(0.45), fontSize: 13),
+            style: TextStyle(
+              color: Colors.white.withOpacity(0.45),
+              fontSize: 13,
+            ),
           ),
           const SizedBox(height: 24),
           _card(
@@ -3190,17 +4200,25 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
               children: [
                 FilledButton.icon(
                   onPressed: _healthCheckRunning ? null : _runHealthCheck,
-                  icon: _healthCheckRunning
-                      ? const SizedBox(
-                          width: 18,
-                          height: 18,
-                          child: CircularProgressIndicator(strokeWidth: 2, color: Colors.black),
-                        )
-                      : const Icon(Icons.health_and_safety_rounded),
-                  label: Text(_healthCheckRunning ? 'Checking...' : 'Check all channels'),
+                  icon:
+                      _healthCheckRunning
+                          ? const SizedBox(
+                            width: 18,
+                            height: 18,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              color: Colors.black,
+                            ),
+                          )
+                          : const Icon(Icons.health_and_safety_rounded),
+                  label: Text(
+                    _healthCheckRunning ? 'Checking...' : 'Check all channels',
+                  ),
                   style: FilledButton.styleFrom(
                     padding: const EdgeInsets.symmetric(vertical: 16),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(14),
+                    ),
                   ),
                 ),
                 if (_healthCheckRunning || _healthProgress > 0) ...[
@@ -3211,7 +4229,9 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
                       value: _healthProgress,
                       backgroundColor: Colors.white.withOpacity(0.06),
                       valueColor: AlwaysStoppedAnimation(
-                        _healthCheckRunning ? AppTheme.primaryGold : AppTheme.accentTeal,
+                        _healthCheckRunning
+                            ? AppTheme.primaryGold
+                            : AppTheme.accentTeal,
                       ),
                       minHeight: 8,
                     ),
@@ -3238,17 +4258,23 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
                 children: [
                   _healthSummaryChip(
                     '✅ OK',
-                    _healthResults.values.where((h) => h.status == _HealthStatus.ok).length,
+                    _healthResults.values
+                        .where((h) => h.status == _HealthStatus.ok)
+                        .length,
                     Colors.green,
                   ),
                   _healthSummaryChip(
                     '⚠️ Warn',
-                    _healthResults.values.where((h) => h.status == _HealthStatus.warning).length,
+                    _healthResults.values
+                        .where((h) => h.status == _HealthStatus.warning)
+                        .length,
                     Colors.orange,
                   ),
                   _healthSummaryChip(
                     '❌ Broken',
-                    _healthResults.values.where((h) => h.status == _HealthStatus.broken).length,
+                    _healthResults.values
+                        .where((h) => h.status == _HealthStatus.broken)
+                        .length,
                     Colors.redAccent,
                   ),
                 ],
@@ -3276,7 +4302,9 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
             const SizedBox(height: 12),
             // Results list
             ..._healthResults.entries
-                .where((e) => !_showBrokenOnly || e.value.status != _HealthStatus.ok)
+                .where(
+                  (e) => !_showBrokenOnly || e.value.status != _HealthStatus.ok,
+                )
                 .map((e) => _buildHealthResultTile(e.key, e.value)),
           ],
         ],
@@ -3288,8 +4316,18 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        Text('$count', style: TextStyle(fontSize: 24, fontWeight: FontWeight.w800, color: color)),
-        Text(label, style: TextStyle(fontSize: 11, color: color.withOpacity(0.7))),
+        Text(
+          '$count',
+          style: TextStyle(
+            fontSize: 24,
+            fontWeight: FontWeight.w800,
+            color: color,
+          ),
+        ),
+        Text(
+          label,
+          style: TextStyle(fontSize: 11, color: color.withOpacity(0.7)),
+        ),
       ],
     );
   }
@@ -3312,15 +4350,16 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
         borderRadius: BorderRadius.circular(16),
         child: InkWell(
           borderRadius: BorderRadius.circular(16),
-          onTap: health.status != _HealthStatus.ok
-              ? () async {
-                  // Fetch the latest data for this channel and open edit dialog.
-                  final snap = await _playlistRef.child(key).get();
-                  if (snap.value is Map && mounted) {
-                    _showEditChannelDialog(key, snap.value as Map);
+          onTap:
+              health.status != _HealthStatus.ok
+                  ? () async {
+                    // Fetch the latest data for this channel and open edit dialog.
+                    final snap = await _playlistRef.child(key).get();
+                    if (snap.value is Map && mounted) {
+                      _showEditChannelDialog(key, snap.value as Map);
+                    }
                   }
-                }
-              : null,
+                  : null,
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
             child: Row(
@@ -3334,19 +4373,29 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
                     children: [
                       Text(
                         health.name,
-                        style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
+                        style: const TextStyle(
+                          fontWeight: FontWeight.w600,
+                          fontSize: 13,
+                        ),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                       ),
                       Text(
                         health.message,
-                        style: TextStyle(fontSize: 10, color: color.withOpacity(0.7)),
+                        style: TextStyle(
+                          fontSize: 10,
+                          color: color.withOpacity(0.7),
+                        ),
                       ),
                     ],
                   ),
                 ),
                 if (health.status != _HealthStatus.ok)
-                  Icon(Icons.edit_rounded, size: 16, color: Colors.white.withOpacity(0.3)),
+                  Icon(
+                    Icons.edit_rounded,
+                    size: 16,
+                    color: Colors.white.withOpacity(0.3),
+                  ),
               ],
             ),
           ),
@@ -3363,7 +4412,10 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
     return Container(
       decoration: BoxDecoration(
         gradient: LinearGradient(
-          colors: [AppTheme.backgroundBlack, AppTheme.surfaceGray.withOpacity(0.35)],
+          colors: [
+            AppTheme.backgroundBlack,
+            AppTheme.surfaceGray.withOpacity(0.35),
+          ],
         ),
       ),
       child: ListView(
@@ -3371,7 +4423,9 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
         children: [
           Text(
             'Groups',
-            style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800),
+            style: Theme.of(
+              context,
+            ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800),
           ),
           const SizedBox(height: 10),
           _card(
@@ -3381,11 +4435,22 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
               children: [
                 Row(
                   children: [
-                    Expanded(child: _field(_newGroupController, 'New group name', Icons.create_new_folder_outlined)),
+                    Expanded(
+                      child: _field(
+                        _newGroupController,
+                        'New group name',
+                        Icons.create_new_folder_outlined,
+                      ),
+                    ),
                     const SizedBox(width: 12),
                     FilledButton(
                       onPressed: _addGroup,
-                      style: FilledButton.styleFrom(padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16)),
+                      style: FilledButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 20,
+                          vertical: 16,
+                        ),
+                      ),
                       child: const Text('Add'),
                     ),
                   ],
@@ -3394,53 +4459,77 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
                 StreamBuilder<DatabaseEvent>(
                   stream: _groupsRef.onValue,
                   builder: (context, snapshot) {
-                    if (!snapshot.hasData || snapshot.data?.snapshot.value == null) {
-                      return Text('No saved groups', style: TextStyle(color: Colors.white.withOpacity(0.35)));
+                    if (!snapshot.hasData ||
+                        snapshot.data?.snapshot.value == null) {
+                      return Text(
+                        'No saved groups',
+                        style: TextStyle(color: Colors.white.withOpacity(0.35)),
+                      );
                     }
                     final value = snapshot.data!.snapshot.value;
                     if (value is! Map || value.isEmpty) {
-                      return Text('No saved groups', style: TextStyle(color: Colors.white.withOpacity(0.35)));
+                      return Text(
+                        'No saved groups',
+                        style: TextStyle(color: Colors.white.withOpacity(0.35)),
+                      );
                     }
-                    final entries = value.entries.toList()
-                      ..sort((a, b) {
-                        final av = a.value;
-                        final bv = b.value;
-                        if (av is Map && bv is Map) {
-                          final ao = av['order'] as int? ?? 999999;
-                          final bo = bv['order'] as int? ?? 999999;
-                          if (ao != bo) return ao.compareTo(bo);
-                        }
-                        final an = (av is Map) ? '${av['name']}' : '';
-                        final bn = (bv is Map) ? '${bv['name']}' : '';
-                        return an.toLowerCase().compareTo(bn.toLowerCase());
-                      });
+                    final entries =
+                        value.entries.toList()..sort((a, b) {
+                          final av = a.value;
+                          final bv = b.value;
+                          if (av is Map && bv is Map) {
+                            final ao = av['order'] as int? ?? 999999;
+                            final bo = bv['order'] as int? ?? 999999;
+                            if (ao != bo) return ao.compareTo(bo);
+                          }
+                          final an = (av is Map) ? '${av['name']}' : '';
+                          final bn = (bv is Map) ? '${bv['name']}' : '';
+                          return an.toLowerCase().compareTo(bn.toLowerCase());
+                        });
                     return ReorderableListView(
                       shrinkWrap: true,
                       physics: const NeverScrollableScrollPhysics(),
-                      onReorder: (oldIndex, newIndex) => _moveGroup(entries, oldIndex, newIndex),
-                      children: entries.map((e) {
-                        final m = e.value;
-                        final label = (m is Map) ? '${m['name'] ?? e.key}' : '${e.key}';
-                        return ListTile(
-                          key: ValueKey(e.key),
-                          contentPadding: EdgeInsets.zero,
-                          leading: CircleAvatar(
-                            backgroundColor: AppTheme.accentTeal.withOpacity(0.2),
-                            child: Icon(Icons.folder_rounded, color: AppTheme.accentTeal.withOpacity(0.9)),
-                          ),
-                          title: Text(label),
-                          trailing: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              const Icon(Icons.drag_indicator_rounded, color: Colors.white24),
-                              IconButton(
-                                icon: const Icon(Icons.delete_outline_rounded, color: Colors.redAccent),
-                                onPressed: () => _deleteGroup('${e.key}', label),
+                      onReorder:
+                          (oldIndex, newIndex) =>
+                              _moveGroup(entries, oldIndex, newIndex),
+                      children:
+                          entries.map((e) {
+                            final m = e.value;
+                            final label =
+                                (m is Map)
+                                    ? '${m['name'] ?? e.key}'
+                                    : '${e.key}';
+                            return ListTile(
+                              key: ValueKey(e.key),
+                              contentPadding: EdgeInsets.zero,
+                              leading: CircleAvatar(
+                                backgroundColor: AppTheme.accentTeal
+                                    .withOpacity(0.2),
+                                child: Icon(
+                                  Icons.folder_rounded,
+                                  color: AppTheme.accentTeal.withOpacity(0.9),
+                                ),
                               ),
-                            ],
-                          ),
-                        );
-                      }).toList(),
+                              title: Text(label),
+                              trailing: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  const Icon(
+                                    Icons.drag_indicator_rounded,
+                                    color: Colors.white24,
+                                  ),
+                                  IconButton(
+                                    icon: const Icon(
+                                      Icons.delete_outline_rounded,
+                                      color: Colors.redAccent,
+                                    ),
+                                    onPressed:
+                                        () => _deleteGroup('${e.key}', label),
+                                  ),
+                                ],
+                              ),
+                            );
+                          }).toList(),
                     );
                   },
                 ),
@@ -3450,12 +4539,17 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
           const SizedBox(height: 28),
           Text(
             'Login codes',
-            style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800),
+            style: Theme.of(
+              context,
+            ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800),
           ),
           const SizedBox(height: 6),
           Text(
             'Users type these at sign-in (case-insensitive).',
-            style: TextStyle(color: Colors.white.withOpacity(0.45), fontSize: 13),
+            style: TextStyle(
+              color: Colors.white.withOpacity(0.45),
+              fontSize: 13,
+            ),
           ),
           const SizedBox(height: 16),
           _card(
@@ -3465,11 +4559,22 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
               children: [
                 Row(
                   children: [
-                    Expanded(child: _field(_newLoginCodeController, 'New access code', Icons.password_rounded)),
+                    Expanded(
+                      child: _field(
+                        _newLoginCodeController,
+                        'New access code',
+                        Icons.password_rounded,
+                      ),
+                    ),
                     const SizedBox(width: 12),
                     FilledButton(
                       onPressed: _addLoginCode,
-                      style: FilledButton.styleFrom(padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16)),
+                      style: FilledButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 20,
+                          vertical: 16,
+                        ),
+                      ),
                       child: const Text('Add'),
                     ),
                   ],
@@ -3477,7 +4582,13 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
                 const SizedBox(height: 12),
                 Row(
                   children: [
-                    Text('Duration: ', style: TextStyle(fontSize: 12, color: Colors.white.withOpacity(0.4))),
+                    Text(
+                      'Duration: ',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: Colors.white.withOpacity(0.4),
+                      ),
+                    ),
                     const SizedBox(width: 8),
                     Expanded(
                       child: SingleChildScrollView(
@@ -3499,7 +4610,8 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
                 StreamBuilder<DatabaseEvent>(
                   stream: _loginCodesRef.onValue,
                   builder: (context, snapshot) {
-                    if (!snapshot.hasData || snapshot.data?.snapshot.value == null) {
+                    if (!snapshot.hasData ||
+                        snapshot.data?.snapshot.value == null) {
                       return Text(
                         'No codes — users cannot sign in.',
                         style: TextStyle(color: Colors.white.withOpacity(0.35)),
@@ -3512,62 +4624,109 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
                         style: TextStyle(color: Colors.white.withOpacity(0.35)),
                       );
                     }
-                    final entries = value.entries.toList()
-                      ..sort((a, b) {
-                        final ac = (a.value is Map) ? '${(a.value as Map)['code']}' : '';
-                        final bc = (b.value is Map) ? '${(b.value as Map)['code']}' : '';
-                        return ac.compareTo(bc);
-                      });
+                    final entries =
+                        value.entries.toList()..sort((a, b) {
+                          final ac =
+                              (a.value is Map)
+                                  ? '${(a.value as Map)['code']}'
+                                  : '';
+                          final bc =
+                              (b.value is Map)
+                                  ? '${(b.value as Map)['code']}'
+                                  : '';
+                          return ac.compareTo(bc);
+                        });
                     return Column(
                       mainAxisSize: MainAxisSize.min,
                       crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: entries.map((e) {
-                        final m = e.value;
-                        final code = (m is Map) ? '${m['code'] ?? e.key}' : '${e.key}';
-                        final active = (m is Map) && m['active'] != false;
-                        return Padding(
-                          padding: const EdgeInsets.symmetric(vertical: 6),
-                          child: Material(
-                            color: Colors.black.withOpacity(0.2),
-                            borderRadius: BorderRadius.circular(16),
-                            child: Padding(
-                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                              child: Row(
-                                children: [
-                                  Icon(Icons.key_rounded, color: AppTheme.primaryGold.withOpacity(0.8), size: 20),
-                                  const SizedBox(width: 12),
-                                  Expanded(
-                                    child: Column(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
-                                      children: [
-                                        Text(code, style: const TextStyle(fontWeight: FontWeight.w600)),
-                                        Text(
-                                          _formatExpiry(m is Map ? m['expiresAt'] : null),
-                                          style: TextStyle(
-                                            fontSize: 10,
-                                            color: _isCodeExpired(m is Map ? m['expiresAt'] : null)
-                                                ? Colors.redAccent
-                                                : Colors.white.withOpacity(0.45),
-                                          ),
+                      children:
+                          entries.map((e) {
+                            final m = e.value;
+                            final code =
+                                (m is Map)
+                                    ? '${m['code'] ?? e.key}'
+                                    : '${e.key}';
+                            final active = (m is Map) && m['active'] != false;
+                            return Padding(
+                              padding: const EdgeInsets.symmetric(vertical: 6),
+                              child: Material(
+                                color: Colors.black.withOpacity(0.2),
+                                borderRadius: BorderRadius.circular(16),
+                                child: Padding(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 8,
+                                    vertical: 4,
+                                  ),
+                                  child: Row(
+                                    children: [
+                                      Icon(
+                                        Icons.key_rounded,
+                                        color: AppTheme.primaryGold.withOpacity(
+                                          0.8,
                                         ),
-                                      ],
-                                    ),
+                                        size: 20,
+                                      ),
+                                      const SizedBox(width: 12),
+                                      Expanded(
+                                        child: Column(
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.start,
+                                          children: [
+                                            Text(
+                                              code,
+                                              style: const TextStyle(
+                                                fontWeight: FontWeight.w600,
+                                              ),
+                                            ),
+                                            Text(
+                                              _formatExpiry(
+                                                m is Map
+                                                    ? m['expiresAt']
+                                                    : null,
+                                              ),
+                                              style: TextStyle(
+                                                fontSize: 10,
+                                                color:
+                                                    _isCodeExpired(
+                                                          m is Map
+                                                              ? m['expiresAt']
+                                                              : null,
+                                                        )
+                                                        ? Colors.redAccent
+                                                        : Colors.white
+                                                            .withOpacity(0.45),
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                      Switch.adaptive(
+                                        value: active,
+                                        activeTrackColor: AppTheme.primaryGold
+                                            .withOpacity(0.45),
+                                        onChanged:
+                                            (_) => _toggleLoginCode(
+                                              '${e.key}',
+                                              active,
+                                            ),
+                                      ),
+                                      IconButton(
+                                        icon: const Icon(
+                                          Icons.delete_outline_rounded,
+                                          color: Colors.redAccent,
+                                        ),
+                                        onPressed:
+                                            () => _deleteLoginCode(
+                                              '${e.key}',
+                                              code,
+                                            ),
+                                      ),
+                                    ],
                                   ),
-                                  Switch.adaptive(
-                                    value: active,
-                                    activeTrackColor: AppTheme.primaryGold.withOpacity(0.45),
-                                    onChanged: (_) => _toggleLoginCode('${e.key}', active),
-                                  ),
-                                  IconButton(
-                                    icon: const Icon(Icons.delete_outline_rounded, color: Colors.redAccent),
-                                    onPressed: () => _deleteLoginCode('${e.key}', code),
-                                  ),
-                                ],
+                                ),
                               ),
-                            ),
-                          ),
-                        );
-                      }).toList(),
+                            );
+                          }).toList(),
                     );
                   },
                 ),
@@ -3604,7 +4763,7 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
 
       // 1. Broadcast to all active units (local in-app popup)
       // Removed broken _notifBroadcastRef.set(notifObj); since both map to `broadcasts` collection in PocketBase.
-      
+
       // 2. Save to history
       await _notifHistoryRef.push().set(notifObj);
 
@@ -3623,7 +4782,7 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
       _notifTitleController.clear();
       _notifBodyController.clear();
       _notifImageController.clear();
-      
+
       _snack('Notification broadcasted to all units!');
     } catch (e) {
       _snack('Broadcast failed: $e', error: true);
@@ -3631,7 +4790,10 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
   }
 
   Future<void> _clearActiveNotification() async {
-    final ok = await _confirmDelete('Clear active alert?', 'All units will stop showing the current broadcast immediately.');
+    final ok = await _confirmDelete(
+      'Clear active alert?',
+      'All units will stop showing the current broadcast immediately.',
+    );
     if (!ok) return;
     try {
       await _notifBroadcastRef.remove();
@@ -3654,7 +4816,10 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
     return Container(
       decoration: BoxDecoration(
         gradient: LinearGradient(
-          colors: [AppTheme.backgroundBlack, AppTheme.surfaceGray.withOpacity(0.35)],
+          colors: [
+            AppTheme.backgroundBlack,
+            AppTheme.surfaceGray.withOpacity(0.35),
+          ],
         ),
       ),
       child: ListView(
@@ -3663,7 +4828,9 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
           // Part 1: Scrolling Announcement
           Text(
             'Scrolling Home Header',
-            style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800),
+            style: Theme.of(
+              context,
+            ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800),
           ),
           const SizedBox(height: 16),
           StreamBuilder<DatabaseEvent>(
@@ -3673,7 +4840,8 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
               final currentText = '${data['text'] ?? ''}';
               final active = data['active'] == true;
 
-              if (_announcementController.text != currentText && !_announcementController.selection.isValid) {
+              if (_announcementController.text != currentText &&
+                  !_announcementController.selection.isValid) {
                 _announcementController.text = currentText;
               }
 
@@ -3695,13 +4863,18 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
                             active ? 'Live and scrolling' : 'Currently hidden',
                             style: TextStyle(
                               fontSize: 12,
-                              color: active ? AppTheme.accentTeal : Colors.white.withOpacity(0.45),
+                              color:
+                                  active
+                                      ? AppTheme.accentTeal
+                                      : Colors.white.withOpacity(0.45),
                             ),
                           ),
                         ),
                         Switch.adaptive(
                           value: active,
-                          activeTrackColor: AppTheme.accentTeal.withOpacity(0.45),
+                          activeTrackColor: AppTheme.accentTeal.withOpacity(
+                            0.45,
+                          ),
                           onChanged: (val) {
                             _announcementRef.update({'active': val});
                           },
@@ -3713,10 +4886,16 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
                             await _announcementRef.update({'text': txt});
                             _snack('Announcement updated');
                           },
-                          icon: const Icon(Icons.check_circle_outline, size: 18),
+                          icon: const Icon(
+                            Icons.check_circle_outline,
+                            size: 18,
+                          ),
                           label: const Text('Update'),
                           style: FilledButton.styleFrom(
-                            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 16,
+                              vertical: 8,
+                            ),
                             backgroundColor: AppTheme.primaryGold,
                             foregroundColor: Colors.black,
                           ),
@@ -3734,25 +4913,45 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
           // Part 2: Notification Studio
           Text(
             'Notification Studio',
-            style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800),
+            style: Theme.of(
+              context,
+            ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800),
           ),
           const SizedBox(height: 6),
           Text(
             'Push alerts directly to users\' screens. Users only see each one once.',
-            style: TextStyle(color: Colors.white.withOpacity(0.45), fontSize: 13),
+            style: TextStyle(
+              color: Colors.white.withOpacity(0.45),
+              fontSize: 13,
+            ),
           ),
           const SizedBox(height: 16),
           _card(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                _sheetField(_notifTitleController, 'Message Title', Icons.title_rounded),
+                _sheetField(
+                  _notifTitleController,
+                  'Message Title',
+                  Icons.title_rounded,
+                ),
                 const SizedBox(height: 12),
-                _sheetField(_notifBodyController, 'Body Content', Icons.message_rounded, maxLines: 3),
+                _sheetField(
+                  _notifBodyController,
+                  'Body Content',
+                  Icons.message_rounded,
+                  maxLines: 3,
+                ),
                 const SizedBox(height: 12),
                 Row(
                   children: [
-                    Expanded(child: _sheetField(_notifImageController, 'Image URL (optional)', Icons.image_rounded)),
+                    Expanded(
+                      child: _sheetField(
+                        _notifImageController,
+                        'Image URL (optional)',
+                        Icons.image_rounded,
+                      ),
+                    ),
                     const SizedBox(width: 10),
                     IconButton.filledTonal(
                       onPressed: () => _pickLogoInto(_notifImageController),
@@ -3777,7 +4976,9 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
                         onPressed: _clearActiveNotification,
                         icon: const Icon(Icons.backspace_rounded),
                         label: const Text('Clear'),
-                        style: OutlinedButton.styleFrom(foregroundColor: Colors.redAccent),
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: Colors.redAccent,
+                        ),
                       ),
                     ),
                   ],
@@ -3791,7 +4992,9 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
           // Part 3: History
           Text(
             'Broadcast History',
-            style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600),
+            style: Theme.of(
+              context,
+            ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600),
           ),
           const SizedBox(height: 12),
           StreamBuilder<DatabaseEvent>(
@@ -3801,11 +5004,20 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
               if (val == null || val is! Map) {
                 return const Padding(
                   padding: EdgeInsets.symmetric(vertical: 20),
-                  child: Center(child: Opacity(opacity: 0.4, child: Text('No previous broadcasts'))),
+                  child: Center(
+                    child: Opacity(
+                      opacity: 0.4,
+                      child: Text('No previous broadcasts'),
+                    ),
+                  ),
                 );
               }
-              final items = val.entries.toList()
-                ..sort((a, b) => (b.value['timestamp'] ?? '').compareTo(a.value['timestamp'] ?? ''));
+              final items =
+                  val.entries.toList()..sort(
+                    (a, b) => (b.value['timestamp'] ?? '').compareTo(
+                      a.value['timestamp'] ?? '',
+                    ),
+                  );
 
               return ListView.builder(
                 shrinkWrap: true,
@@ -3815,7 +5027,10 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
                   final k = items[i].key;
                   final v = items[i].value;
                   final ts = DateTime.tryParse(v['timestamp'] ?? '')?.toLocal();
-                  final dateStr = ts != null ? '${ts.day}/${ts.month} ${ts.hour}:${ts.minute}' : '';
+                  final dateStr =
+                      ts != null
+                          ? '${ts.day}/${ts.month} ${ts.hour}:${ts.minute}'
+                          : '';
 
                   return Container(
                     margin: const EdgeInsets.only(bottom: 8),
@@ -3833,21 +5048,48 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
                             margin: const EdgeInsets.only(right: 12),
                             decoration: BoxDecoration(
                               borderRadius: BorderRadius.circular(8),
-                              image: DecorationImage(image: NetworkImage(v['image']), fit: BoxFit.cover),
+                              image: DecorationImage(
+                                image: NetworkImage(v['image']),
+                                fit: BoxFit.cover,
+                              ),
                             ),
                           ),
                         Expanded(
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Text(v['title'] ?? 'No Title', style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13)),
-                              Text(v['body'] ?? '', style: TextStyle(fontSize: 11, color: Colors.white.withOpacity(0.6)), maxLines: 1, overflow: TextOverflow.ellipsis),
-                              Text(dateStr, style: TextStyle(fontSize: 9, color: Colors.white.withOpacity(0.3))),
+                              Text(
+                                v['title'] ?? 'No Title',
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.w700,
+                                  fontSize: 13,
+                                ),
+                              ),
+                              Text(
+                                v['body'] ?? '',
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  color: Colors.white.withOpacity(0.6),
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                              Text(
+                                dateStr,
+                                style: TextStyle(
+                                  fontSize: 9,
+                                  color: Colors.white.withOpacity(0.3),
+                                ),
+                              ),
                             ],
                           ),
                         ),
                         IconButton(
-                          icon: const Icon(Icons.delete_outline_rounded, color: Colors.redAccent, size: 20),
+                          icon: const Icon(
+                            Icons.delete_outline_rounded,
+                            color: Colors.redAccent,
+                            size: 20,
+                          ),
                           onPressed: () => _deleteNotificationFromHistory(k),
                         ),
                       ],
@@ -3872,23 +5114,30 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
       stream: _playlistRef.onValue,
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Center(child: CircularProgressIndicator(color: AppTheme.primaryGold));
+          return const Center(
+            child: CircularProgressIndicator(color: AppTheme.primaryGold),
+          );
         }
         final raw = snapshot.data?.snapshot.value;
         var items = _parsePlaylist(raw);
 
         // Filter for Movies
-        items = items.where((e) {
-          final v = e.value;
-          if (v is! Map) return false;
-          final grp = '${v['group'] ?? v['category'] ?? ''}'.toLowerCase();
-          final isMovie = grp.contains('movie') || grp.contains('film') || grp.contains('cinema') || grp == 'vod';
-          if (!isMovie) return false;
+        items =
+            items.where((e) {
+              final v = e.value;
+              if (v is! Map) return false;
+              final grp = '${v['group'] ?? v['category'] ?? ''}'.toLowerCase();
+              final isMovie =
+                  grp.contains('movie') ||
+                  grp.contains('film') ||
+                  grp.contains('cinema') ||
+                  grp == 'vod';
+              if (!isMovie) return false;
 
-          final name = '${v['name'] ?? ''}'.toLowerCase();
-          if (_channelSearchQuery.isEmpty) return true;
-          return name.contains(_channelSearchQuery);
-        }).toList();
+              final name = '${v['name'] ?? ''}'.toLowerCase();
+              if (_channelSearchQuery.isEmpty) return true;
+              return name.contains(_channelSearchQuery);
+            }).toList();
 
         _sortChannelEntries(items);
 
@@ -3907,7 +5156,9 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
                         padding: const EdgeInsets.symmetric(vertical: 16),
                         backgroundColor: AppTheme.primaryGold,
                         foregroundColor: Colors.black,
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(16),
+                        ),
                       ),
                     ),
                   ),
@@ -3921,7 +5172,9 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
                         padding: const EdgeInsets.symmetric(vertical: 16),
                         backgroundColor: AppTheme.accentTeal,
                         foregroundColor: Colors.black,
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(16),
+                        ),
                       ),
                     ),
                   ),
@@ -3930,7 +5183,10 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
             ),
             if (_selectedKeys.isNotEmpty)
               Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 8,
+                ),
                 child: FilledButton.icon(
                   onPressed: _bulkDeleteSelected,
                   icon: const Icon(Icons.delete_sweep_rounded),
@@ -3939,7 +5195,9 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
                     backgroundColor: Colors.redAccent,
                     foregroundColor: Colors.white,
                     minimumSize: const Size(double.infinity, 50),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
                   ),
                 ),
               ),
@@ -3983,75 +5241,79 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
 
     showDialog<void>(
       context: context,
-      builder: (ctx) => _adminEnglishLtr(
-        AlertDialog(
-          backgroundColor: AppTheme.surfaceElevated,
-          title: const Text('Add New Movie'),
-          content: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                TextField(
-                  controller: nameCtrl,
-                  decoration: const InputDecoration(
-                    labelText: 'Movie Title',
-                    border: OutlineInputBorder(),
-                  ),
-                  autofocus: true,
+      builder:
+          (ctx) => _adminEnglishLtr(
+            AlertDialog(
+              backgroundColor: AppTheme.surfaceElevated,
+              title: const Text('Add New Movie'),
+              content: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    TextField(
+                      controller: nameCtrl,
+                      decoration: const InputDecoration(
+                        labelText: 'Movie Title',
+                        border: OutlineInputBorder(),
+                      ),
+                      autofocus: true,
+                    ),
+                    const SizedBox(height: 16),
+                    TextField(
+                      controller: urlCtrl,
+                      decoration: const InputDecoration(
+                        labelText: 'Stream URL',
+                        hintText: '.m3u8, .ts, .mp4...',
+                        border: OutlineInputBorder(),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    TextField(
+                      controller: logoCtrl,
+                      decoration: const InputDecoration(
+                        labelText: 'Logo / Poster URL (Optional)',
+                        border: OutlineInputBorder(),
+                      ),
+                    ),
+                  ],
                 ),
-                const SizedBox(height: 16),
-                TextField(
-                  controller: urlCtrl,
-                  decoration: const InputDecoration(
-                    labelText: 'Stream URL',
-                    hintText: '.m3u8, .ts, .mp4...',
-                    border: OutlineInputBorder(),
-                  ),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(ctx),
+                  child: const Text('Cancel'),
                 ),
-                const SizedBox(height: 16),
-                TextField(
-                  controller: logoCtrl,
-                  decoration: const InputDecoration(
-                    labelText: 'Logo / Poster URL (Optional)',
-                    border: OutlineInputBorder(),
-                  ),
+                FilledButton(
+                  onPressed: () async {
+                    final name = nameCtrl.text.trim();
+                    final url = urlCtrl.text.trim();
+                    final logo = logoCtrl.text.trim();
+
+                    if (name.isEmpty || url.isEmpty) {
+                      _snack('Title and URL are required', error: true);
+                      return;
+                    }
+
+                    try {
+                      final payload = _channelPayload(
+                        name: name,
+                        url: url,
+                        group: 'Movies',
+                        logo: logo,
+                        type: 'movie',
+                      );
+                      await _playlistRef.push().set(payload);
+                      if (mounted) Navigator.pop(ctx);
+                      _snack('Movie added successfully');
+                    } catch (e) {
+                      _snack('Failed to add movie: $e', error: true);
+                    }
+                  },
+                  child: const Text('Add Movie'),
                 ),
               ],
             ),
           ),
-          actions: [
-            TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
-            FilledButton(
-              onPressed: () async {
-                final name = nameCtrl.text.trim();
-                final url = urlCtrl.text.trim();
-                final logo = logoCtrl.text.trim();
-
-                if (name.isEmpty || url.isEmpty) {
-                  _snack('Title and URL are required', error: true);
-                  return;
-                }
-
-                try {
-                  final payload = _channelPayload(
-                    name: name,
-                    url: url,
-                    group: 'Movies',
-                    logo: logo,
-                    type: 'movie',
-                  );
-                  await _playlistRef.push().set(payload);
-                  if (mounted) Navigator.pop(ctx);
-                  _snack('Movie added successfully');
-                } catch (e) {
-                  _snack('Failed to add movie: $e', error: true);
-                }
-              },
-              child: const Text('Add Movie'),
-            ),
-          ],
-        ),
-      ),
     );
   }
 
@@ -4066,17 +5328,29 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                const Icon(Icons.movie_filter_rounded, color: AppTheme.accentTeal, size: 64),
+                const Icon(
+                  Icons.movie_filter_rounded,
+                  color: AppTheme.accentTeal,
+                  size: 64,
+                ),
                 const SizedBox(height: 24),
                 const Text(
                   'BULK MOVIE IMPORT',
-                  style: TextStyle(fontSize: 22, fontWeight: FontWeight.w900, color: Colors.white, letterSpacing: 1.5),
+                  style: TextStyle(
+                    fontSize: 22,
+                    fontWeight: FontWeight.w900,
+                    color: Colors.white,
+                    letterSpacing: 1.5,
+                  ),
                 ),
                 const SizedBox(height: 8),
                 Text(
                   _importMoviesStatus,
                   textAlign: TextAlign.center,
-                  style: TextStyle(color: Colors.white.withOpacity(0.5), fontSize: 13),
+                  style: TextStyle(
+                    color: Colors.white.withOpacity(0.5),
+                    fontSize: 13,
+                  ),
                 ),
                 const SizedBox(height: 32),
                 ClipRRect(
@@ -4085,7 +5359,9 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
                     value: _importMoviesProgress,
                     minHeight: 12,
                     backgroundColor: Colors.white10,
-                    valueColor: const AlwaysStoppedAnimation(AppTheme.accentTeal),
+                    valueColor: const AlwaysStoppedAnimation(
+                      AppTheme.accentTeal,
+                    ),
                   ),
                 ),
                 const SizedBox(height: 16),
@@ -4094,7 +5370,10 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
                   children: [
                     Text(
                       '${(_importMoviesProgress * 100).toInt()}%',
-                      style: const TextStyle(color: AppTheme.accentTeal, fontWeight: FontWeight.bold),
+                      style: const TextStyle(
+                        color: AppTheme.accentTeal,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                     Text(
                       '$_importMoviesDone / $_importMoviesTotal',
@@ -4108,7 +5387,11 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
                   textAlign: TextAlign.center,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(color: Colors.white70, fontSize: 11, fontStyle: FontStyle.italic),
+                  style: const TextStyle(
+                    color: Colors.white70,
+                    fontSize: 11,
+                    fontStyle: FontStyle.italic,
+                  ),
                 ),
                 const SizedBox(height: 24),
                 const Text(
@@ -4123,12 +5406,14 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
       ),
     );
   }
+
   Widget _buildFeaturedManager(List<MapEntry<dynamic, dynamic>> allChannels) {
-    final featured = allChannels.where((e) {
-      final val = e.value as Map;
-      final f = val['featured'];
-      return f == true || f == 'true' || f == '1';
-    }).toList();
+    final featured =
+        allChannels.where((e) {
+          final val = e.value as Map;
+          final f = val['featured'];
+          return f == true || f == 'true' || f == '1';
+        }).toList();
 
     // Sort by existing order if available
     featured.sort((a, b) {
@@ -4142,11 +5427,19 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
       children: [
         Row(
           children: [
-            const Icon(Icons.auto_awesome_motion_rounded, color: AppTheme.primaryGold, size: 24),
+            const Icon(
+              Icons.auto_awesome_motion_rounded,
+              color: AppTheme.primaryGold,
+              size: 24,
+            ),
             const SizedBox(width: 12),
             Text(
               '3D Dashboard Cards (Featured)',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: Colors.white.withOpacity(0.9)),
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.w900,
+                color: Colors.white.withOpacity(0.9),
+              ),
             ),
           ],
         ),
@@ -4161,8 +5454,11 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
             child: const Center(
               child: Padding(
                 padding: EdgeInsets.all(20),
-                child: Text('No featured items yet. Edit a channel and turn on "Featured".',
-                    textAlign: TextAlign.center, style: TextStyle(color: Colors.white38)),
+                child: Text(
+                  'No featured items yet. Edit a channel and turn on "Featured".',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(color: Colors.white38),
+                ),
               ),
             ),
           )
@@ -4177,7 +5473,9 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
               shrinkWrap: true,
               physics: const NeverScrollableScrollPhysics(),
               itemCount: featured.length,
-              onReorder: (oldIndex, newIndex) => _reorderFeatured(featured, oldIndex, newIndex),
+              onReorder:
+                  (oldIndex, newIndex) =>
+                      _reorderFeatured(featured, oldIndex, newIndex),
               itemBuilder: (context, i) {
                 final e = featured[i];
                 final val = e.value as Map;
@@ -4187,20 +5485,43 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
                     borderRadius: BorderRadius.circular(8),
                     child: ChannelLogoImage(
                       logo: val['logo'] ?? val['icon_url'],
-                      channelName: val['name'] != null ? '${val['name']}' : null,
+                      channelName:
+                          val['name'] != null ? '${val['name']}' : null,
                       width: 40,
                       height: 40,
                       fit: BoxFit.cover,
                     ),
                   ),
-                  title: Text('${val['name']}', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14)),
-                  subtitle: Text('${val['group'] ?? 'General'}', style: TextStyle(color: Colors.white.withOpacity(0.5), fontSize: 11)),
+                  title: Text(
+                    '${val['name']}',
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 14,
+                    ),
+                  ),
+                  subtitle: Text(
+                    '${val['group'] ?? 'General'}',
+                    style: TextStyle(
+                      color: Colors.white.withOpacity(0.5),
+                      fontSize: 11,
+                    ),
+                  ),
                   trailing: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Text('#${i + 1}', style: const TextStyle(color: AppTheme.primaryGold, fontWeight: FontWeight.w900)),
+                      Text(
+                        '#${i + 1}',
+                        style: const TextStyle(
+                          color: AppTheme.primaryGold,
+                          fontWeight: FontWeight.w900,
+                        ),
+                      ),
                       const SizedBox(width: 12),
-                      const Icon(Icons.drag_handle_rounded, color: Colors.white24),
+                      const Icon(
+                        Icons.drag_handle_rounded,
+                        color: Colors.white24,
+                      ),
                     ],
                   ),
                 );
@@ -4211,15 +5532,28 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
     );
   }
 
-  Future<void> _reorderFeatured(List<MapEntry<dynamic, dynamic>> featured, int oldIndex, int newIndex) async {
+  Future<void> _reorderFeatured(
+    List<MapEntry<dynamic, dynamic>> featured,
+    int oldIndex,
+    int newIndex,
+  ) async {
     if (newIndex > oldIndex) newIndex -= 1;
     final item = featured.removeAt(oldIndex);
     featured.insert(newIndex, item);
 
     final updates = <String, dynamic>{};
     for (var i = 0; i < featured.length; i++) {
-      updates['${featured[i].key}/featured_order'] = i;
+      final key = featured[i].key;
+      updates['$key/featured_order'] = i;
+
+      final val = featured[i].value;
+      if (val is Map) {
+        val['featured_order'] = i;
+      }
     }
+
+    setState(() {});
+
     try {
       await _playlistRef.update(updates);
       _snack('Featured order updated');
@@ -4228,7 +5562,9 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
     }
   }
 
-  DatabaseReference get _updateRef => PocketBaseDatabase.instance.ref('sync/global/updateManager/globalupdate123');
+  DatabaseReference get _updateRef => PocketBaseDatabase.instance.ref(
+    'sync/global/updateManager/globalupdate123',
+  );
 
   Widget _buildUpdateTab() {
     return ListView(
@@ -4239,13 +5575,30 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
           children: [
             Row(
               children: [
-                const Icon(Icons.system_update_rounded, color: AppTheme.primaryGold, size: 28),
+                const Icon(
+                  Icons.system_update_rounded,
+                  color: AppTheme.primaryGold,
+                  size: 28,
+                ),
                 const SizedBox(width: 12),
-                Text('Update Manager', style: TextStyle(fontSize: 22, fontWeight: FontWeight.w900, color: Colors.white.withOpacity(0.9))),
+                Text(
+                  'Update Manager',
+                  style: TextStyle(
+                    fontSize: 22,
+                    fontWeight: FontWeight.w900,
+                    color: Colors.white.withOpacity(0.9),
+                  ),
+                ),
               ],
             ),
             const SizedBox(height: 4),
-            Text('Push an OTA update to all users.', style: TextStyle(fontSize: 13, color: Colors.white.withOpacity(0.5))),
+            Text(
+              'Push an OTA update to all users.',
+              style: TextStyle(
+                fontSize: 13,
+                color: Colors.white.withOpacity(0.5),
+              ),
+            ),
           ],
         ),
         const SizedBox(height: 24),
@@ -4253,21 +5606,47 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              _buildGlassTextField(controller: _updateApkUrlController, label: 'Latest APK URL (Direct Link)', icon: Icons.link_rounded),
+              _buildGlassTextField(
+                controller: _updateApkUrlController,
+                label: 'Latest APK URL (Direct Link)',
+                icon: Icons.link_rounded,
+              ),
               const SizedBox(height: 16),
               Row(
                 children: [
-                  Expanded(child: _buildGlassTextField(controller: _updateVersionCodeController, label: 'Version Code (Integer, e.g. 4)', icon: Icons.numbers_rounded)),
+                  Expanded(
+                    child: _buildGlassTextField(
+                      controller: _updateVersionCodeController,
+                      label: 'Version Code (Integer, e.g. 4)',
+                      icon: Icons.numbers_rounded,
+                    ),
+                  ),
                   const SizedBox(width: 16),
-                  Expanded(child: _buildGlassTextField(controller: _updateVersionNameController, label: 'Version Name (e.g. 1.2.0)', icon: Icons.info_outline_rounded)),
+                  Expanded(
+                    child: _buildGlassTextField(
+                      controller: _updateVersionNameController,
+                      label: 'Version Name (e.g. 1.2.0)',
+                      icon: Icons.info_outline_rounded,
+                    ),
+                  ),
                 ],
               ),
               const SizedBox(height: 16),
-              _buildGlassTextField(controller: _updateReleaseNotesController, label: 'Release Notes (optional)', icon: Icons.notes_rounded),
+              _buildGlassTextField(
+                controller: _updateReleaseNotesController,
+                label: 'Release Notes (optional)',
+                icon: Icons.notes_rounded,
+              ),
               const SizedBox(height: 16),
               SwitchListTile(
-                title: const Text('Activate Update Prompt', style: TextStyle(color: Colors.white)),
-                subtitle: const Text('If ON, users will see the update popup.', style: TextStyle(color: Colors.white54, fontSize: 12)),
+                title: const Text(
+                  'Activate Update Prompt',
+                  style: TextStyle(color: Colors.white),
+                ),
+                subtitle: const Text(
+                  'If ON, users will see the update popup.',
+                  style: TextStyle(color: Colors.white54, fontSize: 12),
+                ),
                 value: _updateIsActive,
                 activeColor: AppTheme.primaryGold,
                 onChanged: (v) => setState(() => _updateIsActive = v),
@@ -4277,7 +5656,11 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
                 onPressed: _pushUpdate,
                 icon: const Icon(Icons.send_rounded),
                 label: const Text('PUSH UPDATE TO USERS'),
-                style: FilledButton.styleFrom(backgroundColor: AppTheme.primaryGold, foregroundColor: Colors.black, padding: const EdgeInsets.symmetric(vertical: 16)),
+                style: FilledButton.styleFrom(
+                  backgroundColor: AppTheme.primaryGold,
+                  foregroundColor: Colors.black,
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                ),
               ),
             ],
           ),
@@ -4287,34 +5670,62 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
           stream: _updateRef.onValue,
           builder: (context, snap) {
             final val = snap.data?.snapshot.value;
-            if (val == null) return const Text('No active update.', style: TextStyle(color: Colors.white54));
+            if (val == null)
+              return const Text(
+                'No active update.',
+                style: TextStyle(color: Colors.white54),
+              );
             final map = val as Map;
             return _card(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text('Currently Published Update', style: TextStyle(color: AppTheme.primaryGold, fontWeight: FontWeight.bold, fontSize: 16)),
+                  const Text(
+                    'Currently Published Update',
+                    style: TextStyle(
+                      color: AppTheme.primaryGold,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 16,
+                    ),
+                  ),
                   const SizedBox(height: 12),
-                  Text('Version Name: ${map['versionName']}', style: const TextStyle(color: Colors.white)),
-                  Text('Version Code: ${map['versionCode']}', style: const TextStyle(color: Colors.white)),
-                  Text('APK URL: ${map['apkUrl']}', style: const TextStyle(color: Colors.white70)),
-                  Text('Active: ${map['isActive']}', style: const TextStyle(color: Colors.white70)),
+                  Text(
+                    'Version Name: ${map['versionName']}',
+                    style: const TextStyle(color: Colors.white),
+                  ),
+                  Text(
+                    'Version Code: ${map['versionCode']}',
+                    style: const TextStyle(color: Colors.white),
+                  ),
+                  Text(
+                    'APK URL: ${map['apkUrl']}',
+                    style: const TextStyle(color: Colors.white70),
+                  ),
+                  Text(
+                    'Active: ${map['isActive']}',
+                    style: const TextStyle(color: Colors.white70),
+                  ),
                   const SizedBox(height: 16),
                   OutlinedButton.icon(
                     onPressed: () {
                       _updateRef.update({'isActive': false});
                       ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Update has been disabled.'), backgroundColor: Colors.green),
+                        const SnackBar(
+                          content: Text('Update has been disabled.'),
+                          backgroundColor: Colors.green,
+                        ),
                       );
                     },
                     icon: const Icon(Icons.disabled_by_default_rounded),
                     label: const Text('Disable Active Update'),
-                    style: OutlinedButton.styleFrom(foregroundColor: Colors.redAccent),
-                  )
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: Colors.redAccent,
+                    ),
+                  ),
                 ],
               ),
             );
-          }
+          },
         ),
       ],
     );
@@ -4324,7 +5735,8 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
     try {
       await _updateRef.set({
         'apkUrl': _updateApkUrlController.text.trim(),
-        'versionCode': int.tryParse(_updateVersionCodeController.text.trim()) ?? 0,
+        'versionCode':
+            int.tryParse(_updateVersionCodeController.text.trim()) ?? 0,
         'versionName': _updateVersionNameController.text.trim(),
         'releaseNotes': _updateReleaseNotesController.text.trim(),
         'isActive': _updateIsActive,
@@ -4366,7 +5778,8 @@ class _KeepAliveTab extends StatefulWidget {
   State<_KeepAliveTab> createState() => _KeepAliveTabState();
 }
 
-class _KeepAliveTabState extends State<_KeepAliveTab> with AutomaticKeepAliveClientMixin {
+class _KeepAliveTabState extends State<_KeepAliveTab>
+    with AutomaticKeepAliveClientMixin {
   @override
   Widget build(BuildContext context) {
     super.build(context);

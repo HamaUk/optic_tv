@@ -26,6 +26,8 @@ class Channel {
   final String? url2Name;
   final String? url3;
   final String? url3Name;
+  final String? drmScheme;
+  final String? drmLicense;
 
   Channel({
     required this.name,
@@ -44,6 +46,8 @@ class Channel {
     this.url2Name,
     this.url3,
     this.url3Name,
+    this.drmScheme,
+    this.drmLicense,
   });
 
   static String _decrypt(String b64Text) {
@@ -95,6 +99,8 @@ class Channel {
       url2Name: map['url2Name'] as String?,
       url3: map['url3'] != null ? _decrypt(map['url3'] as String) : null,
       url3Name: map['url3Name'] as String?,
+      drmScheme: map['drmScheme'] as String?,
+      drmLicense: map['drmLicense'] as String?,
     );
   }
 
@@ -115,6 +121,8 @@ class Channel {
     'url2Name': url2Name,
     'url3': url3,
     'url3Name': url3Name,
+    'drmScheme': drmScheme,
+    'drmLicense': drmLicense,
   };
 
   @override

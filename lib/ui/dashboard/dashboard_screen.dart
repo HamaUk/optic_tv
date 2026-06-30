@@ -25,6 +25,8 @@ import '../../providers/app_locale_provider.dart';
 import '../../providers/channel_library_provider.dart';
 import '../../providers/ui_settings_provider.dart';
 import '../../services/palette_service.dart';
+import '../../services/pocketbase_service.dart';
+import '../../services/pocketbase_database_mock.dart';
 import '../../services/playlist_service.dart';
 import '../../services/settings_service.dart';
 import '../../services/viewer_service.dart';
@@ -2843,29 +2845,89 @@ class _GlobalAnnouncementTicker extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final settings = ref.watch(appUiSettingsProvider).asData?.value ?? const AppSettingsData();
     final accent = AppTheme.accentColor(settings.gradientPreset);
-    return FutureBuilder<RecordModel>(
-      future: pb.collection('announcements').getFirstListItem(''),
+    return StreamBuilder<DatabaseEvent>(
+      stream: PocketBaseDatabase.instance.ref('sync/global/announcement/globalannounce1').onValue,
       builder: (context, snapshot) {
-        if (!snapshot.hasData || snapshot.data == null) {
+        if (!snapshot.hasData || snapshot.data?.snapshot.value == null) {
           return const SizedBox.shrink();
         }
-        final record = snapshot.data!;
         
-        final active = record.getBoolValue('active');
-        final text = record.getStringValue('text');
+        final data = snapshot.data!.snapshot.value as Map? ?? {};
+        final active = data['active'] == true;
+        final text = '${data['text'] ?? ''}';
 
         if (!active || text.isEmpty) return const SizedBox.shrink();
 
         return Container(
-          height: 34,
+          height: 40,
           width: double.infinity,
           decoration: BoxDecoration(
-            color: accent.withOpacity(0.1),
-            border: Border(
-              bottom: BorderSide(color: accent.withOpacity(0.15), width: 0.5),
+            gradient: LinearGradient(
+              colors: [
+                accent.withOpacity(0.15),
+                Colors.transparent,
+              ],
+              begin: Alignment.centerLeft,
+              end: Alignment.centerRight,
             ),
+            border: Border(
+              bottom: BorderSide(color: accent.withOpacity(0.25), width: 1),
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.2),
+                blurRadius: 10,
+                offset: const Offset(0, 2),
+              ),
+            ],
           ),
-          child: _MarqueeText(text: text, accent: accent),
+          child: Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [
+                      accent.withOpacity(0.2),
+                      Colors.transparent,
+                    ],
+                    begin: Alignment.centerLeft,
+                    end: Alignment.centerRight,
+                  ),
+                ),
+                child: Row(
+                  children: [
+                    Icon(
+                      Icons.campaign_rounded,
+                      color: accent,
+                      size: 20,
+                    ),
+                    const SizedBox(width: 8),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                      decoration: BoxDecoration(
+                        color: accent.withOpacity(0.2),
+                        borderRadius: BorderRadius.circular(4),
+                        border: Border.all(color: accent.withOpacity(0.3)),
+                      ),
+                      child: Text(
+                        'ANNOUNCEMENT',
+                        style: TextStyle(
+                          color: accent,
+                          fontSize: 9,
+                          fontWeight: FontWeight.w900,
+                          letterSpacing: 1.2,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Expanded(
+                child: _MarqueeText(text: text, accent: accent),
+              ),
+            ],
+          ),
         );
       },
     );
@@ -2942,11 +3004,12 @@ class _MarqueeTextState extends State<_MarqueeText> with SingleTickerProviderSta
         Center(
           child: Text(
             widget.text,
-            style: TextStyle(
-              fontSize: 13,
-              fontWeight: FontWeight.w600,
-              color: widget.accent,
-              letterSpacing: 0.2,
+            style: const TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.w500,
+              color: Colors.white,
+              letterSpacing: 0.5,
+              height: 1.2,
             ),
           ),
         ),
@@ -2955,11 +3018,12 @@ class _MarqueeTextState extends State<_MarqueeText> with SingleTickerProviderSta
         Center(
           child: Text(
             widget.text,
-            style: TextStyle(
-              fontSize: 13,
-              fontWeight: FontWeight.w600,
-              color: widget.accent,
-              letterSpacing: 0.2,
+            style: const TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.w500,
+              color: Colors.white,
+              letterSpacing: 0.5,
+              height: 1.2,
             ),
           ),
         ),

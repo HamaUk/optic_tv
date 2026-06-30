@@ -18,7 +18,9 @@ data class TvChannel(
     val group: String = "General",
     val logo: String? = null,
     val type: String = "live",
-    val order: Int = 999999
+    val order: Int = 999999,
+    val drmScheme: String? = null,
+    val drmLicense: String? = null
 )
 
 data class TvChannelGroup(
@@ -137,8 +139,13 @@ class PocketBaseRepository {
                             val type = child.optString("type", "live")
                             val order = child.optInt("order", 999999)
                             
+                            val drmSchemeRaw = child.optString("drmScheme", null)
+                            val drmScheme = if (drmSchemeRaw == "null" || drmSchemeRaw.isNullOrEmpty()) null else drmSchemeRaw
+                            val drmLicenseRaw = child.optString("drmLicense", null)
+                            val drmLicense = if (drmLicenseRaw == "null" || drmLicenseRaw.isNullOrEmpty()) null else drmLicenseRaw
+                            
                             if (url.isNotEmpty()) {
-                                channels.add(TvChannel(name, url, group, logo, type, order))
+                                channels.add(TvChannel(name, url, group, logo, type, order, drmScheme, drmLicense))
                             }
                         }
                     }

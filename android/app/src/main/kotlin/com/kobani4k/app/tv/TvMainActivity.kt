@@ -24,6 +24,7 @@ class TvMainActivity : ComponentActivity() {
     @OptIn(ExperimentalTvMaterial3Api::class)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        com.kobani4k.app.GlobalProxyBypass.apply() // Enforce proxy bypass for ExoPlayer and native HTTP
         setContent {
             MaterialTheme(
                 colorScheme = darkColorScheme()
