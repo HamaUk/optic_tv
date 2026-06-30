@@ -5677,17 +5677,35 @@ class _AdminScreenState extends State<AdminScreen>
                 style: TextStyle(color: Colors.white54),
               );
             final map = val as Map;
+            final bool isActive = map['isActive'] ?? false;
             return _card(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text(
-                    'Currently Published Update',
-                    style: TextStyle(
-                      color: AppTheme.primaryGold,
-                      fontWeight: FontWeight.bold,
-                      fontSize: 16,
-                    ),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Text(
+                        'Currently Published Update',
+                        style: TextStyle(
+                          color: AppTheme.primaryGold,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 16,
+                        ),
+                      ),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: isActive ? Colors.green.withOpacity(0.2) : Colors.red.withOpacity(0.2),
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(color: isActive ? Colors.green : Colors.red),
+                        ),
+                        child: Text(
+                          isActive ? 'ACTIVE' : 'DISABLED',
+                          style: TextStyle(color: isActive ? Colors.green : Colors.red, fontSize: 12, fontWeight: FontWeight.bold),
+                        ),
+                      ),
+                    ],
                   ),
                   const SizedBox(height: 12),
                   Text(
@@ -5702,32 +5720,48 @@ class _AdminScreenState extends State<AdminScreen>
                     'APK URL: ${map['apkUrl']}',
                     style: const TextStyle(color: Colors.white70),
                   ),
-                  Text(
-                    'Active: ${map['isActive']}',
-                    style: const TextStyle(color: Colors.white70),
-                  ),
                   const SizedBox(height: 16),
-                  OutlinedButton.icon(
-                    onPressed: () async {
-                      _updateRef.update({'isActive': false});
-                      // Also disable in PocketBase
-                      try {
-                        final pbService = PocketBaseService();
-                        final existing = await pbService.pb.collection('updateManager').getFirstListItem('');
-                        await pbService.pb.collection('updateManager').update(existing.id, body: {'isActive': false});
-                      } catch (_) {}
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text('Update has been disabled.'),
-                          backgroundColor: Colors.green,
+                  Row(
+                    children: [
+                      Expanded(
+                        child: OutlinedButton.icon(
+                          onPressed: () async {
+                            final newState = !isActive;
+                            _updateRef.update({'isActive': newState});
+                            try {
+                              final pbService = PocketBaseService();
+                              final existing = await pbService.pb.collection('updateManager').getFirstListItem('');
+                              await pbService.pb.collection('updateManager').update(existing.id, body: {'isActive': newState});
+                            } catch (_) {}
+                          },
+                          icon: Icon(isActive ? Icons.visibility_off_rounded : Icons.visibility_rounded),
+                          label: Text(isActive ? 'Disable' : 'Enable'),
+                          style: OutlinedButton.styleFrom(
+                            foregroundColor: isActive ? Colors.orange : Colors.green,
+                          ),
                         ),
-                      );
-                    },
-                    icon: const Icon(Icons.disabled_by_default_rounded),
-                    label: const Text('Disable Active Update'),
-                    style: OutlinedButton.styleFrom(
-                      foregroundColor: Colors.redAccent,
-                    ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: OutlinedButton.icon(
+                          onPressed: () async {
+                            final ok = await _confirmDelete('Delete Update?', 'This will completely remove the current update.');
+                            if (!ok) return;
+                            _updateRef.remove();
+                            try {
+                              final pbService = PocketBaseService();
+                              final existing = await pbService.pb.collection('updateManager').getFirstListItem('');
+                              await pbService.pb.collection('updateManager').delete(existing.id);
+                            } catch (_) {}
+                          },
+                          icon: const Icon(Icons.delete_rounded),
+                          label: const Text('Delete'),
+                          style: OutlinedButton.styleFrom(
+                            foregroundColor: Colors.redAccent,
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
                 ],
               ),
