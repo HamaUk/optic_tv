@@ -7,6 +7,7 @@ import 'package:dio/dio.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:file_picker/file_picker.dart';
 import '../../services/pocketbase_database_mock.dart';
+import '../../services/pocketbase_service.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
@@ -5707,8 +5708,14 @@ class _AdminScreenState extends State<AdminScreen>
                   ),
                   const SizedBox(height: 16),
                   OutlinedButton.icon(
-                    onPressed: () {
+                    onPressed: () async {
                       _updateRef.update({'isActive': false});
+                      // Also disable in PocketBase
+                      try {
+                        final pbService = PocketBaseService();
+                        final existing = await pbService.pb.collection('updateManager').getFirstListItem('');
+                        await pbService.pb.collection('updateManager').update(existing.id, body: {'isActive': false});
+                      } catch (_) {}
                       ScaffoldMessenger.of(context).showSnackBar(
                         const SnackBar(
                           content: Text('Update has been disabled.'),
@@ -5733,14 +5740,28 @@ class _AdminScreenState extends State<AdminScreen>
 
   Future<void> _pushUpdate() async {
     try {
-      await _updateRef.set({
+      final body = <String, dynamic>{
         'apkUrl': _updateApkUrlController.text.trim(),
-        'versionCode':
-            int.tryParse(_updateVersionCodeController.text.trim()) ?? 0,
+        'versionCode': int.tryParse(_updateVersionCodeController.text.trim()) ?? 0,
         'versionName': _updateVersionNameController.text.trim(),
         'releaseNotes': _updateReleaseNotesController.text.trim(),
         'isActive': _updateIsActive,
-      });
+      };
+
+      // Write to PocketBase (this is what the app reads for update prompts)
+      final pbService = PocketBaseService();
+      try {
+        // Try to get existing record first
+        final existing = await pbService.pb.collection('updateManager').getFirstListItem('');
+        await pbService.pb.collection('updateManager').update(existing.id, body: body);
+      } catch (_) {
+        // No record exists yet, create one
+        await pbService.pb.collection('updateManager').create(body: body);
+      }
+
+      // Also write to Firebase for the admin preview section
+      await _updateRef.set(body);
+
       _snack('Update published successfully!');
     } catch (e) {
       _snack('Failed to publish update: $e', error: true);
