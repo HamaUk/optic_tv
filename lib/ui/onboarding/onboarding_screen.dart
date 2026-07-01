@@ -21,9 +21,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen>
   final PageController _pageController = PageController();
   int _currentPage = 0;
 
-  // Video
-  VideoPlayerController? _videoController;
-  bool _videoReady = false;
+
 
   // Animations
   late AnimationController _bgGlowCtrl;
@@ -58,40 +56,10 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen>
       begin: const Offset(0, 0.12),
       end: Offset.zero,
     ).animate(CurvedAnimation(parent: _fadeCtrl, curve: Curves.easeOutCubic));
-    _fadeCtrl.forward();
-
-    // Video — safe initialization with timeout
-    _initVideo();
-  }
-
-  Future<void> _initVideo() async {
-    try {
-      final controller = VideoPlayerController.asset('assets/video/splash.mp4');
-      await controller.initialize().timeout(
-        const Duration(seconds: 8),
-        onTimeout: () {
-          debugPrint('Video init timed out — using gradient fallback');
-          controller.dispose();
-          throw Exception('Video timeout');
-        },
-      );
-      controller.setLooping(true);
-      controller.setVolume(0);
-      controller.play();
-      if (mounted) {
-        setState(() {
-          _videoController = controller;
-          _videoReady = true;
-        });
-      }
-    } catch (e) {
-      debugPrint('Video Player Error: $e — using gradient fallback');
-    }
   }
 
   @override
   void dispose() {
-    _videoController?.dispose();
     _pageController.dispose();
     _bgGlowCtrl.dispose();
     _particleCtrl.dispose();
@@ -133,18 +101,8 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen>
       body: Stack(
         fit: StackFit.expand,
         children: [
-          // ─── Layer 1: Video or Animated Gradient Background ───
-          if (_videoReady && _videoController != null)
-            FittedBox(
-              fit: BoxFit.cover,
-              child: SizedBox(
-                width: _videoController!.value.size.width,
-                height: _videoController!.value.size.height,
-                child: VideoPlayer(_videoController!),
-              ),
-            )
-          else
-            _buildAnimatedGradientBg(),
+          // ─── Layer 1: Animated Gradient Background ───
+          _buildAnimatedGradientBg(),
 
           // ─── Layer 2: Dark Overlay ───
           Container(
