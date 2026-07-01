@@ -2506,95 +2506,64 @@ class _AdminScreenState extends State<AdminScreen>
                       }
 
                       return StreamBuilder<DatabaseEvent>(
-                        stream: _activeSessionsRef.onValue,
-                        builder: (context, snapAS) {
-                          int activeSessionsCount = 0;
-                          if (snapAS.hasData) {
-                            final asv = snapAS.data?.snapshot.value;
-                            if (asv is Map) {
+                        stream: _liveViewersRef.onValue,
+                        builder: (context, snapLV) {
+                          int liveViewersCount = 0;
+                          if (snapLV.hasData) {
+                            final lvv = snapLV.data?.snapshot.value;
+                            if (lvv is Map) {
                               final now = DateTime.now().toUtc();
-                              for (final v in asv.values) {
+                              for (final v in lvv.values) {
                                 if (v is Map) {
                                   final lsStr = v['lastSeen'] as String?;
                                   if (lsStr != null) {
                                     final ls = DateTime.tryParse(lsStr);
+                                    // Viewers ping every 30s, so < 2 min is safe
                                     if (ls != null &&
-                                        now.difference(ls).inMinutes < 5) {
-                                      activeSessionsCount++;
+                                        now.difference(ls).inMinutes < 2) {
+                                      liveViewersCount++;
                                     }
-                                  } else {
-                                    activeSessionsCount++;
                                   }
                                 }
                               }
                             }
                           }
 
-                          return StreamBuilder<DatabaseEvent>(
-                            stream: _liveViewersRef.onValue,
-                            builder: (context, snapLV) {
-                              int liveViewersCount = 0;
-                              if (snapLV.hasData) {
-                                final lvv = snapLV.data?.snapshot.value;
-                                if (lvv is Map) {
-                                  final now = DateTime.now().toUtc();
-                                  for (final v in lvv.values) {
-                                    if (v is Map) {
-                                      final lsStr = v['lastSeen'] as String?;
-                                      if (lsStr != null) {
-                                        final ls = DateTime.tryParse(lsStr);
-                                        // Viewers ping every 30s, so < 2 min is safe
-                                        if (ls != null &&
-                                            now.difference(ls).inMinutes < 2) {
-                                          liveViewersCount++;
-                                        }
-                                      }
-                                    }
-                                  }
-                                }
-                              }
-
-                              return Column(
-                                mainAxisSize: MainAxisSize.min,
-                                crossAxisAlignment: CrossAxisAlignment.start,
+                          return Column(
+                            mainAxisSize: MainAxisSize.min,
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Wrap(
+                                spacing: 12,
+                                runSpacing: 12,
                                 children: [
-                                  Wrap(
-                                    spacing: 12,
-                                    runSpacing: 12,
-                                    children: [
-                                      _statTile(
-                                        icon: Icons.live_tv_rounded,
-                                        label: 'Channels',
-                                        value: '${channels.length}',
-                                        color: AppTheme.primaryGold,
-                                      ),
-                                      _statTile(
-                                        icon: Icons.folder_special_rounded,
-                                        label: 'Groups',
-                                        value: '$gCount',
-                                        color: AppTheme.accentTeal,
-                                      ),
-                                      _statTile(
-                                        icon: Icons.vpn_key_rounded,
-                                        label: 'Access codes',
-                                        value: '$activeCodes / $cCount',
-                                        color: AppTheme.primaryBlue,
-                                      ),
-                                      _statTile(
-                                        icon: Icons.visibility_rounded,
-                                        label: 'Live Viewers',
-                                        value: '$liveViewersCount',
-                                        color: Colors.redAccent,
-                                      ),
-                                      _statTile(
-                                        icon: Icons.devices_rounded,
-                                        label: 'Active Apps',
-                                        value: '$activeSessionsCount',
-                                        color: Colors.greenAccent,
-                                      ),
-                                    ],
+                                  _statTile(
+                                    icon: Icons.live_tv_rounded,
+                                    label: 'Channels',
+                                    value: '${channels.length}',
+                                    color: AppTheme.primaryGold,
                                   ),
-                                  const SizedBox(height: 28),
+                                  _statTile(
+                                    icon: Icons.folder_special_rounded,
+                                    label: 'Groups',
+                                    value: '$gCount',
+                                    color: AppTheme.accentTeal,
+                                  ),
+                                  _statTile(
+                                    icon: Icons.vpn_key_rounded,
+                                    label: 'Access codes',
+                                    value: '$activeCodes / $cCount',
+                                    color: AppTheme.primaryBlue,
+                                  ),
+                                  _statTile(
+                                    icon: Icons.visibility_rounded,
+                                    label: 'Live Viewers',
+                                    value: '$liveViewersCount',
+                                    color: Colors.redAccent,
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 28),
                                   _card(
                                     child: Column(
                                       mainAxisSize: MainAxisSize.min,
@@ -2766,8 +2735,6 @@ class _AdminScreenState extends State<AdminScreen>
                               );
                             },
                           );
-                        },
-                      );
                     },
                   );
                 },
