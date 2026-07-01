@@ -277,8 +277,8 @@ fun PlayerScreen(
                     val jsonKeys = keys.map { keyPair ->
                         val parts = keyPair.split(":")
                         if (parts.size == 2) {
-                            val kidHex = parts[0]
-                            val keyHex = parts[1]
+                            val kidHex = parts[0].trim()
+                            val keyHex = parts[1].trim()
                             val kidBytes = kidHex.chunked(2).map { it.toInt(16).toByte() }.toByteArray()
                             val keyBytes = keyHex.chunked(2).map { it.toInt(16).toByte() }.toByteArray()
                             val kidB64 = android.util.Base64.encodeToString(kidBytes, android.util.Base64.URL_SAFE or android.util.Base64.NO_PADDING or android.util.Base64.NO_WRAP)
