@@ -1,15 +1,15 @@
 import 'dart:async';
-import 'package:pocketbase/pocketbase.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:math';
-import 'pocketbase_service.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_database/firebase_database.dart';
+import 'package:flutter/foundation.dart';
 
 class MonitorService {
-  static Timer? _timer;
   static String? _deviceId;
   static String? _currentCode;
   static String? _currentChannel;
-  static String? _recordId;
+  static DatabaseReference? _currentRef;
 
   static Future<String> _getDeviceId() async {
     if (_deviceId != null) return _deviceId!;
@@ -26,55 +26,51 @@ class MonitorService {
   static Future<void> start(String code) async {
     _currentCode = code;
     _getDeviceId().then((id) {
-       _setupHeartbeat(id);
+       _setupSession(id);
     });
   }
 
   static void updateActivity(String? channelName) {
     _currentChannel = channelName;
-    _ping();
+    _updateSession();
   }
 
-  static void _setupHeartbeat(String id) {
-    _timer?.cancel();
-    _ping();
-    _timer = Timer.periodic(const Duration(seconds: 60), (_) => _ping());
-  }
-
-  static Future<void> _ping() async {
-    if (_deviceId == null || _currentCode == null) return;
+  static Future<void> _setupSession(String id) async {
+    if (_currentCode == null) return;
     try {
-      final body = {
+      _currentRef = FirebaseDatabase.instanceFor(app: Firebase.app(), databaseURL: 'https://kobani-4k-default-rtdb.europe-west1.firebasedatabase.app')
+          .ref('sync/global/activeSessions/$_deviceId');
+          
+      // Tell Firebase to delete this session when the user disconnects
+      await _currentRef!.onDisconnect().remove();
+      
+      await _updateSession();
+    } catch (e) {
+      debugPrint('MonitorService setup error: $e');
+    }
+  }
+
+  static Future<void> _updateSession() async {
+    if (_currentRef == null || _deviceId == null || _currentCode == null) return;
+    try {
+      await _currentRef!.set({
         'deviceId': _deviceId,
         'code': _currentCode,
         'channel': _currentChannel ?? 'Dashboard',
         'platform': 'App',
-        'lastSeen': DateTime.now().toUtc().toIso8601String(),
-      };
-
-      if (_recordId == null) {
-        try {
-            final existing = await pb.collection('activeSessions').getFirstListItem('deviceId="$_deviceId"');
-            _recordId = existing.id;
-            await pb.collection('activeSessions').update(_recordId!, body: body);
-        } catch (_) {
-            final record = await pb.collection('activeSessions').create(body: body);
-            _recordId = record.id;
-        }
-      } else {
-        await pb.collection('activeSessions').update(_recordId!, body: body);
-      }
+        'joinedAt': ServerValue.timestamp,
+      });
     } catch (e) {
        // Silent fail
     }
   }
 
   static void stop() {
-    _timer?.cancel();
     _currentCode = null;
-    if (_recordId != null) {
-      pb.collection('activeSessions').delete(_recordId!).catchError((_) {});
-      _recordId = null;
+    if (_currentRef != null) {
+      _currentRef!.remove().catchError((_) {});
+      _currentRef!.onDisconnect().cancel().catchError((_) {});
+      _currentRef = null;
     }
   }
 }

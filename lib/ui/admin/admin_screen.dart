@@ -130,7 +130,7 @@ class _AdminScreenState extends State<AdminScreen>
   DatabaseReference get _notifHistoryRef =>
       PocketBaseDatabase.instance.ref(_notifHistoryPath);
   DatabaseReference get _activeSessionsRef =>
-      PocketBaseDatabase.instance.ref('sync/global/activeSessions');
+      FirebaseDatabase.instanceFor(app: Firebase.app(), databaseURL: 'https://kobani-4k-default-rtdb.europe-west1.firebasedatabase.app').ref('sync/global/activeSessions');
   DatabaseReference get _liveViewersRef =>
       FirebaseDatabase.instanceFor(app: Firebase.app(), databaseURL: 'https://kobani-4k-default-rtdb.europe-west1.firebasedatabase.app').ref('sync/global/liveViewers');
 
