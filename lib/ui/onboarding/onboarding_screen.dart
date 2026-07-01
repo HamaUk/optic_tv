@@ -56,6 +56,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen>
       begin: const Offset(0, 0.12),
       end: Offset.zero,
     ).animate(CurvedAnimation(parent: _fadeCtrl, curve: Curves.easeOutCubic));
+    _fadeCtrl.forward();
   }
 
   @override

@@ -45,6 +45,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
     _particleCtrl = AnimationController(
       vsync: this,
       duration: const Duration(seconds: 12),
+    )..repeat();
   }
 
   @override
