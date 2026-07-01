@@ -49,6 +49,8 @@ class DatabaseReference {
     if (path.contains('notifications/broadcast')) return 'broadcasts';
     if (path.contains('notifications/history')) return 'broadcasts';
     if (path.contains('updateManager')) return 'updateManager';
+    if (path.contains('activeSessions')) return 'activeSessions';
+    if (path.contains('liveViewers')) return 'liveViewers';
     return 'unknown';
   }
 
