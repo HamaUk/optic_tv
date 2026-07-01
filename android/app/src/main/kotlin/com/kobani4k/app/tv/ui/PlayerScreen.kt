@@ -296,6 +296,8 @@ fun PlayerScreen(
             } else {
                 drmConfigBuilder.setLicenseUri(finalDrmLicense)
             }
+            drmConfigBuilder.setForceDefaultLicenseUri(true)
+            drmConfigBuilder.setForceSessionsForAudioAndVideoTracks(true)
             builder.setDrmConfiguration(drmConfigBuilder.build())
         }
 
