@@ -1,6 +1,6 @@
 name: optic_tv
 description: A premium, professional IPTV application built from scratch.
-version: 1.3.0+15
+version: 1.4.4+21
 
 environment:
   sdk: '>=3.7.0 <4.0.0'
@@ -29,13 +29,13 @@ dependencies:
   intl: any
 
   # Networking & Parsing
-  dio: ^5.4.3+1
+  dio: ^5.10.0
   m3u_nullsafe: ^1.0.4
   socket_io_client: ^3.0.0
 
   # Settings & persistence
   shared_preferences: ^2.2.3
-  path_provider: ^2.1.5
+  path_provider: ^2.1.6
   file_picker: ^8.1.7
 
   # UI & UX
@@ -61,10 +61,11 @@ dependencies:
   # Media Engine — ExoPlayer (Android native, zero overhead)
   video_player: ^2.9.1
   device_info_plus: ^11.1.0
-  package_info_plus: any
+  package_info_plus: ^9.0.1
   firebase_core: ^3.0.0
   firebase_messaging: ^15.0.0
   googleapis_auth: ^1.4.1
+  open_filex: ^4.7.0
 dev_dependencies:
   flutter_test:
     sdk: flutter

@@ -15,6 +15,10 @@ import kotlin.coroutines.resume
 data class TvChannel(
     val name: String = "",
     val url: String = "",
+    val url2: String? = null,
+    val url2Name: String? = null,
+    val url3: String? = null,
+    val url3Name: String? = null,
     val group: String = "General",
     val logo: String? = null,
     val type: String = "live",
@@ -124,6 +128,15 @@ class PocketBaseRepository {
                             val child = items.getJSONObject(i)
                             val name = child.optString("name", "Unknown")
                             val url = child.optString("url", "")
+                            val url2Raw = child.optString("url2", null)
+                            val url2NameRaw = child.optString("url2Name", null)
+                            val url3Raw = child.optString("url3", null)
+                            val url3NameRaw = child.optString("url3Name", null)
+                            
+                            val url2 = if (url2Raw == "null" || url2Raw.isNullOrEmpty()) null else url2Raw
+                            val url2Name = if (url2NameRaw == "null" || url2NameRaw.isNullOrEmpty()) null else url2NameRaw
+                            val url3 = if (url3Raw == "null" || url3Raw.isNullOrEmpty()) null else url3Raw
+                            val url3Name = if (url3NameRaw == "null" || url3NameRaw.isNullOrEmpty()) null else url3NameRaw
                             
                             var group = child.optString("group", null)
                             if (group == null || group == "null" || group.isEmpty()) {
@@ -145,7 +158,7 @@ class PocketBaseRepository {
                             val drmLicense = if (drmLicenseRaw == "null" || drmLicenseRaw.isNullOrEmpty()) null else drmLicenseRaw
                             
                             if (url.isNotEmpty()) {
-                                channels.add(TvChannel(name, url, group, logo, type, order, drmScheme, drmLicense))
+                                channels.add(TvChannel(name, url, url2, url2Name, url3, url3Name, group, logo, type, order, drmScheme, drmLicense))
                             }
                         }
                     }

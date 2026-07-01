@@ -125,7 +125,14 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
         set.add(c.group);
       }
     }
-    final list = set.toList()..sort();
+    final list = set.toList();
+    final managedGroups = ref.read(groupsProvider).value ?? [];
+    list.sort((a, b) {
+      final ga = managedGroups.firstWhere((g) => g.name == a, orElse: () => ChannelGroup(key: '', name: a, order: 999999));
+      final gb = managedGroups.firstWhere((g) => g.name == b, orElse: () => ChannelGroup(key: '', name: b, order: 999999));
+      if (ga.order != gb.order) return ga.order.compareTo(gb.order);
+      return set.toList().indexOf(a).compareTo(set.toList().indexOf(b));
+    });
     return list;
   }
 

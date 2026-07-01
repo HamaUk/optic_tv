@@ -7,6 +7,14 @@ import 'pocketbase_service.dart';
 class PocketBaseDatabase {
   static final instance = PocketBaseDatabase();
   DatabaseReference ref(String path) => DatabaseReference(path);
+
+  Future<void> _notify(String targetPath) async {
+    final controller = DatabaseReference._streamCache[targetPath];
+    if (controller != null && !controller.isClosed) {
+      final snap = await ref(targetPath).get();
+      controller.add(DatabaseEvent(snap));
+    }
+  }
 }
 
 class DataSnapshot {
@@ -149,6 +157,7 @@ class DatabaseReference {
         }
       }
     }
+    await PocketBaseDatabase.instance._notify(path);
   }
 
   Future<void> update(Map<String, dynamic> value) async {
@@ -196,6 +205,7 @@ class DatabaseReference {
         }
       }
     }
+    await PocketBaseDatabase.instance._notify(path);
   }
 
   Future<void> remove() async {

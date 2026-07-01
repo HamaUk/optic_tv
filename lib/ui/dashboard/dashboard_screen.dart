@@ -237,7 +237,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
     }
 
     final groups = _groupMap(movies);
-    final sortedCategories = groups.keys.toList()..sort();
+    final sortedCategories = groups.keys.toList();
 
     return Column(
       children: [
@@ -556,16 +556,14 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
         final groups = _groupMap(filtered);
         final managedGroups = ref.watch(groupsProvider).asData?.value ?? [];
 
+        final originalKeys = groups.keys.toList();
         final sortedGroupEntries = groups.entries.toList()
           ..sort((a, b) {
             final ga = managedGroups.firstWhere((g) => g.name == a.key, orElse: () => ChannelGroup(key: '', name: a.key, order: 999999));
             final gb = managedGroups.firstWhere((g) => g.name == b.key, orElse: () => ChannelGroup(key: '', name: b.key, order: 999999));
             if (ga.order != gb.order) return ga.order.compareTo(gb.order);
-            return a.key.toLowerCase().compareTo(b.key.toLowerCase());
+            return originalKeys.indexOf(a.key).compareTo(originalKeys.indexOf(b.key));
           });
-
-
-
         final isTv = ref.watch(deviceTypeProvider).asData?.value == DeviceType.tv;
 
         if (isTv) {
@@ -1060,12 +1058,13 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
     // Show up to 5 featured items
     final slideChannels = featured.take(5).toList();
 
-    // Prepare sorted groups based on Admin preference
+    // Prepare sorted groups based on Admin preference (with M3U fallback)
+    final originalKeys = groups.keys.toList();
     final sortedGroupEntries = groups.entries.toList()..sort((a, b) {
       final ga = managedGroups.firstWhere((g) => g.name == a.key, orElse: () => ChannelGroup(key: '', name: a.key, order: 999999));
       final gb = managedGroups.firstWhere((g) => g.name == b.key, orElse: () => ChannelGroup(key: '', name: b.key, order: 999999));
       if (ga.order != gb.order) return ga.order.compareTo(gb.order);
-      return a.key.toLowerCase().compareTo(b.key.toLowerCase());
+      return originalKeys.indexOf(a.key).compareTo(originalKeys.indexOf(b.key));
     });
 
     final heroChannel = _focusedChannel ?? (filteredFlat.isNotEmpty ? filteredFlat.first : null);
@@ -1167,7 +1166,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
 
   Widget _buildMovieCinematicHeader(AppStrings s, List<String> categories, double pad) {
     final years = ['2026', '2025', '2024', '2023', '2022', '2021'];
-    final sortedCats = categories.where((c) => c.toLowerCase() != 'general' && c.toLowerCase() != 'live tv').toList()..sort();
+    final sortedCats = categories.where((c) => c.toLowerCase() != 'general' && c.toLowerCase() != 'live tv').toList();
     
     return Container(
       width: double.infinity,
@@ -1892,7 +1891,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
         final favorites = ref.watch(favoritesProvider);
         final toGroup = _channelsForNav(all, favorites, []);
         final groups = _groupMap(toGroup);
-        final sortedKeys = groups.keys.toList()..sort();
+        final sortedKeys = groups.keys.toList();
         final selected = _selectedTvGroup;
 
         return Column(
@@ -1966,7 +1965,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
   /// Ghosten-exact dual-pane: left groups (flex 2) + right channel grid (flex 3)
   Widget _buildTvDualPaneView(AppStrings s, List<Channel> channels, AppSettingsData settings) {
     final groups = _groupMap(channels);
-    final sortedKeys = groups.keys.toList()..sort();
+    final sortedKeys = groups.keys.toList();
     final displayChannels = _selectedTvGroup == null
         ? channels
         : groups[_selectedTvGroup] ?? [];

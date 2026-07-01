@@ -1,10 +1,10 @@
 import 'dart:async';
-import 'package:pocketbase/pocketbase.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:math';
-import 'pocketbase_service.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_database/firebase_database.dart';
 
 final viewerServiceProvider = Provider((ref) => ViewerService());
 
@@ -15,10 +15,7 @@ final channelViewersProvider = StreamProvider.family<int, String>((ref, channelU
 class ViewerService {
   static String? _deviceId;
   String? _currentChannelKey;
-  String? _recordId;
-  Timer? _heartbeatTimer;
-
-  static const _heartbeatInterval = Duration(seconds: 10);
+  DatabaseReference? _currentRef;
 
   static Future<String> _getDeviceId() async {
     if (_deviceId != null) return _deviceId!;
@@ -42,88 +39,51 @@ class ViewerService {
       final deviceId = await _getDeviceId();
       _currentChannelKey = sanitizedKey;
 
-      final body = {
-        'channelKey': sanitizedKey,
-        'deviceId': deviceId,
-        'lastSeen': DateTime.now().toUtc().toIso8601String(),
-      };
+      _currentRef = FirebaseDatabase.instanceFor(app: Firebase.app(), databaseURL: 'https://kobani-4k-default-rtdb.europe-west1.firebasedatabase.app').ref('sync/global/liveViewers/$sanitizedKey/$deviceId');
+      
+      // Tell Firebase to automatically delete this record when the user disconnects
+      await _currentRef!.onDisconnect().remove();
+      
+      // Write the initial record
+      await _currentRef!.set({
+        'joinedAt': ServerValue.timestamp,
+      });
 
-      try {
-        final existing = await pb.collection('liveViewers').getFirstListItem('deviceId="$deviceId"');
-        _recordId = existing.id;
-        await pb.collection('liveViewers').update(_recordId!, body: body);
-      } catch (_) {
-        final record = await pb.collection('liveViewers').create(body: body);
-        _recordId = record.id;
-      }
-
-      _startHeartbeat();
     } catch (e) {
       debugPrint('ViewerService.joinChannel error: $e');
     }
   }
 
   Future<void> leaveChannel(String channelUrl) async {
-    _heartbeatTimer?.cancel();
-    _heartbeatTimer = null;
-
-    if (_recordId != null) {
+    if (_currentRef != null) {
       try {
-        await pb.collection('liveViewers').delete(_recordId!);
+        await _currentRef!.remove();
+        await _currentRef!.onDisconnect().cancel();
       } catch (e) {
         debugPrint('ViewerService.leaveChannel error: $e');
       }
-      _recordId = null;
+      _currentRef = null;
     }
     _currentChannelKey = null;
-  }
-
-  void _startHeartbeat() {
-    _heartbeatTimer?.cancel();
-    _heartbeatTimer = Timer.periodic(_heartbeatInterval, (_) async {
-      if (_recordId != null) {
-        try {
-          await pb.collection('liveViewers').update(_recordId!, body: {
-            'lastSeen': DateTime.now().toUtc().toIso8601String(),
-          });
-        } catch (_) {}
-      }
-    });
   }
 
   Stream<int> getViewersStream(String channelUrl) {
     final sanitizedKey = _sanitizeKey(channelUrl);
     if (sanitizedKey.isEmpty) return Stream.value(0);
 
-    final controller = StreamController<int>.broadcast();
-
-    void fetchCount() {
-      // Fetch viewers updated in the last 25 seconds
-      final staleTime = DateTime.now().toUtc().subtract(const Duration(seconds: 25)).toIso8601String();
-      pb.collection('liveViewers').getList(
-        page: 1, 
-        perPage: 1, 
-        filter: 'channelKey="$sanitizedKey" && lastSeen >= "$staleTime"'
-      ).then((res) {
-        if (!controller.isClosed) controller.add(res.totalItems);
-      }).catchError((_) {});
-    }
-
-    fetchCount();
-    final timer = Timer.periodic(const Duration(seconds: 4), (_) => fetchCount());
-
-    controller.onCancel = () {
-      timer.cancel();
-      controller.close();
-    };
-
-    return controller.stream;
+    final ref = FirebaseDatabase.instanceFor(app: Firebase.app(), databaseURL: 'https://kobani-4k-default-rtdb.europe-west1.firebasedatabase.app').ref('sync/global/liveViewers/$sanitizedKey');
+    
+    return ref.onValue.map((event) {
+      if (event.snapshot.value == null) return 0;
+      final data = event.snapshot.value as Map<dynamic, dynamic>;
+      return data.length;
+    });
   }
 
   Future<void> dispose() async {
-    _heartbeatTimer?.cancel();
-    if (_recordId != null) {
-      await pb.collection('liveViewers').delete(_recordId!).catchError((_) {});
+    if (_currentRef != null) {
+      await _currentRef!.remove().catchError((_) {});
+      await _currentRef!.onDisconnect().cancel().catchError((_) {});
     }
   }
 

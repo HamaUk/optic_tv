@@ -352,12 +352,12 @@ class _TvDashboardScreenState extends ConsumerState<TvDashboardScreen> {
 
     final groups = _groupChannels(channels);
     
-    // Sort groups identically to the mobile dashboard
+    final originalKeys = groups.keys.toList();
     final sortedGroups = groups.keys.toList()..sort((a, b) {
       final ga = widget.managedGroups.firstWhere((g) => g.name == a, orElse: () => ChannelGroup(key: '', name: a, order: 999999));
       final gb = widget.managedGroups.firstWhere((g) => g.name == b, orElse: () => ChannelGroup(key: '', name: b, order: 999999));
       if (ga.order != gb.order) return ga.order.compareTo(gb.order);
-      return a.toLowerCase().compareTo(b.toLowerCase());
+      return originalKeys.indexOf(a).compareTo(originalKeys.indexOf(b));
     });
 
     // We want exactly 5 items per row visible at a time.

@@ -119,7 +119,7 @@ private fun isMenu(keyCode: Int) = keyCode in setOf(
 //  Active menus
 // ─────────────────────────────────────────────────────────────
 
-enum class ActiveMenu { NONE, QUALITY, AUDIO, SUBTITLES, SETTINGS }
+enum class ActiveMenu { NONE, QUALITY, AUDIO, SUBTITLES, SERVERS, SETTINGS }
 
 // ─────────────────────────────────────────────────────────────
 //  PLAYER SCREEN
@@ -142,6 +142,8 @@ fun PlayerScreen(
     var currentStreamUrl   by remember { mutableStateOf(streamUrl) }
     var currentLogoUrl     by remember { mutableStateOf(logoUrl) }
 
+    var activeServerIndex  by remember { mutableStateOf(0) }
+
     // ── Player state ──
     var isBuffering    by remember { mutableStateOf(true) }
     var isPlayingState by remember { mutableStateOf(true) }
@@ -159,6 +161,25 @@ fun PlayerScreen(
     var showZapBanner           by remember { mutableStateOf(false) }
 
     var channelsList by remember { mutableStateOf<List<TvChannel>>(emptyList()) }
+
+    val validServers = remember(currentStreamUrl, channelsList) {
+        val ch = channelsList.firstOrNull { it.url == currentStreamUrl }
+        val servers = mutableListOf<Pair<String, String>>()
+        if (ch != null) {
+            servers.add(Pair("SERVER 1", ch.url))
+            if (!ch.url2.isNullOrEmpty()) {
+                val n2 = if (!ch.url2Name.isNullOrEmpty()) ch.url2Name else "SERVER 2"
+                servers.add(Pair(n2.uppercase(), ch.url2))
+            }
+            if (!ch.url3.isNullOrEmpty()) {
+                val n3 = if (!ch.url3Name.isNullOrEmpty()) ch.url3Name else "SERVER 3"
+                servers.add(Pair(n3.uppercase(), ch.url3))
+            }
+        } else {
+            servers.add(Pair("SERVER 1", currentStreamUrl))
+        }
+        servers
+    }
 
     LaunchedEffect(Unit) {
         channelsList = repository.getChannels()
@@ -228,21 +249,24 @@ fun PlayerScreen(
     }
 
     // Load / switch stream — stops the old one cleanly before preparing new
-    LaunchedEffect(currentStreamUrl) {
+    LaunchedEffect(currentStreamUrl, activeServerIndex) {
+        if (validServers.isEmpty()) return@LaunchedEffect
+        if (activeServerIndex >= validServers.size) activeServerIndex = 0
+        val playUrl = validServers[activeServerIndex].second
         retryCount = 0
         streamFailed = false
-        TvViewerService.joinChannel(currentStreamUrl)
+        TvViewerService.joinChannel(playUrl)
         isBuffering = true
         exoPlayer.stop()
         exoPlayer.clearMediaItems()
         
         val ch = channelsList.firstOrNull { it.url == currentStreamUrl }
-        var finalUrl = currentStreamUrl
+        var finalUrl = playUrl
         var finalDrmScheme = ch?.drmScheme
         var finalDrmLicense = ch?.drmLicense
 
-        if (currentStreamUrl.contains("|drmScheme=")) {
-            val parts = currentStreamUrl.split("|")
+        if (finalUrl.contains("|drmScheme=")) {
+            val parts = finalUrl.split("|")
             finalUrl = parts[0]
             val params = parts[1].split("&")
             for (param in params) {
@@ -339,7 +363,11 @@ fun PlayerScreen(
                             } catch (_: Exception) {}
                         }
                     } else {
-                        streamFailed = true
+                        if (activeServerIndex + 1 < validServers.size) {
+                            activeServerIndex++
+                        } else {
+                            streamFailed = true
+                        }
                     }
                 }
             }
@@ -357,7 +385,11 @@ fun PlayerScreen(
                         } catch (_: Exception) {}
                     }
                 } else {
-                    streamFailed = true
+                    if (activeServerIndex + 1 < validServers.size) {
+                        activeServerIndex++
+                    } else {
+                        streamFailed = true
+                    }
                 }
             }
             override fun onIsPlayingChanged(isPlaying: Boolean) {
@@ -435,6 +467,7 @@ fun PlayerScreen(
                                     if (idx - 1 < 0) channelsList.size - 1 else idx - 1
                                 }
                                 val ch = channelsList[newIdx]
+                                activeServerIndex  = 0
                                 currentStreamUrl   = ch.url
                                 currentChannelName = ch.name
                                 currentLogoUrl     = ch.logo
@@ -582,6 +615,9 @@ fun PlayerScreen(
                 logoUrl        = currentLogoUrl,
                 isPlaying      = isPlayingState,
                 activeMenu     = activeMenu,
+                validServers   = validServers,
+                activeServerIndex = activeServerIndex,
+                onSelectServer = { activeServerIndex = it },
                 controlsFocusRequester = controlsFocusRequester,
                 onTogglePlay   = {
                     wakeUpControls()
@@ -608,6 +644,9 @@ fun PlayerScreen(
         ) {
             SubMenuPanel(
                 activeMenu = activeMenu,
+                validServers = validServers,
+                activeServerIndex = activeServerIndex,
+                onSelectServer = { activeServerIndex = it },
                 onDismiss  = { activeMenu = ActiveMenu.NONE }
             )
         }
@@ -622,6 +661,7 @@ fun PlayerScreen(
                 channels       = channelsList,
                 currentUrl     = currentStreamUrl,
                 onPick         = { ch ->
+                    activeServerIndex  = 0
                     currentStreamUrl   = ch.url
                     currentChannelName = ch.name
                     currentLogoUrl     = ch.logo
@@ -740,6 +780,9 @@ private fun OsdOverlay(
     logoUrl: String?,
     isPlaying: Boolean,
     activeMenu: ActiveMenu,
+    validServers: List<Pair<String, String>>,
+    activeServerIndex: Int,
+    onSelectServer: (Int) -> Unit,
     controlsFocusRequester: FocusRequester,
     onTogglePlay: () -> Unit,
     onOpenMenu: (ActiveMenu) -> Unit,
@@ -1106,6 +1149,9 @@ private fun ChannelChip(channelName: String, logoUrl: String?) {
 @Composable
 private fun SubMenuPanel(
     activeMenu: ActiveMenu,
+    validServers: List<Pair<String, String>>,
+    activeServerIndex: Int,
+    onSelectServer: (Int) -> Unit,
     onDismiss: () -> Unit
 ) {
     val menuFocusRequester = remember { FocusRequester() }
@@ -1136,6 +1182,7 @@ private fun SubMenuPanel(
             ) {
                 Text(
                     text = when (activeMenu) {
+                        ActiveMenu.SERVERS   -> "SERVERS"
                         ActiveMenu.QUALITY   -> "VIDEO QUALITY"
                         ActiveMenu.AUDIO     -> "AUDIO TRACKS"
                         ActiveMenu.SUBTITLES -> "SUBTITLES"
@@ -1170,6 +1217,7 @@ private fun SubMenuPanel(
                 )
             } else {
                 val items = when (activeMenu) {
+                    ActiveMenu.SERVERS   -> validServers.map { it.first }
                     ActiveMenu.QUALITY   -> listOf("Auto", "1080p HD", "720p", "480p", "360p")
                     ActiveMenu.AUDIO     -> listOf("Track 1 (Default)", "Track 2", "Track 3")
                     ActiveMenu.SUBTITLES -> listOf("Off", "English", "Arabic", "French", "Spanish")
@@ -1180,11 +1228,17 @@ private fun SubMenuPanel(
                     modifier = Modifier.focusRestorer()
                 ) {
                     items(items.size) { i ->
+                        val isSel = if (activeMenu == ActiveMenu.SERVERS) i == activeServerIndex else i == 0
                         TrackOption(
                             title      = items[i],
-                            isSelected = i == 0,
+                            isSelected = isSel,
                             modifier   = if (i == 0) Modifier.focusRequester(menuFocusRequester) else Modifier,
-                            onClick    = { onDismiss() }
+                            onClick    = { 
+                                if (activeMenu == ActiveMenu.SERVERS) {
+                                    onSelectServer(i)
+                                }
+                                onDismiss() 
+                            }
                         )
                     }
                 }

@@ -48,9 +48,9 @@ void main() async {
       final bool jailbroken = await FlutterJailbreakDetection.jailbroken
           .timeout(const Duration(seconds: 3), onTimeout: () => false);
       if (jailbroken) {
-        debugPrint('Security violation: Device is rooted/jailbroken.');
-        SystemNavigator.pop();
-        return;
+        debugPrint('Security violation: Device is rooted/jailbroken. Bypassed for Xiaomi fix.');
+        // SystemNavigator.pop();
+        // return;
       }
     } catch (e) {
       debugPrint('Jailbreak detection failed: $e');

@@ -31,7 +31,8 @@ class AppUpdateData {
 
 final updateManagerProvider = FutureProvider<AppUpdateData>((ref) async {
   try {
-    final record = await pb.collection('updateManager').getFirstListItem('');
+    // PocketBase expects a valid filter expression. 'id != ""' gets any record.
+    final record = await pb.collection('updateManager').getFirstListItem('id != ""');
     return AppUpdateData.fromRecord(record);
   } catch (_) {
     return const AppUpdateData(apkUrl: '', versionCode: 0, versionName: '', releaseNotes: '', isActive: false);
@@ -41,9 +42,9 @@ final updateManagerProvider = FutureProvider<AppUpdateData>((ref) async {
 final appVersionCodeProvider = FutureProvider<int>((ref) async {
   try {
     final packageInfo = await PackageInfo.fromPlatform();
-    return int.tryParse(packageInfo.buildNumber) ?? 14;
+    return int.tryParse(packageInfo.buildNumber) ?? 16;
   } catch (e) {
-    return 14; // Fallback to current version (1.2.0+14) if package_info fails
+    return 16; // Fallback to current version (1.3.1+16) if package_info fails
   }
 });
 
