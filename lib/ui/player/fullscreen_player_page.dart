@@ -1,6 +1,5 @@
 import 'dart:async';
 import 'dart:math' as math;
-import '../../services/viewer_service.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -55,7 +54,7 @@ class _FullscreenPlayerPageState extends ConsumerState<FullscreenPlayerPage> {
   late int _currentIndex;
   late Channel _currentChannel;
   bool _overlayVisible = false;
-  ViewerService? _viewerService;
+
   Timer? _hideTimer;
   final List<StreamSubscription> _subscriptions = [];
   bool _streamFailed = false;
@@ -92,9 +91,7 @@ class _FullscreenPlayerPageState extends ConsumerState<FullscreenPlayerPage> {
       if (err != null) _handlePlayerError(err);
     }));
 
-    _clockTimer = Timer.periodic(const Duration(seconds: 1), (t) {
-      if (mounted) setState(() => _now = DateTime.now());
-    });
+    // _clockTimer removed to prevent 1-second setState lag
 
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
 
@@ -109,14 +106,7 @@ class _FullscreenPlayerPageState extends ConsumerState<FullscreenPlayerPage> {
     // Enable wakelock to prevent screen sleep
     WakelockPlus.enable();
 
-    if (widget.onChannelChanged == null) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (mounted) {
-          _viewerService = ref.read(viewerServiceProvider);
-          _viewerService?.joinChannel(_currentChannel.url, channelName: _currentChannel.name);
-        }
-      });
-    }
+
 
     // Load video fit settings & scroll bottom carousel
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -131,7 +121,6 @@ class _FullscreenPlayerPageState extends ConsumerState<FullscreenPlayerPage> {
     WakelockPlus.disable();
     _scrollController.dispose();
     if (widget.onChannelChanged == null) {
-      _viewerService?.leaveChannel(_currentChannel.url);
       try {
         widget.player.stop();
       } catch (e) {
@@ -209,7 +198,6 @@ class _FullscreenPlayerPageState extends ConsumerState<FullscreenPlayerPage> {
     });
 
     final oldChannel = _currentChannel;
-    final oldUrl = _currentChannel.url;
 
     setState(() {
       _currentIndex = index;
@@ -223,14 +211,10 @@ class _FullscreenPlayerPageState extends ConsumerState<FullscreenPlayerPage> {
     });
 
     final newChannel = _currentChannel;
-    final newUrl = _currentChannel.url;
 
     if (oldChannel.url != newChannel.url) {
       if (widget.onChannelChanged != null) {
         widget.onChannelChanged!(oldChannel, newChannel);
-      } else {
-        _viewerService?.leaveChannel(oldUrl);
-        _viewerService?.joinChannel(newUrl, channelName: _currentChannel.name);
       }
     }
 
@@ -560,37 +544,7 @@ class _FullscreenPlayerPageState extends ConsumerState<FullscreenPlayerPage> {
                       ],
                     ),
                   ),
-                  const SizedBox(width: 8),
-                  // Live Viewers Badge
-                  Consumer(
-                    builder: (context, ref, child) {
-                      final count = ref.watch(channelViewersProvider(_currentChannel.url)).value ?? 0;
-                      return Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                        decoration: BoxDecoration(
-                          color: Colors.redAccent.withOpacity(0.15),
-                          borderRadius: BorderRadius.circular(12),
-                          border: Border.all(color: Colors.redAccent.withOpacity(0.5), width: 1.5),
-                        ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            const Icon(Icons.remove_red_eye_rounded, color: Colors.redAccent, size: 14),
-                            const SizedBox(width: 4),
-                            Text(
-                              NumberFormat.compact().format(count),
-                              style: const TextStyle(
-                                color: Colors.redAccent,
-                                fontSize: 13,
-                                fontWeight: FontWeight.bold,
-                                letterSpacing: 1.1,
-                              ),
-                            ),
-                          ],
-                        ),
-                      );
-                    },
-                  ),
+                  const SizedBox(width: 8)                  // FHD Quality Tag,
                 ],
               ),
             ),
@@ -1000,36 +954,7 @@ class _FullscreenPlayerPageState extends ConsumerState<FullscreenPlayerPage> {
                 ],
               ),
               const Spacer(),
-              // Live Viewers Badge (TV)
-              Consumer(
-                builder: (context, ref, child) {
-                  final count = ref.watch(channelViewersProvider(_currentChannel.url)).value ?? 0;
-                  return Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-                    decoration: BoxDecoration(
-                      color: Colors.redAccent.withOpacity(0.15),
-                      borderRadius: BorderRadius.circular(16),
-                      border: Border.all(color: Colors.redAccent.withOpacity(0.5), width: 2),
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        const Icon(Icons.remove_red_eye_rounded, color: Colors.redAccent, size: 22),
-                        const SizedBox(width: 8),
-                        Text(
-                          NumberFormat.compact().format(count),
-                          style: const TextStyle(
-                            color: Colors.redAccent,
-                            fontSize: 20,
-                            fontWeight: FontWeight.bold,
-                            letterSpacing: 1.2,
-                          ),
-                        ),
-                      ],
-                    ),
-                  );
-                },
-              ),
+              // Live Viewers Badge (TV),
             ],
           ),
           const Spacer(),

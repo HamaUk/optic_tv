@@ -1,5 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../services/settings_service.dart';
+export '../services/settings_service.dart';
 
 /// A [NotifierProvider] so that calling [invalidate] (or [state = …])
 /// triggers a *synchronous* rebuild of all widgets that watch this provider,

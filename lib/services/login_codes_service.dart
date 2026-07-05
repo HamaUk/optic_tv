@@ -40,7 +40,7 @@ class LoginCodesService {
     final controller = StreamController<bool>.broadcast();
 
     // Initial check
-    validate(raw).then(controller.add).catchError((_) {});
+    validate(raw).then(controller.add).catchError((_) => controller.add(false));
 
     // Subscribe to PocketBase realtime updates for loginCodes
     pb.collection('loginCodes').subscribe('*', (e) {
@@ -48,6 +48,10 @@ class LoginCodesService {
     });
 
     return controller.stream;
+  }
+
+  static void triggerRefresh() {
+    // No-op for old ViewerService, or we could trigger validation
   }
 
   static String _normalize(String s) =>

@@ -80,20 +80,27 @@ class OpticPlayer with WidgetsBindingObserver {
       }
     } else if (state == AppLifecycleState.resumed) {
       if (_wasPlayingBeforePause && _lastUrl != null) {
-        // Reinitialize texture and player to ensure clean state after resume
-        _initialized = false;
-        textureId = -1;
-        textureIdNotifier.value = -1;
-        _init().then((_) {
-          if (_initialized && _lastUrl != null) {
-            open(_lastUrl!, headers: _lastHeaders).then((_) {
-              if (_wasPlayingBeforePause) {
-                play();
-              }
-              _wasPlayingBeforePause = false;
-            });
-          }
-        });
+        // Only reinitialize if not already initialized to prevent duplicate texture IDs
+        if (!_initialized) {
+          _init().then((_) {
+            if (_initialized && _lastUrl != null) {
+              open(_lastUrl!, headers: _lastHeaders).then((_) {
+                if (_wasPlayingBeforePause) {
+                  play();
+                }
+                _wasPlayingBeforePause = false;
+              });
+            }
+          });
+        } else {
+          // Already initialized, just resume playback
+          open(_lastUrl!, headers: _lastHeaders).then((_) {
+            if (_wasPlayingBeforePause) {
+              play();
+            }
+            _wasPlayingBeforePause = false;
+          });
+        }
       }
     }
   }
@@ -170,7 +177,8 @@ class OpticPlayer with WidgetsBindingObserver {
 
   Future<void> seek(Duration position) async {
     if (_disposed) return;
-    final ms = position.inMilliseconds.clamp(0, _duration.inMilliseconds > 0 ? _duration.inMilliseconds : 999999999);
+    final maxMs = _duration.inMilliseconds > 0 ? _duration.inMilliseconds : Duration(hours: 24).inMilliseconds;
+    final ms = position.inMilliseconds.clamp(0, maxMs);
     await _channel.invokeMethod('seekTo', {'position': ms});
   }
 

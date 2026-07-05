@@ -1,6 +1,6 @@
 name: optic_tv
 description: A premium, professional IPTV application built from scratch.
-version: 1.4.4+21
+version: 1.0.1+222
 
 environment:
   sdk: '>=3.7.0 <4.0.0'
@@ -66,6 +66,11 @@ dependencies:
   firebase_messaging: ^15.0.0
   googleapis_auth: ^1.4.1
   open_filex: ^4.7.0
+  firebase_database: ^11.3.10
+  cast: ^2.1.0
+  dlna_dart: ^0.1.1
+  babstrap_settings_screen: ^0.1.7
+
 dev_dependencies:
   flutter_test:
     sdk: flutter
@@ -87,10 +92,6 @@ flutter:
   assets:
     - assets/json/
     - assets/images/flut.png
-    - assets/images/logonewww.png
-    - assets/images/optic_logo.png
-    - assets/images/newiconapp.jpg
-    - assets/images/kobani4k_icon.png
     - assets/images/logo.png
   fonts:
     - family: Rabar

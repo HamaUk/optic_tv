@@ -25,7 +25,35 @@ data class TvChannel(
     val order: Int = 999999,
     val drmScheme: String? = null,
     val drmLicense: String? = null
-)
+) {
+    fun isMovie(): Boolean {
+        if (type == "movie") return true
+        if (type == "live") return false
+
+        val g = group.lowercase()
+        val n = name.lowercase()
+        
+        if (g.contains("live tv") || g == "live" || n.contains(" (live)")) return false
+        if (g.contains("tv") && !g.contains("movie") && !g.contains("cinema")) return false
+
+        if (g == "movies" || g == "vod" || g == "cinema" || g == "films") return true
+
+        val movieKeywords = listOf("vod", "box office", "uhd", "4k", "action", "comedy", "horror", "drama", "thriller", "animation", "documentary")
+        val isTaggedName = movieKeywords.any { n.contains(it) }
+        
+        return isTaggedName || g.contains("movie") || g.contains("film")
+    }
+
+    fun isSport(): Boolean {
+        if (type == "sport") return true
+        
+        val g = group.lowercase()
+        val n = name.lowercase()
+        
+        val sportKeywords = listOf("sport", "bein", "ad sports", "ssc", "eurospot", "espn", "arena", "bt sport", "sky sport", "alkass", "starzplay sports")
+        return sportKeywords.any { g.contains(it) } || sportKeywords.any { n.contains(it) }
+    }
+}
 
 data class TvChannelGroup(
     val key: String,

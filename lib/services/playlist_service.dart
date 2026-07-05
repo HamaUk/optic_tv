@@ -4,6 +4,7 @@ import 'dart:convert';
 import 'package:pocketbase/pocketbase.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'pocketbase_service.dart';
+import 'pocketbase_database_mock.dart';
 import '../services/optic_player.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -50,7 +51,7 @@ class Channel {
     this.drmLicense,
   });
 
-  static String _decrypt(String b64Text) {
+  static String decrypt(String b64Text) {
     if (b64Text.isEmpty || b64Text.startsWith('http')) return b64Text;
     try {
       const key = "KOBANI_TV_SECRET_2026";
@@ -62,6 +63,21 @@ class Channel {
       return String.fromCharCodes(resultBytes);
     } catch (e) {
       return b64Text;
+    }
+  }
+
+  static String encrypt(String plainText) {
+    if (plainText.isEmpty || !plainText.startsWith('http')) return plainText;
+    try {
+      const key = "KOBANI_TV_SECRET_2026";
+      final List<int> bytes = plainText.codeUnits;
+      final List<int> resultBytes = [];
+      for (int i = 0; i < bytes.length; i++) {
+        resultBytes.add(bytes[i] ^ key.codeUnitAt(i % key.length));
+      }
+      return base64.encode(resultBytes);
+    } catch (e) {
+      return plainText;
     }
   }
 
@@ -84,7 +100,7 @@ class Channel {
   factory Channel.fromMap(Map<dynamic, dynamic> map) {
     return Channel(
       name: map['name'] ?? 'Unknown',
-      url: _decrypt(map['url'] ?? ''),
+      url: decrypt(map['url'] ?? ''),
       group: map['group'] ?? map['category'] ?? 'General',
       logo: map['logo'] ?? map['icon_url'],
       backdrop: map['backdrop'] as String?,
@@ -95,9 +111,9 @@ class Channel {
       order: _parseInt(map['order']),
       featuredOrder: _parseInt(map['featured_order']),
       userAgent: map['userAgent'] as String? ?? map['user_agent'] as String?,
-      url2: map['url2'] != null ? _decrypt(map['url2'] as String) : null,
+      url2: map['url2'] != null ? decrypt(map['url2'] as String) : null,
       url2Name: map['url2Name'] as String?,
-      url3: map['url3'] != null ? _decrypt(map['url3'] as String) : null,
+      url3: map['url3'] != null ? decrypt(map['url3'] as String) : null,
       url3Name: map['url3Name'] as String?,
       drmScheme: map['drmScheme'] as String?,
       drmLicense: map['drmLicense'] as String?,
@@ -223,7 +239,13 @@ final channelsProvider = StreamProvider<List<Channel>>((ref) {
   // Step 2 — fetch from encrypted route
   fetchChannels();
 
+  // Listen to realtime / broadcast updates
+  final sub = PocketBaseDatabase.instance.ref('managedPlaylist').onValue.listen((_) {
+    fetchChannels();
+  });
+
   ref.onDispose(() {
+    sub.cancel();
     controller.close();
   });
 
@@ -256,23 +278,39 @@ class ChannelGroup {
   }
 }
 
-final groupsProvider = FutureProvider<List<ChannelGroup>>((ref) async {
-  try {
-    final records = await pb.collection('channelGroups').getFullList();
+final groupsProvider = StreamProvider<List<ChannelGroup>>((ref) {
+  final controller = StreamController<List<ChannelGroup>>();
 
-    final list = records.map((e) {
-      return ChannelGroup.fromMap(e.id, e.toJson());
-    }).toList();
+  void fetchGroups() async {
+    try {
+      final records = await pb.collection('channelGroups').getFullList();
+      final list = records.map((e) {
+        return ChannelGroup.fromMap(e.id, e.toJson());
+      }).toList();
 
-    list.sort((a, b) {
-      if (a.order != b.order) return a.order.compareTo(b.order);
-      return 0;
-    });
+      list.sort((a, b) {
+        if (a.order != b.order) return a.order.compareTo(b.order);
+        return 0;
+      });
 
-    return list;
-  } catch (_) {
-    return [];
+      if (!controller.isClosed) controller.add(list);
+    } catch (_) {
+      if (!controller.isClosed) controller.add([]);
+    }
   }
+
+  fetchGroups();
+
+  final sub = PocketBaseDatabase.instance.ref('channelGroups').onValue.listen((_) {
+    fetchGroups();
+  });
+
+  ref.onDispose(() {
+    sub.cancel();
+    controller.close();
+  });
+
+  return controller.stream;
 });
 
 

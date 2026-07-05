@@ -32,6 +32,12 @@ subprojects {
                 if (android.namespace.isNullOrEmpty()) {
                     android.namespace = project.group.toString()
                 }
+                
+                // Only bump compileSdk for babstrap to fix the android:attr/lStar error
+                if (project.name == "babstrap_settings_screen") {
+                    android.compileSdkVersion(34)
+                }
+
                 android.compileOptions {
                     sourceCompatibility = JavaVersion.VERSION_17
                     targetCompatibility = JavaVersion.VERSION_17

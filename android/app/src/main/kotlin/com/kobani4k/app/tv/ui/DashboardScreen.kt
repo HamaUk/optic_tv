@@ -1,12 +1,15 @@
 package com.kobani4k.app.tv.ui
 
 import android.os.Build
+import android.content.Context
 import android.view.KeyEvent
 import android.widget.TextClock
 import androidx.compose.animation.*
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.focusGroup
 import androidx.compose.foundation.focusable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -78,26 +81,43 @@ fun DashboardScreen(
         isLoading = false
     }
 
-    val categories = remember(allChannels, allGroups) {
-        if (allGroups.isNotEmpty()) allGroups.map { it.name }
-        else allChannels.map { it.group.ifEmpty { "General" } }.distinct().sorted()
-    }
-
     var selectedCategory by rememberSaveable { mutableStateOf<String?>(null) }
     var focusedChannel by remember { mutableStateOf<TvChannel?>(null) }
+    var activeNav by remember { mutableStateOf("Live TV") }
 
-    val filteredChannels = remember(allChannels, selectedCategory) {
-        allChannels.filter { it.group.ifEmpty { "General" } == selectedCategory }
-    }
-
-    LaunchedEffect(categories) {
-        if (categories.isNotEmpty() && selectedCategory == null) {
-            selectedCategory = categories.first()
+    val activeChannels = remember(allChannels, activeNav) {
+        when (activeNav) {
+            "Live TV" -> allChannels.filter { !it.isMovie() && !it.isSport() }
+            "Movies" -> allChannels.filter { it.isMovie() }
+            "Sports" -> allChannels.filter { it.isSport() }
+            else -> allChannels
         }
     }
 
+    val categories = remember(activeChannels, allGroups) {
+        val activeGroups = activeChannels.map { it.group.ifEmpty { "General" } }.distinct()
+        if (allGroups.isNotEmpty()) {
+            activeGroups.sortedBy { groupName ->
+                allGroups.indexOfFirst { it.name == groupName }.takeIf { it >= 0 } ?: Int.MAX_VALUE
+            }
+        } else {
+            activeGroups.sorted()
+        }
+    }
+
+    val filteredChannels = remember(activeChannels, selectedCategory) {
+        activeChannels.filter { it.group.ifEmpty { "General" } == selectedCategory }
+    }
+
+    LaunchedEffect(categories, activeNav) {
+        if (categories.isNotEmpty() && (selectedCategory == null || !categories.contains(selectedCategory))) {
+            selectedCategory = categories.first()
+        }
+    }
     val categoryFocusRequester = remember { FocusRequester() }
-    LaunchedEffect(isLoading, categories) {
+    val navRailFocusRequester = remember { FocusRequester() }
+
+    LaunchedEffect(isLoading, categories, activeNav) {
         if (!isLoading && categories.isNotEmpty()) {
             delay(150)
             runCatching { categoryFocusRequester.requestFocus() }
@@ -105,13 +125,31 @@ fun DashboardScreen(
     }
 
     Box(modifier = Modifier.fillMaxSize()) {
-        Column(
+        Row(
             modifier = Modifier
                 .fillMaxSize()
                 .background(UltraTokens.Background)
         ) {
-            // ═══ TOP HEADER BAR ═══
-            DashboardHeader(onSettingsClick = { showSettings = true })
+            // ═══ NAV RAIL ═══
+            DashboardNavRail(
+                activeNav = activeNav,
+                onNavSelected = { nav ->
+                    if (nav == "Settings") {
+                        showSettings = true
+                    } else {
+                        activeNav = nav
+                    }
+                },
+                focusRequester = navRailFocusRequester
+            )
+
+            Column(
+                modifier = Modifier
+                    .weight(1f)
+                    .fillMaxHeight()
+            ) {
+                // ═══ TOP HEADER BAR ═══
+                DashboardHeader()
 
             if (isLoading) {
                 Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
@@ -129,6 +167,18 @@ fun DashboardScreen(
                         )
                     }
                 }
+            } else if (activeNav == "Movies") {
+                // ═══ MOVIES GRID LAYOUT ═══
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(start = 24.dp)
+                ) {
+                    MoviesGridScreen(
+                        channels = activeChannels,
+                        onMovieClick = onChannelSelected
+                    )
+                }
             } else {
                 // ═══ MAIN 3-PANE LAYOUT ═══
                 Row(
@@ -142,7 +192,7 @@ fun DashboardScreen(
                         categories = categories,
                         selectedCategory = selectedCategory,
                         onCategorySelected = { selectedCategory = it },
-                        channelCounts = allChannels.groupingBy { it.group.ifEmpty { "General" } }.eachCount(),
+                        channelCounts = activeChannels.groupingBy { it.group.ifEmpty { "General" } }.eachCount(),
                         focusRequester = categoryFocusRequester,
                         modifier = Modifier
                             .width(UltraTokens.SideBar)
@@ -169,6 +219,7 @@ fun DashboardScreen(
                 }
             }
         }
+    }
 
         // ═══ SETTINGS OVERLAY ═══
         AnimatedVisibility(
@@ -191,8 +242,7 @@ fun DashboardScreen(
 // ═══════════════════════════════════════════════════
 
 @Composable
-private fun DashboardHeader(onSettingsClick: () -> Unit) {
-    var settingsFocused by remember { mutableStateOf(false) }
+private fun DashboardHeader() {
 
     Row(
         modifier = Modifier
@@ -297,46 +347,115 @@ private fun DashboardHeader(onSettingsClick: () -> Unit) {
                     }
                 }
             )
+        }
+    }
+}
 
-            // Settings button
-            val settingsScale by animateFloatAsState(
-                if (settingsFocused) 1.2f else 1f,
-                tween(200),
-                label = "settingsScale"
-            )
-            val settingsBg by animateColorAsState(
-                if (settingsFocused) UltraTokens.Blue else Color.Transparent,
-                tween(200),
-                label = "settingsBg"
-            )
+// ═══════════════════════════════════════════════════
+//  DASHBOARD NAV RAIL
+// ═══════════════════════════════════════════════════
 
-            Box(
-                modifier = Modifier
-                    .size(36.dp)
-                    .scale(settingsScale)
-                    .clip(CircleShape)
-                    .background(settingsBg)
-                    .onFocusChanged { settingsFocused = it.isFocused }
-                    .focusable()
-                    .onKeyEvent { ev ->
-                        if (ev.nativeKeyEvent.action == KeyEvent.ACTION_DOWN &&
-                            (ev.nativeKeyEvent.keyCode == KeyEvent.KEYCODE_DPAD_CENTER ||
-                                    ev.nativeKeyEvent.keyCode == KeyEvent.KEYCODE_ENTER || ev.nativeKeyEvent.keyCode == KeyEvent.KEYCODE_NUMPAD_ENTER)
-                        ) {
-                            onSettingsClick()
-                            true
-                        } else false
-                    },
-                contentAlignment = Alignment.Center
-            ) {
-                Icon(
-                    Icons.Rounded.Settings,
-                    contentDescription = "Settings",
-                    tint = if (settingsFocused) Color.White else UltraTokens.TextSecondary,
-                    modifier = Modifier.size(20.dp)
+@Composable
+private fun DashboardNavRail(
+    activeNav: String,
+    onNavSelected: (String) -> Unit,
+    focusRequester: FocusRequester
+) {
+    val items = listOf(
+        Triple("Live TV", Icons.Rounded.Tv, UltraTokens.Blue),
+        Triple("Movies", Icons.Rounded.Movie, UltraTokens.Movie),
+        Triple("Sports", Icons.Rounded.SportsBaseball, UltraTokens.Sports)
+    )
+
+    Column(
+        modifier = Modifier
+            .width(160.dp)
+            .fillMaxHeight()
+            .background(UltraTokens.Surface.copy(alpha = 0.5f))
+            .padding(vertical = 32.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.SpaceBetween
+    ) {
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(24.dp)
+        ) {
+            items.forEachIndexed { index, item ->
+                val (title, icon, tint) = item
+                NavRailItem(
+                    title = title,
+                    icon = icon,
+                    tint = tint,
+                    isSelected = activeNav == title,
+                    modifier = if (index == 0) Modifier.focusRequester(focusRequester) else Modifier,
+                    onClick = { onNavSelected(title) }
                 )
             }
         }
+
+        NavRailItem(
+            title = "Settings",
+            icon = Icons.Rounded.Settings,
+            tint = UltraTokens.TextSecondary,
+            isSelected = false,
+            modifier = Modifier,
+            onClick = { onNavSelected("Settings") }
+        )
+    }
+}
+
+@Composable
+private fun NavRailItem(
+    title: String,
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    tint: Color,
+    isSelected: Boolean,
+    modifier: Modifier = Modifier,
+    onClick: () -> Unit
+) {
+    var isFocused by remember { mutableStateOf(false) }
+
+    val scale by animateFloatAsState(
+        targetValue = if (isFocused || isSelected) 1.2f else 1f,
+        animationSpec = tween(200),
+        label = "scale"
+    )
+
+    val bgAlpha by animateFloatAsState(
+        targetValue = if (isFocused) 0.3f else if (isSelected) 0.15f else 0f,
+        animationSpec = tween(200),
+        label = "bgAlpha"
+    )
+
+    Box(
+        modifier = modifier
+            .fillMaxWidth(0.85f)
+            .height(48.dp)
+            .scale(scale)
+            .clip(RoundedCornerShape(8.dp))
+            .background(tint.copy(alpha = bgAlpha))
+            .onFocusChanged { isFocused = it.isFocused }
+            .focusable()
+            .onKeyEvent { ev ->
+                if (ev.nativeKeyEvent.action == KeyEvent.ACTION_DOWN &&
+                    (ev.nativeKeyEvent.keyCode == KeyEvent.KEYCODE_DPAD_CENTER ||
+                            ev.nativeKeyEvent.keyCode == KeyEvent.KEYCODE_ENTER ||
+                            ev.nativeKeyEvent.keyCode == KeyEvent.KEYCODE_NUMPAD_ENTER)
+                ) {
+                    onClick()
+                    true
+                } else false
+            }
+            .clickable(onClick = onClick),
+        contentAlignment = Alignment.Center
+    ) {
+        androidx.tv.material3.Text(
+            text = title.uppercase(),
+            color = if (isSelected || isFocused) tint else UltraTokens.TextSecondary,
+            fontSize = 14.sp,
+            fontWeight = if (isSelected || isFocused) FontWeight.Bold else FontWeight.Medium,
+            letterSpacing = 1.sp
+        )
     }
 }
 
@@ -356,14 +475,25 @@ private fun SettingsOverlay(
     val context = LocalContext.current
     val settingsFocusRequester = remember { FocusRequester() }
 
+    val prefs = context.getSharedPreferences("FlutterSharedPreferences", Context.MODE_PRIVATE)
+
     // Settings state
-    var selectedVideoQuality by rememberSaveable { mutableStateOf("Auto") }
-    var selectedAudioLang by rememberSaveable { mutableStateOf("Default") }
-    var selectedSubLang by rememberSaveable { mutableStateOf("Off") }
-    var parentalEnabled by rememberSaveable { mutableStateOf(false) }
-    var autoPlayNext by rememberSaveable { mutableStateOf(true) }
-    var timeFormat24h by rememberSaveable { mutableStateOf(false) }
-    var selectedTheme by rememberSaveable { mutableStateOf("Dark") }
+    var selectedVideoQuality by remember { mutableStateOf(prefs.getString("settings.video_quality", "Auto") ?: "Auto") }
+    var selectedAudioLang by remember { mutableStateOf(prefs.getString("settings.audio_lang", "Default") ?: "Default") }
+    var selectedSubLang by remember { mutableStateOf(prefs.getString("settings.sub_lang", "Off") ?: "Off") }
+    var parentalEnabled by remember { mutableStateOf(prefs.getBoolean("settings.parental", false)) }
+    var autoPlayNext by remember { mutableStateOf(prefs.getBoolean("settings.autoplay", true)) }
+    var timeFormat24h by remember { mutableStateOf(prefs.getBoolean("settings.time24h", false)) }
+    var selectedTheme by remember { mutableStateOf(prefs.getString("settings.theme", "Dark") ?: "Dark") }
+
+    // Helper function to save string
+    fun saveStringPref(key: String, value: String) {
+        prefs.edit().putString(key, value).apply()
+    }
+    // Helper function to save boolean
+    fun saveBoolPref(key: String, value: Boolean) {
+        prefs.edit().putBoolean(key, value).apply()
+    }
 
     // Settings menu categories
     var activeSection by remember { mutableStateOf("general") }
@@ -377,6 +507,7 @@ private fun SettingsOverlay(
         modifier = Modifier
             .fillMaxSize()
             .background(UltraTokens.Background.copy(alpha = 0.97f))
+            .focusGroup()
     ) {
         Row(modifier = Modifier.fillMaxSize()) {
             // ═══ LEFT SIDEBAR — Settings Categories ═══
@@ -464,39 +595,50 @@ private fun SettingsOverlay(
                     .weight(1f)
                     .fillMaxHeight()
                     .padding(horizontal = 48.dp, vertical = 24.dp)
+                    .focusGroup()
             ) {
-                Crossfade(targetState = activeSection, animationSpec = tween(250), label = "settingsSection") { section ->
-                    when (section) {
-                        "general" -> GeneralSettingsSection(
-                            autoPlayNext = autoPlayNext,
-                            onAutoPlayChange = { autoPlayNext = it },
-                            timeFormat24h = timeFormat24h,
-                            onTimeFormatChange = { timeFormat24h = it }
-                        )
-                        "video" -> VideoAudioSettingsSection(
-                            selectedQuality = selectedVideoQuality,
-                            onQualityChange = { selectedVideoQuality = it },
-                            selectedAudioLang = selectedAudioLang,
-                            onAudioLangChange = { selectedAudioLang = it },
-                            selectedSubLang = selectedSubLang,
-                            onSubLangChange = { selectedSubLang = it }
-                        )
-                        "parental" -> ParentalControlsSection(
-                            enabled = parentalEnabled,
-                            onEnabledChange = { parentalEnabled = it }
-                        )
-                        "appearance" -> AppearanceSection(
-                            selectedTheme = selectedTheme,
-                            onThemeChange = { selectedTheme = it }
-                        )
-                        "storage" -> StorageSection()
-                        "about" -> AboutSection()
-                        "account" -> AccountSection(
-                            channelCount = channelCount,
-                            categoryCount = categoryCount,
-                            onLogout = onLogout
-                        )
-                    }
+                when (activeSection) {
+                    "general" -> GeneralSettingsSection(
+                        autoPlayNext = autoPlayNext,
+                        onAutoPlayChange = { 
+                            autoPlayNext = it
+                            saveBoolPref("settings.autoplay", it)
+                        },
+                        timeFormat24h = timeFormat24h,
+                        onTimeFormatChange = { 
+                            timeFormat24h = it
+                            saveBoolPref("settings.time24h", it)
+                        }
+                    )
+                    "video" -> VideoAudioSettingsSection(
+                        selectedQuality = selectedVideoQuality,
+                        onQualityChange = { 
+                            selectedVideoQuality = it
+                            saveStringPref("settings.video_quality", it)
+                        },
+                        selectedAudioLang = selectedAudioLang,
+                        onAudioLangChange = { 
+                            selectedAudioLang = it
+                            saveStringPref("settings.audio_lang", it)
+                        },
+                        selectedSubLang = selectedSubLang,
+                        onSubLangChange = { selectedSubLang = it }
+                    )
+                    "parental" -> ParentalControlsSection(
+                        enabled = parentalEnabled,
+                        onEnabledChange = { parentalEnabled = it }
+                    )
+                    "appearance" -> AppearanceSection(
+                        selectedTheme = selectedTheme,
+                        onThemeChange = { selectedTheme = it }
+                    )
+                    "storage" -> StorageSection()
+                    "about" -> AboutSection()
+                    "account" -> AccountSection(
+                        channelCount = channelCount,
+                        categoryCount = categoryCount,
+                        onLogout = onLogout
+                    )
                 }
             }
         }

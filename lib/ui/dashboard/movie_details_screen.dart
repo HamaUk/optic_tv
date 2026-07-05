@@ -9,6 +9,9 @@ import 'package:translator/translator.dart';
 import '../../services/optic_player.dart';
 
 import '../../core/theme.dart';
+import '../../services/settings_service.dart';
+import '../../services/dlna_service.dart';
+import '../../widgets/dlna_device_dialog.dart';
 import '../../services/palette_service.dart';
 import '../../services/playlist_service.dart';
 import '../../services/tmdb_service.dart';
@@ -717,6 +720,23 @@ class _MovieDetailsScreenState extends ConsumerState<MovieDetailsScreen>
             ref.read(favoritesProvider.notifier).toggle(widget.channel);
           },
           isFavorite ? 'My List' : 'Add',
+          accent,
+        ),
+        const SizedBox(width: 10),
+        // Cast Button
+        _buildCircularAction(
+          Icons.cast_connected_rounded,
+          () async {
+            HapticFeedback.lightImpact();
+            final connected = await showDialog<bool>(
+              context: context,
+              builder: (_) => const DlnaDeviceDialog(),
+            );
+            if (connected == true) {
+              ref.read(dlnaServiceProvider).castUrl(widget.channel.url, title: widget.channel.name);
+            }
+          },
+          'Cast',
           accent,
         ),
       ],

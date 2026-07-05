@@ -26,6 +26,14 @@ void main() async {
   HttpOverrides.global = GlobalSecurityHttpOverrides();
   WidgetsFlutterBinding.ensureInitialized();
 
+  // Enable edge-to-edge UI so the app draws behind the status and navigation bars
+  SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
+  SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(
+    statusBarColor: Colors.transparent,
+    systemNavigationBarColor: Colors.transparent,
+    systemNavigationBarDividerColor: Colors.transparent,
+  ));
+
   // Firebase MUST be initialized before runApp so MethodChannels work
   try {
     await Firebase.initializeApp(
@@ -43,7 +51,7 @@ void main() async {
   }
 
   // RASP Security Check (with timeout to prevent hangs)
-  if (!identical(0, 0.0) && Platform.isAndroid || Platform.isIOS) {
+  if (Platform.isAndroid || Platform.isIOS) {
     try {
       final bool jailbroken = await FlutterJailbreakDetection.jailbroken
           .timeout(const Duration(seconds: 3), onTimeout: () => false);

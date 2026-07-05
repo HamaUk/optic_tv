@@ -3,8 +3,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../services/login_codes_service.dart';
-import '../services/monitor_service.dart';
-
 class SessionState {
   final bool loggedIn;
   final String? activeCode;
@@ -14,7 +12,6 @@ class SessionState {
 
 class SessionNotifier extends Notifier<SessionState> {
   StreamSubscription<bool>? _codeSub;
-  Timer? _expiryTimer;
 
   @override
   SessionState build() {
@@ -26,7 +23,6 @@ class SessionNotifier extends Notifier<SessionState> {
   void initialize(bool initialLoggedIn, String? code) {
     if (initialLoggedIn && code != null) {
       state = SessionState(loggedIn: true, activeCode: code);
-      MonitorService.start(code);
       _listenToCode(code);
     }
   }
@@ -38,25 +34,14 @@ class SessionNotifier extends Notifier<SessionState> {
         _forceLogoutExpired();
       }
     });
-
-    _expiryTimer?.cancel();
-    _expiryTimer = Timer.periodic(const Duration(minutes: 1), (_) async {
-      final stillValid = await LoginCodesService.validate(code);
-      if (!stillValid && state.loggedIn) {
-        _forceLogoutExpired();
-      }
-    });
   }
 
   Future<void> _forceLogoutExpired() async {
     final p = await SharedPreferences.getInstance();
     await p.setBool('auth_logged_in', false);
     await p.remove('auth_active_code');
-    MonitorService.stop();
     _codeSub?.cancel();
     _codeSub = null;
-    _expiryTimer?.cancel();
-    _expiryTimer = null;
     state = SessionState(loggedIn: false, error: 'Your activation code expired.');
   }
 
@@ -73,7 +58,6 @@ class SessionNotifier extends Notifier<SessionState> {
       await p.setString('auth_active_code', code);
       
       state = SessionState(loggedIn: true, activeCode: code);
-      MonitorService.start(code);
       _listenToCode(code);
       return true;
     } catch (e) {
@@ -86,11 +70,8 @@ class SessionNotifier extends Notifier<SessionState> {
     final p = await SharedPreferences.getInstance();
     await p.setBool('auth_logged_in', false);
     await p.remove('auth_active_code');
-    MonitorService.stop();
     _codeSub?.cancel();
     _codeSub = null;
-    _expiryTimer?.cancel();
-    _expiryTimer = null;
     state = SessionState(loggedIn: false);
   }
 }

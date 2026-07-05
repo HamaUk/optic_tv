@@ -59,10 +59,7 @@ class _TvFocusWrapperState extends State<TvFocusWrapper> with SingleTickerProvid
   Widget build(BuildContext context) {
     // The TV UI is fully native Kotlin. The Flutter app is for phone/tablet.
     // Hence, we disable TV focus highlights to prevent unwanted borders on phone landscape/tablets.
-    const isTv = false;
-    final accent = widget.accentColor ?? AppTheme.primaryGold;
-    final showEffects = isTv && _isFocused;
-
+    
     return DpadFocusable(
       autofocus: widget.autofocus,
       onFocusChange: (focused) {
@@ -71,35 +68,7 @@ class _TvFocusWrapperState extends State<TvFocusWrapper> with SingleTickerProvid
       onSelect: widget.onTap,
       onLongSelect: widget.onLongPress,
       effects: const [], // Disable default dpad package border
-      child: AnimatedScale(
-        scale: showEffects ? widget.scale : 1.0,
-        duration: const Duration(milliseconds: 200),
-        curve: Curves.easeOutCubic,
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 200),
-          curve: Curves.easeOutCubic,
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(widget.borderRadius),
-            border: Border.all(
-              color: showEffects ? accent : Colors.transparent,
-              width: 2.5,
-            ),
-            boxShadow: showEffects
-                ? [
-                    BoxShadow(
-                      color: accent.withOpacity(0.35),
-                      blurRadius: 15,
-                      spreadRadius: 2,
-                    )
-                  ]
-                : [],
-          ),
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(widget.borderRadius - 2),
-            child: widget.child,
-          ),
-        ),
-      ),
+      child: widget.child,
     );
   }
 }

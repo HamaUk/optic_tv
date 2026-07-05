@@ -14,7 +14,7 @@ import '../../providers/channel_library_provider.dart';
 import '../../providers/ui_settings_provider.dart';
 import '../../services/playlist_service.dart';
 import '../../services/settings_service.dart';
-import '../../services/viewer_service.dart';
+
 import '../../widgets/dynamic_background.dart';
 import '../../widgets/tv/tv_focusable.dart';
 import '../player/player_screen.dart';
@@ -24,6 +24,8 @@ import '../../services/update_service.dart';
 import '../../widgets/update_prompt_dialog.dart';
 import '../player/fullscreen_player_page.dart';
 import '../../services/optic_player.dart';
+import '../../services/viewer_service.dart';
+import '../../providers/session_provider.dart';
 
 class TvPlayerLauncher extends ConsumerStatefulWidget {
   final List<Channel> channels;
@@ -38,16 +40,21 @@ class TvPlayerLauncher extends ConsumerStatefulWidget {
 class _TvPlayerLauncherState extends ConsumerState<TvPlayerLauncher> {
   late final OpticPlayer _player;
   bool _isInit = false;
+  late int _currentIndex;
 
   @override
   void initState() {
     super.initState();
     _player = OpticPlayer();
+    _currentIndex = widget.initialIndex;
     _initPlayer();
   }
 
   Future<void> _initPlayer() async {
-    final c = widget.channels[widget.initialIndex];
+    final c = widget.channels[_currentIndex];
+    
+    ref.read(viewerServiceProvider).joinChannel(c.name);
+
     await _player.open(c.url, headers: {
       'User-Agent': c.userAgent ?? 'SmartIPTV',
       'X-Optic-Security-Token': 'k4k-secure-stream-99X'
@@ -60,6 +67,7 @@ class _TvPlayerLauncherState extends ConsumerState<TvPlayerLauncher> {
 
   @override
   void dispose() {
+    ref.read(viewerServiceProvider).leaveChannel(widget.channels[_currentIndex].url);
     _player.dispose();
     super.dispose();
   }
@@ -76,10 +84,21 @@ class _TvPlayerLauncherState extends ConsumerState<TvPlayerLauncher> {
     return FullscreenPlayerPage(
       player: _player,
       channels: widget.channels,
-      initialIndex: widget.initialIndex,
+      initialIndex: _currentIndex,
       activeServerIndex: 0,
       uiLocale: sLoc,
       strings: AppStrings(sLoc),
+      onChannelChanged: (oldCh, newCh) {
+        if (mounted) {
+          final idx = widget.channels.indexOf(newCh);
+          if (idx >= 0) {
+            setState(() {
+              _currentIndex = idx;
+            });
+          }
+        }
+        ref.read(viewerServiceProvider).joinChannel(newCh.name);
+      },
     );
   }
 }

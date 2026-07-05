@@ -7,7 +7,7 @@ import 'package:custom_tv_text_field/custom_tv_text_field.dart';
 
 import '../../core/theme.dart';
 import '../../widgets/kobani_wordmark.dart';
-import '../../widgets/tv_fluid_focusable.dart';
+
 import '../../widgets/animated_gradient_border.dart';
 import '../../l10n/app_strings.dart';
 import '../../providers/app_locale_provider.dart';

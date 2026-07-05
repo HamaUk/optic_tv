@@ -94,8 +94,8 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen>
   @override
   Widget build(BuildContext context) {
     final lang = ref.watch(appLocaleProvider).languageCode;
-    String t(String en, String ckb) =>
-        (lang == 'ckb' || lang == 'kmr') ? ckb : en;
+    String t(String en, String ckb, [String? ar]) =>
+        lang == 'ar' ? (ar ?? en) : (lang == 'ckb' || lang == 'kmr') ? ckb : en;
 
     return Scaffold(
       backgroundColor: Colors.black,
@@ -237,7 +237,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen>
   // ═══════════════════════════════════════════════════════════════
   //  STEP 1: WELCOME
   // ═══════════════════════════════════════════════════════════════
-  Widget _buildStep1(String Function(String, String) t) {
+  Widget _buildStep1(String Function(String, String, [String?]) t) {
     return FadeTransition(
       opacity: _fadeAnim,
       child: SlideTransition(
@@ -250,32 +250,21 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen>
               // Logo with glow
               Container(
                 decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(28),
                   boxShadow: [
                     BoxShadow(
-                      color: const Color(0xFFE5A922).withValues(alpha: 0.3),
-                      blurRadius: 60,
+                      color: const Color(0xFFE5A922).withValues(alpha: 0.15),
+                      blurRadius: 50,
                       spreadRadius: 10,
                     ),
                   ],
                 ),
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(28),
-                  child: Image.asset(
-                    'assets/images/logo.png',
-                    width: 140,
-                    height: 140,
-                    fit: BoxFit.contain,
-                    errorBuilder: (_, __, ___) => const Icon(
-                      Icons.live_tv,
-                      size: 100,
-                      color: Color(0xFFE5A922),
-                    ),
-                  ),
+                child: Image.asset(
+                  'assets/images/logo.png',
+                  width: 140,
+                  height: 140,
                 ),
               ),
               const SizedBox(height: 40),
-
               // Animated Wordmark
               const KobaniWordmark(height: 50, twoLine: true),
               const SizedBox(height: 20),
@@ -283,7 +272,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen>
               // Subtitle
               Text(
                 t('The Ultimate Streaming Experience',
-                    'باشترین ئەزموونی سەیرکردن'),
+                    'باشترین ئەزموونی سەیرکردن', 'أفضل تجربة بث'),
                 style: TextStyle(
                   color: Colors.white.withValues(alpha: 0.6),
                   fontSize: 17,
@@ -300,9 +289,9 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen>
                 spacing: 10,
                 runSpacing: 10,
                 children: [
-                  _chip(t('🎬 4K HDR', '🎬 4K و HDR')),
-                  _chip(t('⚡ Ultra Fast', '⚡ خێرایەکی زۆر')),
-                  _chip(t('🌐 Multi-Language', '🌐 فرەزمان')),
+                  _chip(t('🎬 4K HDR', '🎬 4K و HDR', '🎬 جودة 4K')),
+                  _chip(t('⚡ Ultra Fast', '⚡ خێرایەکی زۆر', '⚡ سرعة فائقة')),
+                  _chip(t('🌐 Multi-Language', '🌐 فرەزمان', '🌐 متعدد اللغات')),
                 ],
               ),
               const SizedBox(height: 48),
@@ -328,7 +317,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen>
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         Text(
-                          t('GET STARTED', 'دەستپێکردن'),
+                          t('GET STARTED', 'دەستپێکردن', 'البدء'),
                           style: const TextStyle(
                             fontSize: 18,
                             fontWeight: FontWeight.w900,
@@ -354,7 +343,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen>
   // ═══════════════════════════════════════════════════════════════
   //  STEP 2: LANGUAGE
   // ═══════════════════════════════════════════════════════════════
-  Widget _buildStep2(String Function(String, String) t) {
+  Widget _buildStep2(String Function(String, String, [String?]) t) {
     return FadeTransition(
       opacity: _fadeAnim,
       child: SlideTransition(
@@ -379,7 +368,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen>
               const SizedBox(height: 32),
 
               Text(
-                t('Choose Your Language', 'زمانەکەت هەڵبژێرە'),
+                t('Choose Your Language', 'زمانەکەت هەڵبژێرە', 'اختر لغتك'),
                 style: const TextStyle(
                   color: Colors.white,
                   fontSize: 30,
@@ -391,7 +380,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen>
               const SizedBox(height: 8),
               Text(
                 t('You can change this later in settings',
-                    'دواتر لە ڕێکخستنەکان دەتوانیت بیگۆڕیت'),
+                    'دواتر لە ڕێکخستنەکان دەتوانیت بیگۆڕیت', 'يمكنك تغيير هذا لاحقاً في الإعدادات'),
                 style: TextStyle(
                   color: Colors.white.withValues(alpha: 0.4),
                   fontSize: 14,
@@ -404,7 +393,9 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen>
               const SizedBox(height: 16),
               _buildLangBtn('Kurdî (Kurmancî)', 'kmr', 1),
               const SizedBox(height: 16),
-              _buildLangBtn('English', 'en', 2),
+              _buildLangBtn('العربية', 'ar', 2),
+              const SizedBox(height: 16),
+              _buildLangBtn('English', 'en', 3),
             ],
           ),
         ),
@@ -461,7 +452,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen>
   // ═══════════════════════════════════════════════════════════════
   //  STEP 3: DEVICE
   // ═══════════════════════════════════════════════════════════════
-  Widget _buildStep3(String Function(String, String) t) {
+  Widget _buildStep3(String Function(String, String, [String?]) t) {
     return FadeTransition(
       opacity: _fadeAnim,
       child: SlideTransition(
@@ -486,7 +477,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen>
               const SizedBox(height: 32),
 
               Text(
-                t('Choose Your Device', 'ئامێرەکەت هەڵبژێرە'),
+                t('Choose Your Device', 'ئامێرەکەت هەڵبژێرە', 'اختر جهازك'),
                 style: const TextStyle(
                   color: Colors.white,
                   fontSize: 30,
@@ -498,7 +489,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen>
               const SizedBox(height: 8),
               Text(
                 t('Optimize the interface for your screen',
-                    'ڕووکارەکە بۆ شاشەکەت باشتر بکە'),
+                    'ڕووکارەکە بۆ شاشەکەت باشتر بکە', 'تحسين الواجهة لتناسب شاشتك'),
                 style: TextStyle(
                   color: Colors.white.withValues(alpha: 0.4),
                   fontSize: 14,
@@ -509,9 +500,9 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen>
 
               _buildDeviceBtn(
                 icon: Icons.smartphone_rounded,
-                title: t('Phone / Tablet', 'مۆبایل / تابلێت'),
+                title: t('Phone / Tablet', 'مۆبایل / تابلێت', 'هاتف / جهاز لوحي'),
                 subtitle: t('Touch-optimized interface',
-                    'ڕووکاری تایبەت بە دەست پێوەدان'),
+                    'ڕووکاری تایبەت بە دەست پێوەدان', 'واجهة مخصصة للمس'),
                 index: 0,
                 onTap: () async {
                   final p = await SharedPreferences.getInstance();
@@ -522,9 +513,9 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen>
               const SizedBox(height: 20),
               _buildDeviceBtn(
                 icon: Icons.tv_rounded,
-                title: t('TV Interface', 'ڕووکاری تەلەفزیۆن'),
+                title: t('TV Interface', 'ڕووکاری تەلەفزیۆن', 'واجهة التلفزيون'),
                 subtitle: t('Remote-friendly layout',
-                    'ڕووکاری تایبەت بە ڕیمۆت کۆنترۆڵ'),
+                    'ڕووکاری تایبەت بە ڕیمۆت کۆنترۆڵ', 'واجهة مخصصة لجهاز التحكم'),
                 index: 1,
                 onTap: () async {
                   final p = await SharedPreferences.getInstance();

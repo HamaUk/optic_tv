@@ -56,7 +56,6 @@ import androidx.tv.material3.*
 import coil.compose.AsyncImage
 import com.kobani4k.app.tv.data.PocketBaseRepository
 import com.kobani4k.app.tv.data.TvChannel
-import com.kobani4k.app.tv.data.TvViewerService
 import com.kobani4k.app.tv.ui.theme.UltraTokens
 import com.kobani4k.app.tv.ui.theme.kobaniCardColors
 import kotlinx.coroutines.delay
@@ -160,6 +159,9 @@ fun PlayerScreen(
     var zapBannerTrigger        by remember { mutableStateOf(0) }
     var showZapBanner           by remember { mutableStateOf(false) }
 
+    var selectedAspect  by remember { mutableStateOf("Fit") }
+    var selectedDecoder by remember { mutableStateOf("Auto") }
+
     var channelsList by remember { mutableStateOf<List<TvChannel>>(emptyList()) }
 
     val validServers = remember(currentStreamUrl, channelsList) {
@@ -214,13 +216,13 @@ fun PlayerScreen(
 
     // ── ExoPlayer ──────────────────────────────────────────────
     // Built once, never recreated — avoids surface re-allocation lag
-    val exoPlayer = remember {
+    val exoPlayer = remember(selectedDecoder) {
         val loadControl = DefaultLoadControl.Builder()
             .setBufferDurationsMs(
-                /* minBufferMs   */ 3_000,
-                /* maxBufferMs   */ 15_000,
-                /* bufferForPlayback */ 500,
-                /* bufferForPlaybackAfterRebuffer */ 1_000
+                /* minBufferMs   */ 60_000,
+                /* maxBufferMs   */ 120_000,
+                /* bufferForPlayback */ 2_500,
+                /* bufferForPlaybackAfterRebuffer */ 5_000
             )
             .setPrioritizeTimeOverSizeThresholds(true)
             .build()
@@ -233,8 +235,13 @@ fun PlayerScreen(
 
         // EXTENSION_RENDERER_MODE_PREFER — uses hardware decoder if available,
         // falls back to software. Works on Chinese boxes that only expose SW decoders.
-        val renderersFactory = DefaultRenderersFactory(context)
-            .setExtensionRendererMode(DefaultRenderersFactory.EXTENSION_RENDERER_MODE_PREFER)
+        val renderersFactory = DefaultRenderersFactory(context).apply {
+            when (selectedDecoder) {
+                "Hardware (HW)" -> setEnableDecoderFallback(false)
+                "Software (SW)" -> setExtensionRendererMode(DefaultRenderersFactory.EXTENSION_RENDERER_MODE_PREFER)
+                else -> setExtensionRendererMode(DefaultRenderersFactory.EXTENSION_RENDERER_MODE_ON)
+            }
+        }
 
         ExoPlayer.Builder(context)
             .setRenderersFactory(renderersFactory)
@@ -255,7 +262,6 @@ fun PlayerScreen(
         val playUrl = validServers[activeServerIndex].second
         retryCount = 0
         streamFailed = false
-        TvViewerService.joinChannel(playUrl)
         isBuffering = true
         exoPlayer.stop()
         exoPlayer.clearMediaItems()
@@ -333,7 +339,6 @@ fun PlayerScreen(
 
     DisposableEffect(Unit) {
         onDispose {
-            TvViewerService.leaveChannel()
             exoPlayer.release()
         }
     }
@@ -452,28 +457,29 @@ fun PlayerScreen(
                     }
                 }
 
-                // Every OTHER key wakes the controls HUD
-                wakeUpControls()
-
                 // ── Quick Zap (channel surf without opening OSD) ──
                 if (!showControls && !showZapList && activeMenu == ActiveMenu.NONE) {
                     if (isUp(code) || isDown(code)) {
                         if (channelsList.isNotEmpty()) {
-                            val idx = channelsList.indexOfFirst { it.url == currentStreamUrl }
-                            if (idx != -1) {
-                                val newIdx = if (isUp(code)) {
-                                    (idx + 1) % channelsList.size
-                                } else {
-                                    if (idx - 1 < 0) channelsList.size - 1 else idx - 1
+                            val currentCh = channelsList.firstOrNull { it.url == currentStreamUrl }
+                            if (currentCh != null) {
+                                val groupChannels = channelsList.filter { it.group == currentCh.group }
+                                val idx = groupChannels.indexOfFirst { it.url == currentStreamUrl }
+                                if (idx != -1) {
+                                    val newIdx = if (isUp(code)) {
+                                        (idx + 1) % groupChannels.size
+                                    } else {
+                                        if (idx - 1 < 0) groupChannels.size - 1 else idx - 1
+                                    }
+                                    val ch = groupChannels[newIdx]
+                                    activeServerIndex  = 0
+                                    currentStreamUrl   = ch.url
+                                    currentChannelName = ch.name
+                                    currentLogoUrl     = ch.logo
+                                    showControls  = false
+                                    showZapBanner = true
+                                    zapBannerTrigger++
                                 }
-                                val ch = channelsList[newIdx]
-                                activeServerIndex  = 0
-                                currentStreamUrl   = ch.url
-                                currentChannelName = ch.name
-                                currentLogoUrl     = ch.logo
-                                showControls  = false
-                                showZapBanner = true
-                                zapBannerTrigger++
                             }
                         }
                         return@onKeyEvent true
@@ -493,6 +499,9 @@ fun PlayerScreen(
                     }
                 }
 
+                // Every OTHER key wakes the controls HUD
+                wakeUpControls()
+
                 false
             }
     ) {
@@ -508,6 +517,15 @@ fun PlayerScreen(
                         resizeMode    = androidx.media3.ui.AspectRatioFrameLayout.RESIZE_MODE_FIT
                         isFocusable   = false
                         isFocusableInTouchMode = false
+                    }
+                },
+                update = { view ->
+                    view.resizeMode = when (selectedAspect) {
+                        "Fill" -> androidx.media3.ui.AspectRatioFrameLayout.RESIZE_MODE_FILL
+                        "16:9" -> androidx.media3.ui.AspectRatioFrameLayout.RESIZE_MODE_FIXED_WIDTH
+                        "4:3"  -> androidx.media3.ui.AspectRatioFrameLayout.RESIZE_MODE_FIXED_HEIGHT
+                        "Stretch" -> androidx.media3.ui.AspectRatioFrameLayout.RESIZE_MODE_FILL
+                        else -> androidx.media3.ui.AspectRatioFrameLayout.RESIZE_MODE_FIT
                     }
                 },
                 modifier = Modifier.fillMaxSize()
@@ -643,10 +661,15 @@ fun PlayerScreen(
             modifier = Modifier.align(Alignment.CenterEnd)
         ) {
             SubMenuPanel(
+                exoPlayer = exoPlayer,
                 activeMenu = activeMenu,
                 validServers = validServers,
                 activeServerIndex = activeServerIndex,
                 onSelectServer = { activeServerIndex = it },
+                selectedAspect = selectedAspect,
+                onAspectSelected = { selectedAspect = it },
+                selectedDecoder = selectedDecoder,
+                onDecoderSelected = { selectedDecoder = it },
                 onDismiss  = { activeMenu = ActiveMenu.NONE }
             )
         }
@@ -658,7 +681,10 @@ fun PlayerScreen(
             exit    = slideOutHorizontally { -it } + fadeOut(tween(220))
         ) {
             ZapDrawer(
-                channels       = channelsList,
+                channels       = remember(channelsList, currentStreamUrl) {
+                    val currentGroup = channelsList.firstOrNull { it.url == currentStreamUrl }?.group
+                    if (currentGroup != null) channelsList.filter { it.group == currentGroup } else channelsList
+                },
                 currentUrl     = currentStreamUrl,
                 onPick         = { ch ->
                     activeServerIndex  = 0
@@ -918,6 +944,15 @@ private fun OsdOverlay(
 
                 OsdDivider()
 
+                if (validServers.size > 1) {
+                    OsdIconButton(
+                        icon    = Icons.Rounded.Dns,
+                        label   = "Servers",
+                        onWake  = onWake,
+                        onClick = { onOpenMenu(ActiveMenu.SERVERS) }
+                    )
+                }
+
                 // ── Quality ──
                 OsdIconButton(
                     icon    = Icons.Rounded.HighQuality,
@@ -979,7 +1014,7 @@ private fun OsdOverlay(
 // ─────────────────────────────────────────────────────────────
 
 @Composable
-private fun OsdIconButton(
+fun OsdIconButton(
     icon: ImageVector,
     label: String,
     modifier: Modifier = Modifier,
@@ -1147,11 +1182,16 @@ private fun ChannelChip(channelName: String, logoUrl: String?) {
 // ─────────────────────────────────────────────────────────────
 
 @Composable
-private fun SubMenuPanel(
+fun SubMenuPanel(
+    exoPlayer: Media3Player,
     activeMenu: ActiveMenu,
     validServers: List<Pair<String, String>>,
     activeServerIndex: Int,
     onSelectServer: (Int) -> Unit,
+    selectedAspect: String,
+    onAspectSelected: (String) -> Unit,
+    selectedDecoder: String,
+    onDecoderSelected: (String) -> Unit,
     onDismiss: () -> Unit
 ) {
     val menuFocusRequester = remember { FocusRequester() }
@@ -1213,29 +1253,157 @@ private fun SubMenuPanel(
             if (activeMenu == ActiveMenu.SETTINGS) {
                 SettingsPanel(
                     focusRequester = menuFocusRequester,
+                    selectedAspect = selectedAspect,
+                    onAspectSelected = onAspectSelected,
+                    selectedDecoder = selectedDecoder,
+                    onDecoderSelected = onDecoderSelected,
                     onDismiss      = onDismiss
                 )
             } else {
-                val items = when (activeMenu) {
-                    ActiveMenu.SERVERS   -> validServers.map { it.first }
-                    ActiveMenu.QUALITY   -> listOf("Auto", "1080p HD", "720p", "480p", "360p")
-                    ActiveMenu.AUDIO     -> listOf("Track 1 (Default)", "Track 2", "Track 3")
-                    ActiveMenu.SUBTITLES -> listOf("Off", "English", "Arabic", "French", "Spanish")
-                    else                 -> emptyList()
+                var currentTracks by remember { mutableStateOf(exoPlayer.currentTracks) }
+                DisposableEffect(exoPlayer) {
+                    val listener = object : Media3Player.Listener {
+                        override fun onTracksChanged(tracks: androidx.media3.common.Tracks) {
+                            currentTracks = tracks
+                        }
+                    }
+                    exoPlayer.addListener(listener)
+                    onDispose { exoPlayer.removeListener(listener) }
                 }
+
+                val items = mutableListOf<String>()
+                var selectedIndex = 0
+
+                when (activeMenu) {
+                    ActiveMenu.SERVERS -> {
+                        items.addAll(validServers.map { it.first })
+                        selectedIndex = activeServerIndex
+                    }
+                    ActiveMenu.QUALITY -> {
+                        items.add("Auto")
+                        val videoGroups = currentTracks.groups.filter { it.type == androidx.media3.common.C.TRACK_TYPE_VIDEO }
+                        var idx = 1
+                        for (g in videoGroups) {
+                            for (i in 0 until g.length) {
+                                val format = g.getTrackFormat(i)
+                                val title = if (format.height > 0) "${format.height}p" else "Quality ${idx}"
+                                items.add(title)
+                                if (g.isTrackSelected(i)) selectedIndex = idx
+                                idx++
+                            }
+                        }
+                        if (items.size == 1) items[0] = "Default"
+                    }
+                    ActiveMenu.AUDIO -> {
+                        val audioGroups = currentTracks.groups.filter { it.type == androidx.media3.common.C.TRACK_TYPE_AUDIO }
+                        var idx = 0
+                        for (g in audioGroups) {
+                            for (i in 0 until g.length) {
+                                val format = g.getTrackFormat(i)
+                                val lang = format.language?.uppercase() ?: "Track ${idx + 1}"
+                                items.add(lang)
+                                if (g.isTrackSelected(i)) selectedIndex = idx
+                                idx++
+                            }
+                        }
+                        if (items.isEmpty()) items.add("Default Track")
+                    }
+                    ActiveMenu.SUBTITLES -> {
+                        items.add("Off")
+                        val subGroups = currentTracks.groups.filter { it.type == androidx.media3.common.C.TRACK_TYPE_TEXT }
+                        var idx = 1
+                        for (g in subGroups) {
+                            for (i in 0 until g.length) {
+                                val format = g.getTrackFormat(i)
+                                val lang = format.language?.uppercase() ?: "Subtitle ${idx}"
+                                items.add(lang)
+                                if (g.isTrackSelected(i)) selectedIndex = idx
+                                idx++
+                            }
+                        }
+                    }
+                    else -> {}
+                }
+
                 LazyColumn(
                     verticalArrangement = Arrangement.spacedBy(4.dp),
                     modifier = Modifier.focusRestorer()
                 ) {
                     items(items.size) { i ->
-                        val isSel = if (activeMenu == ActiveMenu.SERVERS) i == activeServerIndex else i == 0
                         TrackOption(
                             title      = items[i],
-                            isSelected = isSel,
+                            isSelected = i == selectedIndex,
                             modifier   = if (i == 0) Modifier.focusRequester(menuFocusRequester) else Modifier,
                             onClick    = { 
                                 if (activeMenu == ActiveMenu.SERVERS) {
                                     onSelectServer(i)
+                                } else if (activeMenu == ActiveMenu.QUALITY) {
+                                    if (i == 0) {
+                                        exoPlayer.trackSelectionParameters = exoPlayer.trackSelectionParameters
+                                            .buildUpon()
+                                            .clearOverridesOfType(androidx.media3.common.C.TRACK_TYPE_VIDEO)
+                                            .build()
+                                    } else {
+                                        var current = 1
+                                        val videoGroups = currentTracks.groups.filter { it.type == androidx.media3.common.C.TRACK_TYPE_VIDEO }
+                                        for (g in videoGroups) {
+                                            for (j in 0 until g.length) {
+                                                if (current == i) {
+                                                    exoPlayer.trackSelectionParameters = exoPlayer.trackSelectionParameters
+                                                        .buildUpon()
+                                                        .setOverrideForType(
+                                                            androidx.media3.common.TrackSelectionOverride(g.mediaTrackGroup, listOf(j))
+                                                        )
+                                                        .build()
+                                                    break
+                                                }
+                                                current++
+                                            }
+                                        }
+                                    }
+                                } else if (activeMenu == ActiveMenu.AUDIO) {
+                                    if (items.size > 1) {
+                                        var current = 0
+                                        val audioGroups = currentTracks.groups.filter { it.type == androidx.media3.common.C.TRACK_TYPE_AUDIO }
+                                        for (g in audioGroups) {
+                                            for (j in 0 until g.length) {
+                                                if (current == i) {
+                                                    exoPlayer.trackSelectionParameters = exoPlayer.trackSelectionParameters
+                                                        .buildUpon()
+                                                        .setOverrideForType(
+                                                            androidx.media3.common.TrackSelectionOverride(g.mediaTrackGroup, listOf(j))
+                                                        )
+                                                        .build()
+                                                    break
+                                                }
+                                                current++
+                                            }
+                                        }
+                                    }
+                                } else if (activeMenu == ActiveMenu.SUBTITLES) {
+                                    if (i == 0) {
+                                        exoPlayer.trackSelectionParameters = exoPlayer.trackSelectionParameters
+                                            .buildUpon()
+                                            .clearOverridesOfType(androidx.media3.common.C.TRACK_TYPE_TEXT)
+                                            .build()
+                                    } else {
+                                        var current = 1
+                                        val textGroups = currentTracks.groups.filter { it.type == androidx.media3.common.C.TRACK_TYPE_TEXT }
+                                        for (g in textGroups) {
+                                            for (j in 0 until g.length) {
+                                                if (current == i) {
+                                                    exoPlayer.trackSelectionParameters = exoPlayer.trackSelectionParameters
+                                                        .buildUpon()
+                                                        .setOverrideForType(
+                                                            androidx.media3.common.TrackSelectionOverride(g.mediaTrackGroup, listOf(j))
+                                                        )
+                                                        .build()
+                                                    break
+                                                }
+                                                current++
+                                            }
+                                        }
+                                    }
                                 }
                                 onDismiss() 
                             }
@@ -1316,11 +1484,30 @@ private fun TrackOption(
 @Composable
 private fun SettingsPanel(
     focusRequester: FocusRequester,
+    selectedAspect: String,
+    onAspectSelected: (String) -> Unit,
+    selectedDecoder: String,
+    onDecoderSelected: (String) -> Unit,
     onDismiss: () -> Unit
 ) {
-    var selectedAspect  by remember { mutableStateOf("Fit") }
-    var selectedDecoder by remember { mutableStateOf("Auto") }
     var selectedSleep   by remember { mutableStateOf("Off") }
+    val context = LocalContext.current
+
+    LaunchedEffect(selectedSleep) {
+        if (selectedSleep != "Off") {
+            val minutes = when (selectedSleep) {
+                "15 min" -> 15L
+                "30 min" -> 30L
+                "1 hour" -> 60L
+                "2 hours" -> 120L
+                else -> 0L
+            }
+            if (minutes > 0) {
+                kotlinx.coroutines.delay(minutes * 60 * 1000)
+                (context as? android.app.Activity)?.finishAffinity()
+            }
+        }
+    }
 
     LazyColumn(
         verticalArrangement = Arrangement.spacedBy(3.dp),
@@ -1333,7 +1520,7 @@ private fun SettingsPanel(
                 title      = aspects[i],
                 isSelected = selectedAspect == aspects[i],
                 modifier   = if (i == 0) Modifier.focusRequester(focusRequester) else Modifier,
-                onClick    = { selectedAspect = aspects[i] }
+                onClick    = { onAspectSelected(aspects[i]) }
             )
         }
 
@@ -1343,7 +1530,7 @@ private fun SettingsPanel(
             SettingRadioItem(
                 title      = decoders[i],
                 isSelected = selectedDecoder == decoders[i],
-                onClick    = { selectedDecoder = decoders[i] }
+                onClick    = { onDecoderSelected(decoders[i]) }
             )
         }
 

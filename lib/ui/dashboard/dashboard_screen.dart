@@ -19,6 +19,7 @@ import 'package:video_player/video_player.dart';
 import '../world_cup/world_cup_screen.dart';
 import '../../core/theme.dart';
 import '../../widgets/channel_logo_image.dart';
+import '../../widgets/live_viewer_badge.dart';
 import '../../widgets/kobani_wordmark.dart';
 import '../../l10n/app_strings.dart';
 import '../../providers/app_locale_provider.dart';
@@ -29,7 +30,7 @@ import '../../services/pocketbase_service.dart';
 import '../../services/pocketbase_database_mock.dart';
 import '../../services/playlist_service.dart';
 import '../../services/settings_service.dart';
-import '../../services/viewer_service.dart';
+
 import 'package:intl/intl.dart' as intl;
 import '../admin/admin_screen.dart';
 import '../player/player_screen.dart';
@@ -44,7 +45,6 @@ import '../../services/tmdb_service.dart';
 import '../../widgets/dynamic_background.dart';
 import '../../widgets/tv_focus_wrapper.dart';
 import '../../widgets/tv/tv_focusable.dart';
-import '../../widgets/tv_fluid_focusable.dart';
 import 'package:lottie/lottie.dart';
 import 'package:flutter_staggered_animations/flutter_staggered_animations.dart';
 import 'package:google_nav_bar/google_nav_bar.dart';
@@ -2071,33 +2071,36 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
     required VoidCallback onTap,
     bool autofocus = false,
   }) {
-    return GhostenFocusable(
-      autofocus: autofocus,
-      selected: selected,
-      onTap: onTap,
-      selectedBackgroundColor: Theme.of(context).colorScheme.secondaryContainer,
-      child: ListTile(
-        selected: selected,
-        selectedTileColor: Colors.transparent,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
-        visualDensity: VisualDensity.compact,
-        title: Text(
-          label,
-          overflow: TextOverflow.ellipsis,
-          style: TextStyle(
-            fontWeight: selected ? FontWeight.bold : FontWeight.normal,
-            color: selected
-                ? Theme.of(context).colorScheme.onSecondaryContainer
-                : Theme.of(context).colorScheme.onSurface,
+    return Material(
+      color: selected ? Theme.of(context).colorScheme.secondaryContainer : Colors.transparent,
+      borderRadius: BorderRadius.circular(6),
+      child: InkWell(
+        autofocus: autofocus,
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(6),
+        child: ListTile(
+          selected: selected,
+          selectedTileColor: Colors.transparent,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
+          visualDensity: VisualDensity.compact,
+          title: Text(
+            label,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(
+              fontWeight: selected ? FontWeight.bold : FontWeight.normal,
+              color: selected
+                  ? Theme.of(context).colorScheme.onSecondaryContainer
+                  : Theme.of(context).colorScheme.onSurface,
+            ),
           ),
-        ),
-        trailing: Text(
-          count.toString(),
-          style: TextStyle(
-            color: selected
-                ? Theme.of(context).colorScheme.secondary
-                : Theme.of(context).colorScheme.outline,
-            fontSize: 12,
+          trailing: Text(
+            count.toString(),
+            style: TextStyle(
+              color: selected
+                  ? Theme.of(context).colorScheme.secondary
+                  : Theme.of(context).colorScheme.outline,
+              fontSize: 12,
+            ),
           ),
         ),
       ),
@@ -2106,11 +2109,15 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
 
   /// Ghosten-exact channel card (FocusableImage port)
   Widget _tvGhostenChannelCard(List<Channel> all, Channel ch) {
-    return GhostenFocusable(
-      onTap: () => _openPlayer(all, ch),
-      child: Stack(
-        fit: StackFit.expand,
-        children: [
+    return Material(
+      color: Theme.of(context).colorScheme.surfaceContainerLow,
+      borderRadius: BorderRadius.circular(6),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(6),
+        onTap: () => _openPlayer(all, ch),
+        child: Stack(
+          fit: StackFit.expand,
+          children: [
           // Logo centered with padding 36 (exact Ghosten)
           ch.logo != null && ch.logo!.isNotEmpty
               ? Padding(
@@ -2152,6 +2159,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
             ),
           ),
         ],
+      ),
       ),
     );
   }
@@ -2212,26 +2220,14 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
   }
 
   Widget _tvGhostenSettingsItem(IconData icon, String label, String subtitle, VoidCallback onTap) {
-    return TVFocusable(
-      onSelect: onTap,
-      showFocusBorder: false,
-      focusScale: 1.02,
-      child: const SizedBox(),
-      builder: (context, isFocused, child) {
-        return GhostenFluidFocusable(
-          isFocused: isFocused,
-          backgroundColor: Colors.transparent,
-          child: ListTile(
-            leading: Icon(icon),
-            title: Text(label),
-            subtitle: Text(subtitle),
-            trailing: const Icon(Icons.chevron_right_rounded),
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
-            visualDensity: VisualDensity.compact,
-            onTap: onTap,
-          ),
-        );
-      },
+    return ListTile(
+      leading: Icon(icon),
+      title: Text(label),
+      subtitle: Text(subtitle),
+      trailing: const Icon(Icons.chevron_right_rounded),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
+      visualDensity: VisualDensity.compact,
+      onTap: onTap,
     );
   }
 
@@ -2679,25 +2675,31 @@ class _FeaturedCarouselState extends State<_FeaturedCarousel> with TickerProvide
                                   ),
                                   const SizedBox(width: 12),
                                   // ── Watch Now Button ──
-                                  GhostenFocusable(
-                                    onTap: () => widget.onWatch(ch),
-                                    child: Container(
-                                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                                      decoration: BoxDecoration(
-                                        gradient: LinearGradient(
-                                          colors: [accent, accent.withOpacity(0.75)],
-                                        ),
-                                        borderRadius: BorderRadius.circular(14),
-                                        boxShadow: [
-                                          BoxShadow(
-                                            color: accent.withOpacity(0.45),
-                                            blurRadius: 12,
-                                            spreadRadius: -2,
-                                            offset: const Offset(0, 4),
-                                          ),
-                                        ],
+                                  Container(
+                                    decoration: BoxDecoration(
+                                      gradient: LinearGradient(
+                                        colors: [accent, accent.withOpacity(0.75)],
                                       ),
-                                      child: const Icon(Icons.play_arrow_rounded, color: Colors.white, size: 24),
+                                      borderRadius: BorderRadius.circular(14),
+                                      boxShadow: [
+                                        BoxShadow(
+                                          color: accent.withOpacity(0.45),
+                                          blurRadius: 12,
+                                          spreadRadius: -2,
+                                          offset: const Offset(0, 4),
+                                        ),
+                                      ],
+                                    ),
+                                    child: Material(
+                                      color: Colors.transparent,
+                                      child: InkWell(
+                                        borderRadius: BorderRadius.circular(14),
+                                        onTap: () => widget.onWatch(ch),
+                                        child: const Padding(
+                                          padding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                                          child: Icon(Icons.play_arrow_rounded, color: Colors.white, size: 24),
+                                        ),
+                                      ),
                                     ),
                                   ),
                                 ],
@@ -2853,9 +2855,11 @@ class _GlobalAnnouncementTicker extends ConsumerWidget {
         
         final data = snapshot.data!.snapshot.value as Map? ?? {};
         final active = data['active'] == true;
-        final text = '${data['text'] ?? ''}';
+        // Replace newlines with a separator so all lines are shown horizontally
+        final rawText = '${data['text'] ?? ''}';
+        final text = rawText.replaceAll(RegExp(r'\n+'), '   •   ');
 
-        if (!active || text.isEmpty) return const SizedBox.shrink();
+        if (!active || text.trim().isEmpty) return const SizedBox.shrink();
 
         return Container(
           height: 40,
@@ -2975,11 +2979,11 @@ class _MarqueeTextState extends State<_MarqueeText> with SingleTickerProviderSta
       if (_scrollController.hasClients) {
         final max = _scrollController.position.maxScrollExtent;
         if (max > 0) {
-          _scrollPosition += 1.0;
+          _scrollPosition += 1.5; // Slightly faster scroll
           if (_scrollPosition >= max) {
-            _scrollPosition = -MediaQuery.sizeOf(context).width;
+            _scrollPosition = 0;
           }
-          _scrollController.jumpTo(_scrollPosition.clamp(0.0, max));
+          _scrollController.jumpTo(_scrollPosition);
         }
       }
     });
@@ -2998,34 +3002,23 @@ class _MarqueeTextState extends State<_MarqueeText> with SingleTickerProviderSta
       controller: _scrollController,
       scrollDirection: Axis.horizontal,
       physics: const NeverScrollableScrollPhysics(),
-      padding: const EdgeInsets.symmetric(horizontal: 20),
+      // Add padding at the start so the text enters cleanly if it's long
+      padding: EdgeInsets.only(left: MediaQuery.sizeOf(context).width),
       children: [
         Center(
           child: Text(
             widget.text,
             style: const TextStyle(
-              fontSize: 14,
-              fontWeight: FontWeight.w500,
+              fontSize: 15,
+              fontWeight: FontWeight.w600,
               color: Colors.white,
               letterSpacing: 0.5,
               height: 1.2,
             ),
           ),
         ),
-        // Add huge padding to simulate clean wrap around for long texts
+        // Add trailing space so it finishes scrolling cleanly before looping
         SizedBox(width: MediaQuery.sizeOf(context).width),
-        Center(
-          child: Text(
-            widget.text,
-            style: const TextStyle(
-              fontSize: 14,
-              fontWeight: FontWeight.w500,
-              color: Colors.white,
-              letterSpacing: 0.5,
-              height: 1.2,
-            ),
-          ),
-        ),
       ],
     );
   }

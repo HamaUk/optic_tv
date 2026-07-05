@@ -12,6 +12,8 @@ import 'package:googleapis_auth/auth_io.dart' hide ResponseType;
 import 'package:firebase_core/firebase_core.dart';
 import '../firebase_options.dart';
 import 'pocketbase_service.dart';
+import 'pocketbase_database_mock.dart';
+import 'login_codes_service.dart';
 
 @pragma('vm:entry-point')
 Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
@@ -19,6 +21,15 @@ Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
     options: DefaultFirebaseOptions.currentPlatform,
   );
   log("Handling a background message: ${message.messageId}");
+  
+  if (message.data['action'] == 'refresh') {
+    final collection = message.data['collection'] as String?;
+    if (collection == 'loginCodes') {
+      LoginCodesService.triggerRefresh();
+    } else if (collection != null) {
+      PocketBaseDatabase.instance.notify(collection);
+    }
+  }
 }
 
 class NotificationService {
@@ -49,6 +60,15 @@ class NotificationService {
 
     // Foreground message handler
     FirebaseMessaging.onMessage.listen((RemoteMessage message) {
+      if (message.data['action'] == 'refresh') {
+        final collection = message.data['collection'] as String?;
+        if (collection == 'loginCodes') {
+          LoginCodesService.triggerRefresh();
+        } else if (collection != null) {
+          PocketBaseDatabase.instance.notify(collection);
+        }
+      }
+
       if (message.notification != null) {
         _showBroadcastNotification(
           message.notification!.title ?? '',
@@ -117,6 +137,56 @@ class NotificationService {
     } catch (e) {
       log('Failed to send FCM push: $e');
       rethrow;
+    }
+  }
+
+  /// Sends a silent FCM data message to trigger a refresh for all clients
+  Future<void> sendSilentRefreshPulse(String collection) async {
+    try {
+      final serviceAccountJson = await rootBundle.loadString('assets/json/kobani-noti-service-account.json');
+      final serviceAccountMap = jsonDecode(serviceAccountJson) as Map<String, dynamic>;
+      final accountCredentials = ServiceAccountCredentials.fromJson(serviceAccountJson);
+      final scopes = ['https://www.googleapis.com/auth/firebase.messaging'];
+
+      final authClient = await clientViaServiceAccount(accountCredentials, scopes);
+      final projectId = serviceAccountMap['project_id'] as String;
+      final endpoint = 'https://fcm.googleapis.com/v1/projects/$projectId/messages:send';
+
+      final message = {
+        'message': {
+          'topic': 'all',
+          'data': {
+            'action': 'refresh',
+            'collection': collection,
+          },
+          'android': {
+            'priority': 'HIGH'
+          },
+          'apns': {
+            'payload': {
+              'aps': {
+                'content-available': 1,
+              }
+            }
+          }
+        }
+      };
+
+      final response = await authClient.post(
+        Uri.parse(endpoint),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode(message),
+      );
+
+      authClient.close();
+
+      if (response.statusCode == 200) {
+        log('Silent FCM pulse sent for $collection');
+      } else {
+        log('Failed to send silent pulse: ${response.body}');
+      }
+    } catch (e) {
+      log('Failed to send silent pulse: $e');
     }
   }
   Future<void> _showBroadcastNotification(String title, String body, String? imageUrl) async {

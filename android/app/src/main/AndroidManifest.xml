@@ -70,6 +70,7 @@
                 android:name="android.support.FILE_PROVIDER_PATHS"
                 android:resource="@xml/file_paths" />
         </provider>
+        <!-- Pushy removed in favor of FCM -->
     </application>
     <queries>
         <package android:name="com.guoshi.httpcanary.premium" />

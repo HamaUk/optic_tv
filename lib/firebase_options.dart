@@ -48,19 +48,21 @@ class DefaultFirebaseOptions {
   }
 
   static const FirebaseOptions android = FirebaseOptions(
-    apiKey: 'AIzaSyB9IXEDF7JHxfsAU62dgnBuypLj_3vlAdc',
-    appId: '1:170449397065:android:35d08c1d5ad7f4cbfda698',
-    messagingSenderId: '170449397065',
-    projectId: 'kobani-noti',
-    storageBucket: 'kobani-noti.firebasestorage.app',
+    apiKey: 'AIzaSyBSRBHeKh_7KQ4TfbQ2uBv29xx9i04Tp5U',
+    appId: '1:334889987012:android:f871422427a53315975291',
+    messagingSenderId: '334889987012',
+    projectId: 'kobani-4k',
+    storageBucket: 'kobani-4k.firebasestorage.app',
+    databaseURL: 'https://kobani-4k-default-rtdb.europe-west1.firebasedatabase.app',
   );
 
   static const FirebaseOptions ios = FirebaseOptions(
-    apiKey: 'AIzaSyB9IXEDF7JHxfsAU62dgnBuypLj_3vlAdc',
-    appId: '1:170449397065:ios:placeholder',
-    messagingSenderId: '170449397065',
-    projectId: 'kobani-noti',
-    storageBucket: 'kobani-noti.firebasestorage.app',
+    apiKey: 'AIzaSyBSRBHeKh_7KQ4TfbQ2uBv29xx9i04Tp5U',
+    appId: '1:334889987012:ios:placeholder',
+    messagingSenderId: '334889987012',
+    projectId: 'kobani-4k',
+    storageBucket: 'kobani-4k.firebasestorage.app',
     iosBundleId: 'com.kobani4k.app',
+    databaseURL: 'https://kobani-4k-default-rtdb.europe-west1.firebasedatabase.app',
   );
 }

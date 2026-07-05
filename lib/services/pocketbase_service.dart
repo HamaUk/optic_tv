@@ -7,7 +7,16 @@ class PocketBaseService {
   PocketBaseService._internal();
 
   // The singleton PocketBase instance pointing to your VPS
-  late final PocketBase pb;
+  PocketBase? _pb;
+
+  bool get isInitialized => _pb != null;
+
+  PocketBase get pb {
+    if (_pb == null) {
+      throw StateError('PocketBaseService must be initialized before accessing pb. Call initialize() first.');
+    }
+    return _pb!;
+  }
 
   void initialize(String url, SharedPreferences prefs) {
     final store = AsyncAuthStore(
@@ -15,9 +24,9 @@ class PocketBaseService {
       initial: prefs.getString('pb_auth'),
       clear: () async => prefs.remove('pb_auth'),
     );
-    pb = PocketBase(url, authStore: store);
+    _pb = PocketBase(url, authStore: store);
   }
 }
 
-// Global accessor
-final pb = PocketBaseService().pb;
+// Global accessor - safe getter that checks initialization
+PocketBase get pb => PocketBaseService().pb;

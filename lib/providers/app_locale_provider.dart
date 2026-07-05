@@ -7,7 +7,8 @@ import 'package:shared_preferences/shared_preferences.dart';
 class AppLocaleNotifier extends Notifier<Locale> {
   static const _prefsKey = 'app_locale';
 
-  static bool isSupportedCode(String code) => code == 'en' || code == 'ckb' || code == 'kmr';
+  static bool isSupportedCode(String code) =>
+      code == 'en' || code == 'ckb' || code == 'kmr' || code == 'ar';
 
   static String normalizeStoredCode(String? code) {
     if (code != null && isSupportedCode(code)) return code;

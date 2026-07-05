@@ -3,12 +3,13 @@ import 'dart:math';
 import 'package:pocketbase/pocketbase.dart';
 import 'package:rxdart/rxdart.dart';
 import 'pocketbase_service.dart';
+import 'notification_service.dart';
 
 class PocketBaseDatabase {
   static final instance = PocketBaseDatabase();
   DatabaseReference ref(String path) => DatabaseReference(path);
 
-  Future<void> _notify(String targetPath) async {
+  Future<void> notify(String targetPath) async {
     final controller = DatabaseReference._streamCache[targetPath];
     if (controller != null && !controller.isClosed) {
       final snap = await ref(targetPath).get();
@@ -58,11 +59,18 @@ class DatabaseReference {
     if (path.contains('notifications/history')) return 'broadcasts';
     if (path.contains('updateManager')) return 'updateManager';
     if (path.contains('activeSessions')) return 'activeSessions';
-    if (path.contains('liveViewers')) return 'liveViewers';
+    if (path.contains('liveViewers') || path.contains('live_viewers')) return 'liveViewers';
+    if (path.contains('analytics/views/total')) return 'analytics_views_total';
+    if (path.contains('analytics/views/daily')) return 'analytics_views_daily';
+    if (path.contains('analytics/channel_views')) return 'analytics_channel_views';
     return 'unknown';
   }
 
   String? get _recordId {
+    if (path.contains('updateManager')) return 'globalupdate123';
+    if (path.endsWith('notifications/broadcast')) return 'globalbroadcast';
+    if (path.contains('announcement')) return 'globalannounce1';
+    
     final parts = path.split('/');
     if (parts.length > 3) return parts.last;
     return null;
@@ -113,15 +121,9 @@ class DatabaseReference {
 
     // Always fetch immediately
     fetchAndEmit();
-    
-    // Subscribe to PocketBase SSE for realtime updates
-    pb.collection(col).subscribe(id ?? '*', (e) {
-      fetchAndEmit();
-    }).catchError((_) {});
 
     controller.onCancel = () {
       if (!controller.hasListener) {
-        pb.collection(col).unsubscribe(id ?? '*');
         controller.close();
         _streamCache.remove(path);
       }
@@ -136,7 +138,7 @@ class DatabaseReference {
     final id = _recordId;
     if (id != null) {
       if (value == null) {
-        await pb.collection(col).delete(id).catchError((_) {});
+        try { await pb.collection(col).delete(id); } catch (_) {}
       } else {
         try {
           await pb.collection(col).update(id, body: value);
@@ -150,21 +152,26 @@ class DatabaseReference {
       }
     } else {
       if (value is Map) {
-        for (final k in value.keys) {
+        await Future.wait(value.keys.map((k) async {
           try {
             await pb.collection(col).create(body: {'id': k, ...?value[k] as Map?});
           } catch (_) {}
-        }
+        }));
       }
     }
-    await PocketBaseDatabase.instance._notify(path);
+    await PocketBaseDatabase.instance.notify(path);
+    NotificationService().sendSilentRefreshPulse(col);
   }
 
   Future<void> update(Map<String, dynamic> value) async {
     final col = _collectionName;
     final id = _recordId;
     if (id != null) {
-      await pb.collection(col).update(id, body: value);
+      try {
+        await pb.collection(col).update(id, body: value);
+      } catch (_) {
+        try { await pb.collection(col).create(body: {'id': id, ...value}); } catch (_) {}
+      }
     } else {
       // Firebase-style multi-path updates use keys like "recordId/field".
       // Group these by record ID so we send one pb.update() per record.
@@ -184,35 +191,38 @@ class DatabaseReference {
       }
 
       // Handle grouped multi-path updates (e.g. reorder)
-      for (final entry in grouped.entries) {
+      await Future.wait(grouped.entries.map((entry) async {
         try {
           await pb.collection(col).update(entry.key, body: entry.value);
         } catch (_) {
-          await pb.collection(col).create(body: {'id': entry.key, ...entry.value}).catchError((_) {});
+          try { await pb.collection(col).create(body: {'id': entry.key, ...entry.value}); } catch (_) {}
         }
-      }
+      }));
 
       // Handle direct key-value updates (original behavior)
-      for (final entry in direct.entries) {
+      await Future.wait(direct.entries.map((entry) async {
         if (entry.value == null) {
-          await pb.collection(col).delete(entry.key).catchError((_) {});
+          try { await pb.collection(col).delete(entry.key); } catch (_) {}
         } else {
           try {
-            await pb.collection(col).update(entry.key, body: entry.value as Map<String, dynamic>);
+            await pb.collection(col).update(entry.key, body: entry.value);
           } catch (_) {
-            await pb.collection(col).create(body: {'id': entry.key, ...?entry.value as Map?}).catchError((_) {});
+            try { await pb.collection(col).create(body: {'id': entry.key, ...?entry.value as Map?}); } catch (_) {}
           }
         }
-      }
+      }));
     }
-    await PocketBaseDatabase.instance._notify(path);
+    await PocketBaseDatabase.instance.notify(path);
+    NotificationService().sendSilentRefreshPulse(col);
   }
 
   Future<void> remove() async {
     final col = _collectionName;
     final id = _recordId;
     if (id != null) {
-      await pb.collection(col).delete(id).catchError((_) {});
+      try { await pb.collection(col).delete(id); } catch (_) {}
     }
+    await PocketBaseDatabase.instance.notify(path);
+    NotificationService().sendSilentRefreshPulse(col);
   }
 }
