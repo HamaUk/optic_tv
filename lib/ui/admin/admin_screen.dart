@@ -54,6 +54,9 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
   final _channelUrl2NameController = TextEditingController();
   final _channelUrl3Controller = TextEditingController();
   final _channelUrl3NameController = TextEditingController();
+  final _channelRefererController = TextEditingController();
+  final _channelDrmSchemeController = TextEditingController();
+  final _channelDrmLicenseController = TextEditingController();
   final _newGroupController = TextEditingController();
   final _newLoginCodeController = TextEditingController();
   final _channelSearchController = TextEditingController();
@@ -142,6 +145,9 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
     _channelUrl2NameController.dispose();
     _channelUrl3Controller.dispose();
     _channelUrl3NameController.dispose();
+    _channelRefererController.dispose();
+    _channelDrmSchemeController.dispose();
+    _channelDrmLicenseController.dispose();
     _newGroupController.dispose();
     _newLoginCodeController.dispose();
     _channelSearchController.dispose();
@@ -630,6 +636,9 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
     String? url2Name,
     String? url3,
     String? url3Name,
+    String? referer,
+    String? drmScheme,
+    String? drmLicense,
   }) {
     final map = <String, dynamic>{
       'name': name,
@@ -647,6 +656,9 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
     if (url2Name != null && url2Name.isNotEmpty) map['url2Name'] = url2Name;
     if (url3 != null && url3.isNotEmpty) map['url3'] = url3;
     if (url3Name != null && url3Name.isNotEmpty) map['url3Name'] = url3Name;
+    if (referer != null && referer.isNotEmpty) map['referer'] = referer;
+    if (drmScheme != null && drmScheme.isNotEmpty) map['drmScheme'] = drmScheme;
+    if (drmLicense != null && drmLicense.isNotEmpty) map['drmLicense'] = drmLicense;
     return map;
   }
 
@@ -790,6 +802,9 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
             url2Name: _channelUrl2NameController.text.trim(),
             url3: _channelUrl3Controller.text.trim(),
             url3Name: _channelUrl3NameController.text.trim(),
+            referer: _channelRefererController.text.trim(),
+            drmScheme: _channelDrmSchemeController.text.trim(),
+            drmLicense: _channelDrmLicenseController.text.trim(),
           ));
       _channelNameController.clear();
       _channelUrlController.clear();
@@ -800,6 +815,9 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
       _channelLogoController.clear();
       _channelBackdropController.clear();
       _channelSubtitleUrlController.clear();
+      _channelRefererController.clear();
+      _channelDrmSchemeController.clear();
+      _channelDrmLicenseController.clear();
       _channelUserAgentController.text = 'SmartIPTV';
       setState(() {
         _isFeaturedAdmin = false;
@@ -820,6 +838,9 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
     _channelUrl2NameController.text = '${val['url2Name'] ?? ''}';
     _channelUrl3Controller.text = '${val['url3'] ?? ''}';
     _channelUrl3NameController.text = '${val['url3Name'] ?? ''}';
+    _channelRefererController.text = '${val['referer'] ?? ''}';
+    _channelDrmSchemeController.text = '${val['drmScheme'] ?? ''}';
+    _channelDrmLicenseController.text = '${val['drmLicense'] ?? ''}';
     _channelUserAgentController.text = '${val['userAgent'] ?? val['user_agent'] ?? 'SmartIPTV'}';
     final grpRaw = '${val['group'] ?? val['category'] ?? 'General'}';
     _channelLogoController.text = '${val['logo'] ?? val['icon_url'] ?? ''}';
@@ -871,6 +892,9 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
     String? url2Name,
     String? url3,
     String? url3Name,
+    String? referer,
+    String? drmScheme,
+    String? drmLicense,
   }) async {
     try {
       final ref = _playlistRef.child(key);
@@ -900,6 +924,10 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
       if (url2Name != null && url2Name.trim().isNotEmpty) updates['url2Name'] = url2Name.trim(); else await ref.child('url2Name').remove();
       if (url3 != null && url3.trim().isNotEmpty) updates['url3'] = url3.trim(); else await ref.child('url3').remove();
       if (url3Name != null && url3Name.trim().isNotEmpty) updates['url3Name'] = url3Name.trim(); else await ref.child('url3Name').remove();
+      
+      if (referer != null && referer.trim().isNotEmpty) updates['referer'] = referer.trim(); else await ref.child('referer').remove();
+      if (drmScheme != null && drmScheme.trim().isNotEmpty) updates['drmScheme'] = drmScheme.trim(); else await ref.child('drmScheme').remove();
+      if (drmLicense != null && drmLicense.trim().isNotEmpty) updates['drmLicense'] = drmLicense.trim(); else await ref.child('drmLicense').remove();
 
       await ref.update(updates);
       final logoTrim = logo.trim();
@@ -1536,6 +1564,9 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
     final logoCtrl = TextEditingController(text: '${raw['logo'] ?? raw['icon_url'] ?? ''}');
     final backdropCtrl = TextEditingController(text: '${raw['backdrop'] ?? ''}');
     final userAgentCtrl = TextEditingController(text: '${raw['userAgent'] ?? raw['user_agent'] ?? ''}');
+    final refererCtrl = TextEditingController(text: '${raw['referer'] ?? ''}');
+    final drmSchemeCtrl = TextEditingController(text: '${raw['drmScheme'] ?? ''}');
+    final drmLicenseCtrl = TextEditingController(text: '${raw['drmLicense'] ?? ''}');
     String contentType = raw['type'] ?? 'live';
     bool isFeatured = raw['featured'] == true;
 
@@ -1594,6 +1625,16 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
                       ),
                       const SizedBox(height: 12),
                       _sheetField(userAgentCtrl, 'User Agent (Optional)', Icons.language_rounded),
+                      const SizedBox(height: 12),
+                      _sheetField(refererCtrl, 'Referer (Optional)', Icons.link_rounded),
+                      const SizedBox(height: 12),
+                      Row(
+                        children: [
+                          Expanded(child: _sheetField(drmSchemeCtrl, 'DRM Type (e.g. widevine)', Icons.security_rounded)),
+                          const SizedBox(width: 8),
+                          Expanded(flex: 2, child: _sheetField(drmLicenseCtrl, 'DRM License URL', Icons.key_rounded)),
+                        ],
+                      ),
                       const SizedBox(height: 12),
                       _sheetField(groupCtrl, 'Group', Icons.folder_outlined),
                       const SizedBox(height: 12),
@@ -1667,7 +1708,7 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
                             child: OutlinedButton(
                               onPressed: () {
                                 Navigator.pop(ctx);
-                                final toDispose = [nameCtrl, urlCtrl, url2Ctrl, url2NameCtrl, url3Ctrl, url3NameCtrl, groupCtrl, logoCtrl, backdropCtrl, userAgentCtrl];
+                                final toDispose = [nameCtrl, urlCtrl, url2Ctrl, url2NameCtrl, url3Ctrl, url3NameCtrl, groupCtrl, logoCtrl, backdropCtrl, userAgentCtrl, refererCtrl, drmSchemeCtrl, drmLicenseCtrl];
                                 for (final c in toDispose) {
                                   Future.microtask(c.dispose);
                                 }
@@ -1683,7 +1724,7 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
                                 Navigator.pop(ctx);
                                 final name = nameCtrl.text.trim();
                                 final url = urlCtrl.text.trim();
-                                final toDispose = [nameCtrl, urlCtrl, url2Ctrl, url2NameCtrl, url3Ctrl, url3NameCtrl, groupCtrl, logoCtrl, backdropCtrl, userAgentCtrl];
+                                final toDispose = [nameCtrl, urlCtrl, url2Ctrl, url2NameCtrl, url3Ctrl, url3NameCtrl, groupCtrl, logoCtrl, backdropCtrl, userAgentCtrl, refererCtrl, drmSchemeCtrl, drmLicenseCtrl];
                                 if (name.isEmpty || url.isEmpty) {
                                   for (final c in toDispose) {
                                     Future.microtask(c.dispose);
@@ -1708,6 +1749,9 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
                                       url2Name: url2NameCtrl.text.trim(),
                                       url3: url3Ctrl.text.trim(),
                                       url3Name: url3NameCtrl.text.trim(),
+                                      referer: refererCtrl.text.trim(),
+                                      drmScheme: drmSchemeCtrl.text.trim(),
+                                      drmLicense: drmLicenseCtrl.text.trim(),
                                     );
                               },
                               child: const Text('Save changes'),
@@ -2905,6 +2949,16 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
                 ),
                 const SizedBox(height: 14),
                 _field(_channelUserAgentController, 'User Agent (Optional)', Icons.language_rounded),
+                const SizedBox(height: 14),
+                _field(_channelRefererController, 'Referer (Optional)', Icons.link_rounded),
+                const SizedBox(height: 14),
+                Row(
+                  children: [
+                    Expanded(child: _field(_channelDrmSchemeController, 'DRM Type (e.g. widevine)', Icons.security_rounded)),
+                    const SizedBox(width: 8),
+                    Expanded(flex: 2, child: _field(_channelDrmLicenseController, 'DRM License URL', Icons.key_rounded)),
+                  ],
+                ),
                 const SizedBox(height: 14),
                 // Content Type Toggle
                 Container(

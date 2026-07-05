@@ -24,7 +24,9 @@ data class TvChannel(
     val type: String = "live",
     val order: Int = 999999,
     val drmScheme: String? = null,
-    val drmLicense: String? = null
+    val drmLicense: String? = null,
+    val userAgent: String? = null,
+    val referer: String? = null
 ) {
     fun isMovie(): Boolean {
         if (type == "movie") return true
@@ -185,8 +187,13 @@ class PocketBaseRepository {
                             val drmLicenseRaw = child.optString("drmLicense", null)
                             val drmLicense = if (drmLicenseRaw == "null" || drmLicenseRaw.isNullOrEmpty()) null else drmLicenseRaw
                             
+                            val userAgentRaw = child.optString("userAgent", null)
+                            val userAgent = if (userAgentRaw == "null" || userAgentRaw.isNullOrEmpty()) null else userAgentRaw
+                            val refererRaw = child.optString("referer", null)
+                            val referer = if (refererRaw == "null" || refererRaw.isNullOrEmpty()) null else refererRaw
+                            
                             if (url.isNotEmpty()) {
-                                channels.add(TvChannel(name, url, url2, url2Name, url3, url3Name, group, logo, type, order, drmScheme, drmLicense))
+                                channels.add(TvChannel(name, url, url2, url2Name, url3, url3Name, group, logo, type, order, drmScheme, drmLicense, userAgent, referer))
                             }
                         }
                     }

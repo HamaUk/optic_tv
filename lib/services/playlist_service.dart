@@ -29,6 +29,7 @@ class Channel {
   final String? url3Name;
   final String? drmScheme;
   final String? drmLicense;
+  final String? referer;
 
   Channel({
     required this.name,
@@ -49,6 +50,7 @@ class Channel {
     this.url3Name,
     this.drmScheme,
     this.drmLicense,
+    this.referer,
   });
 
   static String decrypt(String b64Text) {
@@ -117,6 +119,7 @@ class Channel {
       url3Name: map['url3Name'] as String?,
       drmScheme: map['drmScheme'] as String?,
       drmLicense: map['drmLicense'] as String?,
+      referer: map['referer'] as String?,
     );
   }
 
@@ -139,6 +142,7 @@ class Channel {
     'url3Name': url3Name,
     'drmScheme': drmScheme,
     'drmLicense': drmLicense,
+    'referer': referer,
   };
 
   @override

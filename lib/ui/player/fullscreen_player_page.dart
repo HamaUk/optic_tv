@@ -224,6 +224,8 @@ class _FullscreenPlayerPageState extends ConsumerState<FullscreenPlayerPage> {
       headers: {
         'User-Agent': _currentChannel.userAgent ?? 'SmartIPTV',
         'X-Optic-Security-Token': 'k4k-secure-stream-99X',
+        if (_currentChannel.referer != null && _currentChannel.referer!.isNotEmpty)
+          'Referer': _currentChannel.referer!,
       },
       drmScheme: _currentChannel.drmScheme,
       drmLicense: _currentChannel.drmLicense,
@@ -342,7 +344,12 @@ class _FullscreenPlayerPageState extends ConsumerState<FullscreenPlayerPage> {
     widget.onServerChanged?.call(serverIndex);
     widget.player.open(
       url,
-      headers: {'User-Agent': _currentChannel.userAgent ?? 'SmartIPTV'},
+      headers: {
+        'User-Agent': _currentChannel.userAgent ?? 'SmartIPTV',
+        'X-Optic-Security-Token': 'k4k-secure-stream-99X',
+        if (_currentChannel.referer != null && _currentChannel.referer!.isNotEmpty)
+          'Referer': _currentChannel.referer!,
+      },
       drmScheme: _currentChannel.drmScheme,
       drmLicense: _currentChannel.drmLicense,
     );

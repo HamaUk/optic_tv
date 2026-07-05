@@ -331,7 +331,25 @@ fun PlayerScreen(
             builder.setDrmConfiguration(drmConfigBuilder.build())
         }
 
-        exoPlayer.setMediaItem(builder.build())
+        val userAgent = ch?.userAgent ?: "SmartIPTV"
+        val referer = ch?.referer
+        
+        val dynamicHttpFactory = DefaultHttpDataSource.Factory()
+            .setUserAgent(userAgent)
+            .setAllowCrossProtocolRedirects(true)
+            .setConnectTimeoutMs(10_000)
+            .setReadTimeoutMs(15_000)
+            
+        val requestProps = mutableMapOf<String, String>()
+        requestProps["X-Optic-Security-Token"] = "k4k-secure-stream-99X"
+        if (!referer.isNullOrEmpty()) {
+            requestProps["Referer"] = referer
+        }
+        dynamicHttpFactory.setDefaultRequestProperties(requestProps)
+        
+        val mediaSource = DefaultMediaSourceFactory(dynamicHttpFactory).createMediaSource(builder.build())
+
+        exoPlayer.setMediaSource(mediaSource)
         exoPlayer.prepare()
         exoPlayer.playWhenReady = true
         exoPlayer.play()

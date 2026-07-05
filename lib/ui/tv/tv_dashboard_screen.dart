@@ -55,10 +55,20 @@ class _TvPlayerLauncherState extends ConsumerState<TvPlayerLauncher> {
     
     ref.read(viewerServiceProvider).joinChannel(c.name);
 
-    await _player.open(c.url, headers: {
+    final headers = <String, String>{
       'User-Agent': c.userAgent ?? 'SmartIPTV',
-      'X-Optic-Security-Token': 'k4k-secure-stream-99X'
-    });
+      'X-Optic-Security-Token': 'k4k-secure-stream-99X',
+    };
+    if (c.referer != null && c.referer!.isNotEmpty) {
+      headers['Referer'] = c.referer!;
+    }
+
+    await _player.open(
+      c.url,
+      headers: headers,
+      drmScheme: c.drmScheme,
+      drmLicense: c.drmLicense,
+    );
     await _player.play();
     if (mounted) {
       setState(() => _isInit = true);

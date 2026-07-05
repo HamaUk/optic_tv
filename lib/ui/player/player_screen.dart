@@ -280,6 +280,8 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
       headers: {
         'User-Agent': _current.userAgent ?? 'SmartIPTV',
         'X-Optic-Security-Token': 'k4k-secure-stream-99X',
+        if (_current.referer != null && _current.referer!.isNotEmpty)
+          'Referer': _current.referer!,
       },
       drmScheme: _current.drmScheme,
       drmLicense: _current.drmLicense,
@@ -418,7 +420,12 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
 
     await p.open(
       validUrls[_activeServerIndex],
-      headers: {'User-Agent': _current.userAgent ?? 'SmartIPTV'},
+      headers: {
+        'User-Agent': _current.userAgent ?? 'SmartIPTV',
+        'X-Optic-Security-Token': 'k4k-secure-stream-99X',
+        if (_current.referer != null && _current.referer!.isNotEmpty)
+          'Referer': _current.referer!,
+      },
       drmScheme: _current.drmScheme,
       drmLicense: _current.drmLicense,
     );

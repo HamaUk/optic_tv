@@ -168,7 +168,19 @@ class _MovieDetailsScreenState extends ConsumerState<MovieDetailsScreen>
     _bgController?.pause();
 
     final p = OpticPlayer();
-    p.open(widget.channel.url, headers: {'User-Agent': 'SmartIPTV'});
+    final headers = <String, String>{
+      'User-Agent': widget.channel.userAgent ?? 'SmartIPTV',
+      'X-Optic-Security-Token': 'k4k-secure-stream-99X',
+    };
+    if (widget.channel.referer != null && widget.channel.referer!.isNotEmpty) {
+      headers['Referer'] = widget.channel.referer!;
+    }
+    p.open(
+      widget.channel.url,
+      headers: headers,
+      drmScheme: widget.channel.drmScheme,
+      drmLicense: widget.channel.drmLicense,
+    );
 
     Navigator.push(
       context,
