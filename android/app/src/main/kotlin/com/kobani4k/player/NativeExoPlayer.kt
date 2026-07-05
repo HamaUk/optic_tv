@@ -255,10 +255,8 @@ class NativeExoPlayer(
         val userAgent = headers["User-Agent"] ?: "SmartIPTV"
         httpDataSourceFactory.setUserAgent(userAgent)
 
-        // Set custom headers
-        if (headers.isNotEmpty()) {
-            httpDataSourceFactory.setDefaultRequestProperties(headers)
-        }
+        // Set custom headers (Always set, so we clear previous channel's headers if empty)
+        httpDataSourceFactory.setDefaultRequestProperties(headers)
 
         var finalUrl = url
         var finalDrmScheme = drmScheme

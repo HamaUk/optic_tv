@@ -174,6 +174,7 @@ class _MovieDetailsScreenState extends ConsumerState<MovieDetailsScreen>
     };
     if (widget.channel.referer != null && widget.channel.referer!.isNotEmpty) {
       headers['Referer'] = widget.channel.referer!;
+      headers['Origin'] = Uri.parse(widget.channel.referer!).origin;
     }
     p.open(
       widget.channel.url,

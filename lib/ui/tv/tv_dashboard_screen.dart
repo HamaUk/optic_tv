@@ -61,6 +61,7 @@ class _TvPlayerLauncherState extends ConsumerState<TvPlayerLauncher> {
     };
     if (c.referer != null && c.referer!.isNotEmpty) {
       headers['Referer'] = c.referer!;
+      headers['Origin'] = Uri.parse(c.referer!).origin;
     }
 
     await _player.open(
