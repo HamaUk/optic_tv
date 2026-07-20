@@ -101,8 +101,8 @@ class _DynamicBackgroundState extends State<DynamicBackground>
                           center: Alignment.topCenter,
                           radius: 1.2,
                           colors: [
-                            glowColor.withOpacity(0.9),
-                            glowColor.withOpacity(0.0),
+                            glowColor.withValues(alpha: 0.9),
+                            glowColor.withValues(alpha: 0.0),
                           ],
                         ),
                       ),
@@ -122,7 +122,7 @@ class _DynamicBackgroundState extends State<DynamicBackground>
                       end: Alignment.bottomCenter,
                       colors: [
                         Colors.transparent,
-                        AppTheme.backgroundBlack.withOpacity(0.55),
+                        AppTheme.backgroundBlack.withValues(alpha: 0.55),
                       ],
                     ),
                   ),

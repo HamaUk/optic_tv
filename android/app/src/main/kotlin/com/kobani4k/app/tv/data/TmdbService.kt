@@ -24,6 +24,7 @@ class TmdbService {
     private val client = OkHttpClient()
     private val baseUrl = "https://api.themoviedb.org/3"
     private val imageBaseUrl = "https://image.tmdb.org/t/p/w500"
+    private val backdropBaseUrl = "https://image.tmdb.org/t/p/w1280"
     private val readAccessToken = "eyJhbGciOiJIUzI1NiJ9.eyJhdWQiOiI4MGFiN2UxNzgxMDkzMGEwM2JjYWViYTZjOThhYTY1NiIsIm5iZiI6MTc3NTkzNTI1NS42ODksInN1YiI6IjY5ZGE5ZjE3OTA4MTdjYjk3MzAyNmRjNSIsInNjb3BlcyI6WyJhcGlfcmVhZCJdLCJ2ZXJzaW9uIjoxfQ.DEgqhdxcwvDTo_a0gL6514ZdZX7Rt_3rB7zbRHDsiQM"
 
     // Simple in-memory cache to avoid repeated network calls for the same movie title
@@ -95,7 +96,7 @@ class TmdbService {
                                 title = best.optString("title", ""),
                                 overview = best.optString("overview", "No description available."),
                                 posterUrl = if (posterPath.isNotEmpty() && posterPath != "null") "$imageBaseUrl$posterPath" else null,
-                                backdropUrl = if (backdropPath.isNotEmpty() && backdropPath != "null") "$imageBaseUrl$backdropPath" else null,
+                                backdropUrl = if (backdropPath.isNotEmpty() && backdropPath != "null") "$backdropBaseUrl$backdropPath" else null,
                                 rating = best.optDouble("vote_average", 0.0),
                                 releaseDate = best.optString("release_date", "")
                             )

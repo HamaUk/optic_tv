@@ -1,7 +1,7 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:babstrap_settings_screen/babstrap_settings_screen.dart';
+
 
 import '../../core/theme.dart';
 import '../../l10n/app_strings.dart';
@@ -10,11 +10,53 @@ import '../../providers/session_provider.dart';
 import '../../providers/ui_settings_provider.dart';
 
 import 'pages/theme_settings_page.dart';
+import 'pages/manual_sort_settings_page.dart';
 import 'pages/language_settings_page.dart';
 import 'pages/playback_settings_page.dart';
 import 'pages/storage_settings_page.dart';
 import 'pages/diagnostic_settings_page.dart';
 import 'pages/about_settings_page.dart';
+
+class CustomSettingsItem extends StatelessWidget {
+  final VoidCallback onTap;
+  final String iconAsset;
+  final Color iconBgColor;
+  final String title;
+  final String subtitle;
+  final Color titleColor;
+
+  const CustomSettingsItem({
+    super.key,
+    required this.onTap,
+    required this.iconAsset,
+    required this.iconBgColor,
+    required this.title,
+    required this.subtitle,
+    this.titleColor = Colors.white,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.transparent,
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: ListTile(
+        onTap: onTap,
+        leading: Container(
+          padding: const EdgeInsets.all(8),
+          decoration: BoxDecoration(color: iconBgColor, borderRadius: BorderRadius.circular(12)),
+          child: Image.asset(iconAsset, width: 22, height: 22, color: Colors.white),
+        ),
+        title: Text(title, style: TextStyle(color: titleColor, fontWeight: FontWeight.bold)),
+        subtitle: Text(subtitle, style: const TextStyle(color: Colors.white54, fontSize: 12)),
+        trailing: const Icon(Icons.chevron_right_rounded, color: Colors.white54),
+        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+      ),
+    );
+  }
+}
 
 class SettingsScreen extends ConsumerWidget {
   const SettingsScreen({super.key});
@@ -56,7 +98,7 @@ class SettingsScreen extends ConsumerWidget {
           child: BackdropFilter(
             filter: ImageFilter.blur(sigmaX: 15, sigmaY: 15),
             child: AppBar(
-              backgroundColor: Colors.black.withOpacity(0.5),
+              backgroundColor: Colors.black.withValues(alpha: 0.5),
               elevation: 0,
               title: Text(s.settingsTitle, style: const TextStyle(fontWeight: FontWeight.w900, letterSpacing: 1.2, color: Colors.white)),
               leading: IconButton(
@@ -77,106 +119,98 @@ class SettingsScreen extends ConsumerWidget {
           child: ListView(
             padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
             children: [
-              BigUserCard(
-                backgroundColor: AppTheme.accentColor(uiSettings.gradientPreset).withOpacity(0.9),
-                userName: "KOBANI VIP",
-                
-                userProfilePic: const AssetImage("assets/images/logo.png"),
-                cardActionWidget: SettingsItem(
-                  icons: Icons.star_rounded,
-                  iconStyle: IconStyle(
-                    withBackground: true,
-                    borderRadius: 50,
-                    backgroundColor: Colors.yellow[700],
-                  ),
-                  title: s.subscriptionActiveTitle,
-                  titleStyle: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
-                  subtitle: s.subscriptionActiveSub,
-                  subtitleStyle: const TextStyle(color: Colors.white70),
-                  onTap: () {},
+              Container(
+                margin: const EdgeInsets.only(bottom: 20),
+                decoration: BoxDecoration(
+                  color: Colors.black.withValues(alpha: 0.35),
+                  borderRadius: BorderRadius.circular(15),
+                ),
+                child: Column(
+                  children: [
+                    CustomSettingsItem(
+                      onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const ThemeSettingsPage())),
+                      iconAsset: 'assets/images/flixy/ic_mask.png',
+                      iconBgColor: Colors.purpleAccent,
+                      title: s.sectionInterface,
+                      subtitle: s.sectionInterfaceSub,
+                    ),
+                    CustomSettingsItem(
+                      onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const ManualSortSettingsPage())),
+                      iconAsset: 'assets/images/flixy/ic_menu.png',
+                      iconBgColor: Colors.deepOrangeAccent,
+                      title: s.manualSortTitle,
+                      subtitle: s.manualSortSub,
+                    ),
+                    
+                    CustomSettingsItem(
+                      onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const LanguageSettingsPage())),
+                      iconAsset: 'assets/images/flixy/ic_languages.png',
+                      iconBgColor: Colors.blueAccent,
+                      title: s.sectionLanguage,
+                      subtitle: uiLocale.languageCode.toUpperCase(),
+                    ),
+                  ],
                 ),
               ),
-              const SizedBox(height: 16),
-              
-              SettingsGroup(
-                backgroundColor: Colors.black.withOpacity(0.35),
-                items: [
-                  SettingsItem(
-                    onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const ThemeSettingsPage())),
-                    icons: Icons.palette_rounded,
-                    iconStyle: IconStyle(backgroundColor: Colors.purpleAccent),
-                    title: s.sectionInterface,
-                    titleStyle: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
-                    subtitle: s.sectionInterfaceSub,
-                    subtitleStyle: const TextStyle(color: Colors.white54),
-                  ),
-                  SettingsItem(
-                    onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const LanguageSettingsPage())),
-                    icons: Icons.language_rounded,
-                    iconStyle: IconStyle(backgroundColor: Colors.blueAccent),
-                    title: s.sectionLanguage,
-                    titleStyle: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
-                    subtitle: uiLocale.languageCode.toUpperCase(),
-                    subtitleStyle: const TextStyle(color: Colors.white54),
-                  ),
-                ],
+
+              Container(
+                margin: const EdgeInsets.only(bottom: 20),
+                decoration: BoxDecoration(
+                  color: Colors.black.withValues(alpha: 0.35),
+                  borderRadius: BorderRadius.circular(15),
+                ),
+                child: Column(
+                  children: [
+                    CustomSettingsItem(
+                      onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const PlaybackSettingsPage())),
+                      iconAsset: 'assets/images/flixy/ic_play.png',
+                      iconBgColor: Colors.orangeAccent,
+                      title: s.sectionPlayback,
+                      subtitle: s.sectionPlaybackSub,
+                    ),
+                    CustomSettingsItem(
+                      onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const StorageSettingsPage())),
+                      iconAsset: 'assets/images/flixy/ic_download_box.png',
+                      iconBgColor: Colors.teal,
+                      title: s.sectionStorage,
+                      subtitle: s.sectionStorageSub,
+                    ),
+                    CustomSettingsItem(
+                      onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const DiagnosticSettingsPage())),
+                      iconAsset: 'assets/images/flixy/ic_search.png',
+                      iconBgColor: Colors.indigoAccent,
+                      title: s.sectionDiagnostics,
+                      subtitle: s.sectionDiagnosticsSub,
+                    ),
+                  ],
+                ),
               ),
 
-              SettingsGroup(
-                backgroundColor: Colors.black.withOpacity(0.35),
-                items: [
-                  SettingsItem(
-                    onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const PlaybackSettingsPage())),
-                    icons: Icons.play_circle_fill_rounded,
-                    iconStyle: IconStyle(backgroundColor: Colors.orangeAccent),
-                    title: s.sectionPlayback,
-                    titleStyle: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
-                    subtitle: s.sectionPlaybackSub,
-                    subtitleStyle: const TextStyle(color: Colors.white54),
-                  ),
-                  SettingsItem(
-                    onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const StorageSettingsPage())),
-                    icons: Icons.storage_rounded,
-                    iconStyle: IconStyle(backgroundColor: Colors.teal),
-                    title: s.sectionStorage,
-                    titleStyle: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
-                    subtitle: s.sectionStorageSub,
-                    subtitleStyle: const TextStyle(color: Colors.white54),
-                  ),
-                  SettingsItem(
-                    onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const DiagnosticSettingsPage())),
-                    icons: Icons.analytics_rounded,
-                    iconStyle: IconStyle(backgroundColor: Colors.indigoAccent),
-                    title: s.sectionDiagnostics,
-                    titleStyle: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
-                    subtitle: s.sectionDiagnosticsSub,
-                    subtitleStyle: const TextStyle(color: Colors.white54),
-                  ),
-                ],
-              ),
-
-              SettingsGroup(
-                backgroundColor: Colors.black.withOpacity(0.35),
-                items: [
-                  SettingsItem(
-                    onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const AboutSettingsPage())),
-                    icons: Icons.info_rounded,
-                    iconStyle: IconStyle(backgroundColor: Colors.green),
-                    title: s.sectionSupport,
-                    titleStyle: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
-                    subtitle: s.sectionSupportSub,
-                    subtitleStyle: const TextStyle(color: Colors.white54),
-                  ),
-                  SettingsItem(
-                    onTap: () => _confirmLogout(context, ref, s),
-                    icons: Icons.logout_rounded,
-                    iconStyle: IconStyle(backgroundColor: Colors.redAccent),
-                    title: s.logoutTitle,
-                    titleStyle: const TextStyle(color: Colors.redAccent, fontWeight: FontWeight.bold),
-                    subtitle: s.logoutSub,
-                    subtitleStyle: const TextStyle(color: Colors.white54),
-                  ),
-                ],
+              Container(
+                margin: const EdgeInsets.only(bottom: 20),
+                decoration: BoxDecoration(
+                  color: Colors.black.withValues(alpha: 0.35),
+                  borderRadius: BorderRadius.circular(15),
+                ),
+                child: Column(
+                  children: [
+                    CustomSettingsItem(
+                      onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const AboutSettingsPage())),
+                      iconAsset: 'assets/images/flixy/ic_email.png',
+                      iconBgColor: Colors.green,
+                      title: s.sectionSupport,
+                      subtitle: s.sectionSupportSub,
+                    ),
+                    CustomSettingsItem(
+                      onTap: () => _confirmLogout(context, ref, s),
+                      iconAsset: 'assets/images/flixy/ic_logout.png',
+                      iconBgColor: Colors.redAccent,
+                      title: s.logoutTitle,
+                      subtitle: s.logoutSub,
+                      titleColor: Colors.redAccent,
+                    ),
+                  ],
+                ),
               ),
               const SizedBox(height: 24),
             ],

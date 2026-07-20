@@ -236,7 +236,7 @@ class _MatchDetailsScreenState extends ConsumerState<MatchDetailsScreen> with Si
         try {
           final dt = DateTime.parse(dateStr).toLocal();
           matchTime = '${dt.hour.toString().padLeft(2, '0')}:${dt.minute.toString().padLeft(2, '0')}';
-        } catch (_) {}
+        } catch (e) { debugPrint('Caught error in match_details_screen.dart: $e'); }
       }
     }
 
@@ -248,7 +248,7 @@ class _MatchDetailsScreenState extends ConsumerState<MatchDetailsScreen> with Si
         borderRadius: BorderRadius.circular(24),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.5),
+            color: Colors.black.withValues(alpha: 0.5),
             blurRadius: 20,
             offset: const Offset(0, 10),
           ),
@@ -268,7 +268,7 @@ class _MatchDetailsScreenState extends ConsumerState<MatchDetailsScreen> with Si
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
                 decoration: BoxDecoration(
-                  color: state == 'in' ? Colors.redAccent.withOpacity(0.2) : Colors.white10,
+                  color: state == 'in' ? Colors.redAccent.withValues(alpha: 0.2) : Colors.white10,
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Text(

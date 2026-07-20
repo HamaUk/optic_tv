@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
+import 'stream_resolver.dart';
 /// Native ExoPlayer engine connected via MethodChannel.
 ///
 /// Uses Texture-based rendering: the native ExoPlayer renders frames into a
@@ -26,6 +27,8 @@ class OpticPlayer with WidgetsBindingObserver {
   final ValueNotifier<bool> playing = ValueNotifier(false);
   final ValueNotifier<bool> buffering = ValueNotifier(true);
   final ValueNotifier<Size> videoSize = ValueNotifier(Size.zero);
+  /// Fires true when native ExoPlayer detects a VPN or proxy before connecting.
+  final ValueNotifier<bool> vpnDetected = ValueNotifier(false);
 
   // ─── Stream controllers (for StreamBuilder compatibility) ─────────────
   final _positionCtrl = StreamController<Duration>.broadcast();
@@ -75,33 +78,12 @@ class OpticPlayer with WidgetsBindingObserver {
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.paused) {
       _wasPlayingBeforePause = _isPlaying;
-      if (_isPlaying) {
-        stop();
-      }
+      // Do not stop/pause here — PlayerScreen manages playback lifecycle explicitly.
+      // Stopping here causes a race condition when returning from fullscreen rotation.
     } else if (state == AppLifecycleState.resumed) {
-      if (_wasPlayingBeforePause && _lastUrl != null) {
-        // Only reinitialize if not already initialized to prevent duplicate texture IDs
-        if (!_initialized) {
-          _init().then((_) {
-            if (_initialized && _lastUrl != null) {
-              open(_lastUrl!, headers: _lastHeaders).then((_) {
-                if (_wasPlayingBeforePause) {
-                  play();
-                }
-                _wasPlayingBeforePause = false;
-              });
-            }
-          });
-        } else {
-          // Already initialized, just resume playback
-          open(_lastUrl!, headers: _lastHeaders).then((_) {
-            if (_wasPlayingBeforePause) {
-              play();
-            }
-            _wasPlayingBeforePause = false;
-          });
-        }
-      }
+      // PlayerScreen calls _reopenCurrentStream() explicitly after fullscreen transitions.
+      // We do not auto-reopen here to avoid double-open race conditions.
+      _wasPlayingBeforePause = false;
     }
   }
 
@@ -144,8 +126,14 @@ class OpticPlayer with WidgetsBindingObserver {
     _isBuffering = true;
     _bufferingCtrl.add(true);
     
+    // Attempt to resolve stream URL if it requires scraping
+    final resolvedUrl = await StreamResolver.resolveIfNeeded(
+      url, 
+      userAgent: headers?['User-Agent'],
+    );
+
     await _channel.invokeMethod('open', {
-      'url': url,
+      'url': resolvedUrl,
       'headers': headers ?? {'User-Agent': 'SmartIPTV'},
       'drmScheme': drmScheme,
       'drmLicense': drmLicense,
@@ -284,6 +272,17 @@ class OpticPlayer with WidgetsBindingObserver {
         break;
 
       case 'onBufferPositionChanged':
+        break;
+
+      case 'vpn_detected':
+        vpnDetected.value = true;
+        // Also stop any playing state
+        _isPlaying = false;
+        playing.value = false;
+        _playingCtrl.add(false);
+        _isBuffering = false;
+        buffering.value = false;
+        _bufferingCtrl.add(false);
         break;
 
       case 'onCompleted':

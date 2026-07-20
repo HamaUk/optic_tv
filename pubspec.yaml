@@ -1,6 +1,6 @@
 name: optic_tv
 description: A premium, professional IPTV application built from scratch.
-version: 1.0.1+222
+version: 1.5.0+223
 
 environment:
   sdk: '>=3.7.0 <4.0.0'
@@ -12,7 +12,7 @@ dependencies:
   # High-Performance Media Playback (ExoPlayer via video_player)
   url_launcher: ^6.3.0
   animations: ^2.0.11
-  rxdart: ^0.27.7
+  rxdart: ^0.28.0
   collection: ^1.18.0
 
   # State Management & DI
@@ -20,8 +20,8 @@ dependencies:
   riverpod_annotation: ^4.0.2
 
   # PocketBase & Backend
-  pocketbase: ^0.22.0
-  flutter_local_notifications: ^18.0.1
+  pocketbase: ^0.24.0+1
+  flutter_local_notifications: ^22.0.1
 
   # Localization & RTL
   flutter_localizations:
@@ -36,10 +36,10 @@ dependencies:
   # Settings & persistence
   shared_preferences: ^2.2.3
   path_provider: ^2.1.6
-  file_picker: ^8.1.7
+  file_picker: ^12.0.0-beta.7
 
   # UI & UX
-  share_plus: ^12.0.1
+  share_plus: ^13.2.1
   google_fonts: ^8.0.2
   image_picker: ^1.1.2
   glassmorphism: ^3.0.0
@@ -48,9 +48,9 @@ dependencies:
   palette_generator: ^0.3.3+3
   lottie: ^3.2.0
   simple_pip_mode: ^1.1.0
-  dio_cache_interceptor: ^3.5.0
+  dio_cache_interceptor: ^4.0.7
   flutter_staggered_animations: ^1.1.1
-  fl_chart: ^0.68.0
+  fl_chart: ^1.2.0
   wakelock_plus: ^1.2.8
   dpad: ^3.0.0
   flutter_jailbreak_detection: ^1.10.0
@@ -60,17 +60,19 @@ dependencies:
 
   # Media Engine — ExoPlayer (Android native, zero overhead)
   video_player: ^2.9.1
-  device_info_plus: ^11.1.0
-  package_info_plus: ^9.0.1
-  firebase_core: ^3.0.0
-  firebase_messaging: ^15.0.0
-  googleapis_auth: ^1.4.1
+  device_info_plus: ^13.2.0
+  package_info_plus: ^10.2.1
+  firebase_core: ^4.12.1
+  firebase_messaging: ^16.4.3
+  googleapis_auth: ^2.3.3
   open_filex: ^4.7.0
-  firebase_database: ^11.3.10
+  firebase_database: ^12.4.6
   cast: ^2.1.0
   dlna_dart: ^0.1.1
   babstrap_settings_screen: ^0.1.7
-
+  freerasp: ^8.0.0
+  http_certificate_pinning: ^3.0.1
+  mqtt_client: ^10.11.11
 dev_dependencies:
   flutter_test:
     sdk: flutter
@@ -93,6 +95,7 @@ flutter:
     - assets/json/
     - assets/images/flut.png
     - assets/images/logo.png
+    - assets/images/flixy/
   fonts:
     - family: Rabar
       fonts:

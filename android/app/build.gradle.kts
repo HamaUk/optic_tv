@@ -3,6 +3,7 @@ import java.util.Properties
 
 plugins {
     id("com.android.application")
+    id("org.jetbrains.kotlin.android")
     // The Flutter Gradle Plugin must be applied after the Android and Kotlin Gradle plugins.
     id("dev.flutter.flutter-gradle-plugin")
     id("org.jetbrains.kotlin.plugin.compose")
@@ -19,7 +20,7 @@ if (keystorePropertiesFile.exists()) {
 android {
     namespace = "com.kobani4k.app"
     compileSdk = flutter.compileSdkVersion
-    ndkVersion = flutter.ndkVersion
+    ndkVersion = "28.2.13676358"
 
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
@@ -38,10 +39,6 @@ android {
         versionCode = flutter.versionCode
         versionName = flutter.versionName
 
-        // Focus on modern architectures to reduce size and reverse-engineering target
-        ndk {
-            abiFilters.addAll(listOf("armeabi-v7a", "arm64-v8a", "x86_64"))
-        }
     }
 
     signingConfigs {
@@ -80,6 +77,10 @@ android {
         jniLibs {
             useLegacyPackaging = true
         }
+        resources {
+            excludes += "META-INF/INDEX.LIST"
+            excludes += "META-INF/io.netty.versions.properties"
+        }
     }
 
     buildFeatures {
@@ -88,7 +89,7 @@ android {
 }
 
 dependencies {
-    coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.0.3")
+    coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.4")
 
     // AndroidX & TV dependencies
     implementation("androidx.core:core-ktx:1.13.1")
@@ -134,6 +135,9 @@ dependencies {
 
     // Coil Image Loading
     implementation("io.coil-kt:coil-compose:2.7.0")
+
+    // MQTT for Viewer Count
+    implementation("com.hivemq:hivemq-mqtt-client:1.3.3")
 }
 
 flutter {

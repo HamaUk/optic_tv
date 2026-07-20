@@ -1,4 +1,4 @@
-package com.kobani4k.app.tv.ui
+﻿package com.kobani4k.app.tv.ui
 
 import android.view.KeyEvent
 import android.widget.TextClock
@@ -22,6 +22,7 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.onFocusChanged
+import com.kobani4k.player.StreamResolver
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.key.onKeyEvent
@@ -81,7 +82,7 @@ fun VodPlayerScreen(
     val context = LocalContext.current
     val repository = remember { PocketBaseRepository() }
 
-    // ── Player state ──
+    // â”€â”€ Player state â”€â”€
     var isBuffering    by remember { mutableStateOf(true) }
     var isPlayingState by remember { mutableStateOf(true) }
     var streamFailed   by remember { mutableStateOf(false) }
@@ -89,7 +90,7 @@ fun VodPlayerScreen(
     var currentPosition by remember { mutableStateOf(0L) }
     var duration        by remember { mutableStateOf(0L) }
 
-    // ── UI visibility ──
+    // â”€â”€ UI visibility â”€â”€
     var showControls by remember { mutableStateOf(false) }
     var activeMenu   by remember { mutableStateOf(ActiveMenu.NONE) }
     var controlsActivityTrigger by remember { mutableStateOf(0) }
@@ -116,7 +117,7 @@ fun VodPlayerScreen(
         showControls = true
     }
 
-    // ── ExoPlayer ──
+    // â”€â”€ ExoPlayer â”€â”€
     val exoPlayer = remember(selectedDecoder) {
         val loadControl = DefaultLoadControl.Builder()
             .setBufferDurationsMs(60_000, 120_000, 2_500, 5_000)
@@ -155,11 +156,13 @@ fun VodPlayerScreen(
         exoPlayer.stop()
         exoPlayer.clearMediaItems()
         
-        val builder = MediaItem.Builder().setUri(streamUrl)
+        val finalUrl = StreamResolver.resolveIfNeeded(streamUrl)
+        
+        val builder = MediaItem.Builder().setUri(finalUrl)
 
-        if (streamUrl.contains("m3u8", ignoreCase = true)) {
+        if (finalUrl.contains("m3u8", ignoreCase = true)) {
             builder.setMimeType(androidx.media3.common.MimeTypes.APPLICATION_M3U8)
-        } else if (streamUrl.contains("mpd", ignoreCase = true)) {
+        } else if (finalUrl.contains("mpd", ignoreCase = true)) {
             builder.setMimeType(androidx.media3.common.MimeTypes.APPLICATION_MPD)
         }
 
@@ -302,7 +305,7 @@ fun VodPlayerScreen(
 
         if (isBuffering && !streamFailed) {
             Box(Modifier.fillMaxSize().background(Color.Black.copy(0.4f)), contentAlignment = Alignment.Center) {
-                CircularProgressIndicator(color = UltraTokens.Blue, modifier = Modifier.size(64.dp), strokeWidth = 4.dp)
+                CircularProgressIndicator(color = UltraTokens.Accent, modifier = Modifier.size(64.dp), strokeWidth = 4.dp)
             }
         }
 
@@ -443,7 +446,7 @@ private fun VodOsdOverlay(
                         modifier = Modifier
                             .fillMaxHeight()
                             .fillMaxWidth(progress)
-                            .background(UltraTokens.Blue)
+                            .background(UltraTokens.Accent)
                     )
                 }
                 Spacer(Modifier.width(16.dp))
@@ -514,3 +517,4 @@ private fun formatTime(ms: Long): String {
         String.format("%02d:%02d", minutes, seconds)
     }
 }
+

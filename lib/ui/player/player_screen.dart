@@ -12,30 +12,31 @@ import 'package:simple_pip_mode/simple_pip.dart';
 import 'dart:ui' show ImageFilter;
 import 'package:animations/animations.dart';
 
-import '../../widgets/tv/tv_focusable.dart';
+import '../../services/pocketbase_service.dart';
 import 'package:wakelock_plus/wakelock_plus.dart';
 import 'fullscreen_player_page.dart';
 import '../../services/optic_player.dart';
-
 import '../../core/theme.dart';
 import '../../widgets/channel_logo_image.dart';
 import '../../widgets/player_control_button.dart';
 import '../../widgets/kobani_wordmark.dart';
+import '../../widgets/live_viewer_badge.dart';
 import '../../l10n/app_strings.dart';
 import '../../providers/app_locale_provider.dart';
 import '../../providers/channel_library_provider.dart';
 import '../../providers/ui_settings_provider.dart';
 import '../../providers/session_provider.dart';
 import '../../services/playlist_service.dart';
+import '../../services/platform_service.dart';
 import '../../services/settings_service.dart';
 import '../../services/settings_service.dart';
 import '../../services/viewer_service.dart';
 import '../../services/analytics_service.dart';
 import '../../widgets/live_viewer_badge.dart';
-import '../../widgets/tv_focus_wrapper.dart';
 import '../settings/settings_screen.dart';
 import '../../widgets/dlna_device_dialog.dart';
 import '../../services/dlna_service.dart';
+import '../../services/platform_service.dart';
 
 enum _TvPanelType { none, progressbar, playlist }
 
@@ -53,7 +54,7 @@ class PlayerScreen extends ConsumerStatefulWidget {
   ConsumerState<PlayerScreen> createState() => _PlayerScreenState();
 }
 
-class _PlayerScreenState extends ConsumerState<PlayerScreen> {
+class _PlayerScreenState extends ConsumerState<PlayerScreen> with WidgetsBindingObserver {
   Color get _accent => AppTheme.accentColor(_settings.gradientPreset);
 
 
@@ -153,6 +154,7 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _index = widget.initialIndex.clamp(0, widget.channels.length - 1);
     _selectedGroup = widget.channels[_index].group;
 
@@ -265,28 +267,66 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
       if (err != null) _handlePlayerError(err);
     }));
 
+    // VPN/Proxy detection from native ExoPlayer — fires when VPN detected mid-stream
+    p.vpnDetected.addListener(() {
+      if (p.vpnDetected.value && mounted) {
+        // Force a security re-check to show the global lockout overlay
+        ref.refresh(securityCheckProvider);
+      }
+    });
+
     _viewFit = _settings.videoFit;
 
-    List<String> validUrls = [_current.url];
-    if (_current.url2 != null && _current.url2!.trim().isNotEmpty) validUrls.add(_current.url2!);
-    if (_current.url3 != null && _current.url3!.trim().isNotEmpty) validUrls.add(_current.url3!);
+    String currentUrl = _current.url;
+    String? currentUrl2 = _current.url2;
+    String? currentUrl3 = _current.url3;
+    
+    String? activeUserAgent = _current.userAgent;
+    String? activeReferer = _current.referer;
+    String? activeDrmScheme = _current.drmScheme;
+    String? activeDrmLicense = _current.drmLicense;
+    String? activeUrl2DrmScheme = _current.url2DrmScheme;
+    String? activeUrl2DrmLicense = _current.url2DrmLicense;
+    String? activeUrl2Referer = _current.url2Referer;
+    String? activeUrl2UserAgent = _current.url2UserAgent;
+    String? activeUrl3DrmScheme = _current.url3DrmScheme;
+    String? activeUrl3DrmLicense = _current.url3DrmLicense;
+    String? activeUrl3Referer = _current.url3Referer;
+    String? activeUrl3UserAgent = _current.url3UserAgent;
+    // Resolve URL based on current channel data
+
+    List<String> validUrls = [currentUrl];
+    if (currentUrl2 != null && currentUrl2.trim().isNotEmpty) validUrls.add(currentUrl2);
+    if (currentUrl3 != null && currentUrl3.trim().isNotEmpty) validUrls.add(currentUrl3);
 
     if (_activeServerIndex >= validUrls.length) {
       _activeServerIndex = 0;
     }
 
+    if (_activeServerIndex == 1) {
+      activeUserAgent = activeUrl2UserAgent ?? activeUserAgent;
+      activeReferer = activeUrl2Referer;
+      activeDrmScheme = activeUrl2DrmScheme;
+      activeDrmLicense = activeUrl2DrmLicense;
+    } else if (_activeServerIndex == 2) {
+      activeUserAgent = activeUrl3UserAgent ?? activeUserAgent;
+      activeReferer = activeUrl3Referer;
+      activeDrmScheme = activeUrl3DrmScheme;
+      activeDrmLicense = activeUrl3DrmLicense;
+    }
+
     await p.open(
       validUrls[_activeServerIndex],
       headers: {
-        'User-Agent': _current.userAgent ?? 'SmartIPTV',
+        'User-Agent': activeUserAgent ?? 'SmartIPTV',
         'X-Optic-Security-Token': 'k4k-secure-stream-99X',
-        if (_current.referer != null && _current.referer!.isNotEmpty) ...{
-          'Referer': _current.referer!,
-          'Origin': Uri.parse(_current.referer!).origin,
+        if (activeReferer != null && activeReferer.isNotEmpty) ...{
+          'Referer': activeReferer,
+          'Origin': Uri.parse(activeReferer).origin,
         },
       },
-      drmScheme: _current.drmScheme,
-      drmLicense: _current.drmLicense,
+      drmScheme: activeDrmScheme,
+      drmLicense: activeDrmLicense,
     );
     await p.play();
 
@@ -311,6 +351,7 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     WakelockPlus.disable();
     _clockTimer?.cancel();
     _bufferingOverlayTimer?.cancel();
@@ -329,6 +370,23 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
     _player?.dispose();
     ref.read(viewerServiceProvider).leaveChannel(_current.name);
     super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      // Refresh global security provider
+      ref.refresh(securityCheckProvider);
+      
+      // Stop and pop player if VPN/Proxy was enabled while in background
+      SecurityService.isVpnOrProxyActive().then((isVpn) {
+        if (isVpn && mounted) {
+          _player?.stop();
+          _player?.dispose();
+          Navigator.of(context).pop();
+        }
+      });
+    }
   }
 
   Future<void> _toggleMute() async {
@@ -353,11 +411,13 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
     });
     final newName = _current.name;
     final newUrl = _current.url;
-    
+
     if (oldName != newName) {
-       ref.read(viewerServiceProvider).joinChannel(_current.name);
+      // Leave old channel first, then join new one
+      ref.read(viewerServiceProvider).leaveChannel(oldName);
+      ref.read(viewerServiceProvider).joinChannel(newName);
     }
-    
+
     ref.read(recentChannelsProvider.notifier).record(_current);
     if (oldUrl != newUrl) {
       unawaited(_reopenCurrentStream());
@@ -445,8 +505,8 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
     final result = await Navigator.of(context).push(
       MaterialPageRoute(
         builder: (context) {
-          final groupChannels = _channelsInSelectedGroup;
-          final groupIndex = groupChannels.isEmpty ? 0 : groupChannels.indexOf(_current).clamp(0, groupChannels.length - 1);
+          final groupChannels = _channelsInSelectedGroup.isEmpty ? [_current] : _channelsInSelectedGroup;
+          final groupIndex = groupChannels.indexOf(_current).clamp(0, groupChannels.length - 1);
           return FullscreenPlayerPage(
             player: _player!,
             channels: groupChannels,
@@ -492,10 +552,15 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
     }
     await SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
     
-    // Force the player to resume playing just in case the Android lifecycle paused it
-    // during the orientation change when popping from fullscreen.
+    // After the orientation settles, reopen the stream explicitly.
+    // A plain play() is not enough — the Android lifecycle change on rotation
+    // causes the native player to stop, so we must fully reopen the current stream.
     if (mounted) {
-      _player?.play();
+      // Give the orientation animation time to complete before reopening.
+      await Future.delayed(const Duration(milliseconds: 400));
+      if (mounted) {
+        _reopenCurrentStream();
+      }
     }
   }
 
@@ -556,7 +621,7 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
                     child: Row(
                       children: [
                         _buildMobileCategoryPane(s, uiLocale),
-                        Container(width: 1, color: Colors.white.withOpacity(0.05)),
+                        Container(width: 1, color: Colors.white.withValues(alpha: 0.05)),
                         _buildMobileChannelPane(s, uiLocale, bottomPad),
                       ],
                     ),
@@ -582,7 +647,7 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
                     child: Row(
                       children: [
                         _buildMobileCategoryPane(s, uiLocale),
-                        Container(width: 1, color: Colors.white.withOpacity(0.05)),
+                        Container(width: 1, color: Colors.white.withValues(alpha: 0.05)),
                         _buildMobileChannelPane(s, uiLocale, bottomPad),
                       ],
                     ),
@@ -601,23 +666,14 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
       child: Stack(
         fit: StackFit.expand,
         children: [
-          TVFocusable(
-            onSelect: _playPause,
+          GestureDetector(
+            onTap: _playPause,
             child: _player != null
                 ? NativePlayerView(player: _player!)
                 : const Center(child: CircularProgressIndicator(color: Colors.white24)),
           ),
           
-          // Viewer Badge overlay on top-left of video player
-          Positioned(
-            top: 16,
-            left: 16,
-            child: LiveViewerBadge(
-              channelName: _current.name,
-              isMobile: true,
-            ),
-          ),
-          
+
           if (_streamFailed)
             Container(
               color: Colors.black87,
@@ -684,8 +740,8 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
                       final isSelected = _activeServerIndex == s['index'];
                       return Padding(
                         padding: const EdgeInsets.only(right: 8.0),
-                        child: TVFocusable(
-                          onSelect: () {
+                        child: InkWell(
+                          onTap: () {
                             if (_activeServerIndex != s['index']) {
                               setState(() {
                                 _activeServerIndex = s['index'];
@@ -695,7 +751,7 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
                             }
                           },
                           child: Material(
-                            color: Colors.black.withOpacity(0.65),
+                            color: Colors.black.withValues(alpha: 0.65),
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(18),
                               side: BorderSide(
@@ -741,7 +797,7 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Material(
-                    color: Colors.black.withOpacity(0.5),
+                    color: Colors.black.withValues(alpha: 0.5),
                     borderRadius: BorderRadius.circular(8),
                     child: InkWell(
                       onTap: _toggleFullscreen,
@@ -783,7 +839,7 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
             child: Row(
               children: [
                 _buildMobileCategoryPane(s, uiLocale),
-                Container(width: 1, color: _accent.withOpacity(0.1)),
+                Container(width: 1, color: _accent.withValues(alpha: 0.1)),
                 _buildMobileChannelPane(s, uiLocale, bottomPad),
               ],
             ),
@@ -798,7 +854,7 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       decoration: BoxDecoration(
         color: const Color(0xFF0A0E14),
-        border: Border(bottom: BorderSide(color: Colors.white.withOpacity(0.05))),
+        border: Border(bottom: BorderSide(color: Colors.white.withValues(alpha: 0.05))),
       ),
       child: Row(
         children: [
@@ -824,14 +880,17 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
                     ),
                   ),
                 ),
+                const SizedBox(width: 8),
+                LiveViewerBadge(
+                  channelName: _current.name,
+                  isMobile: true,
+                ),
               ],
             ),
           ),
           const SizedBox(width: 8),
-          TVFocusable(
-            showFocusBorder: false,
-            focusScale: 1.1,
-            onSelect: () async {
+          InkWell(
+            onTap: () async {
               final connected = await showDialog<bool>(
                 context: context,
                 builder: (_) => const DlnaDeviceDialog(),
@@ -842,21 +901,18 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
                 ref.read(dlnaServiceProvider).castUrl(_current.url, title: _current.name);
               }
             },
-            builder: (context, isFocused, child) => Container(
+            child: Container(
               padding: const EdgeInsets.all(8),
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                color: isFocused ? Colors.white24 : Colors.transparent,
+                color: Colors.transparent,
               ),
-              child: Icon(Icons.cast_connected_rounded, color: Colors.white.withOpacity(0.7), size: 22),
+              child: Icon(Icons.cast_connected_rounded, color: Colors.white.withValues(alpha: 0.7), size: 22),
             ),
-            child: const SizedBox.shrink(),
           ),
           const SizedBox(width: 4),
-          TVFocusable(
-            showFocusBorder: false,
-            focusScale: 1.1,
-            onSelect: () async {
+          InkWell(
+            onTap: () async {
               await Navigator.push<void>(
                 context,
                 MaterialPageRoute(builder: (_) => const SettingsScreen()),
@@ -866,15 +922,14 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
                 setState(() => _settings = newSettings);
               }
             },
-            builder: (context, isFocused, child) => Container(
+            child: Container(
               padding: const EdgeInsets.all(8),
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                color: isFocused ? Colors.white24 : Colors.transparent,
+                color: Colors.transparent,
               ),
-              child: Icon(Icons.settings_outlined, color: Colors.white.withOpacity(0.7), size: 22),
+              child: Icon(Icons.settings_outlined, color: Colors.white.withValues(alpha: 0.7), size: 22),
             ),
-            child: const SizedBox.shrink(),
           ),
         ],
       ),
@@ -936,16 +991,15 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
         itemBuilder: (context, i) {
           final g = groups[i];
           final selected = g == _selectedGroup;
-          return TVFocusable(
-            showFocusBorder: false,
-            onSelect: () => setState(() => _selectedGroup = g),
-            builder: (context, isFocused, child) => AnimatedContainer(
+          return InkWell(
+            onTap: () => setState(() => _selectedGroup = g),
+            child: AnimatedContainer(
               duration: const Duration(milliseconds: 300),
               curve: Curves.easeOutCubic,
               padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 8),
               margin: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
               decoration: BoxDecoration(
-                color: isFocused ? _accent.withOpacity(0.3) : (selected ? _accent.withOpacity(0.12) : Colors.transparent),
+                color: selected ? _accent.withValues(alpha: 0.12) : Colors.transparent,
                 borderRadius: BorderRadius.circular(10),
                 border: Border(
                   left: BorderSide(
@@ -953,7 +1007,6 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
                     width: 3,
                   ),
                 ),
-                boxShadow: isFocused ? [BoxShadow(color: _accent.withOpacity(0.5), blurRadius: 8)] : null,
               ),
               child: Column(
                 children: [
@@ -981,7 +1034,6 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
                 ],
               ),
             ),
-            child: const SizedBox.shrink(),
           );
         },
       ),
@@ -996,18 +1048,16 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
         child: ListView.separated(
           padding: EdgeInsets.fromLTRB(0, 8, 8, bottomPad + 20),
           itemCount: channels.length,
-          separatorBuilder: (_, __) => Divider(color: Colors.white.withOpacity(0.04), height: 1),
+          separatorBuilder: (_, __) => Divider(color: Colors.white.withValues(alpha: 0.04), height: 1),
           itemBuilder: (context, i) {
             final ch = channels[i];
             final fullIdx = widget.channels.indexOf(ch);
             final active = ch.url == _current.url;
-            return TVFocusable(
-              onSelect: () => _selectChannelByIndex(fullIdx),
-              showFocusBorder: true,
-              focusScale: 1.02,
-              builder: (context, isFocused, child) => Material(
+            return InkWell(
+              onTap: () => _selectChannelByIndex(fullIdx),
+              child: Material(
                 key: ValueKey('mobile_${ch.url}_$fullIdx'),
-                color: isFocused ? _accent.withOpacity(0.3) : (active ? _accent.withOpacity(0.08) : Colors.transparent),
+                color: active ? _accent.withValues(alpha: 0.08) : Colors.transparent,
                 child: Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                   child: Row(
@@ -1040,7 +1090,7 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
                       Icon(
                         Icons.live_tv_rounded,
                         size: 14,
-                        color: active ? _accent.withOpacity(0.9) : Colors.white24,
+                        color: active ? _accent.withValues(alpha: 0.9) : Colors.white24,
                       ),
                       const SizedBox(width: 8),
                       // Channel name
@@ -1050,7 +1100,7 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
                           style: AppTheme.withRabarIfKurdish(
                             uiLocale,
                             TextStyle(
-                              color: active ? _accent : Colors.white.withOpacity(0.8),
+                              color: active ? _accent : Colors.white.withValues(alpha: 0.8),
                               fontSize: 13,
                               fontWeight: active ? FontWeight.w700 : FontWeight.w500,
                             ),
@@ -1067,14 +1117,13 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
                           decoration: BoxDecoration(
                             color: _accent,
                             shape: BoxShape.circle,
-                            boxShadow: [BoxShadow(color: _accent.withOpacity(0.5), blurRadius: 6)],
+                            boxShadow: [BoxShadow(color: _accent.withValues(alpha: 0.5), blurRadius: 6)],
                           ),
                         ),
                     ],
                   ),
                 ),
               ),
-              child: const SizedBox.shrink(),
             );
           },
         ),
@@ -1101,7 +1150,7 @@ class _GhostenPlayerInfoView extends StatelessWidget {
               decoration: BoxDecoration(
                 color: Colors.white,
                 borderRadius: BorderRadius.circular(6),
-                boxShadow: [BoxShadow(color: Colors.white.withOpacity(0.3), blurRadius: 10)],
+                boxShadow: [BoxShadow(color: Colors.white.withValues(alpha: 0.3), blurRadius: 10)],
               ),
               child: const Text('LIVE', style: TextStyle(color: Colors.black, fontSize: 12, fontWeight: FontWeight.w900)),
             ),
@@ -1122,7 +1171,7 @@ class _GhostenPlayerInfoView extends StatelessWidget {
         Text(
           channel.group.toUpperCase(),
           style: TextStyle(
-            color: Theme.of(context).colorScheme.primary.withOpacity(0.8),
+            color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.8),
             fontSize: 16,
             fontWeight: FontWeight.w900,
             letterSpacing: 3,

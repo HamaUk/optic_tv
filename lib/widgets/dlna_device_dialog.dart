@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:optic_tv/services/dlna_service.dart';
-import 'package:optic_tv/core/theme.dart';
 import 'package:dlna_dart/dlna.dart';
 import 'dart:ui';
 
@@ -54,7 +53,7 @@ class _DlnaDeviceDialogState extends ConsumerState<DlnaDeviceDialog> {
               children: [
                 Row(
                   children: [
-                    const Icon(Icons.cast_connected_rounded, color: AppTheme.primaryGold, size: 28),
+                    Icon(Icons.cast_connected_rounded, color: Theme.of(context).primaryColor, size: 28),
                     const SizedBox(width: 12),
                     const Text(
                       'Cast to TV',
@@ -85,10 +84,10 @@ class _DlnaDeviceDialogState extends ConsumerState<DlnaDeviceDialog> {
                       valueListenable: dlna.devicesNotifier,
                       builder: (context, devices, child) {
                         if (devices.isEmpty && isSearching) {
-                          return const Center(
+                          return Center(
                             child: Padding(
                               padding: EdgeInsets.symmetric(vertical: 40),
-                              child: CircularProgressIndicator(color: AppTheme.primaryGold),
+                              child: CircularProgressIndicator(color: Theme.of(context).primaryColor),
                             ),
                           );
                         }
@@ -105,8 +104,8 @@ class _DlnaDeviceDialogState extends ConsumerState<DlnaDeviceDialog> {
                                   const SizedBox(height: 16),
                                   TextButton.icon(
                                     onPressed: () => dlna.startDiscovery(),
-                                    icon: const Icon(Icons.refresh_rounded, color: AppTheme.primaryGold),
-                                    label: const Text('Rescan', style: TextStyle(color: AppTheme.primaryGold)),
+                                    icon: Icon(Icons.refresh_rounded, color: Theme.of(context).primaryColor),
+                                    label: Text('Rescan', style: TextStyle(color: Theme.of(context).primaryColor)),
                                   )
                                 ],
                               ),
@@ -125,12 +124,12 @@ class _DlnaDeviceDialogState extends ConsumerState<DlnaDeviceDialog> {
                               contentPadding: EdgeInsets.zero,
                               leading: Icon(
                                 isConnected ? Icons.cast_connected_rounded : Icons.tv_rounded,
-                                color: isConnected ? AppTheme.primaryGold : Colors.white70,
+                                color: isConnected ? Theme.of(context).primaryColor : Colors.white70,
                               ),
                               title: Text(
                                 device.info.friendlyName,
                                 style: TextStyle(
-                                  color: isConnected ? AppTheme.primaryGold : Colors.white,
+                                  color: isConnected ? Theme.of(context).primaryColor : Colors.white,
                                   fontWeight: isConnected ? FontWeight.bold : FontWeight.normal,
                                 ),
                               ),
@@ -145,7 +144,7 @@ class _DlnaDeviceDialogState extends ConsumerState<DlnaDeviceDialog> {
                                     )
                                   : ElevatedButton(
                                       style: ElevatedButton.styleFrom(
-                                        backgroundColor: AppTheme.primaryGold,
+                                        backgroundColor: Theme.of(context).primaryColor,
                                         foregroundColor: Colors.black,
                                       ),
                                       onPressed: () {

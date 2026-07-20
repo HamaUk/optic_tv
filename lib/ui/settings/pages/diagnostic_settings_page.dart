@@ -6,7 +6,6 @@ import '../../../core/theme.dart';
 import '../../../l10n/app_strings.dart';
 import '../../../providers/app_locale_provider.dart';
 import '../../../providers/ui_settings_provider.dart';
-import '../../../widgets/tv/tv_focusable.dart';
 
 class DiagnosticSettingsPage extends ConsumerStatefulWidget {
   const DiagnosticSettingsPage({super.key});
@@ -77,52 +76,42 @@ class _DiagnosticSettingsPageState extends ConsumerState<DiagnosticSettingsPage>
           glassCard(
             child: Column(
               children: [
-                TVFocusable(
-                  showFocusBorder: true,
-                  focusScale: 1.02,
-                  borderRadius: BorderRadius.circular(16),
-                  child: ListTile(
-                    leading: const Icon(Icons.tv_rounded, color: Colors.amberAccent),
-                    title: Text(s.displayOutput, style: const TextStyle(color: Colors.white)),
-                    subtitle: Builder(
-                      builder: (ctx) {
-                        final w = MediaQuery.sizeOf(ctx).width * MediaQuery.devicePixelRatioOf(ctx);
-                        if (w >= 3800) return Text(s.display4k, style: const TextStyle(color: Colors.white70));
-                        if (w >= 1900) return Text(s.display1080p, style: const TextStyle(color: Colors.white70));
-                        return Text(s.display720p, style: const TextStyle(color: Colors.white70));
-                      },
-                    ),
+                ListTile(
+                  leading: const Icon(Icons.tv_rounded, color: Colors.amberAccent),
+                  title: Text(s.displayOutput, style: const TextStyle(color: Colors.white)),
+                  subtitle: Builder(
+                    builder: (ctx) {
+                      final w = MediaQuery.sizeOf(ctx).width * MediaQuery.devicePixelRatioOf(ctx);
+                      if (w >= 3800) return Text(s.display4k, style: const TextStyle(color: Colors.white70));
+                      if (w >= 1900) return Text(s.display1080p, style: const TextStyle(color: Colors.white70));
+                      return Text(s.display720p, style: const TextStyle(color: Colors.white70));
+                    },
                   ),
                 ),
                 const Divider(color: Colors.white12, height: 1),
-                TVFocusable(
-                  showFocusBorder: true,
-                  focusScale: 1.02,
-                  borderRadius: BorderRadius.circular(16),
-                  child: ListTile(
-                    leading: const Icon(Icons.speed_rounded, color: AppTheme.accentTeal),
-                    title: Text(s.speedTest, style: const TextStyle(color: Colors.white)),
-                    subtitle: Text(
-                      _lastSpeedMbps != null
-                          ? s.speedTestResult(_lastSpeedMbps!.toStringAsFixed(1))
-                          : s.speedTestSub,
-                      style: const TextStyle(color: Colors.white70),
-                    ),
-                    trailing: _testingSpeed
-                        ? SizedBox(
-                            width: 24,
-                            height: 24,
-                            child: CircularProgressIndicator(
-                              value: _testProgress,
-                              strokeWidth: 3,
-                              color: AppTheme.accentColor(uiSettings.gradientPreset),
-                            ),
-                          )
-                        : TextButton(
-                            onPressed: _runSpeedTest,
-                            child: Text(s.runTest, style: TextStyle(color: AppTheme.accentColor(uiSettings.gradientPreset), fontWeight: FontWeight.bold)),
-                          ),
+                ListTile(
+                  leading: const Icon(Icons.speed_rounded, color: AppTheme.accentTeal),
+                  title: Text(s.speedTest, style: const TextStyle(color: Colors.white)),
+                  subtitle: Text(
+                    _lastSpeedMbps != null
+                        ? s.speedTestResult(_lastSpeedMbps!.toStringAsFixed(1))
+                        : s.speedTestSub,
+                    style: const TextStyle(color: Colors.white70),
                   ),
+                  trailing: _testingSpeed
+                      ? SizedBox(
+                          width: 24,
+                          height: 24,
+                          child: CircularProgressIndicator(
+                            value: _testProgress,
+                            strokeWidth: 3,
+                            color: AppTheme.accentColor(uiSettings.gradientPreset),
+                          ),
+                        )
+                      : TextButton(
+                          onPressed: _runSpeedTest,
+                          child: Text(s.runTest, style: TextStyle(color: AppTheme.accentColor(uiSettings.gradientPreset), fontWeight: FontWeight.bold)),
+                        ),
                 ),
                 if (_testingSpeed)
                   Padding(

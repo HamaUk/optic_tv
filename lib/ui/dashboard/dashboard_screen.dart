@@ -16,7 +16,7 @@ import 'package:dpad/dpad.dart';
 import 'package:lottie/lottie.dart';
 import 'package:video_player/video_player.dart';
 
-import '../world_cup/world_cup_screen.dart';
+
 import '../../core/theme.dart';
 import '../../widgets/channel_logo_image.dart';
 import '../../widgets/live_viewer_badge.dart';
@@ -24,6 +24,7 @@ import '../../widgets/kobani_wordmark.dart';
 import '../../l10n/app_strings.dart';
 import '../../providers/app_locale_provider.dart';
 import '../../providers/channel_library_provider.dart';
+import '../../providers/local_sort_provider.dart';
 import '../../providers/ui_settings_provider.dart';
 import '../../services/palette_service.dart';
 import '../../services/pocketbase_service.dart';
@@ -37,14 +38,11 @@ import '../player/player_screen.dart';
 import '../player/movie_player_page.dart';
 import '../settings/settings_screen.dart';
 import 'movie_details_screen.dart';
-import '../tv/tv_dashboard_screen.dart';
 import '../../services/update_service.dart';
 import '../../widgets/update_prompt_dialog.dart';
 
 import '../../services/tmdb_service.dart';
 import '../../widgets/dynamic_background.dart';
-import '../../widgets/tv_focus_wrapper.dart';
-import '../../widgets/tv/tv_focusable.dart';
 import 'package:lottie/lottie.dart';
 import 'package:flutter_staggered_animations/flutter_staggered_animations.dart';
 import 'package:google_nav_bar/google_nav_bar.dart';
@@ -64,7 +62,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
   int _adminLogoTaps = 0;
   Timer? _adminTapResetTimer;
 
-  /// 0 Home, 1 Movies, 2 Sport, 3 World Cup
+  /// 0 Live TV, 1 Movies, 2 Sport
   int _navIndex = 0;
   bool _searchOpen = false;
   bool _tvHomeActive = true; 
@@ -200,7 +198,11 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
 
   List<Channel> _channelsForNav(List<Channel> all, List<Channel> favorites, List<Channel> recent) {
     switch (_navIndex) {
+      case 0:
+        // Live TV tab
+        return all.where((c) => !_isMovieChannel(c) && !_isSportChannel(c)).toList();
       case 1:
+        // Movies tab
         var movies = all.where(_isMovieChannel).toList();
         if (_movieCategoryFilter != null) {
           movies = movies.where((c) => c.group == _movieCategoryFilter).toList();
@@ -210,14 +212,11 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
         }
         return movies;
       case 2:
-        // Sport tab: show only channels that are identified as Sport
+        // Sport tab
         return all.where(_isSportChannel).toList();
-      case 3:
-        // World Cup tab: return empty, content is built in WorldCupScreen
-        return [];
       default:
-        // Home: ONLY show live tv, strictly exclude movies and sports.
-        return all.where((c) => !_isMovieChannel(c) && c.type != 'movie' && !_isSportChannel(c)).toList();
+        // Fallback
+        return all;
     }
   }
 
@@ -314,8 +313,17 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
       padding: const EdgeInsets.symmetric(horizontal: 4),
       child: GestureDetector(
         onTap: () {
-          final channels = ref.read(channelsProvider).asData?.value ?? [];
+          final channels = ref.read(sortedChannelsProvider).asData?.value ?? [];
           _openPlayer(channels, m);
+        },
+        onLongPress: () {
+          final favs = ref.read(favoritesProvider.notifier);
+          final isFav = favs.isFavorite(m);
+          favs.toggle(m);
+          ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+            content: Text(isFav ? '${m.name} removed from favorites' : '${m.name} saved to favorites'),
+            duration: const Duration(seconds: 2),
+          ));
         },
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -436,11 +444,11 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
                     const SizedBox(height: 8),
                     Row(
                       children: [
-                        const Icon(Icons.star_rounded, color: AppTheme.primaryGold, size: 18),
+                        Icon(Icons.star_rounded, color: Theme.of(context).primaryColor, size: 18),
                         const SizedBox(width: 4),
                         Text(
                           movieInfo.rating.toStringAsFixed(1),
-                          style: const TextStyle(fontWeight: FontWeight.bold, color: AppTheme.primaryGold),
+                          style: TextStyle(fontWeight: FontWeight.bold, color: Theme.of(context).primaryColor),
                         ),
                         if (movieInfo.releaseDate != null) ...[
                           const SizedBox(width: 12),
@@ -459,7 +467,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
                   ],
                   const SizedBox(height: 32),
                   ListTile(
-                    leading: Icon(fav ? Icons.star_rounded : Icons.star_border_rounded, color: AppTheme.primaryGold),
+                    leading: Icon(fav ? Icons.star_rounded : Icons.star_border_rounded, color: Theme.of(context).primaryColor),
                     title: Text(fav ? s.unfavoriteChannel : s.favoriteChannel),
                     onTap: () {
                       ref.read(favoritesProvider.notifier).toggle(channel);
@@ -544,7 +552,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
     final s = AppStrings(ref.watch(appLocaleProvider));
     final settings = ref.watch(appUiSettingsProvider).asData?.value ?? const AppSettingsData();
     final portrait = MediaQuery.orientationOf(context) == Orientation.portrait;
-    final channelsAsync = ref.watch(channelsProvider);
+    final channelsAsync = ref.watch(sortedChannelsProvider);
 
     return channelsAsync.when(
       data: (channels) {
@@ -554,7 +562,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
         final filteredForNav = _channelsForNav(channels, favorites, recent);
         final filtered = _applySearch(filteredForNav);
         final groups = _groupMap(filtered);
-        final managedGroups = ref.watch(groupsProvider).asData?.value ?? [];
+        final managedGroups = ref.watch(sortedGroupsProvider).asData?.value ?? [];
 
         final originalKeys = groups.keys.toList();
         final sortedGroupEntries = groups.entries.toList()
@@ -567,7 +575,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
         final isTv = ref.watch(deviceTypeProvider).asData?.value == DeviceType.tv;
 
         if (isTv) {
-          return TvDashboardScreen(allChannels: channels, managedGroups: managedGroups);
+          return const SizedBox.shrink();
         }
 
         final heroImage = _focusedChannel?.logo ?? (filtered.isNotEmpty ? filtered.first.logo : null);
@@ -588,22 +596,20 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
                 s,
                 16.0,
                 false,
-                _navIndex == 3
-                    ? const WorldCupScreen()
-                    : filtered.isEmpty
-                        ? _buildEmptyState(s)
-                        : _buildScrollableContent(
-                            context,
-                            s,
-                            filteredForNav,
-                            filtered,
-                            groups,
-                            settings,
-                            settings.reduceMotion ? 100 : 220,
-                            16.0,
-                            managedGroups,
-                            channels,
-                          ),
+                filtered.isEmpty
+                    ? _buildEmptyState(s)
+                    : _buildScrollableContent(
+                        context,
+                        s,
+                        filteredForNav,
+                        filtered,
+                        groups,
+                        settings,
+                        settings.reduceMotion ? 100 : 220,
+                        16.0,
+                        managedGroups,
+                        channels,
+                      ),
                 settings,
               ),
             ),
@@ -783,13 +789,11 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
                                   child: KobaniWordmark(height: isCompact ? 18 : 24),
                                 ),
                                 SizedBox(height: isCompact ? 20 : 60),
-                                _railItem(s, 0, Icons.grid_view_rounded, s.navHome, _navIndex == 0, isCompact: isCompact),
+                                _railItem(s, 0, Icons.live_tv_rounded, s.navLiveTv, _navIndex == 0, isCompact: isCompact),
                                 SizedBox(height: isCompact ? 8 : 16),
                                 _railItem(s, 1, Icons.movie_creation_rounded, s.navMovies, _navIndex == 1, isCompact: isCompact),
                                 SizedBox(height: isCompact ? 8 : 16),
                                 _railItem(s, 2, Icons.sports_basketball_rounded, s.navSport, _navIndex == 2, isCompact: isCompact),
-                                SizedBox(height: isCompact ? 8 : 16),
-                                _railItem(s, 3, Icons.emoji_events_rounded, s.navWorldCup, _navIndex == 3, isCompact: isCompact),
                                 const Spacer(),
                                 SizedBox(height: isCompact ? 8 : 16),
                                 _railItem(s, -1, Icons.settings_suggest_rounded, s.settingsTooltip, false, onTap: _openSettings, isCompact: isCompact),
@@ -1082,7 +1086,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
             child: _buildSportHeader(s, pad),
           ),
 
-        if ((_navIndex == 0 || _navIndex == 3) &&
+        if (_navIndex == 0 &&
             !isLandscape &&
             _searchController.text.trim().isEmpty &&
             slideChannels.isNotEmpty)
@@ -1237,7 +1241,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
                     child: Row(
                       children: [
                         const SizedBox(width: 12),
-                        Icon(Icons.search_rounded, color: AppTheme.primaryGold, size: 18),
+                        Icon(Icons.search_rounded, color: Theme.of(context).primaryColor, size: 18),
                         const SizedBox(width: 8),
                         Expanded(
                           child: TextField(
@@ -1411,9 +1415,8 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
                         ),
                       ),
                       const SizedBox(height: 32),
-                      TvFocusWrapper(
+                      GestureDetector(
                         onTap: () => _openPlayer(allChannels, ch),
-                        borderRadius: 14,
                         child: Container(
                           padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
                           decoration: BoxDecoration(
@@ -1602,11 +1605,17 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
     final isTv = ref.watch(deviceTypeProvider).asData?.value == DeviceType.tv;
     final focused = isTv && (_focusedChannel == channel);
     
-    return TvFocusWrapper(
+    return GestureDetector(
       onTap: () => _openPlayer(allChannels, channel),
-      onLongPress: () => _openPlayer(allChannels, channel),
-      scale: 1.12,
-      borderRadius: kTileRadius,
+      onLongPress: () {
+        final favs = ref.read(favoritesProvider.notifier);
+        final isFav = favs.isFavorite(channel);
+        favs.toggle(channel);
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text(isFav ? '${channel.name} removed from favorites' : '${channel.name} saved to favorites'),
+          duration: const Duration(seconds: 2),
+        ));
+      },
       child: Focus(
         onFocusChange: (f) {
            if (f && mounted) {
@@ -1708,11 +1717,17 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
     final isTv = ref.watch(deviceTypeProvider).asData?.value == DeviceType.tv;
     final focused = isTv && (_focusedChannel == channel);
 
-    return TvFocusWrapper(
+    return GestureDetector(
       onTap: () => _openPlayer(allChannels, channel),
-      onLongPress: () => _openPlayer(allChannels, channel),
-      scale: 1.10,
-      borderRadius: kTileRadius,
+      onLongPress: () {
+        final favs = ref.read(favoritesProvider.notifier);
+        final isFav = favs.isFavorite(channel);
+        favs.toggle(channel);
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text(isFav ? '${channel.name} removed from favorites' : '${channel.name} saved to favorites'),
+          duration: const Duration(seconds: 2),
+        ));
+      },
       child: Focus(
         onFocusChange: (f) {
           if (f && mounted) {
@@ -1815,68 +1830,36 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
   Widget _buildBottomNav(AppStrings s, double bottomInset, AppSettingsData settings) {
     final accent = _accent;
 
-    return Padding(
-      padding: EdgeInsets.fromLTRB(12, 0, 12, bottomInset > 0 ? bottomInset : 12),
-      child: Container(
-        height: 70,
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(100),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.55),
-              blurRadius: 30,
-              spreadRadius: -6,
-              offset: const Offset(0, 12),
-            ),
-            BoxShadow(
-              color: accent.withOpacity(0.12),
-              blurRadius: 20,
-              spreadRadius: -4,
-            ),
-          ],
-        ),
-        child: ClipRRect(
-          borderRadius: BorderRadius.circular(100),
-          child: BackdropFilter(
-            filter: ImageFilter.blur(sigmaX: 18, sigmaY: 18),
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-              decoration: BoxDecoration(
-                color: const Color(0xFF080C12).withOpacity(0.82),
-                borderRadius: BorderRadius.circular(100),
-                border: Border.all(
-                  color: Colors.white.withOpacity(0.09),
-                  width: 1,
-                ),
-              ),
-              child: GNav(
-                rippleColor: accent.withOpacity(0.3),
-                hoverColor: accent.withOpacity(0.1),
-                haptic: true,
-                tabBorderRadius: 100,
-                curve: Curves.easeOutExpo,
-                duration: const Duration(milliseconds: 400),
-                gap: 8,
-                color: Colors.white38,
-                activeColor: Colors.white,
-                iconSize: 26,
-                tabBackgroundColor: accent.withOpacity(0.2),
-                padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
-                selectedIndex: _navIndex,
-                onTabChange: (index) {
-                  HapticFeedback.selectionClick();
-                  setState(() => _navIndex = index);
-                },
-                tabs: [
-                  GButton(icon: _navIndex == 0 ? Icons.grid_view_rounded : Icons.grid_view_outlined, text: s.navHome),
-                  GButton(icon: _navIndex == 1 ? Icons.movie_creation_rounded : Icons.movie_creation_outlined, text: s.navMovies),
-                  GButton(icon: _navIndex == 2 ? Icons.sports_basketball_rounded : Icons.sports_basketball_outlined, text: s.navSport),
-                  GButton(icon: _navIndex == 3 ? Icons.emoji_events_rounded : Icons.emoji_events_outlined, text: s.navWorldCup),
-                ],
-              ),
-            ),
+    return Theme(
+      data: Theme.of(context).copyWith(
+        splashColor: Colors.transparent,
+        highlightColor: Colors.transparent,
+      ),
+      child: BottomNavigationBar(
+        backgroundColor: const Color(0xFF080C12),
+        type: BottomNavigationBarType.fixed,
+        selectedItemColor: accent,
+        unselectedItemColor: Colors.white38,
+        currentIndex: _navIndex,
+        elevation: 16,
+        onTap: (index) {
+          HapticFeedback.selectionClick();
+          setState(() => _navIndex = index);
+        },
+        items: [
+          BottomNavigationBarItem(
+            icon: const ImageIcon(AssetImage('assets/images/flixy/ic_tv.png'), size: 24),
+            label: s.navLiveTv,
           ),
-        ),
+          BottomNavigationBarItem(
+            icon: const ImageIcon(AssetImage('assets/images/flixy/ic_play_border.png'), size: 24),
+            label: s.navMovies,
+          ),
+          BottomNavigationBarItem(
+            icon: const Icon(Icons.sports_soccer_rounded, size: 26),
+            label: s.navSport,
+          ),
+        ],
       ),
     );
   }
@@ -1885,7 +1868,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
 
   /// Category Sidebar (Pane 2) specifically for TV.
   Widget _buildTvCategoryRail(AppStrings s) {
-    final channelsAsync = ref.watch(channelsProvider);
+    final channelsAsync = ref.watch(sortedChannelsProvider);
     return channelsAsync.when(
       data: (all) {
         final favorites = ref.watch(favoritesProvider);
@@ -1917,7 +1900,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
           ],
         );
       },
-      loading: () => const Center(child: CircularProgressIndicator(strokeWidth: 2)),
+      loading: () => Center(child: CircularProgressIndicator(strokeWidth: 2)),
       error: (_, __) => const SizedBox.shrink(),
     );
   }
@@ -2115,13 +2098,22 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
       child: InkWell(
         borderRadius: BorderRadius.circular(6),
         onTap: () => _openPlayer(all, ch),
+        onLongPress: () {
+          final favs = ref.read(favoritesProvider.notifier);
+          final isFav = favs.isFavorite(ch);
+          favs.toggle(ch);
+          ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+            content: Text(isFav ? '${ch.name} removed from favorites' : '${ch.name} saved to favorites'),
+            duration: const Duration(seconds: 2),
+          ));
+        },
         child: Stack(
           fit: StackFit.expand,
           children: [
           // Logo centered with padding 36 (exact Ghosten)
           ch.logo != null && ch.logo!.isNotEmpty
               ? Padding(
-                  padding: const EdgeInsets.all(36),
+                  padding: const EdgeInsets.all(12),
                   child: ChannelLogoImage(
                     logo: ch.logo,
                     channelName: ch.name,
@@ -2428,9 +2420,7 @@ class _FeaturedCarouselState extends State<_FeaturedCarousel> with TickerProvide
   late final PageController _pageController;
   late final AnimationController _pulseController;
   Timer? _autoTimer;
-  Timer? _idleTimer;
   int _index = 0;
-  bool _showPreview = false;
 
   @override
   void initState() {
@@ -2445,9 +2435,7 @@ class _FeaturedCarouselState extends State<_FeaturedCarousel> with TickerProvide
     super.didUpdateWidget(old);
     if (!_sameSlideOrder(old.slides, widget.slides)) {
       _autoTimer?.cancel();
-      _idleTimer?.cancel();
       _index = 0;
-      _showPreview = false;
       if (_pageController.hasClients) _pageController.jumpToPage(0);
       setState(() {});
       _armAutoAdvance();
@@ -2464,11 +2452,8 @@ class _FeaturedCarouselState extends State<_FeaturedCarousel> with TickerProvide
 
   void _armAutoAdvance() {
     _autoTimer?.cancel();
-    _idleTimer?.cancel();
-    setState(() => _showPreview = false);
 
     if (widget.slides.length <= 1) {
-      _startIdleTimer();
       return;
     }
 
@@ -2481,28 +2466,17 @@ class _FeaturedCarouselState extends State<_FeaturedCarousel> with TickerProvide
         curve: Curves.easeInOut,
       );
     });
-
-    _startIdleTimer();
-  }
-
-  void _startIdleTimer() {
-    _idleTimer = Timer(const Duration(milliseconds: 1500), () {
-      if (mounted) setState(() => _showPreview = true);
-    });
   }
 
   void _onPageChanged(int i) {
     setState(() {
       _index = i;
-      _showPreview = false;
     });
     _armAutoAdvance();
   }
-
   @override
   void dispose() {
     _autoTimer?.cancel();
-    _idleTimer?.cancel();
     _pageController.dispose();
     _pulseController.dispose();
     super.dispose();
@@ -2547,8 +2521,10 @@ class _FeaturedCarouselState extends State<_FeaturedCarousel> with TickerProvide
                     ),
                   );
                 },
-                child: Container(
-                  margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                child: GestureDetector(
+                  onTap: () => widget.onWatch(ch),
+                  child: Container(
+                    margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                   decoration: BoxDecoration(
                     borderRadius: BorderRadius.circular(24),
                     boxShadow: [
@@ -2570,10 +2546,8 @@ class _FeaturedCarouselState extends State<_FeaturedCarousel> with TickerProvide
                   child: Stack(
                     fit: StackFit.expand,
                     children: [
-                      // ── Backdrop image or Inline Video ─────────────────
-                      if (_showPreview && _index == i)
-                        _SilentPreviewPlayer(url: ch.url)
-                      else if (hasBackdrop)
+                      // ── Backdrop image ─────────────────
+                      if (hasBackdrop)
                         ChannelLogoImage(
                           logo: ch.backdrop,
                           width: double.infinity,
@@ -2584,126 +2558,43 @@ class _FeaturedCarouselState extends State<_FeaturedCarousel> with TickerProvide
                       else
                         _heroFallback(),
 
-                      // ── Vignette gradient (top only) ──────────────────────
+                      // ── Vignette gradient (bottom only) ──────────────────────
                       Positioned(
-                        top: 0, left: 0, right: 0,
-                        height: 60,
+                        bottom: 0, left: 0, right: 0,
+                        height: 80,
                         child: DecoratedBox(
                           decoration: BoxDecoration(
                             gradient: LinearGradient(
-                              begin: Alignment.topCenter,
-                              end: Alignment.bottomCenter,
-                              colors: [Colors.black.withOpacity(0.5), Colors.transparent],
+                              begin: Alignment.bottomCenter,
+                              end: Alignment.topCenter,
+                              colors: [Colors.black.withOpacity(0.8), Colors.transparent],
                             ),
                           ),
                         ),
                       ),
 
-                      // ── Floating Glassmorphic Panel (Option 1) ─────────
+                      // ── Channel Name Overlay ─────────────────
                       Positioned(
-                        bottom: 12,
-                        left: 12,
-                        right: 12,
-                        child: ClipRRect(
-                          borderRadius: BorderRadius.circular(18),
-                          child: BackdropFilter(
-                            filter: ImageFilter.blur(sigmaX: 16, sigmaY: 16),
-                            child: Container(
-                              padding: const EdgeInsets.fromLTRB(16, 12, 12, 12),
-                              decoration: BoxDecoration(
-                                color: Colors.black.withOpacity(0.4),
-                                borderRadius: BorderRadius.circular(18),
-                                border: Border.all(color: Colors.white.withOpacity(0.12), width: 1),
-                              ),
-                              child: Row(
-                                children: [
-                                  Expanded(
-                                    child: Column(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
-                                      mainAxisSize: MainAxisSize.min,
-                                      children: [
-                                        // ── Live Badge ──
-                                        Row(
-                                          children: [
-                                            AnimatedBuilder(
-                                              animation: _pulseController,
-                                              builder: (context, child) {
-                                                return Transform.scale(
-                                                  scale: 0.8 + (_pulseController.value * 0.3),
-                                                  child: Opacity(
-                                                    opacity: 0.4 + (_pulseController.value * 0.6),
-                                                    child: child,
-                                                  ),
-                                                );
-                                              },
-                                              child: Container(
-                                                width: 8,
-                                                height: 8,
-                                                decoration: const BoxDecoration(
-                                                  color: Colors.redAccent,
-                                                  shape: BoxShape.circle,
-                                                  boxShadow: [
-                                                    BoxShadow(color: Colors.redAccent, blurRadius: 6, spreadRadius: 2)
-                                                  ]
-                                                ),
-                                              ),
-                                            ),
-                                            const SizedBox(width: 6),
-                                            const Text(
-                                              'LIVE NOW', 
-                                              style: TextStyle(color: Colors.redAccent, fontSize: 10, fontWeight: FontWeight.bold, letterSpacing: 1.2)
-                                            ),
-                                          ],
-                                        ),
-                                        const SizedBox(height: 6),
-                                        Text(
-                                          ch.name,
-                                          maxLines: 1,
-                                          overflow: TextOverflow.ellipsis,
-                                          style: AppTheme.withRabarIfKurdish(
-                                            s.locale,
-                                            const TextStyle(
-                                              fontSize: 18,
-                                              fontWeight: FontWeight.w900,
-                                              color: Colors.white,
-                                              height: 1.1,
-                                            ),
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                  const SizedBox(width: 12),
-                                  // ── Watch Now Button ──
-                                  Container(
-                                    decoration: BoxDecoration(
-                                      gradient: LinearGradient(
-                                        colors: [accent, accent.withOpacity(0.75)],
-                                      ),
-                                      borderRadius: BorderRadius.circular(14),
-                                      boxShadow: [
-                                        BoxShadow(
-                                          color: accent.withOpacity(0.45),
-                                          blurRadius: 12,
-                                          spreadRadius: -2,
-                                          offset: const Offset(0, 4),
-                                        ),
-                                      ],
-                                    ),
-                                    child: Material(
-                                      color: Colors.transparent,
-                                      child: InkWell(
-                                        borderRadius: BorderRadius.circular(14),
-                                        onTap: () => widget.onWatch(ch),
-                                        child: const Padding(
-                                          padding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                                          child: Icon(Icons.play_arrow_rounded, color: Colors.white, size: 24),
-                                        ),
-                                      ),
-                                    ),
-                                  ),
-                                ],
-                              ),
+                        bottom: 16,
+                        left: 20,
+                        right: 20,
+                        child: Text(
+                          ch.name,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: AppTheme.withRabarIfKurdish(
+                            s.locale,
+                            const TextStyle(
+                              fontSize: 22,
+                              fontWeight: FontWeight.w900,
+                              color: Colors.white,
+                              shadows: [
+                                Shadow(
+                                  color: Colors.black54,
+                                  blurRadius: 10,
+                                  offset: Offset(0, 4),
+                                )
+                              ]
                             ),
                           ),
                         ),
@@ -2711,8 +2602,9 @@ class _FeaturedCarouselState extends State<_FeaturedCarousel> with TickerProvide
                     ],
                   ),
                 ),
-              );
-            },
+              ),
+            );
+          },
           ),
 
           // ── Pill indicator dots ────────────────────────────────────────
@@ -2766,74 +2658,7 @@ class _FeaturedCarouselState extends State<_FeaturedCarousel> with TickerProvide
   }
 }
 
-class _SilentPreviewPlayer extends StatefulWidget {
-  const _SilentPreviewPlayer({required this.url});
-  final String url;
 
-  @override
-  State<_SilentPreviewPlayer> createState() => _SilentPreviewPlayerState();
-}
-
-class _SilentPreviewPlayerState extends State<_SilentPreviewPlayer> {
-  late VideoPlayerController _controller;
-  bool _initialized = false;
-  bool _error = false;
-
-  @override
-  void initState() {
-    super.initState();
-    _controller = VideoPlayerController.networkUrl(Uri.parse(widget.url))
-      ..initialize().then((_) {
-        if (!mounted) return;
-        setState(() => _initialized = true);
-        _controller.setVolume(0.0);
-        _controller.setLooping(true);
-        _controller.play();
-      }).catchError((e) {
-        if (!mounted) return;
-        setState(() => _error = true);
-      });
-  }
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    if (_error) {
-      return Container(
-        color: Colors.black,
-        child: const Center(
-          child: Icon(Icons.error_outline_rounded, color: Colors.white24, size: 48),
-        ),
-      );
-    }
-    if (!_initialized) {
-      return Container(
-        color: Colors.black,
-        child: const Center(
-          child: CircularProgressIndicator(color: AppTheme.primaryGold),
-        ),
-      );
-    }
-    return Container(
-      color: Colors.black,
-      child: SizedBox.expand(
-        child: FittedBox(
-          fit: BoxFit.cover,
-          child: SizedBox(
-            width: _controller.value.size.width,
-            height: _controller.value.size.height,
-            child: VideoPlayer(_controller),
-          ),
-        ),
-      ),
-    );
-  }
-}
 
 
 

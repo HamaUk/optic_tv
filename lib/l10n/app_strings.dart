@@ -354,6 +354,13 @@ class AppStrings {
     return 'Home';
   }
 
+  String get navLiveTv {
+    if (isArabic) return 'تلفزيون مباشر';
+    if (isKurmanji) return 'Zindî TV';
+    if (isSorani) return 'ڕاستەوخۆ';
+    return 'Live TV';
+  }
+
   String get navMovies {
     if (isArabic) return 'الأفلام';
     if (isKurmanji) return 'Fîlm';
@@ -820,6 +827,57 @@ class AppStrings {
     if (isKurmanji) return 'Paqijkirina kaş û posteran bi hêsanî';
     if (isSorani) return 'سڕینەوەی کاش و پۆستەرەکان بە ئاسانی';
     return 'Clear cache and posters easily';
+  }
+
+  // ─── Manual Sort Settings ────────────────────────────────────────────────
+
+  String get manualSortTitle {
+    if (isArabic) return 'ترتيب يدوي';
+    if (isKurmanji) return 'Rêzkirina Destî';
+    if (isSorani) return 'ڕێکخستنی دەستی';
+    return 'Manual Sort';
+  }
+
+  String get manualSortSub {
+    if (isArabic) return 'إعادة ترتيب القنوات والمجموعات';
+    if (isKurmanji) return 'Qenal û koman ji nû ve rêz bike';
+    if (isSorani) return 'ڕیزبەندی کەناڵ و گرووپەکان بگۆڕە';
+    return 'Reorder channels and groups';
+  }
+
+  String get manualSortGroupsTab {
+    if (isArabic) return 'المجموعات';
+    if (isKurmanji) return 'Kom';
+    if (isSorani) return 'گرووپەکان';
+    return 'Groups';
+  }
+
+  String get manualSortChannelsTab {
+    if (isArabic) return 'القنوات';
+    if (isKurmanji) return 'Qenal';
+    if (isSorani) return 'کەناڵەکان';
+    return 'Channels';
+  }
+
+  String get manualSortReset {
+    if (isArabic) return 'إعادة ضبط';
+    if (isKurmanji) return 'Vegerîne';
+    if (isSorani) return 'گەڕاندنەوە';
+    return 'Reset';
+  }
+
+  String get manualSortResetMessage {
+    if (isArabic) return 'تم إعادة ضبط الترتيب';
+    if (isKurmanji) return 'Rêzbendî hat vegerandin';
+    if (isSorani) return 'ڕیزبەندی گەڕێندرایەوە';
+    return 'Sort order reset';
+  }
+
+  String get manualSortNoGroups {
+    if (isArabic) return 'لا توجد مجموعات';
+    if (isKurmanji) return 'Ti kom nehatin dîtin';
+    if (isSorani) return 'هیچ گرووپێک نەدۆزرایەوە';
+    return 'No groups found';
   }
 
   // ─── World Cup ────────────────────────────────────────────────

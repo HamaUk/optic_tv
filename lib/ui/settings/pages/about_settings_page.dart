@@ -74,14 +74,14 @@ class AboutSettingsPage extends ConsumerWidget {
                   Text(
                     'Version 1.2.0+14',
                     style: TextStyle(
-                      color: Colors.white.withOpacity(0.5),
+                      color: Colors.white.withValues(alpha: 0.5),
                       fontSize: 14,
                     ),
                   ),
                   const SizedBox(height: 16),
                   Text(
                     '© 2026 KOBANI 4K. All rights reserved.',
-                    style: TextStyle(color: Colors.white.withOpacity(0.3), fontSize: 12),
+                    style: TextStyle(color: Colors.white.withValues(alpha: 0.3), fontSize: 12),
                   ),
                 ],
               ),

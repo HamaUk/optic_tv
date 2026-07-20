@@ -2,7 +2,6 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 
-import '../core/theme.dart';
 import '../l10n/app_strings.dart';
 import '../services/update_service.dart';
 
@@ -25,8 +24,8 @@ class UpdatePromptDialog extends StatefulWidget {
 }
 
 class _UpdatePromptDialogState extends State<UpdatePromptDialog> {
-  Future<void> _openTelegram() async {
-    final url = Uri.parse('https://t.me/KOBANI_APP');
+  Future<void> _launchUpdateUrl() async {
+    final url = Uri.parse(widget.updateData.apkUrl);
     if (await canLaunchUrl(url)) {
       await launchUrl(url, mode: LaunchMode.externalApplication);
     }
@@ -51,11 +50,11 @@ class _UpdatePromptDialogState extends State<UpdatePromptDialog> {
               width: 420,
               padding: const EdgeInsets.all(32),
               decoration: BoxDecoration(
-                color: Colors.black.withOpacity(0.5),
+                color: Colors.black.withValues(alpha: 0.5),
                 borderRadius: BorderRadius.circular(24),
-                border: Border.all(color: Colors.white.withOpacity(0.1), width: 1.5),
+                border: Border.all(color: Colors.white.withValues(alpha: 0.1), width: 1.5),
                 boxShadow: [
-                  BoxShadow(color: AppTheme.primaryGold.withOpacity(0.15), blurRadius: 40),
+                  BoxShadow(color: Theme.of(context).primaryColor.withValues(alpha: 0.15), blurRadius: 40),
                 ],
               ),
               child: Column(
@@ -64,40 +63,34 @@ class _UpdatePromptDialogState extends State<UpdatePromptDialog> {
                   Container(
                     padding: const EdgeInsets.all(16),
                     decoration: BoxDecoration(
-                      color: AppTheme.primaryGold.withOpacity(0.15),
+                      color: Theme.of(context).primaryColor.withValues(alpha: 0.15),
                       shape: BoxShape.circle,
                     ),
-                    child: const Icon(Icons.system_update_rounded, color: AppTheme.primaryGold, size: 48),
+                    child: Icon(Icons.rocket_launch_rounded, color: Theme.of(context).primaryColor, size: 48),
                   ),
                   const SizedBox(height: 24),
                   Text(
-                    s.updateAvailable,
-                    style: TextStyle(color: Colors.white.withOpacity(0.9), fontSize: 22, fontWeight: FontWeight.w900, letterSpacing: 2),
+                    "UPDATE AVAILABLE",
+                    style: TextStyle(color: Colors.white.withValues(alpha: 0.9), fontSize: 22, fontWeight: FontWeight.w900, letterSpacing: 2),
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    s.updateVersion(d.versionName),
-                    style: const TextStyle(color: AppTheme.primaryGold, fontSize: 14, fontWeight: FontWeight.bold),
+                    "Optic TV is getting better",
+                    style: TextStyle(color: Theme.of(context).primaryColor, fontSize: 14, fontWeight: FontWeight.bold),
                   ),
                   const SizedBox(height: 16),
                   Container(
                     padding: const EdgeInsets.all(16),
                     width: double.infinity,
                     decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.05),
+                      color: Colors.white.withValues(alpha: 0.05),
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: Column(
                       children: [
                         Text(
-                          "A new update is available! Please go to our Telegram channel to install the new update.",
-                          style: TextStyle(color: Colors.white.withOpacity(0.9), fontSize: 14, height: 1.5, fontWeight: FontWeight.bold),
-                          textAlign: TextAlign.center,
-                        ),
-                        const SizedBox(height: 12),
-                        Text(
-                          s.updateReleaseNotesEmpty(d.releaseNotes),
-                          style: TextStyle(color: Colors.white.withOpacity(0.7), fontSize: 13, height: 1.5),
+                          "New update available! Let's update it to enjoy the latest features and improved stability.",
+                          style: TextStyle(color: Colors.white.withValues(alpha: 0.9), fontSize: 15, height: 1.5, fontWeight: FontWeight.w600),
                           textAlign: TextAlign.center,
                         ),
                       ],
@@ -105,28 +98,29 @@ class _UpdatePromptDialogState extends State<UpdatePromptDialog> {
                   ),
                   const SizedBox(height: 24),
                   
-                  // Telegram Link Button
+                  // Action Button
                   SizedBox(
                     width: double.infinity,
                     height: 54,
                     child: ElevatedButton.icon(
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: AppTheme.primaryGold,
+                        backgroundColor: Theme.of(context).primaryColor,
                         foregroundColor: Colors.black,
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                         elevation: 8,
-                        shadowColor: AppTheme.primaryGold.withOpacity(0.4),
+                        shadowColor: Theme.of(context).primaryColor.withValues(alpha: 0.4),
                       ),
-                      onPressed: _openTelegram,
-                      icon: const Icon(Icons.send_rounded, size: 28),
+                      onPressed: _launchUpdateUrl,
+                      icon: const Icon(Icons.system_update_alt_rounded, size: 24),
                       label: const Text(
-                        "https://t.me/KOBANI_APP",
+                        "Let's update it",
                         style: TextStyle(fontWeight: FontWeight.w900, letterSpacing: 1.0, fontSize: 16),
                       ),
                     ),
                   ),
                 ],
               ),
+
             ),
           ),
         ),

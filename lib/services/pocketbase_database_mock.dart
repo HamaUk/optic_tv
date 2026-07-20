@@ -1,9 +1,11 @@
+import 'package:flutter/foundation.dart';
 import 'dart:async';
 import 'dart:math';
 import 'package:pocketbase/pocketbase.dart';
 import 'package:rxdart/rxdart.dart';
 import 'pocketbase_service.dart';
 import 'notification_service.dart';
+import 'playlist_service.dart'; // For Channel.encrypt
 
 class PocketBaseDatabase {
   static final instance = PocketBaseDatabase();
@@ -122,10 +124,21 @@ class DatabaseReference {
     // Always fetch immediately
     fetchAndEmit();
 
+    if (col != 'unknown') {
+      try {
+        pb.collection(col).subscribe(id ?? '*', (e) {
+          fetchAndEmit();
+        });
+      } catch (e) { debugPrint('Caught error in pocketbase_database_mock.dart: $e'); }
+    }
+
     controller.onCancel = () {
       if (!controller.hasListener) {
         controller.close();
         _streamCache.remove(path);
+        if (col != 'unknown') {
+          try { pb.collection(col).unsubscribe(id ?? '*'); } catch (e) { debugPrint('Caught error in pocketbase_database_mock.dart: $e'); }
+        }
       }
     };
 
@@ -138,7 +151,7 @@ class DatabaseReference {
     final id = _recordId;
     if (id != null) {
       if (value == null) {
-        try { await pb.collection(col).delete(id); } catch (_) {}
+        try { await pb.collection(col).delete(id); } catch (e) { debugPrint('Caught error in pocketbase_database_mock.dart: $e'); }
       } else {
         try {
           await pb.collection(col).update(id, body: value);
@@ -155,7 +168,7 @@ class DatabaseReference {
         await Future.wait(value.keys.map((k) async {
           try {
             await pb.collection(col).create(body: {'id': k, ...?value[k] as Map?});
-          } catch (_) {}
+          } catch (e) { debugPrint('Caught error in pocketbase_database_mock.dart: $e'); }
         }));
       }
     }
@@ -170,11 +183,9 @@ class DatabaseReference {
       try {
         await pb.collection(col).update(id, body: value);
       } catch (_) {
-        try { await pb.collection(col).create(body: {'id': id, ...value}); } catch (_) {}
+        try { await pb.collection(col).create(body: {'id': id, ...value}); } catch (e) { debugPrint('Caught error in pocketbase_database_mock.dart: $e'); }
       }
     } else {
-      // Firebase-style multi-path updates use keys like "recordId/field".
-      // Group these by record ID so we send one pb.update() per record.
       final grouped = <String, Map<String, dynamic>>{};
       final direct = <String, dynamic>{};
 
@@ -190,24 +201,22 @@ class DatabaseReference {
         }
       }
 
-      // Handle grouped multi-path updates (e.g. reorder)
       await Future.wait(grouped.entries.map((entry) async {
         try {
           await pb.collection(col).update(entry.key, body: entry.value);
         } catch (_) {
-          try { await pb.collection(col).create(body: {'id': entry.key, ...entry.value}); } catch (_) {}
+          try { await pb.collection(col).create(body: {'id': entry.key, ...entry.value}); } catch (e) { debugPrint('Caught error in pocketbase_database_mock.dart: $e'); }
         }
       }));
 
-      // Handle direct key-value updates (original behavior)
       await Future.wait(direct.entries.map((entry) async {
         if (entry.value == null) {
-          try { await pb.collection(col).delete(entry.key); } catch (_) {}
+          try { await pb.collection(col).delete(entry.key); } catch (e) { debugPrint('Caught error in pocketbase_database_mock.dart: $e'); }
         } else {
           try {
             await pb.collection(col).update(entry.key, body: entry.value);
           } catch (_) {
-            try { await pb.collection(col).create(body: {'id': entry.key, ...?entry.value as Map?}); } catch (_) {}
+            try { await pb.collection(col).create(body: {'id': entry.key, ...?entry.value as Map?}); } catch (e) { debugPrint('Caught error in pocketbase_database_mock.dart: $e'); }
           }
         }
       }));
@@ -220,7 +229,7 @@ class DatabaseReference {
     final col = _collectionName;
     final id = _recordId;
     if (id != null) {
-      try { await pb.collection(col).delete(id); } catch (_) {}
+      try { await pb.collection(col).delete(id); } catch (e) { debugPrint('Caught error in pocketbase_database_mock.dart: $e'); }
     }
     await PocketBaseDatabase.instance.notify(path);
     NotificationService().sendSilentRefreshPulse(col);

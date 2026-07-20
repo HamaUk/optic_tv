@@ -1,6 +1,10 @@
 import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'pocketbase_database_mock.dart';
+import 'package:firebase_database/firebase_database.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'package:rxdart/rxdart.dart';
+import 'pocketbase_service.dart';
 
 final analyticsServiceProvider = Provider((ref) => AnalyticsService());
 
@@ -8,13 +12,25 @@ class AnalyticsService {
   final PocketBaseDatabase _db = PocketBaseDatabase.instance;
 
   Stream<int> getLiveUsersStream() {
-    return _db.ref('liveViewers').onValue.map((event) {
-      if (event.snapshot.value == null) return 0;
-      
-      final data = event.snapshot.value as Map<dynamic, dynamic>;
-      // In PocketBase, each record in liveViewers is a distinct active session
-      return data.length;
-    });
+    return Stream.periodic(const Duration(seconds: 15), (_) => _fetchCount())
+        .asyncMap((event) => event)
+        .startWith(0)
+        .distinct();
+  }
+  
+  Future<int> _fetchCount() async {
+     try {
+        final pb = PocketBaseService().pb;
+        final staleMs = DateTime.now().millisecondsSinceEpoch - 60000;
+        final result = await pb.collection('live_viewers').getList(
+           page: 1, 
+           perPage: 1, 
+           filter: 'last_active >= $staleMs'
+        );
+        return result.totalItems;
+     } catch (_) {
+        return 0;
+     }
   }
 
   Stream<int> getTotalViewsStream() {

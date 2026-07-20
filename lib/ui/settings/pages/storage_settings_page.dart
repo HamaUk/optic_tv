@@ -20,7 +20,7 @@ class _StorageSettingsPageState extends ConsumerState<StorageSettingsPage> {
   int _posterCacheBytes = 0;
   int _epgCacheBytes = 0;
   int _logsCacheBytes = 0;
-
+      
   @override
   void initState() {
     super.initState();
@@ -37,14 +37,14 @@ class _StorageSettingsPageState extends ConsumerState<StorageSettingsPage> {
     
     try {
       final cacheDir = await getTemporaryDirectory();
-      final posterDir = Directory('\${cacheDir.path}/libCachedImageData');
-      final epgDir = Directory('\${cacheDir.path}/epg_data');
-      final logDir = Directory('\${cacheDir.path}/logs');
+      final posterDir = Directory('${cacheDir.path}/libCachedImageData');
+      final epgDir = Directory('${cacheDir.path}/epg_data');
+      final logDir = Directory('${cacheDir.path}/logs');
       
       posters = await _getDirSize(posterDir);
       epg = await _getDirSize(epgDir);
       logs = await _getDirSize(logDir);
-    } catch (_) {}
+    } catch (e) { debugPrint('Caught error in storage_settings_page.dart: $e'); }
     
     if (mounted) {
       setState(() {
@@ -69,19 +69,19 @@ class _StorageSettingsPageState extends ConsumerState<StorageSettingsPage> {
   }
 
   Future<void> _clearSpecificCache(String type) async {
-    final cacheDir = await getTemporaryDirectory();
     try {
+      final cacheDir = await getTemporaryDirectory();
       if (type == 'posters') {
-        final dir = Directory('\${cacheDir.path}/libCachedImageData');
+        final dir = Directory('${cacheDir.path}/libCachedImageData');
         if (await dir.exists()) await dir.delete(recursive: true);
       } else if (type == 'epg') {
-        final dir = Directory('\${cacheDir.path}/epg_data');
+        final dir = Directory('${cacheDir.path}/epg_data');
         if (await dir.exists()) await dir.delete(recursive: true);
       } else if (type == 'logs') {
-        final dir = Directory('\${cacheDir.path}/logs');
+        final dir = Directory('${cacheDir.path}/logs');
         if (await dir.exists()) await dir.delete(recursive: true);
       }
-    } catch (_) {}
+    } catch (e) { debugPrint('Caught error in storage_settings_page.dart: $e'); }
     await _calculateStorage();
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Cleared \$type cache')));
@@ -105,14 +105,14 @@ class _StorageSettingsPageState extends ConsumerState<StorageSettingsPage> {
               children: [
                 Text(dialogBody, style: const TextStyle(color: Colors.white70)),
                 const SizedBox(height: 8),
-                Text(s.clearLibraryConfirmBody, style: TextStyle(color: Colors.white.withOpacity(0.55), fontSize: 13)),
+                Text(s.clearLibraryConfirmBody, style: TextStyle(color: Colors.white.withValues(alpha: 0.55), fontSize: 13)),
               ],
             ),
             actions: [
               TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text(s.cancel, style: const TextStyle(color: Colors.white54))),
               FilledButton(
                 style: FilledButton.styleFrom(
-                  backgroundColor: AppTheme.primaryGold,
+                  backgroundColor: Theme.of(context).primaryColor,
                   foregroundColor: Colors.white,
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                 ),
@@ -197,7 +197,7 @@ class _StorageSettingsPageState extends ConsumerState<StorageSettingsPage> {
                 ),
                 const Divider(color: Colors.white12, height: 1),
                 ListTile(
-                  leading: Icon(Icons.history_rounded, color: Colors.white.withOpacity(0.85)),
+                  leading: Icon(Icons.history_rounded, color: Colors.white.withValues(alpha: 0.85)),
                   title: Text(s.clearRecentTitle, style: const TextStyle(color: Colors.white)),
                   subtitle: Text(s.clearRecentSub, style: const TextStyle(color: Colors.white70)),
                   onTap: () => _confirmClearLibrary(

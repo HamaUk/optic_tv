@@ -309,7 +309,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen>
                       shadowColor: Colors.transparent,
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(28),
-                        side: BorderSide(color: Colors.white.withOpacity(0.2), width: 1),
+                        side: BorderSide(color: Colors.white.withValues(alpha: 0.2), width: 1),
                       ),
                     ),
                     onPressed: _nextPage,
@@ -429,7 +429,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen>
               shadowColor: Colors.transparent,
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(16),
-                side: BorderSide(color: Colors.white.withOpacity(0.2), width: 1),
+                side: BorderSide(color: Colors.white.withValues(alpha: 0.2), width: 1),
               ),
             ),
             onPressed: () {
@@ -557,7 +557,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen>
           color: const Color(0xFF121212),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(20),
-            side: BorderSide(color: Colors.white.withOpacity(0.2), width: 1),
+            side: BorderSide(color: Colors.white.withValues(alpha: 0.2), width: 1),
           ),
           child: InkWell(
             borderRadius: BorderRadius.circular(20),

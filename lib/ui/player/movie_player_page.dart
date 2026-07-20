@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../../widgets/native_player_view.dart';
@@ -503,25 +504,25 @@ class _VideoSettingsModalState extends State<VideoSettingsModal> {
   @override
   Widget build(BuildContext context) {
     // Dark modern theme style
-    const cardColor = Color(0xFF1E1E1E);
+    final cardColor = const Color(0xFF1E1E1E).withValues(alpha: 0.5);
     const textStyle = TextStyle(color: Colors.white, fontSize: 15);
     const titleStyle = TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold);
 
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [const Color(0xFF181818), const Color(0xFF0F0F0F)],
-          begin: Alignment.topCenter,
-          end: Alignment.bottomCenter,
-        ),
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
-        border: Border(top: BorderSide(color: const Color(0xFFD4AF37).withOpacity(0.3), width: 1.5)),
-      ),
-      child: SingleChildScrollView(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
+    return ClipRRect(
+      borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+      child: BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 15, sigmaY: 15),
+        child: Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: const Color(0xFF181818).withValues(alpha: 0.6),
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+            border: Border(top: BorderSide(color: const Color(0xFFD4AF37).withValues(alpha: 0.3), width: 1.5)),
+          ),
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
             // --- 1. VIDEO QUALITY CARD ---
             Container(
               padding: const EdgeInsets.all(16),
@@ -663,6 +664,8 @@ class _VideoSettingsModalState extends State<VideoSettingsModal> {
               ),
             ),
           ],
+            ),
+          ),
         ),
       ),
     );

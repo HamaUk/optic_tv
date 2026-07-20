@@ -3,7 +3,6 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:video_player/video_player.dart';
-import 'package:custom_tv_text_field/custom_tv_text_field.dart';
 
 import '../../core/theme.dart';
 import '../../widgets/kobani_wordmark.dart';
@@ -90,7 +89,6 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
     final deviceTypeAsync = ref.watch(deviceTypeProvider);
     final s = AppStrings(uiLocale);
     
-    final isTv = deviceTypeAsync.asData?.value == DeviceType.tv;
 
     return Scaffold(
       backgroundColor: Colors.black,
@@ -121,9 +119,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
 
           SafeArea(
             child: Center(
-              child: isTv
-                  ? _buildTvLayout(uiLocale, s, session)
-                  : _buildMobileLayout(uiLocale, s, session),
+              child: _buildMobileLayout(uiLocale, s, session),
             ),
           ),
           
@@ -131,8 +127,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
             Positioned.fill(
               child: Container(
                 color: Colors.black45,
-                child: const Center(
-                  child: CircularProgressIndicator(color: AppTheme.primaryGold),
+                child: Center(
+                  child: CircularProgressIndicator(color: Theme.of(context).primaryColor),
                 ),
               ),
             ),
@@ -217,7 +213,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
                 uiLocale,
                 TextStyle(
                   fontSize: 14,
-                  color: Colors.white.withOpacity(0.5),
+                  color: Colors.white.withValues(alpha: 0.5),
                   height: 1.5,
                 ),
               ),
@@ -250,9 +246,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
                       Container(
                         padding: const EdgeInsets.all(12),
                         decoration: BoxDecoration(
-                          color: Colors.redAccent.withOpacity(0.1),
+                          color: Colors.redAccent.withValues(alpha: 0.1),
                           borderRadius: BorderRadius.circular(12),
-                          border: Border.all(color: Colors.redAccent.withOpacity(0.2)),
+                          border: Border.all(color: Colors.redAccent.withValues(alpha: 0.2)),
                         ),
                         child: Text(
                           session.error!,
@@ -271,150 +267,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
     );
   }
 
-  Widget _buildTvLayout(Locale uiLocale, AppStrings s, SessionState session) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 80),
-      child: Row(
-        children: [
-          Expanded(
-            flex: 4,
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const KobaniWordmark(height: 60, twoLine: true),
-                const SizedBox(height: 60),
-                Text(
-                  s.loginTitle.toUpperCase(),
-                  style: AppTheme.withRabarIfKurdish(
-                    uiLocale,
-                    const TextStyle(
-                      fontSize: 48,
-                      fontWeight: FontWeight.w900,
-                      color: Colors.white,
-                      letterSpacing: -1.0,
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 16),
-                Text(
-                  s.loginSubtitle,
-                  style: AppTheme.withRabarIfKurdish(
-                    uiLocale,
-                    TextStyle(
-                      fontSize: 18,
-                      color: Colors.white.withOpacity(0.6),
-                      height: 1.6,
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 60),
-                Wrap(
-                  spacing: 16,
-                  runSpacing: 16,
-                  children: [
-                    _featurePill(Icons.hd_rounded, s.isSorani ? '4K و HDR' : '4K HDR'),
-                    _featurePill(Icons.auto_awesome_rounded, s.isSorani ? 'ڕووکاری شووشەیی' : 'GLASS UI'),
-                    _featurePill(Icons.bolt_rounded, s.isSorani ? 'خێرایەکی زۆر' : 'ULTRA FAST'),
-                  ],
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(width: 60),
-          Expanded(
-            flex: 5,
-            child: Center(
-              child: _glassContainer(
-                borderRadius: BorderRadius.circular(40),
-                blur: 30,
-                child: Padding(
-                  padding: const EdgeInsets.all(48),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      CustomTVTextField(
-                        controller: _codeController,
-                        isFocused: true,
-                        hint: s.loginHint.toUpperCase(),
-                        textFieldType: TextFieldType.number,
-                        textStyle: const TextStyle(color: AppTheme.primaryGold, fontSize: 32, fontWeight: FontWeight.w900, letterSpacing: 8),
-                        hintStyle: TextStyle(color: Colors.white.withOpacity(0.15), fontSize: 24, fontWeight: FontWeight.w900, letterSpacing: 8),
-                        backgroundColor: Colors.white.withOpacity(0.03),
-                        borderColor: Colors.white.withOpacity(0.15),
-                        focusedBorderColor: AppTheme.primaryGold.withOpacity(0.5),
-                        borderRadius: 24,
-                        verticalContentPadding: 24,
-                        horizontalContentPadding: 32,
-                        textAlign: TextAlign.center,
-                        onFieldSubmitted: (_) => _submit(s),
-                      ),
-                      
-                      const SizedBox(height: 32),
-                      
-                      StatefulBuilder(
-                        builder: (context, setState) {
-                          bool isFocused = false;
-                          return AnimatedGradientBorder(
-                            borderRadius: BorderRadius.circular(24),
-                            borderWidth: isFocused ? 4 : 2,
-                            child: SizedBox(
-                              width: double.infinity,
-                              height: 72,
-                              child: ElevatedButton(
-                                onFocusChange: (val) => setState(() => isFocused = val),
-                                onPressed: _busy ? null : () => _submit(s),
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: isFocused ? const Color(0xFF1a1a1a) : const Color(0xFF121212),
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(22),
-                                    side: BorderSide(color: Colors.white.withOpacity(0.2), width: 1),
-                                  ),
-                                ),
-                                child: Text(
-                                  s.loginButton.toUpperCase(),
-                                  style: AppTheme.withRabarIfKurdish(
-                                    uiLocale,
-                                    TextStyle(
-                                      fontWeight: FontWeight.w900,
-                                      fontSize: 18,
-                                      letterSpacing: 2,
-                                      color: isFocused ? AppTheme.primaryGold : Colors.white,
-                                    ),
-                                  ),
-                                ),
-                              ),
-                            ),
-                          );
-                        },
-                      ),
 
-                      if (session.error != null) ...[
-                        const SizedBox(height: 32),
-                        Container(
-                          padding: const EdgeInsets.all(12),
-                          decoration: BoxDecoration(
-                            color: Colors.redAccent.withOpacity(0.1),
-                            borderRadius: BorderRadius.circular(12),
-                            border: Border.all(color: Colors.redAccent.withOpacity(0.2)),
-                          ),
-                          child: Text(
-                            session.error!,
-                            style: const TextStyle(color: Colors.redAccent, fontSize: 16, fontWeight: FontWeight.bold),
-                            textAlign: TextAlign.center,
-                          ),
-                        ),
-                      ],
-                    ],
-                  ),
-                ),
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
 
   Widget _buildMatteInput({
     required TextEditingController controller,
@@ -427,7 +280,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
       decoration: BoxDecoration(
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.4),
+            color: Colors.black.withValues(alpha: 0.4),
             blurRadius: 30,
             offset: const Offset(0, 15),
           ),
@@ -441,16 +294,16 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
         decoration: InputDecoration(
           hintText: hint.toUpperCase(),
           hintStyle: const TextStyle(color: Colors.white38, letterSpacing: 1, fontSize: 12, fontWeight: FontWeight.w900),
-          prefixIcon: Icon(icon, color: AppTheme.primaryGold),
+          prefixIcon: Icon(icon, color: Theme.of(context).primaryColor),
           filled: true,
-          fillColor: Colors.black.withOpacity(0.3),
+          fillColor: Colors.black.withValues(alpha: 0.3),
           border: OutlineInputBorder(
             borderRadius: BorderRadius.circular(24),
             borderSide: const BorderSide(color: Colors.white24, width: 1),
           ),
           focusedBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(24),
-            borderSide: const BorderSide(color: AppTheme.primaryGold, width: 2),
+            borderSide: BorderSide(color: Theme.of(context).primaryColor, width: 2),
           ),
           contentPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 26),
         ),
@@ -472,7 +325,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
             foregroundColor: Colors.white,
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(22),
-              side: BorderSide(color: Colors.white.withOpacity(0.2), width: 1),
+              side: BorderSide(color: Colors.white.withValues(alpha: 0.2), width: 1),
             ),
             elevation: 0,
           ),
@@ -496,9 +349,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
         filter: ImageFilter.blur(sigmaX: blur, sigmaY: blur),
         child: Container(
           decoration: BoxDecoration(
-            color: Colors.white.withOpacity(0.06),
+            color: Colors.white.withValues(alpha: 0.06),
             borderRadius: borderRadius,
-            border: Border.all(color: Colors.white.withOpacity(0.12), width: 1),
+            border: Border.all(color: Colors.white.withValues(alpha: 0.12), width: 1),
           ),
           child: child,
         ),
@@ -514,14 +367,14 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
           decoration: BoxDecoration(
-            color: Colors.white.withOpacity(0.08),
+            color: Colors.white.withValues(alpha: 0.08),
             borderRadius: BorderRadius.circular(30),
-            border: Border.all(color: Colors.white.withOpacity(0.12)),
+            border: Border.all(color: Colors.white.withValues(alpha: 0.12)),
           ),
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(icon, color: AppTheme.primaryGold, size: 16),
+              Icon(icon, color: Theme.of(context).primaryColor, size: 16),
               const SizedBox(width: 8),
               Text(
                 label,
@@ -562,7 +415,7 @@ class _ParticlePainter extends CustomPainter {
 
       final alpha = (0.15 + math.sin(t * math.pi * 2 + phase) * 0.1)
           .clamp(0.0, 1.0);
-      paint.color = const Color(0xFFE5A922).withOpacity(alpha);
+      paint.color = const Color(0xFFE5A922).withValues(alpha: alpha);
 
       canvas.drawCircle(Offset(x, wrappedY), radius, paint);
     }

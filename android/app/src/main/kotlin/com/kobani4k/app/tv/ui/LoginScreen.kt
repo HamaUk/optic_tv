@@ -70,7 +70,7 @@ fun LoginScreen(onLoginSuccess: () -> Unit) {
         focusRequesters[0].requestFocus()
     }
 
-    // ─── Background Animation ───
+    // â”€â”€â”€ Background Animation â”€â”€â”€
     val infiniteTransition = rememberInfiniteTransition(label = "bgAnim")
     val orb1X by infiniteTransition.animateFloat(
         initialValue = 0f,
@@ -118,7 +118,7 @@ fun LoginScreen(onLoginSuccess: () -> Unit) {
         label = "orb3Scale"
     )
 
-    // ─── Particles ───
+    // â”€â”€â”€ Particles â”€â”€â”€
     val particles = remember {
         List(12) { index ->
             Particle(
@@ -168,7 +168,7 @@ fun LoginScreen(onLoginSuccess: () -> Unit) {
                 } else false
             }
     ) {
-        // ─── Animated Background Orbs ───
+        // â”€â”€â”€ Animated Background Orbs â”€â”€â”€
         Box(
             modifier = Modifier
                 .offset(
@@ -179,7 +179,7 @@ fun LoginScreen(onLoginSuccess: () -> Unit) {
                 .background(
                     Brush.radialGradient(
                         colors = listOf(
-                            UltraTokens.Blue.copy(alpha = 0.08f),
+                            UltraTokens.Accent.copy(alpha = 0.08f),
                             Color.Transparent
                         ),
                         radius = 700f
@@ -196,7 +196,7 @@ fun LoginScreen(onLoginSuccess: () -> Unit) {
                 .background(
                     Brush.radialGradient(
                         colors = listOf(
-                            UltraTokens.Blue.copy(alpha = 0.06f),
+                            UltraTokens.Accent.copy(alpha = 0.06f),
                             Color.Transparent
                         ),
                         radius = 800f
@@ -219,7 +219,7 @@ fun LoginScreen(onLoginSuccess: () -> Unit) {
                 )
         )
 
-        // ─── Particles ───
+        // â”€â”€â”€ Particles â”€â”€â”€
         particles.forEach { particle ->
             ParticleView(
                 particle = particle,
@@ -227,12 +227,12 @@ fun LoginScreen(onLoginSuccess: () -> Unit) {
             )
         }
 
-        // ─── Main Container ───
+        // â”€â”€â”€ Main Container â”€â”€â”€
         Box(
             modifier = Modifier.fillMaxSize(),
             contentAlignment = Alignment.Center
         ) {
-            // ─── Glass Card ───
+            // â”€â”€â”€ Glass Card â”€â”€â”€
             Column(
                 modifier = Modifier
                     .width(380.dp)
@@ -266,12 +266,12 @@ fun LoginScreen(onLoginSuccess: () -> Unit) {
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.Center
             ) {
-                // ─── Logo Section ───
+                // â”€â”€â”€ Logo Section â”€â”€â”€
                 LogoSection()
 
                 Spacer(modifier = Modifier.height(16.dp))
 
-                // ─── Code Display ───
+                // â”€â”€â”€ Code Display â”€â”€â”€
                 CodeDisplay(
                     code = loginCode,
                     isError = errorMessage != null,
@@ -281,7 +281,7 @@ fun LoginScreen(onLoginSuccess: () -> Unit) {
 
                 Spacer(modifier = Modifier.height(6.dp))
 
-                // ─── Error Message ───
+                // â”€â”€â”€ Error Message â”€â”€â”€
                 if (errorMessage != null) {
                     ErrorMessage(
                         message = errorMessage ?: "",
@@ -293,7 +293,7 @@ fun LoginScreen(onLoginSuccess: () -> Unit) {
 
                 Spacer(modifier = Modifier.height(6.dp))
 
-                // ─── Keypad ───
+                // â”€â”€â”€ Keypad â”€â”€â”€
                 KeypadGrid(
                     focusRequesters = focusRequesters.take(KEYPAD_ROWS * KEYPAD_COLS),
                     onDigitPress = { digit ->
@@ -319,7 +319,7 @@ fun LoginScreen(onLoginSuccess: () -> Unit) {
 
                 Spacer(modifier = Modifier.height(16.dp))
 
-                // ─── Login Button ───
+                // â”€â”€â”€ Login Button â”€â”€â”€
                 LoginButton(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -351,9 +351,9 @@ fun LoginScreen(onLoginSuccess: () -> Unit) {
 
                 Spacer(modifier = Modifier.height(16.dp))
 
-                // ─── Footer ───
+                // â”€â”€â”€ Footer â”€â”€â”€
                 Text(
-                    text = "v2.1.0 · Premium Streaming",
+                    text = "v2.1.0 Â· Premium Streaming",
                     fontSize = 11.sp,
                     fontWeight = FontWeight.Medium,
                     letterSpacing = 2.sp,
@@ -361,7 +361,7 @@ fun LoginScreen(onLoginSuccess: () -> Unit) {
                 )
             }
 
-            // ─── Success Overlay ───
+            // â”€â”€â”€ Success Overlay â”€â”€â”€
             if (showSuccessOverlay) {
                 SuccessOverlay(
                     modifier = Modifier
@@ -374,9 +374,9 @@ fun LoginScreen(onLoginSuccess: () -> Unit) {
     }
 }
 
-// ═══════════════════════════════════════════════════════════════
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 //  Logo Section
-// ═══════════════════════════════════════════════════════════════
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 
 @Composable
 private fun LogoSection() {
@@ -429,10 +429,10 @@ private fun LogoSection() {
                 fontSize = 28.sp,
                 fontWeight = FontWeight.Black,
                 letterSpacing = 4.sp,
-                color = UltraTokens.Blue,
+                color = UltraTokens.Accent,
                 style = TextStyle(
                     shadow = Shadow(
-                        color = UltraTokens.Blue.copy(alpha = 0.3f),
+                        color = UltraTokens.Accent.copy(alpha = 0.3f),
                         blurRadius = 10f
                     )
                 )
@@ -461,7 +461,7 @@ private fun LogoSection() {
                     Brush.horizontalGradient(
                         colors = listOf(
                             Color.Transparent,
-                            UltraTokens.Blue.copy(alpha = 0.4f),
+                            UltraTokens.Accent.copy(alpha = 0.4f),
                             Color.Transparent
                         )
                     )
@@ -470,9 +470,9 @@ private fun LogoSection() {
     }
 }
 
-// ═══════════════════════════════════════════════════════════════
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 //  Code Display
-// ═══════════════════════════════════════════════════════════════
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 
 @Composable
 private fun CodeDisplay(
@@ -496,7 +496,7 @@ private fun CodeDisplay(
     val borderColor by animateColorAsState(
         targetValue = when {
             isError -> Color(0xFFFF4757)
-            isActive -> UltraTokens.Blue.copy(alpha = 0.4f)
+            isActive -> UltraTokens.Accent.copy(alpha = 0.4f)
             else -> Color.White.copy(alpha = 0.06f)
         },
         animationSpec = tween(300),
@@ -506,7 +506,7 @@ private fun CodeDisplay(
     val glowColor by animateColorAsState(
         targetValue = when {
             isError -> Color(0xFFFF4757).copy(alpha = 0.08f)
-            isActive -> UltraTokens.Blue.copy(alpha = 0.06f)
+            isActive -> UltraTokens.Accent.copy(alpha = 0.06f)
             else -> Color.Transparent
         },
         animationSpec = tween(300),
@@ -550,7 +550,7 @@ private fun CodeDisplay(
                     modifier = Modifier
                         .size(2.dp, 28.dp)
                         .clip(RoundedCornerShape(2.dp))
-                        .background(UltraTokens.Blue)
+                        .background(UltraTokens.Accent)
                         .alpha(actualCursorAlpha)
                 )
             }
@@ -577,7 +577,7 @@ private fun CodeDisplay(
                             fontSize = 24.sp,
                             fontWeight = FontWeight.Bold,
                             letterSpacing = 2.sp,
-                            color = if (isError) Color(0xFFFF4757) else UltraTokens.Blue,
+                            color = if (isError) Color(0xFFFF4757) else UltraTokens.Accent,
                             modifier = Modifier.width(24.dp),
                             textAlign = TextAlign.Center
                         )
@@ -593,7 +593,7 @@ private fun CodeDisplay(
                         modifier = Modifier
                             .size(2.dp, 28.dp)
                             .clip(RoundedCornerShape(2.dp))
-                            .background(UltraTokens.Blue)
+                            .background(UltraTokens.Accent)
                             .alpha(actualCursorAlpha)
                     )
                 }
@@ -602,9 +602,9 @@ private fun CodeDisplay(
     }
 }
 
-// ═══════════════════════════════════════════════════════════════
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 //  Error Message
-// ═══════════════════════════════════════════════════════════════
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 
 @Composable
 private fun ErrorMessage(
@@ -643,9 +643,9 @@ private fun ErrorMessage(
     }
 }
 
-// ═══════════════════════════════════════════════════════════════
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 //  Keypad Grid
-// ═══════════════════════════════════════════════════════════════
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 
 @OptIn(ExperimentalTvMaterial3Api::class)
 @Composable
@@ -660,7 +660,7 @@ private fun KeypadGrid(
         listOf("1", "2", "3"),
         listOf("4", "5", "6"),
         listOf("7", "8", "9"),
-        listOf("CLR", "0", "⌫")
+        listOf("CLR", "0", "âŒ«")
     )
 
     var focusedKey by remember { mutableStateOf<Pair<Int, Int>?>(null) }
@@ -725,14 +725,14 @@ private fun handleKeyPress(
 ) {
     when (key) {
         "CLR" -> onClear()
-        "⌫" -> onBackspace()
+        "âŒ«" -> onBackspace()
         else -> onDigitPress(key)
     }
 }
 
-// ═══════════════════════════════════════════════════════════════
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 //  Keypad Button
-// ═══════════════════════════════════════════════════════════════
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 
 @Composable
 private fun KeypadButton(
@@ -756,7 +756,7 @@ private fun KeypadButton(
     val bgColor by animateColorAsState(
         targetValue = when {
             isLoading -> UltraTokens.SurfaceHover
-            isFocused -> UltraTokens.Blue
+            isFocused -> UltraTokens.Accent
             else -> UltraTokens.SurfaceHover.copy(alpha = 0.6f)
         },
         animationSpec = tween(150),
@@ -765,7 +765,7 @@ private fun KeypadButton(
 
     val borderColor by animateColorAsState(
         targetValue = when {
-            isFocused -> UltraTokens.Blue.copy(alpha = 0.6f)
+            isFocused -> UltraTokens.Accent.copy(alpha = 0.6f)
             else -> Color.White.copy(alpha = 0.04f)
         },
         animationSpec = tween(150),
@@ -773,7 +773,7 @@ private fun KeypadButton(
     )
 
     val glowColor by animateColorAsState(
-        targetValue = if (isFocused) UltraTokens.Blue.copy(alpha = 0.15f) else Color.Transparent,
+        targetValue = if (isFocused) UltraTokens.Accent.copy(alpha = 0.15f) else Color.Transparent,
         animationSpec = tween(150),
         label = "keyGlow"
     )
@@ -833,7 +833,7 @@ private fun KeypadButton(
                     .scale(rippleScale)
                     .alpha(rippleAlpha * 0.3f)
                     .clip(CircleShape)
-                    .background(UltraTokens.Blue.copy(alpha = 0.2f))
+                    .background(UltraTokens.Accent.copy(alpha = 0.2f))
             )
         }
 
@@ -846,7 +846,7 @@ private fun KeypadButton(
                     .background(
                         Brush.radialGradient(
                             colors = listOf(
-                                UltraTokens.Blue.copy(alpha = 0.05f),
+                                UltraTokens.Accent.copy(alpha = 0.05f),
                                 Color.Transparent
                             ),
                             radius = 80f
@@ -856,11 +856,11 @@ private fun KeypadButton(
         }
 
         when {
-            label == "⌫" -> {
+            label == "âŒ«" -> {
                 Icon(
                     imageVector = Icons.Rounded.Backspace,
                     contentDescription = "Backspace",
-                    tint = if (isFocused) Color.White else UltraTokens.TextSecondary,
+                    tint = if (isFocused) Color.Black else UltraTokens.TextSecondary,
                     modifier = Modifier.size(24.dp)
                 )
             }
@@ -870,7 +870,7 @@ private fun KeypadButton(
                     fontSize = 13.sp,
                     fontWeight = FontWeight.Bold,
                     letterSpacing = 1.sp,
-                    color = if (isFocused) Color.White else UltraTokens.TextSecondary
+                    color = if (isFocused) Color.Black else UltraTokens.TextSecondary
                 )
             }
             else -> {
@@ -878,16 +878,16 @@ private fun KeypadButton(
                     text = label,
                     fontSize = 24.sp,
                     fontWeight = FontWeight.SemiBold,
-                    color = if (isFocused) Color.White else UltraTokens.Text
+                    color = if (isFocused) Color.Black else UltraTokens.Text
                 )
             }
         }
     }
 }
 
-// ═══════════════════════════════════════════════════════════════
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 //  Login Button
-// ═══════════════════════════════════════════════════════════════
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 
 @OptIn(ExperimentalTvMaterial3Api::class)
 @Composable
@@ -913,7 +913,7 @@ private fun LoginButton(
     )
 
     val glowColor by animateColorAsState(
-        targetValue = if (isFocused && enabled) UltraTokens.Blue.copy(alpha = 0.2f) else Color.Transparent,
+        targetValue = if (isFocused && enabled) UltraTokens.Accent.copy(alpha = 0.2f) else Color.Transparent,
         animationSpec = tween(300),
         label = "btnGlow"
     )
@@ -943,14 +943,14 @@ private fun LoginButton(
             .then(
                 if (isLoading) Modifier.background(UltraTokens.SurfaceHover)
                 else Modifier.background(
-                    if (isFocused) UltraTokens.Blue
+                    if (isFocused) UltraTokens.Accent
                     else if (enabled) UltraTokens.Surface
                     else UltraTokens.Background
                 )
             )
             .border(
                 width = if (isFocused || enabled) 2.dp else 1.dp,
-                color = if (isFocused) Color.White else if (enabled) UltraTokens.Blue.copy(alpha = 0.4f) else UltraTokens.Divider,
+                color = if (isFocused) Color.White else if (enabled) UltraTokens.Accent.copy(alpha = 0.4f) else UltraTokens.Divider,
                 shape = RoundedCornerShape(16.dp)
             )
             .onFocusChanged { focusState ->
@@ -1038,7 +1038,7 @@ private fun LoginButton(
                 Icon(
                     imageVector = Icons.Rounded.PlayArrow,
                     contentDescription = null,
-                    tint = if (isFocused) Color.White else if (enabled) UltraTokens.Text else UltraTokens.TextSecondary.copy(alpha = 0.3f),
+                    tint = if (isFocused) Color.Black else if (enabled) UltraTokens.Text else UltraTokens.TextSecondary.copy(alpha = 0.3f),
                     modifier = Modifier.size(22.dp)
                 )
                 Spacer(modifier = Modifier.width(10.dp))
@@ -1047,16 +1047,16 @@ private fun LoginButton(
                     fontSize = 16.sp,
                     fontWeight = FontWeight.Bold,
                     letterSpacing = 4.sp,
-                    color = if (isFocused) Color.White else if (enabled) UltraTokens.Text else UltraTokens.TextSecondary.copy(alpha = 0.3f)
+                    color = if (isFocused) Color.Black else if (enabled) UltraTokens.Text else UltraTokens.TextSecondary.copy(alpha = 0.3f)
                 )
             }
         }
     }
 }
 
-// ═══════════════════════════════════════════════════════════════
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 //  Success Overlay
-// ═══════════════════════════════════════════════════════════════
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 
 @Composable
 private fun SuccessOverlay(
@@ -1093,7 +1093,7 @@ private fun SuccessOverlay(
                     .background(
                         Brush.radialGradient(
                             colors = listOf(
-                                UltraTokens.Blue.copy(alpha = 0.3f),
+                                UltraTokens.Accent.copy(alpha = 0.3f),
                                 Color.Transparent
                             )
                         )
@@ -1103,7 +1103,7 @@ private fun SuccessOverlay(
                 Icon(
                     imageVector = Icons.Rounded.CheckCircle,
                     contentDescription = "Success",
-                    tint = UltraTokens.Blue,
+                    tint = UltraTokens.Accent,
                     modifier = Modifier.size(60.dp)
                 )
             }
@@ -1142,9 +1142,9 @@ private fun SuccessOverlay(
     }
 }
 
-// ═══════════════════════════════════════════════════════════════
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 //  Particle System
-// ═══════════════════════════════════════════════════════════════
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 
 private data class Particle(
     val x: Float,
@@ -1213,7 +1213,7 @@ private fun ParticleView(
             .background(
                 Brush.radialGradient(
                     colors = listOf(
-                        UltraTokens.Blue.copy(alpha = 0.5f),
+                        UltraTokens.Accent.copy(alpha = 0.5f),
                         Color.Transparent
                     )
                 )
@@ -1221,8 +1221,9 @@ private fun ParticleView(
     )
 }
 
-// ═══════════════════════════════════════════════════════════════
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 //  Extension: Color.copy with alpha
-// ═══════════════════════════════════════════════════════════════
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 
 private fun Color.copy(alpha: Float): Color = this.copy(alpha = alpha)
+

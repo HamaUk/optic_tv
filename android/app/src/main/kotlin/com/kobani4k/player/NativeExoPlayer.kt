@@ -2,6 +2,8 @@ package com.kobani4k.player
 
 import android.content.Context
 import android.graphics.SurfaceTexture
+import android.net.ConnectivityManager
+import android.net.NetworkCapabilities
 import android.os.Handler
 import android.os.Looper
 import android.view.Surface
@@ -18,9 +20,18 @@ import androidx.media3.exoplayer.DefaultRenderersFactory
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.exoplayer.SeekParameters
 import androidx.media3.exoplayer.source.DefaultMediaSourceFactory
+import androidx.media3.exoplayer.source.MediaSource
+import androidx.media3.exoplayer.trackselection.DefaultTrackSelector
+import androidx.media3.exoplayer.drm.LocalMediaDrmCallback
+import androidx.media3.exoplayer.drm.DefaultDrmSessionManager
+import androidx.media3.exoplayer.drm.FrameworkMediaDrm
 import io.flutter.plugin.common.MethodCall
 import io.flutter.plugin.common.MethodChannel
 import io.flutter.view.TextureRegistry
+import javax.crypto.Cipher
+import javax.crypto.spec.SecretKeySpec
+import javax.crypto.spec.GCMParameterSpec
+import android.util.Base64
 
 /**
  * Native Kotlin ExoPlayer engine — Ghosten-level IPTV optimizations.
@@ -64,6 +75,10 @@ class NativeExoPlayer(
         // This prevents startup crashes on Xiaomi/Android 15+ devices where the
         // Flutter view isn't fully attached when configureFlutterEngine is called.
         startPositionPolling()
+    }
+
+    fun getExoPlayerInstance(): ExoPlayer {
+        return player
     }
 
     /**
@@ -239,8 +254,57 @@ class NativeExoPlayer(
 
     // ─── Player Operations ───────────────────────────────────────────────
 
+    private fun decryptUrl(encryptedText: String): String {
+        if (encryptedText.isEmpty() || encryptedText.startsWith("http")) return encryptedText
+        try {
+            if (encryptedText.startsWith("AES:")) {
+                val base64Str = encryptedText.substring(4)
+                val decoded = Base64.decode(base64Str, Base64.DEFAULT)
+                val keyStr = "KOBANI_TV_SECURE_AES_KEY_2026_X0X".substring(0, 32)
+                val keySpec = SecretKeySpec(keyStr.toByteArray(Charsets.UTF_8), "AES")
+                val iv = ByteArray(16)
+                val gcmSpec = GCMParameterSpec(128, iv)
+                val cipher = Cipher.getInstance("AES/GCM/NoPadding")
+                cipher.init(Cipher.DECRYPT_MODE, keySpec, gcmSpec)
+                val decryptedBytes = cipher.doFinal(decoded)
+                return String(decryptedBytes, Charsets.UTF_8)
+            } else {
+                // Legacy XOR
+                val key = "KOBANI_TV_SECRET_2026"
+                val bytes = Base64.decode(encryptedText, Base64.DEFAULT)
+                val result = ByteArray(bytes.size)
+                for (i in bytes.indices) {
+                    result[i] = (bytes[i].toInt() xor key[i % key.length].code).toByte()
+                }
+                return String(result)
+            }
+        } catch (e: Exception) {
+            return encryptedText
+        }
+    }
+
+    private fun isVpnOrProxyActive(): Boolean {
+        val cm = context.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
+        val activeNetwork = cm.activeNetwork ?: return false
+        val caps = cm.getNetworkCapabilities(activeNetwork) ?: return false
+        if (caps.hasTransport(NetworkCapabilities.TRANSPORT_VPN)) return true
+        // Check system-level proxy properties set by sniffers like HttpCanary
+        val proxyHost = System.getProperty("http.proxyHost")
+        val proxyPort = System.getProperty("http.proxyPort")
+        if (!proxyHost.isNullOrEmpty() && !proxyPort.isNullOrEmpty()) return true
+        val httpsProxy = System.getProperty("https.proxyHost")
+        if (!httpsProxy.isNullOrEmpty()) return true
+        return false
+    }
+
     private fun open(url: String, headers: Map<String, String>, drmScheme: String?, drmLicense: String?) {
-        // Stop current playback
+        // ── SECURITY: Pre-flight VPN/Proxy check ──────────────────────────
+        // If a VPN or system proxy is active, refuse to open the stream.
+        // This starves packet sniffers (HttpCanary, PCAPdroid) of ANY traffic.
+        if (isVpnOrProxyActive()) {
+            handler.post { sendEvent("vpn_detected", true) }
+            return
+        }
         player.stop()
 
         // Recreate texture to ensure clean state when opening new stream
@@ -258,7 +322,7 @@ class NativeExoPlayer(
         // Set custom headers (Always set, so we clear previous channel's headers if empty)
         httpDataSourceFactory.setDefaultRequestProperties(headers)
 
-        var finalUrl = url
+        var finalUrl = decryptUrl(url)
         var finalDrmScheme = drmScheme
         var finalDrmLicense = drmLicense
 
@@ -310,8 +374,23 @@ class NativeExoPlayer(
                     }.filter { it.isNotEmpty() }.joinToString(",")
                     
                     val json = "{\"keys\":[$jsonKeys],\"type\":\"temporary\"}"
-                    val dataUri = "data:application/json;base64," + android.util.Base64.encodeToString(json.toByteArray(), android.util.Base64.NO_WRAP)
-                    drmConfigBuilder.setLicenseUri(dataUri)
+                    
+                    // Create a local DRM callback and a custom session manager for ClearKey
+                    val drmCallback = LocalMediaDrmCallback(json.toByteArray())
+                    val drmSessionManager = DefaultDrmSessionManager.Builder()
+                        .setUuidAndExoMediaDrmProvider(androidx.media3.common.C.CLEARKEY_UUID, FrameworkMediaDrm.DEFAULT_PROVIDER)
+                        .build(drmCallback)
+                    
+                    val customMediaSource = DefaultMediaSourceFactory(context)
+                        .setDataSourceFactory(DefaultDataSource.Factory(context, httpDataSourceFactory))
+                        .setDrmSessionManagerProvider { drmSessionManager }
+                        .createMediaSource(builder.build())
+                        
+                    player.setMediaSource(customMediaSource)
+                    player.prepare()
+                    player.playWhenReady = true
+                    player.play()
+                    return // Fast path, skip standard setMediaItem below
                 } catch (e: Exception) {
                     drmConfigBuilder.setLicenseUri(finalDrmLicense)
                 }

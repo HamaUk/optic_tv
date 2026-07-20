@@ -29,7 +29,7 @@ class LoginCodesService {
       // Offline / API error -> try cache
       final cachedOk = await _matchCached(normalized);
       if (cachedOk) return true;
-      throw Exception('DB Error: $e');
+      throw Exception('Connection Error. Please check your internet or try again later.');
     }
   }
 

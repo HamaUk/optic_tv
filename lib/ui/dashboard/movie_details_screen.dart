@@ -18,7 +18,6 @@ import '../../services/tmdb_service.dart';
 import '../../providers/channel_library_provider.dart';
 import '../../providers/app_locale_provider.dart';
 import '../../l10n/app_strings.dart';
-import '../../widgets/tv/tv_focusable.dart';
 import '../player/movie_player_page.dart';
 
 class MovieDetailsScreen extends ConsumerStatefulWidget {
@@ -221,7 +220,7 @@ class _MovieDetailsScreenState extends ConsumerState<MovieDetailsScreen>
     final isFavorite = ref.watch(favoritesProvider.notifier).isFavorite(widget.channel);
     final size = MediaQuery.sizeOf(context);
     final accent = _palette.accent;
-    final glowColor = accent.withOpacity(0.5);
+    final glowColor = accent.withValues(alpha: 0.5);
 
     return Scaffold(
       backgroundColor: AppTheme.backgroundBlack,
@@ -266,8 +265,8 @@ class _MovieDetailsScreenState extends ConsumerState<MovieDetailsScreen>
                   center: Alignment.topCenter,
                   radius: 1.1,
                   colors: [
-                    glowColor.withOpacity(0.25),
-                    glowColor.withOpacity(0.0),
+                    glowColor.withValues(alpha: 0.25),
+                    glowColor.withValues(alpha: 0.0),
                   ],
                 ),
               ),
@@ -282,8 +281,8 @@ class _MovieDetailsScreenState extends ConsumerState<MovieDetailsScreen>
                   begin: Alignment.topCenter,
                   end: Alignment.bottomCenter,
                   colors: [
-                    Colors.black.withOpacity(0.25),
-                    Colors.black.withOpacity(0.65),
+                    Colors.black.withValues(alpha: 0.25),
+                    Colors.black.withValues(alpha: 0.65),
                     AppTheme.backgroundBlack,
                     AppTheme.backgroundBlack,
                   ],
@@ -346,7 +345,7 @@ class _MovieDetailsScreenState extends ConsumerState<MovieDetailsScreen>
                           child: Text(
                             _movie?.overview ?? widget.channel.description ?? 'Loading...',
                             style: TextStyle(
-                              color: Colors.white.withOpacity(0.8),
+                              color: Colors.white.withValues(alpha: 0.8),
                               fontSize: 16,
                               height: 1.6,
                               letterSpacing: 0.2,
@@ -359,7 +358,7 @@ class _MovieDetailsScreenState extends ConsumerState<MovieDetailsScreen>
                           widget.channel.description ??
                           'Cinematic details for this title are being retrieved. Enjoy the high-quality stream.',
                           style: TextStyle(
-                            color: Colors.white.withOpacity(0.8),
+                            color: Colors.white.withValues(alpha: 0.8),
                             fontSize: 16,
                             height: 1.6,
                             letterSpacing: 0.2,
@@ -408,7 +407,7 @@ class _MovieDetailsScreenState extends ConsumerState<MovieDetailsScreen>
               child: BackdropFilter(
                 filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
                 child: Container(
-                  color: Colors.black.withOpacity(0.35),
+                  color: Colors.black.withValues(alpha: 0.35),
                   child: IconButton(
                     icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.white, size: 20),
                     onPressed: () {
@@ -448,7 +447,7 @@ class _MovieDetailsScreenState extends ConsumerState<MovieDetailsScreen>
                 borderRadius: BorderRadius.circular(18),
                 boxShadow: [
                   BoxShadow(
-                    color: accent.withOpacity(_trailerHovered ? 0.5 : 0.25),
+                    color: accent.withValues(alpha: _trailerHovered ? 0.5 : 0.25),
                     blurRadius: _trailerHovered ? 32 : 16,
                     spreadRadius: -4,
                   ),
@@ -466,7 +465,7 @@ class _MovieDetailsScreenState extends ConsumerState<MovieDetailsScreen>
                       errorWidget: (_, __, ___) => Container(
                         color: Colors.black,
                         child: Center(
-                          child: Icon(Icons.movie_outlined, color: accent.withOpacity(0.3), size: 48),
+                          child: Icon(Icons.movie_outlined, color: accent.withValues(alpha: 0.3), size: 48),
                         ),
                       ),
                     ),
@@ -484,8 +483,8 @@ class _MovieDetailsScreenState extends ConsumerState<MovieDetailsScreen>
                               begin: Alignment.topLeft,
                               end: Alignment.bottomRight,
                               colors: [
-                                Colors.black.withOpacity(0.25),
-                                Colors.black.withOpacity(0.60),
+                                Colors.black.withValues(alpha: 0.25),
+                                Colors.black.withValues(alpha: 0.60),
                               ],
                             ),
                           ),
@@ -509,9 +508,9 @@ class _MovieDetailsScreenState extends ConsumerState<MovieDetailsScreen>
                                 1.5,
                               ),
                               colors: [
-                                Colors.white.withOpacity(0),
-                                Colors.white.withOpacity(0.7),
-                                Colors.white.withOpacity(0),
+                                Colors.white.withValues(alpha: 0),
+                                Colors.white.withValues(alpha: 0.7),
+                                Colors.white.withValues(alpha: 0),
                               ],
                             ),
                           ),
@@ -530,9 +529,9 @@ class _MovieDetailsScreenState extends ConsumerState<MovieDetailsScreen>
                           child: Container(
                             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
                             decoration: BoxDecoration(
-                              color: accent.withOpacity(0.25),
+                              color: accent.withValues(alpha: 0.25),
                               borderRadius: BorderRadius.circular(8),
-                              border: Border.all(color: accent.withOpacity(0.5)),
+                              border: Border.all(color: accent.withValues(alpha: 0.5)),
                             ),
                             child: Row(
                               mainAxisSize: MainAxisSize.min,
@@ -562,15 +561,15 @@ class _MovieDetailsScreenState extends ConsumerState<MovieDetailsScreen>
                         width: _trailerHovered ? 72 : 64,
                         height: _trailerHovered ? 72 : 64,
                         decoration: BoxDecoration(
-                          color: Colors.black.withOpacity(0.55),
+                          color: Colors.black.withValues(alpha: 0.55),
                           shape: BoxShape.circle,
                           border: Border.all(
-                            color: Colors.white.withOpacity(0.6),
+                            color: Colors.white.withValues(alpha: 0.6),
                             width: 2.5,
                           ),
                           boxShadow: [
                             BoxShadow(
-                              color: accent.withOpacity(0.4),
+                              color: accent.withValues(alpha: 0.4),
                               blurRadius: 24,
                               spreadRadius: -2,
                             ),
@@ -657,14 +656,14 @@ class _MovieDetailsScreenState extends ConsumerState<MovieDetailsScreen>
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
       decoration: BoxDecoration(
-        border: Border.all(color: accent.withOpacity(0.6), width: 1),
+        border: Border.all(color: accent.withValues(alpha: 0.6), width: 1),
         borderRadius: BorderRadius.circular(4),
-        color: accent.withOpacity(0.08),
+        color: accent.withValues(alpha: 0.08),
       ),
       child: Text(
         text,
         style: TextStyle(
-          color: accent.withOpacity(0.9),
+          color: accent.withValues(alpha: 0.9),
           fontSize: 10,
           fontWeight: FontWeight.w900,
         ),
@@ -677,42 +676,34 @@ class _MovieDetailsScreenState extends ConsumerState<MovieDetailsScreen>
       children: [
         // Primary play button — uses palette accent color
         Expanded(
-          child: TVFocusable(
-            onSelect: _play,
-            showFocusBorder: false,
-            focusScale: 1.05,
-            child: const SizedBox(),
-            builder: (context, isFocused, child) {
-              return Material(
-                color: isFocused ? accent : Colors.white,
-                borderRadius: BorderRadius.circular(8),
-                elevation: isFocused ? 8 : 0,
-                shadowColor: accent.withOpacity(0.5),
-                child: InkWell(
-                  onTap: _play,
-                  borderRadius: BorderRadius.circular(8),
-                  child: Container(
-                    height: 52,
-                    alignment: Alignment.center,
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(Icons.play_arrow_rounded, color: isFocused ? Colors.white : Colors.black, size: 32),
-                        const SizedBox(width: 4),
-                        Text(
-                          'Play',
-                          style: TextStyle(
-                            color: isFocused ? Colors.white : Colors.black,
-                            fontSize: 18,
-                            fontWeight: FontWeight.w900,
-                          ),
-                        ),
-                      ],
+          child: Material(
+            color: accent,
+            borderRadius: BorderRadius.circular(8),
+            elevation: 0,
+            shadowColor: accent.withValues(alpha: 0.5),
+            child: InkWell(
+              onTap: _play,
+              borderRadius: BorderRadius.circular(8),
+              child: Container(
+                height: 52,
+                alignment: Alignment.center,
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(Icons.play_arrow_rounded, color: Colors.white, size: 32),
+                    const SizedBox(width: 4),
+                    Text(
+                      'Play',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 18,
+                        fontWeight: FontWeight.w900,
+                      ),
                     ),
-                  ),
+                  ],
                 ),
-              );
-            },
+              ),
+            ),
           ),
         ),
         const SizedBox(width: 10),
@@ -760,23 +751,17 @@ class _MovieDetailsScreenState extends ConsumerState<MovieDetailsScreen>
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        TVFocusable(
-          onSelect: onTap,
-          showFocusBorder: false,
-          focusScale: 1.1,
-          child: const SizedBox(),
-          builder: (context, isFocused, child) {
-            return Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                border: Border.all(color: isFocused ? accent : Colors.white38, width: isFocused ? 2 : 1.5),
-                color: isFocused ? accent.withOpacity(0.2) : Colors.white.withOpacity(0.05),
-                boxShadow: isFocused ? [BoxShadow(color: accent.withOpacity(0.5), blurRadius: 10)] : [],
-              ),
-              child: Icon(icon, color: Colors.white, size: 26),
-            );
-          },
+        GestureDetector(
+          onTap: onTap,
+          child: Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              border: Border.all(color: Colors.white38, width: 1.5),
+              color: Colors.white.withValues(alpha: 0.05),
+            ),
+            child: Icon(icon, color: Colors.white, size: 26),
+          ),
         ),
         const SizedBox(height: 4),
         Text(
@@ -800,7 +785,7 @@ class _MovieDetailsScreenState extends ConsumerState<MovieDetailsScreen>
           decoration: BoxDecoration(
             color: accent,
             borderRadius: BorderRadius.circular(2),
-            boxShadow: [BoxShadow(color: accent.withOpacity(0.5), blurRadius: 8)],
+            boxShadow: [BoxShadow(color: accent.withValues(alpha: 0.5), blurRadius: 8)],
           ),
         ),
         const SizedBox(width: 10),
@@ -832,7 +817,7 @@ class _MovieDetailsScreenState extends ConsumerState<MovieDetailsScreen>
               children: [
                 CircleAvatar(
                   radius: 35,
-                  backgroundColor: _palette.muted.withOpacity(0.3),
+                  backgroundColor: _palette.muted.withValues(alpha: 0.3),
                   backgroundImage: c.profileUrl != null
                       ? CachedNetworkImageProvider(c.profileUrl!)
                       : null,

@@ -131,19 +131,20 @@ class PocketBaseRepository {
         })
     }
 
-    suspend fun getChannels(): List<TvChannel> = suspendCancellableCoroutine { cont ->
+    // Bug 2 fix: returns null on failure instead of fake mock data
+    suspend fun getChannels(): List<TvChannel>? = suspendCancellableCoroutine { cont ->
         val request = Request.Builder()
             .url("$baseUrl/managedPlaylist/records?perPage=500")
             .build()
 
         client.newCall(request).enqueue(object : Callback {
             override fun onFailure(call: Call, e: IOException) {
-                if (cont.isActive) cont.resume(defaultMockChannels())
+                if (cont.isActive) cont.resume(null) // null = network error
             }
 
             override fun onResponse(call: Call, response: Response) {
                 if (!response.isSuccessful) {
-                    if (cont.isActive) cont.resume(defaultMockChannels())
+                    if (cont.isActive) cont.resume(null)
                     return
                 }
 
@@ -199,32 +200,13 @@ class PocketBaseRepository {
                     }
                     
                     channels.sortBy { it.order }
-                    
-                    if (channels.isEmpty()) {
-                        if (cont.isActive) cont.resume(defaultMockChannels())
-                    } else {
-                        if (cont.isActive) cont.resume(channels)
-                    }
+                    if (cont.isActive) cont.resume(channels.ifEmpty { null })
                 } catch (e: Exception) {
                     e.printStackTrace()
-                    if (cont.isActive) cont.resume(defaultMockChannels())
+                    if (cont.isActive) cont.resume(null)
                 }
             }
         })
-    }
-
-    private fun defaultMockChannels(): List<TvChannel> {
-        return List(20) { index ->
-            val isEven = index % 2 == 0
-            TvChannel(
-                name = "Kobani Channel ${index + 1}",
-                url = "https://storage.googleapis.com/exoplayer-test-media-0/BigBuckBunny_320x180.mp4",
-                group = if (isEven) "LIVE" else "MOVIES",
-                logo = null,
-                type = if (isEven) "live" else "movie",
-                order = index
-            )
-        }
     }
 
     suspend fun getGroups(): List<TvChannelGroup> = suspendCancellableCoroutine { cont ->

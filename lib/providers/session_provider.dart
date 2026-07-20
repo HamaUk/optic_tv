@@ -61,7 +61,8 @@ class SessionNotifier extends Notifier<SessionState> {
       _listenToCode(code);
       return true;
     } catch (e) {
-      state = SessionState(loggedIn: false, error: 'Connection Error: $e');
+      final errorMsg = e.toString().replaceAll('Exception: ', '');
+      state = SessionState(loggedIn: false, error: errorMsg);
       return false;
     }
   }

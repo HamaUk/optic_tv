@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
-import '../core/theme.dart';
 
 /// English-only brand mark — never pass through localization.
 class KobaniWordmark extends StatelessWidget {
@@ -22,12 +21,12 @@ class KobaniWordmark extends StatelessWidget {
 
     return ShaderMask(
       blendMode: BlendMode.srcIn,
-      shaderCallback: (bounds) => const LinearGradient(
+      shaderCallback: (bounds) => LinearGradient(
         begin: Alignment.topLeft,
         end: Alignment.bottomRight,
         colors: [
           Color(0xFF38BDF8),
-          AppTheme.primaryGold,
+          Theme.of(context).primaryColor,
           Color(0xFFA78BFA),
         ],
         stops: [0.0, 0.5, 1.0],

@@ -34,6 +34,8 @@ void main() async {
     systemNavigationBarDividerColor: Colors.transparent,
   ));
 
+
+
   // Firebase MUST be initialized before runApp so MethodChannels work
   try {
     await Firebase.initializeApp(
@@ -128,6 +130,8 @@ class OpticTvApp extends ConsumerStatefulWidget {
   ConsumerState<OpticTvApp> createState() => _OpticTvAppState();
 }
 
+final GlobalKey<NavigatorState> appNavigatorKey = GlobalKey<NavigatorState>();
+
 class _OpticTvAppState extends ConsumerState<OpticTvApp> with WidgetsBindingObserver {
   @override
   void initState() {
@@ -147,12 +151,12 @@ class _OpticTvAppState extends ConsumerState<OpticTvApp> with WidgetsBindingObse
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed) {
-      // Re-run security check every time the app comes back to the foreground
-      ref.refresh(securityCheckProvider);
+      if (!widget.isFirstLaunch) {
+        // Re-run security check every time the app comes back to the foreground
+        ref.refresh(securityCheckProvider);
+      }
     }
   }
-
-  final GlobalKey<NavigatorState> _navigatorKey = GlobalKey<NavigatorState>();
 
   @override
   Widget build(BuildContext context) {
@@ -163,27 +167,64 @@ class _OpticTvAppState extends ConsumerState<OpticTvApp> with WidgetsBindingObse
     final deviceType = deviceTypeAsync.asData?.value ?? DeviceType.phone;
 
     return MaterialApp(
-      navigatorKey: _navigatorKey,
+      navigatorKey: appNavigatorKey,
       title: 'KOBANI 4K',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.darkThemeForUi(uiLocale, settings.gradientPreset),
       locale: const Locale('en'),
       builder: (context, child) {
-        final dpadBuilder = Dpad.wrap(
-          debugOverlay: false,
-          onBack: () {
-            final ctx = _navigatorKey.currentContext;
-            if (ctx != null && Navigator.canPop(ctx)) {
-              Navigator.pop(ctx);
-              return true;
-            }
-            return false;
+        return Consumer(
+          builder: (context, ref, _) {
+            final securityCheckAsync = ref.watch(securityCheckProvider);
+            return securityCheckAsync.when(
+              data: (maliciousApps) {
+                if (maliciousApps.isNotEmpty) {
+                  return Directionality(
+                    textDirection: TextDirection.ltr,
+                    child: _buildSecurityWarning(maliciousApps),
+                  );
+                }
+                final dpadBuilder = Dpad.wrap(
+                  debugOverlay: false,
+                  onBack: () {
+                    final ctx = appNavigatorKey.currentContext;
+                    if (ctx != null && Navigator.canPop(ctx)) {
+                      Navigator.pop(ctx);
+                      return true;
+                    }
+                    return false;
+                  },
+                );
+                final dpadChild = dpadBuilder(context, child);
+                return Directionality(
+                  textDirection: TextDirection.ltr,
+                  child: dpadChild,
+                );
+              },
+              loading: () => const Scaffold(
+                backgroundColor: Colors.black,
+                body: Center(child: CircularProgressIndicator(color: Color(0xFFE5A922))),
+              ),
+              error: (_, __) {
+                final dpadBuilder = Dpad.wrap(
+                  debugOverlay: false,
+                  onBack: () {
+                    final ctx = appNavigatorKey.currentContext;
+                    if (ctx != null && Navigator.canPop(ctx)) {
+                      Navigator.pop(ctx);
+                      return true;
+                    }
+                    return false;
+                  },
+                );
+                final dpadChild = dpadBuilder(context, child);
+                return Directionality(
+                  textDirection: TextDirection.ltr,
+                  child: dpadChild,
+                );
+              },
+            );
           },
-        );
-        final dpadChild = dpadBuilder(context, child);
-        return Directionality(
-          textDirection: TextDirection.ltr,
-          child: dpadChild,
         );
       },
       localizationsDelegates: const [
@@ -192,29 +233,9 @@ class _OpticTvAppState extends ConsumerState<OpticTvApp> with WidgetsBindingObse
         GlobalCupertinoLocalizations.delegate,
       ],
       supportedLocales: const [Locale('en')],
-      home: widget.isFirstLaunch
+      home: (widget.isFirstLaunch && deviceType != DeviceType.tv)
         ? const OnboardingScreen()
-        : Consumer(
-            builder: (context, ref, child) {
-              final securityCheckAsync = ref.watch(securityCheckProvider);
-              
-              return securityCheckAsync.when(
-                data: (maliciousApps) {
-                  if (maliciousApps.isNotEmpty) {
-                    return _buildSecurityWarning(maliciousApps);
-                  }
-                  return session.loggedIn ? const DashboardScreen() : const LoginScreen();
-                },
-                loading: () => const Scaffold(
-                  backgroundColor: Colors.black,
-                  body: Center(child: CircularProgressIndicator(color: Color(0xFFE5A922))),
-                ),
-                error: (_, __) {
-                  return session.loggedIn ? const DashboardScreen() : const LoginScreen();
-                },
-              );
-            },
-          ),
+        : (session.loggedIn ? const DashboardScreen() : const LoginScreen()),
     );
   }
 

@@ -2,13 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../services/world_cup_service.dart';
 import '../../widgets/animated_gradient_border.dart';
-import '../../core/theme.dart';
 import '../../l10n/app_strings.dart';
 import '../../providers/app_locale_provider.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:translator/translator.dart';
 import 'match_details_screen.dart';
-import 'team_details_screen.dart';
 import '../../services/playlist_service.dart';
 import '../player/movie_player_page.dart';
 import '../../services/optic_player.dart';
@@ -231,14 +229,14 @@ class _WorldCupScreenState extends ConsumerState<WorldCupScreen>
           gradient: isSelected 
             ? const LinearGradient(colors: [Color(0xFFD4AF37), Color(0xFFAA8C2C)])
             : null,
-          color: isSelected ? null : Colors.white.withOpacity(0.08),
+          color: isSelected ? null : Colors.white.withValues(alpha: 0.08),
           borderRadius: BorderRadius.circular(24),
           border: Border.all(
-            color: isSelected ? const Color(0xFFD4AF37) : Colors.white.withOpacity(0.15),
+            color: isSelected ? const Color(0xFFD4AF37) : Colors.white.withValues(alpha: 0.15),
             width: isSelected ? 2 : 1,
           ),
           boxShadow: isSelected 
-            ? [BoxShadow(color: const Color(0xFFD4AF37).withOpacity(0.3), blurRadius: 12, offset: const Offset(0, 4))]
+            ? [BoxShadow(color: const Color(0xFFD4AF37).withValues(alpha: 0.3), blurRadius: 12, offset: const Offset(0, 4))]
             : null,
         ),
         child: Text(
@@ -340,7 +338,7 @@ class _WorldCupScreenState extends ConsumerState<WorldCupScreen>
           }
         }
       }
-    } catch (_) {}
+    } catch (e) { debugPrint('Caught error in world_cup_screen.dart: $e'); }
 
     final status = event['status'] ?? {};
     final type = status['type'] ?? {};
@@ -366,7 +364,7 @@ class _WorldCupScreenState extends ConsumerState<WorldCupScreen>
         } else {
           timeLabel = '${dt.hour.toString().padLeft(2, '0')}:${dt.minute.toString().padLeft(2, '0')}';
         }
-      } catch (_) {}
+      } catch (e) { debugPrint('Caught error in world_cup_screen.dart: $e'); }
     }
 
     // Exact Match Time (e.g. 18:00) to display in the middle instead of "VS"
@@ -375,14 +373,14 @@ class _WorldCupScreenState extends ConsumerState<WorldCupScreen>
       try {
         final dt = DateTime.parse(event['date']).toLocal();
         matchTime = '${dt.hour.toString().padLeft(2, '0')}:${dt.minute.toString().padLeft(2, '0')}';
-      } catch (_) {}
+      } catch (e) { debugPrint('Caught error in world_cup_screen.dart: $e'); }
     }
 
     final Color badgeColor = finished
-        ? Colors.white.withOpacity(0.18)
+        ? Colors.white.withValues(alpha: 0.18)
         : isLive
-            ? const Color(0xFFD4AF37).withOpacity(0.2)
-            : Colors.blue.withOpacity(0.18);
+            ? const Color(0xFFD4AF37).withValues(alpha: 0.2)
+            : Colors.blue.withValues(alpha: 0.18);
     final Color badgeText = finished
         ? Colors.white60
         : isLive
@@ -418,17 +416,17 @@ class _WorldCupScreenState extends ConsumerState<WorldCupScreen>
                 end: Alignment.bottomRight,
                 colors: [
                   isLive
-                      ? const Color(0xFFD4AF37).withOpacity(0.1)
-                      : Colors.white.withOpacity(0.04),
-                  Colors.white.withOpacity(0.02),
+                      ? const Color(0xFFD4AF37).withValues(alpha: 0.1)
+                      : Colors.white.withValues(alpha: 0.04),
+                  Colors.white.withValues(alpha: 0.02),
                 ],
               ),
               borderRadius: BorderRadius.circular(20),
               boxShadow: [
                 BoxShadow(
                   color: isLive
-                      ? const Color(0xFFD4AF37).withOpacity(0.12)
-                      : Colors.black.withOpacity(0.25),
+                      ? const Color(0xFFD4AF37).withValues(alpha: 0.12)
+                      : Colors.black.withValues(alpha: 0.25),
                   blurRadius: isLive ? 16 : 8,
                   offset: const Offset(0, 4),
                 ),
@@ -444,10 +442,10 @@ class _WorldCupScreenState extends ConsumerState<WorldCupScreen>
                         Container(
                           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                           decoration: BoxDecoration(
-                            color: const Color(0xFFD4AF37).withOpacity(0.18),
+                            color: const Color(0xFFD4AF37).withValues(alpha: 0.18),
                             borderRadius: BorderRadius.circular(10),
                             border: Border.all(
-                              color: const Color(0xFFD4AF37).withOpacity(0.7),
+                              color: const Color(0xFFD4AF37).withValues(alpha: 0.7),
                               width: 1,
                             ),
                           ),
@@ -482,7 +480,7 @@ class _WorldCupScreenState extends ConsumerState<WorldCupScreen>
                           child: Text(
                             event['shortName'] ?? event['name'] ?? '',
                             style: TextStyle(
-                              color: Colors.white.withOpacity(0.45),
+                              color: Colors.white.withValues(alpha: 0.45),
                               fontSize: 11,
                               fontWeight: FontWeight.w500,
                             ),
@@ -595,7 +593,7 @@ class _WorldCupScreenState extends ConsumerState<WorldCupScreen>
         width: width,
         height: height,
         decoration: BoxDecoration(
-          color: Colors.white.withOpacity(0.08),
+          color: Colors.white.withValues(alpha: 0.08),
           borderRadius: BorderRadius.circular(radius),
         ),
         child: Icon(Icons.shield_rounded, color: Colors.white24, size: iconSize),
@@ -612,7 +610,7 @@ class _WorldCupScreenState extends ConsumerState<WorldCupScreen>
           width: width,
           height: height,
           decoration: BoxDecoration(
-            color: Colors.white.withOpacity(0.08),
+            color: Colors.white.withValues(alpha: 0.08),
             borderRadius: BorderRadius.circular(radius),
           ),
           child: Icon(Icons.shield_rounded, color: Colors.white24, size: iconSize),
@@ -650,15 +648,15 @@ class _WorldCupScreenState extends ConsumerState<WorldCupScreen>
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
           colors: [
-            Colors.white.withOpacity(0.07),
-            Colors.white.withOpacity(0.02),
+            Colors.white.withValues(alpha: 0.07),
+            Colors.white.withValues(alpha: 0.02),
           ],
         ),
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: Colors.white.withOpacity(0.09), width: 1),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.09), width: 1),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.3),
+            color: Colors.black.withValues(alpha: 0.3),
             blurRadius: 16,
             offset: const Offset(0, 6)
           ),
@@ -671,7 +669,7 @@ class _WorldCupScreenState extends ConsumerState<WorldCupScreen>
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
               gradient: LinearGradient(
-                colors: [const Color(0xFFD4AF37).withOpacity(0.12), const Color(0xFFD4AF37).withOpacity(0.02)],
+                colors: [const Color(0xFFD4AF37).withValues(alpha: 0.12), const Color(0xFFD4AF37).withValues(alpha: 0.02)],
               ),
               borderRadius: const BorderRadius.only(
                 topLeft: Radius.circular(20),
@@ -872,7 +870,7 @@ class _WorldCupScreenState extends ConsumerState<WorldCupScreen>
         final dt = DateTime.parse(time).toLocal();
         final diff = DateTime.now().difference(dt);
         relativeTime = s.wcTimeAgo(diff.inMinutes);
-      } catch (_) {}
+      } catch (e) { debugPrint('Caught error in world_cup_screen.dart: $e'); }
     }
 
     return GestureDetector(
@@ -887,9 +885,9 @@ class _WorldCupScreenState extends ConsumerState<WorldCupScreen>
       child: Container(
         margin: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
         decoration: BoxDecoration(
-          color: Colors.white.withOpacity(0.03),
+          color: Colors.white.withValues(alpha: 0.03),
           borderRadius: BorderRadius.circular(18),
-          border: Border.all(color: Colors.white.withOpacity(0.06), width: 1),
+          border: Border.all(color: Colors.white.withValues(alpha: 0.06), width: 1),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -919,7 +917,7 @@ class _WorldCupScreenState extends ConsumerState<WorldCupScreen>
                       Container(
                         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                         decoration: BoxDecoration(
-                          color: const Color(0xFFD4AF37).withOpacity(0.12),
+                          color: const Color(0xFFD4AF37).withValues(alpha: 0.12),
                           borderRadius: BorderRadius.circular(6),
                         ),
                         child: Text(
@@ -992,9 +990,9 @@ class _WorldCupScreenState extends ConsumerState<WorldCupScreen>
             margin: const EdgeInsets.only(bottom: 10),
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
             decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.04),
+              color: Colors.white.withValues(alpha: 0.04),
               borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: Colors.white.withOpacity(0.06), width: 1),
+              border: Border.all(color: Colors.white.withValues(alpha: 0.06), width: 1),
             ),
             child: Row(
               children: [
@@ -1128,10 +1126,10 @@ class _WorldCupScreenState extends ConsumerState<WorldCupScreen>
           gradient: isSelected
               ? const LinearGradient(colors: [Color(0xFFD4AF37), Color(0xFFAA8C2C)])
               : null,
-          color: isSelected ? null : Colors.white.withOpacity(0.08),
+          color: isSelected ? null : Colors.white.withValues(alpha: 0.08),
           borderRadius: BorderRadius.circular(20),
           border: Border.all(
-            color: isSelected ? const Color(0xFFD4AF37) : Colors.white.withOpacity(0.15),
+            color: isSelected ? const Color(0xFFD4AF37) : Colors.white.withValues(alpha: 0.15),
             width: isSelected ? 2 : 1,
           ),
         ),
@@ -1171,7 +1169,7 @@ class _WorldCupScreenState extends ConsumerState<WorldCupScreen>
         borderRadius: BorderRadius.circular(16),
         child: Container(
           decoration: BoxDecoration(
-            color: Colors.white.withOpacity(0.03),
+            color: Colors.white.withValues(alpha: 0.03),
             borderRadius: BorderRadius.circular(16),
           ),
           child: Column(
@@ -1197,12 +1195,12 @@ class _WorldCupScreenState extends ConsumerState<WorldCupScreen>
                               color: Colors.white10,
                               child: const Icon(Icons.videocam_rounded, color: Colors.white24, size: 30),
                             ),
-                      Container(color: Colors.black.withOpacity(0.15)),
+                      Container(color: Colors.black.withValues(alpha: 0.15)),
                       Center(
                         child: Container(
                           padding: const EdgeInsets.all(8),
                           decoration: BoxDecoration(
-                            color: Colors.black.withOpacity(0.6),
+                            color: Colors.black.withValues(alpha: 0.6),
                             shape: BoxShape.circle,
                             border: Border.all(color: Colors.white30, width: 1),
                           ),
@@ -1216,7 +1214,7 @@ class _WorldCupScreenState extends ConsumerState<WorldCupScreen>
                           child: Container(
                             padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                             decoration: BoxDecoration(
-                              color: Colors.black.withOpacity(0.75),
+                              color: Colors.black.withValues(alpha: 0.75),
                               borderRadius: BorderRadius.circular(4),
                             ),
                             child: Text(

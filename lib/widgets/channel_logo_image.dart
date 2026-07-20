@@ -39,14 +39,14 @@ class ChannelLogoImage extends StatelessWidget {
                 decoration: BoxDecoration(
                   gradient: LinearGradient(
                     colors: [
-                      Colors.white.withOpacity(0.12),
-                      Colors.white.withOpacity(0.04),
+                      Colors.white.withValues(alpha: 0.12),
+                      Colors.white.withValues(alpha: 0.04),
                     ],
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
                   ),
                   border: Border.all(
-                    color: Colors.white.withOpacity(0.08),
+                    color: Colors.white.withValues(alpha: 0.08),
                   ),
                 ),
                 child: Icon(
@@ -204,7 +204,7 @@ class ChannelLogoPlaceholder extends StatelessWidget {
             letterSpacing: 1,
             shadows: [
               Shadow(
-                color: Colors.black.withOpacity(0.3),
+                color: Colors.black.withValues(alpha: 0.3),
                 offset: const Offset(1, 1),
                 blurRadius: 3,
               ),

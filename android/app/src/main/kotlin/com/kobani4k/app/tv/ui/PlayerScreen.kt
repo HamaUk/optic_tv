@@ -8,6 +8,8 @@ import androidx.annotation.OptIn as Media3OptIn
 import androidx.compose.animation.*
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.focusable
 import androidx.compose.foundation.focusGroup
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -54,9 +56,12 @@ import androidx.media3.exoplayer.source.DefaultMediaSourceFactory
 import androidx.media3.ui.PlayerView
 import androidx.tv.material3.*
 import coil.compose.AsyncImage
+import com.kobani4k.app.tv.data.AppPreferences
 import com.kobani4k.app.tv.data.PocketBaseRepository
 import com.kobani4k.app.tv.data.TvChannel
 import com.kobani4k.app.tv.ui.theme.UltraTokens
+import com.kobani4k.app.tv.ui.theme.kobaniFocus
+import androidx.compose.foundation.clickable
 import com.kobani4k.app.tv.ui.theme.kobaniCardColors
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -184,7 +189,7 @@ fun PlayerScreen(
     }
 
     LaunchedEffect(Unit) {
-        channelsList = repository.getChannels()
+        channelsList = repository.getChannels() ?: emptyList()
     }
 
     // Auto-hide zap banner after 3 s
@@ -215,13 +220,13 @@ fun PlayerScreen(
     }
 
     // ── ExoPlayer ──────────────────────────────────────────────
-    // Built once, never recreated — avoids surface re-allocation lag
+    // Built once per decoder mode — released via DisposableEffect(exoPlayer)
     val exoPlayer = remember(selectedDecoder) {
         val loadControl = DefaultLoadControl.Builder()
             .setBufferDurationsMs(
-                /* minBufferMs   */ 60_000,
-                /* maxBufferMs   */ 120_000,
-                /* bufferForPlayback */ 2_500,
+                /* minBufferMs   */ 5_000,   // Start playing after 5s loaded
+                /* maxBufferMs   */ 30_000,  // 30s runway handles weak/intermittent connections
+                /* bufferForPlayback */ 2_000,
                 /* bufferForPlaybackAfterRebuffer */ 5_000
             )
             .setPrioritizeTimeOverSizeThresholds(true)
@@ -266,8 +271,15 @@ fun PlayerScreen(
         exoPlayer.stop()
         exoPlayer.clearMediaItems()
         
-        val ch = channelsList.firstOrNull { it.url == currentStreamUrl }
-        var finalUrl = playUrl
+        if (playUrl.isBlank()) {
+            isBuffering = false
+            streamFailed = true
+            return@LaunchedEffect
+        }
+
+        try {
+            val ch = channelsList.firstOrNull { it.url == currentStreamUrl }
+            var finalUrl = playUrl
         var finalDrmScheme = ch?.drmScheme
         var finalDrmLicense = ch?.drmLicense
 
@@ -353,10 +365,18 @@ fun PlayerScreen(
         exoPlayer.prepare()
         exoPlayer.playWhenReady = true
         exoPlayer.play()
+        } catch (e: Exception) {
+            android.util.Log.e("PlayerScreen", "Stream error: ${e.message}", e)
+            isBuffering = false
+            streamFailed = true
+        }
     }
 
-    DisposableEffect(Unit) {
+    // Bug #2 fix: key on exoPlayer so when selectedDecoder changes and remember()
+    // creates a NEW player, onDispose releases the OLD player before the new one starts.
+    DisposableEffect(exoPlayer) {
         onDispose {
+            exoPlayer.stop()
             exoPlayer.release()
         }
     }
@@ -479,10 +499,17 @@ fun PlayerScreen(
                 if (!showControls && !showZapList && activeMenu == ActiveMenu.NONE) {
                     if (isUp(code) || isDown(code)) {
                         if (channelsList.isNotEmpty()) {
-                            val currentCh = channelsList.firstOrNull { it.url == currentStreamUrl }
+                            // Bug #3 fix: match by name OR any server URL (url/url2/url3)
+                            // so zapping still works when a backup server is active.
+                            val currentCh = channelsList.firstOrNull { ch ->
+                                ch.name == currentChannelName ||
+                                ch.url == currentStreamUrl ||
+                                ch.url2 == currentStreamUrl ||
+                                ch.url3 == currentStreamUrl
+                            }
                             if (currentCh != null) {
                                 val groupChannels = channelsList.filter { it.group == currentCh.group }
-                                val idx = groupChannels.indexOfFirst { it.url == currentStreamUrl }
+                                val idx = groupChannels.indexOfFirst { it.name == currentCh.name }
                                 if (idx != -1) {
                                     val newIdx = if (isUp(code)) {
                                         (idx + 1) % groupChannels.size
@@ -571,7 +598,7 @@ fun PlayerScreen(
                         Spacer(Modifier.height(20.dp))
                     }
                     CircularProgressIndicator(
-                        color = UltraTokens.Blue,
+                        color = UltraTokens.Accent,
                         modifier = Modifier.size(48.dp),
                         strokeWidth = 3.dp
                     )
@@ -711,7 +738,16 @@ fun PlayerScreen(
                     currentLogoUrl     = ch.logo
                     showZapList = false
                 },
-                onDismiss      = { showZapList = false }
+                onDismiss      = { showZapList = false },
+                onBackToDashboard = { onBack() },
+                onAspectClick = {
+                    val aspects = listOf("Fit", "Fill", "16:9", "4:3", "Stretch")
+                    selectedAspect = aspects[(aspects.indexOf(selectedAspect) + 1) % aspects.size]
+                },
+                onSettingsClick = {
+                    showZapList = false
+                    activeMenu = ActiveMenu.SETTINGS
+                }
             )
         }
     }
@@ -781,7 +817,7 @@ private fun ZapBanner(
                         Spacer(Modifier.width(6.dp))
                         Text(
                             "LIVE  ·  CH $channelIndex",
-                            color = UltraTokens.Blue,
+                            color = UltraTokens.Accent,
                             fontSize = 11.sp,
                             fontWeight = FontWeight.Bold,
                             letterSpacing = 1.sp
@@ -876,7 +912,7 @@ private fun OsdOverlay(
                         Spacer(Modifier.width(6.dp))
                         Text(
                             "LIVE",
-                            color = UltraTokens.Blue,
+                            color = UltraTokens.Accent,
                             fontSize = 10.sp,
                             fontWeight = FontWeight.Bold,
                             letterSpacing = 2.sp
@@ -1053,21 +1089,13 @@ fun OsdIconButton(
     )
 
     val bgColor by animateColorAsState(
-        targetValue = when {
-            isFocused && accent -> UltraTokens.Blue
-            isFocused           -> Color.White.copy(alpha = 0.18f)
-            accent              -> UltraTokens.Blue.copy(alpha = 0.15f)
-            else                -> Color.Transparent  // no background when idle
-        },
+        targetValue = if (isFocused) Color.White else Color.Transparent,
         animationSpec = tween(180),
         label = "osd_bg"
     )
 
     val iconTint by animateColorAsState(
-        targetValue = if (isFocused && accent) Color.White
-                      else if (isFocused) Color.White
-                      else if (accent) UltraTokens.Blue
-                      else Color.White.copy(alpha = 0.75f),
+        targetValue = if (isFocused) Color.Black else Color.White,
         animationSpec = tween(180),
         label = "osd_tint"
     )
@@ -1085,12 +1113,12 @@ fun OsdIconButton(
             Box(
                 modifier = Modifier
                     .clip(RoundedCornerShape(6.dp))
-                    .background(Color.Black.copy(alpha = 0.75f))
+                    .background(Color.White)
                     .padding(horizontal = 8.dp, vertical = 4.dp)
             ) {
                 Text(
                     label,
-                    color = Color.White,
+                    color = Color.Black,
                     fontSize = 10.sp,
                     fontWeight = FontWeight.SemiBold
                 )
@@ -1105,7 +1133,7 @@ fun OsdIconButton(
                 .scale(scale)
                 .clip(RoundedCornerShape(12.dp))
                 .background(bgColor)
-                // No border — clean look requested
+                .border(1.dp, Color.White.copy(alpha = 0.3f), RoundedCornerShape(12.dp))
                 .onFocusChanged {
                     isFocused = it.isFocused
                     if (it.isFocused) onWake()
@@ -1446,11 +1474,19 @@ private fun TrackOption(
 ) {
     var isFocused by remember { mutableStateOf(false) }
 
+    val scale by animateFloatAsState(
+        targetValue = if (isFocused || isSelected) 1.05f else 1f,
+        animationSpec = androidx.compose.animation.core.spring(
+            dampingRatio = 0.65f,
+            stiffness = androidx.compose.animation.core.Spring.StiffnessLow
+        ),
+        label = "track_scale"
+    )
+
     val bgColor by animateColorAsState(
         targetValue = when {
-            isFocused  -> UltraTokens.Blue
-            isSelected -> UltraTokens.SurfaceSelected
-            else       -> Color.Transparent
+            isFocused || isSelected -> Color.White
+            else -> Color.Transparent
         },
         animationSpec = tween(160),
         label = "track_bg"
@@ -1459,8 +1495,10 @@ private fun TrackOption(
     Box(
         modifier = modifier
             .fillMaxWidth()
+            .scale(scale)
             .clip(RoundedCornerShape(10.dp))
             .background(bgColor)
+            .border(1.dp, Color.White.copy(alpha = 0.3f), RoundedCornerShape(10.dp))
             .onFocusChanged { isFocused = it.isFocused }
             .focusable()
             .onKeyEvent { ke ->
@@ -1477,17 +1515,16 @@ private fun TrackOption(
         ) {
             Text(
                 text       = title,
-                color      = if (isFocused) Color.White
-                             else if (isSelected) UltraTokens.Blue
+                color      = if (isFocused || isSelected) Color.Black
                              else UltraTokens.TextSecondary,
                 fontSize   = 14.sp,
-                fontWeight = if (isSelected || isFocused) FontWeight.Bold else FontWeight.Normal
+                fontWeight = if (isSelected || isFocused) FontWeight.Bold else FontWeight.Medium
             )
             if (isSelected) {
                 Icon(
                     Icons.Rounded.Check,
                     contentDescription = null,
-                    tint     = if (isFocused) Color.White else UltraTokens.Blue,
+                    tint     = Color.Black,
                     modifier = Modifier.size(18.dp)
                 )
             }
@@ -1568,7 +1605,7 @@ private fun SettingsPanel(
 private fun SettingSectionLabel(title: String) {
     Text(
         text          = title,
-        color         = UltraTokens.Blue,
+        color         = UltraTokens.Accent,
         fontSize      = 10.sp,
         fontWeight    = FontWeight.Bold,
         letterSpacing = 2.sp,
@@ -1585,10 +1622,18 @@ private fun SettingRadioItem(
 ) {
     var isFocused by remember { mutableStateOf(false) }
 
+    val scale by animateFloatAsState(
+        targetValue = if (isFocused || isSelected) 1.05f else 1f,
+        animationSpec = androidx.compose.animation.core.spring(
+            dampingRatio = 0.65f,
+            stiffness = androidx.compose.animation.core.Spring.StiffnessLow
+        ),
+        label = "setting_scale"
+    )
+
     val bgColor by animateColorAsState(
         targetValue = when {
-            isFocused  -> UltraTokens.Blue
-            isSelected -> UltraTokens.SurfaceSelected
+            isFocused || isSelected  -> Color.White
             else       -> Color.Transparent
         },
         animationSpec = tween(140),
@@ -1598,8 +1643,10 @@ private fun SettingRadioItem(
     Row(
         modifier = modifier
             .fillMaxWidth()
+            .scale(scale)
             .clip(RoundedCornerShape(8.dp))
             .background(bgColor)
+            .border(1.dp, Color.White.copy(alpha = 0.3f), RoundedCornerShape(8.dp))
             .onFocusChanged { isFocused = it.isFocused }
             .focusable()
             .onKeyEvent { ke ->
@@ -1613,11 +1660,10 @@ private fun SettingRadioItem(
     ) {
         Text(
             text       = title,
-            color      = if (isFocused) Color.White
-                         else if (isSelected) UltraTokens.Blue
+            color      = if (isFocused || isSelected) Color.Black
                          else UltraTokens.TextSecondary,
             fontSize   = 13.sp,
-            fontWeight = if (isSelected || isFocused) FontWeight.SemiBold else FontWeight.Normal
+            fontWeight = if (isSelected || isFocused) FontWeight.Bold else FontWeight.Medium
         )
         // Radio circle
         Box(
@@ -1626,23 +1672,19 @@ private fun SettingRadioItem(
                 .clip(CircleShape)
                 .background(Color.Transparent)
                 .run {
-                    val borderColor = if (isFocused) Color.White
-                                      else if (isSelected) UltraTokens.Blue
-                                      else UltraTokens.Divider
+                    val borderColor = if (isFocused || isSelected) Color.Black else UltraTokens.Divider
                     // draw border via padding trick — avoids extra composable
                     background(borderColor)
                         .padding(1.5.dp)
                         .clip(CircleShape)
                         .background(
-                            if (isFocused) UltraTokens.Blue
+                            if (isFocused || isSelected) Color.White
                             else UltraTokens.SurfaceHover
                         )
                         .padding(if (isSelected) 3.5.dp else 8.dp)
                         .clip(CircleShape)
                         .background(
-                            if (isSelected)
-                                if (isFocused) Color.White else UltraTokens.Blue
-                            else Color.Transparent
+                            if (isSelected) Color.Black else Color.Transparent
                         )
                 }
         ) {}
@@ -1659,9 +1701,16 @@ private fun ZapDrawer(
     channels: List<TvChannel>,
     currentUrl: String,
     onPick: (TvChannel) -> Unit,
-    onDismiss: () -> Unit
+    onDismiss: () -> Unit,
+    onBackToDashboard: () -> Unit,
+    onAspectClick: () -> Unit,
+    onSettingsClick: () -> Unit
 ) {
     BackHandler { onDismiss() }
+    val context = LocalContext.current
+    val prefs = remember { AppPreferences(context) }
+    var favoriteChannels by remember { mutableStateOf(prefs.favoriteChannels) }
+    val isFav = favoriteChannels.contains(currentUrl)
 
     val listState    = rememberLazyListState()
     val initialIdx   = remember(channels) {
@@ -1684,7 +1733,7 @@ private fun ZapDrawer(
         Row(
             modifier = Modifier
                 .fillMaxHeight()
-                .background(UltraTokens.SurfaceHover)
+                .background(Color.Black.copy(alpha = 0.85f))
         ) {
             // Icon sidebar
             Column(
@@ -1699,12 +1748,19 @@ private fun ZapDrawer(
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                DrawerSideIcon(Icons.Rounded.List, "All", onClick = {})
-                DrawerSideIcon(Icons.Rounded.Search, "Search", onClick = {})
-                DrawerSideIcon(Icons.Rounded.Favorite, "Favs", onClick = {})
-                DrawerSideIcon(Icons.Rounded.DateRange, "EPG", onClick = {})
-                DrawerSideIcon(Icons.Rounded.AspectRatio, "Aspect", onClick = {})
-                DrawerSideIcon(Icons.Rounded.Settings, "Settings", onClick = {})
+                DrawerSideIcon(androidx.compose.material.icons.Icons.Rounded.ArrowBack, "Back", onClick = onBackToDashboard)
+                DrawerSideIcon(
+                    if (isFav) Icons.Rounded.Favorite else Icons.Rounded.FavoriteBorder, 
+                    "Favs", 
+                    onClick = {
+                        val newFavs = favoriteChannels.toMutableSet()
+                        if (newFavs.contains(currentUrl)) newFavs.remove(currentUrl) else newFavs.add(currentUrl)
+                        favoriteChannels = newFavs
+                        prefs.favoriteChannels = newFavs
+                    }
+                )
+                DrawerSideIcon(Icons.Rounded.AspectRatio, "Aspect", onClick = onAspectClick)
+                DrawerSideIcon(Icons.Rounded.Settings, "Settings", onClick = onSettingsClick)
             }
 
             // Channel list
@@ -1754,83 +1810,103 @@ private fun ZapDrawer(
                         val interaction = remember { MutableInteractionSource() }
                         val focused by interaction.collectIsFocusedAsState()
 
-                        Card(
-                            onClick = { onPick(channel) },
-                            modifier = if (isCurrent) Modifier.focusRequester(currentFocus) else Modifier,
-                            interactionSource = interaction,
-                            shape = CardDefaults.shape(RoundedCornerShape(8.dp)),
-                            colors = CardDefaults.colors(
-                                containerColor        = Color.Transparent,
-                                focusedContainerColor = UltraTokens.Blue,
-                                focusedContentColor   = Color.White
-                            )
-                        ) {
-                            Row(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(horizontal = 10.dp, vertical = 9.dp),
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                // Channel number
-                                Text(
-                                    (index + 1).toString(),
-                                    color = if (isCurrent && !focused) UltraTokens.Blue
-                                            else if (focused) Color.White
-                                            else UltraTokens.Divider,
-                                    fontSize = 12.sp,
-                                    fontWeight = FontWeight.Bold,
-                                    modifier = Modifier.width(30.dp)
-                                )
-                                Spacer(Modifier.width(8.dp))
+                        val scale by animateFloatAsState(
+                            targetValue = if (focused) 1.05f else 1f,
+                            animationSpec = androidx.compose.animation.core.spring(
+                                dampingRatio = 0.65f,
+                                stiffness = androidx.compose.animation.core.Spring.StiffnessLow
+                            ),
+                            label = "zapScale"
+                        )
 
-                                // Logo box
-                                Box(
-                                    modifier = Modifier
-                                        .size(34.dp)
-                                        .clip(RoundedCornerShape(6.dp))
-                                        .background(
-                                            if (focused) Color.White.copy(alpha = 0.15f)
-                                            else UltraTokens.SurfaceHover
-                                        ),
-                                    contentAlignment = Alignment.Center
-                                ) {
-                                    if (!channel.logo.isNullOrEmpty()) {
-                                        AsyncImage(
-                                            model = channel.logo,
-                                            contentDescription = null,
-                                            contentScale = ContentScale.Fit,
-                                            modifier = Modifier.fillMaxSize().padding(4.dp)
-                                        )
-                                    } else {
-                                        Text(
-                                            channel.name.take(2).uppercase(),
-                                            color = if (focused) Color.White else UltraTokens.Divider,
-                                            fontSize = 9.sp,
-                                            fontWeight = FontWeight.Bold
-                                        )
-                                    }
+                        val bgColor by animateColorAsState(
+                            targetValue = if (focused) Color.White else Color.Transparent,
+                            animationSpec = tween(200)
+                        )
+                        
+                        val textColor = if (focused) Color.Black else Color.White
+
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 8.dp, vertical = 4.dp)
+                                .scale(scale)
+                                .clip(RoundedCornerShape(UltraTokens.CardRadius))
+                                .background(bgColor)
+                                .border(1.dp, Color.White.copy(alpha = 0.3f), RoundedCornerShape(UltraTokens.CardRadius))
+                                .then(if (isCurrent) Modifier.focusRequester(currentFocus) else Modifier)
+                                .onKeyEvent { keyEvent ->
+                                    if (keyEvent.nativeKeyEvent.action == android.view.KeyEvent.ACTION_DOWN &&
+                                        (keyEvent.nativeKeyEvent.keyCode == android.view.KeyEvent.KEYCODE_DPAD_CENTER ||
+                                         keyEvent.nativeKeyEvent.keyCode == android.view.KeyEvent.KEYCODE_ENTER ||
+                                         keyEvent.nativeKeyEvent.keyCode == android.view.KeyEvent.KEYCODE_NUMPAD_ENTER)
+                                    ) {
+                                        onPick(channel)
+                                        true
+                                    } else false
                                 }
+                                .clickable(
+                                    interactionSource = interaction,
+                                    indication = null
+                                ) { onPick(channel) }
+                                .padding(horizontal = 14.dp, vertical = 12.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            // Channel number
+                            Text(
+                                (index + 1).toString(),
+                                color = if (isCurrent && !focused) UltraTokens.Accent
+                                        else if (focused) Color.Black
+                                        else UltraTokens.Divider,
+                                fontSize = 14.sp,
+                                fontWeight = FontWeight.SemiBold,
+                                modifier = Modifier.width(36.dp)
+                            )
+                            Spacer(Modifier.width(12.dp))
 
-                                Spacer(Modifier.width(10.dp))
+                            // Logo box
+                            Box(
+                                modifier = Modifier
+                                    .size(54.dp)
+                                    .clip(RoundedCornerShape(10.dp))
+                                    .background(Color.White.copy(alpha = 0.05f)),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                if (!channel.logo.isNullOrEmpty()) {
+                                    AsyncImage(
+                                        model = channel.logo,
+                                        contentDescription = null,
+                                        contentScale = ContentScale.Fit,
+                                        modifier = Modifier.fillMaxSize().padding(6.dp)
+                                    )
+                                } else {
+                                    Text(
+                                        channel.name.take(2).uppercase(),
+                                        color = if (focused) Color.Black else UltraTokens.Accent,
+                                        fontSize = 16.sp,
+                                        fontWeight = FontWeight.Bold
+                                    )
+                                }
+                            }
+                            Spacer(Modifier.width(16.dp))
 
-                                Text(
-                                    channel.name,
-                                    color = if (isCurrent && !focused) UltraTokens.Blue
-                                            else Color.White,
-                                    fontSize = 13.sp,
-                                    fontWeight = if (isCurrent || focused) FontWeight.Bold else FontWeight.Medium,
-                                    maxLines = 1,
-                                    overflow = TextOverflow.Ellipsis,
-                                    modifier = Modifier.weight(1f)
-                                )
+                            Text(
+                                channel.name,
+                                color = if (focused) Color.Black else if (isCurrent) Color.White else UltraTokens.Text,
+                                fontSize = 16.sp,
+                                fontWeight = if (focused || isCurrent) FontWeight.Bold else FontWeight.Medium,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                                modifier = Modifier.weight(1f)
+                            )
 
-                                // Playing dot
-                                if (isCurrent && !focused) {
-                                    Box(
+                            // Playing dot
+                            if (isCurrent && !focused) {
+                                Box(
                                         modifier = Modifier
                                             .size(5.dp)
                                             .clip(CircleShape)
-                                            .background(UltraTokens.Blue)
+                                            .background(UltraTokens.Accent)
                                     )
                                 }
                             }
@@ -1838,7 +1914,6 @@ private fun ZapDrawer(
                     }
                 }
             }
-        }
 
         // Dim overlay to dismiss
         Box(
@@ -1867,7 +1942,7 @@ private fun DrawerSideIcon(
     val focused by interaction.collectIsFocusedAsState()
 
     val bgColor by animateColorAsState(
-        targetValue = if (focused) UltraTokens.Blue else Color.Transparent,
+        targetValue = if (focused) UltraTokens.Accent else Color.Transparent,
         animationSpec = tween(160),
         label = "drawer_icon_bg"
     )
@@ -1895,7 +1970,7 @@ private fun DrawerSideIcon(
         // Small label always visible for TV discoverability
         Text(
             label,
-            color = if (focused) UltraTokens.Blue else UltraTokens.Divider,
+            color = if (focused) UltraTokens.Accent else UltraTokens.Divider,
             fontSize = 9.sp,
             fontWeight = if (focused) FontWeight.Bold else FontWeight.Normal
         )

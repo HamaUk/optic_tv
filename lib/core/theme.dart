@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 /// Backdrop style for dashboard shell, featured hero, and settings (persisted).
-enum AppGradientPreset { classic, ocean, goldSunset, violetHaze, emberGlow }
+enum AppGradientPreset { classic, ocean, goldSunset, violetHaze, emberGlow, emeraldForest, cyberpunk, midnightBlue }
 
 /// Premium dark theme — gold accent.
 /// When `uiLocale` is Kurdish (`ckb`), **Rabar** is applied across [TextTheme] (KRD-style full UI
@@ -31,11 +31,14 @@ class AppTheme {
       AppGradientPreset.goldSunset => const Color(0xFFFFD700), // Pure Gold
       AppGradientPreset.violetHaze => const Color(0xFFBF5AF2), // Neon Purple
       AppGradientPreset.emberGlow => const Color(0xFFFF3B30),  // Vivid Red
+      AppGradientPreset.emeraldForest => const Color(0xFF00FA9A), // Medium Spring Green
+      AppGradientPreset.cyberpunk => const Color(0xFFFF00FF), // Magenta / Pink
+      AppGradientPreset.midnightBlue => const Color(0xFF4169E1), // Royal Blue
     };
   }
 
   static Color accentColorDim(AppGradientPreset p) {
-    return accentColor(p).withOpacity(0.7);
+    return accentColor(p).withValues(alpha: 0.7);
   }
 
   static ThemeData darkThemeForUi(Locale uiLocale, AppGradientPreset preset) {
@@ -65,8 +68,8 @@ class AppTheme {
         titleMedium: base.copyWith(fontSize: 16, fontWeight: FontWeight.w700, color: Colors.white).merge(rabar),
         titleSmall: base.copyWith(fontSize: 14, fontWeight: FontWeight.w700, color: Colors.white).merge(rabar),
         bodyLarge: base.copyWith(fontSize: 16, color: Colors.white, fontWeight: FontWeight.w500).merge(rabar),
-        bodyMedium: base.copyWith(fontSize: 14, color: Colors.white.withOpacity(0.9), fontWeight: FontWeight.w500).merge(rabar),
-        bodySmall: base.copyWith(fontSize: 12, color: Colors.white.withOpacity(0.7)).merge(rabar),
+        bodyMedium: base.copyWith(fontSize: 14, color: Colors.white.withValues(alpha: 0.9), fontWeight: FontWeight.w500).merge(rabar),
+        bodySmall: base.copyWith(fontSize: 12, color: Colors.white.withValues(alpha: 0.7)).merge(rabar),
         labelLarge: base.copyWith(fontSize: 14, fontWeight: FontWeight.w800).merge(rabar),
         labelMedium: base.copyWith(fontSize: 12, fontWeight: FontWeight.w800).merge(rabar),
       ),
@@ -77,7 +80,7 @@ class AppTheme {
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
           padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
           elevation: 8,
-          shadowColor: accent.withOpacity(0.5),
+          shadowColor: accent.withValues(alpha: 0.5),
         ),
       ),
       filledButtonTheme: FilledButtonThemeData(
@@ -104,21 +107,21 @@ class AppTheme {
       ),
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
-        fillColor: Colors.white.withOpacity(0.05),
-        hintStyle: TextStyle(color: Colors.white.withOpacity(0.3), fontSize: 14),
+        fillColor: Colors.white.withValues(alpha: 0.05),
+        hintStyle: TextStyle(color: Colors.white.withValues(alpha: 0.3), fontSize: 14),
         labelStyle: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
         contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(16),
-          borderSide: BorderSide(color: Colors.white.withOpacity(0.1)),
+          borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.1)),
         ),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(16),
-          borderSide: BorderSide(color: Colors.white.withOpacity(0.1)),
+          borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.1)),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(16),
-          borderSide: BorderSide(color: accent.withOpacity(0.5), width: 1.5),
+          borderSide: BorderSide(color: accent.withValues(alpha: 0.5), width: 1.5),
         ),
       ),
     );
@@ -142,9 +145,9 @@ class AppTheme {
       begin: Alignment.topLeft,
       end: Alignment.bottomRight,
       colors: [
-        accentColor(p).withOpacity(0.5),
+        accentColor(p).withValues(alpha: 0.5),
         const Color(0xFF000000),
-        accentColor(p).withOpacity(0.1),
+        accentColor(p).withValues(alpha: 0.1),
       ],
     );
   }

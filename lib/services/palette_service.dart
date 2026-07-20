@@ -28,7 +28,7 @@ class ImagePalette {
   Color get accent => vibrant != Colors.transparent ? vibrant : dominant;
 
   /// A subtle glow for box-shadows.
-  Color get glow => accent.withOpacity(0.45);
+  Color get glow => accent.withValues(alpha: 0.45);
 }
 
 /// A lightweight, self-caching service for extracting colour palettes from

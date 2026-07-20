@@ -1,7 +1,8 @@
-import 'package:pocketbase/pocketbase.dart';
+import 'package:flutter/foundation.dart';
+import 'pocketbase_database_mock.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:package_info_plus/package_info_plus.dart';
-import 'pocketbase_service.dart';
+import 'dart:async';
 
 class AppUpdateData {
   final String apkUrl;
@@ -17,26 +18,52 @@ class AppUpdateData {
     required this.releaseNotes,
     required this.isActive,
   });
-
-  factory AppUpdateData.fromRecord(RecordModel record) {
-    return AppUpdateData(
-      apkUrl: record.getStringValue('apkUrl'),
-      versionCode: record.getIntValue('versionCode'),
-      versionName: record.getStringValue('versionName'),
-      releaseNotes: record.getStringValue('releaseNotes'),
-      isActive: record.getBoolValue('isActive'),
-    );
-  }
 }
 
-final updateManagerProvider = FutureProvider<AppUpdateData>((ref) async {
-  try {
-    // PocketBase expects a valid filter expression. 'id != ""' gets any record.
-    final record = await pb.collection('updateManager').getFirstListItem('id != ""');
-    return AppUpdateData.fromRecord(record);
-  } catch (_) {
-    return const AppUpdateData(apkUrl: '', versionCode: 0, versionName: '', releaseNotes: '', isActive: false);
-  }
+final updateManagerProvider = StreamProvider<AppUpdateData>((ref) {
+  final controller = StreamController<AppUpdateData>();
+
+  final sub = PocketBaseDatabase.instance
+      .ref('sync/global/updateManager')
+      .onValue
+      .listen((event) {
+    final val = event.snapshot.value;
+    debugPrint('[UpdateService] Raw PocketBase value: $val');
+    if (val is Map) {
+      // PocketBase toJson() returns full record with id/collectionId/etc.
+      // The fields 'active' and 'url' are stored at the top level.
+      final active = val['active'] == true;
+      final url = (val['url'] ?? '').toString().trim();
+      debugPrint('[UpdateService] active=$active url=$url');
+      
+      if (active && url.isNotEmpty) {
+        controller.add(AppUpdateData(
+          apkUrl: url,
+          versionCode: 999999,
+          versionName: "New Update",
+          releaseNotes: "A new update is available.",
+          isActive: true,
+        ));
+        return;
+      }
+    }
+    
+    // Default inactive state
+    controller.add(const AppUpdateData(
+      apkUrl: '',
+      versionCode: 0,
+      versionName: '',
+      releaseNotes: '',
+      isActive: false,
+    ));
+  });
+
+  ref.onDispose(() {
+    sub.cancel();
+    controller.close();
+  });
+
+  return controller.stream;
 });
 
 final appVersionCodeProvider = FutureProvider<int>((ref) async {
@@ -50,12 +77,10 @@ final appVersionCodeProvider = FutureProvider<int>((ref) async {
 
 final updatePromptTriggerProvider = Provider<AppUpdateData?>((ref) {
   final updateData = ref.watch(updateManagerProvider).asData?.value;
-  final localVersionCode = ref.watch(appVersionCodeProvider).asData?.value;
-
-  if (updateData != null && localVersionCode != null) {
-    if (updateData.isActive && updateData.versionCode > localVersionCode) {
-      return updateData;
-    }
+  // Simply trigger based on isActive flag — no version code gate needed
+  // because the admin controls whether to show the popup via the toggle.
+  if (updateData != null && updateData.isActive && updateData.apkUrl.isNotEmpty) {
+    return updateData;
   }
   return null;
 });

@@ -76,16 +76,16 @@ class _PlayerControlButtonState extends State<PlayerControlButton> with SingleTi
                 width: widget.size,
                 height: widget.size,
                 decoration: BoxDecoration(
-                  color: Colors.black.withOpacity(0.35),
+                  color: Colors.black.withValues(alpha: 0.35),
                   borderRadius: BorderRadius.circular(widget.size * 0.3),
                   border: Border.all(
-                    color: Colors.white.withOpacity(0.12),
+                    color: Colors.white.withValues(alpha: 0.12),
                     width: 1.2,
                   ),
                   boxShadow: [
                     if (widget.isToggle && widget.toggled)
                       BoxShadow(
-                        color: Colors.amber.withOpacity(0.2),
+                        color: Colors.amber.withValues(alpha: 0.2),
                         blurRadius: 8,
                         spreadRadius: 1,
                       ),

@@ -167,6 +167,14 @@
     .status-badge { padding: 4px 8px; border-radius: 4px; font-size: 0.65rem; font-weight: 900; }
     .status-active { background: rgba(34, 197, 94, 0.1); color: var(--accent-success); }
     .status-expired { background: rgba(239, 68, 68, 0.1); color: var(--accent-danger); }
+    
+    /* Toggle Switch */
+    .switch { position: relative; display: inline-block; width: 44px; height: 24px; }
+    .switch input { opacity: 0; width: 0; height: 0; }
+    .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: rgba(255,255,255,0.1); transition: .4s; border-radius: 24px; }
+    .slider:before { position: absolute; content: ""; height: 18px; width: 18px; left: 3px; bottom: 3px; background-color: white; transition: .4s; border-radius: 50%; }
+    input:checked + .slider { background-color: var(--accent-success); }
+    input:checked + .slider:before { transform: translateX(20px); }
   </style>
 </head>
 <body>
@@ -415,17 +423,28 @@
         <div class="dashboard-grid" style="margin-top:20px;">
           <div class="content-panel">
             <h4>Cloud Update Manager</h4>
-            <p style="color:var(--text-dim); margin:10px 0">Push a direct APK link to all users. Tapping "Update" in the app will download this file.</p>
+            <p style="color:var(--text-dim); margin:10px 0">Push an update notification to all users with any link.</p>
+            <div class="form-group" style="display:flex; align-items:center; gap:10px; background: rgba(255,255,255,0.02); padding: 12px; border-radius: 12px; border: 1px solid var(--glass-border);">
+              <label class="switch">
+                <input type="checkbox" id="updateToggle">
+                <span class="slider round"></span>
+              </label>
+              <span id="updateStatusText" style="font-weight:800; font-size:0.85rem; color:var(--text-dim);">Status: INACTIVE</span>
+            </div>
             <div class="form-group">
-              <label>Latest APK URL</label>
+              <label>Update Link (Any URL)</label>
               <input type="url" id="updateUrlInput" class="form-input" placeholder="https://example.com/optic_v2.apk">
             </div>
             <div style="display:flex; gap:10px">
-              <button class="btn-sm btn-primary" onclick="saveUpdateUrl()"><i class="fas fa-upload"></i> Push Update</button>
-              <button class="btn-sm btn-outline" style="color:var(--accent-danger)" onclick="clearUpdateUrl()"><i class="fas fa-trash"></i> Clear</button>
+              <button class="btn-sm btn-primary" onclick="saveUpdateUrl()"><i class="fas fa-upload"></i> Save & Broadcast</button>
             </div>
           </div>
           <div class="content-panel"><h4>Database Backup</h4><p style="color:var(--text-dim); margin:10px 0">Download 1:1 replica of the RTDB.</p><button class="btn-sm btn-outline" onclick="exportJSON()"><i class="fas fa-file-code"></i> Export JSON</button></div>
+          <div class="content-panel">
+            <h4>Security Migration</h4>
+            <p style="color:var(--text-dim); margin:10px 0">Encrypt all channel URLs and move them securely into PocketBase.</p>
+            <button class="btn-sm btn-primary" onclick="migrateStreamsToPocketBase()"><i class="fas fa-shield-halved"></i> Secure All Streams</button>
+          </div>
           <div class="content-panel"><h4>Security</h4><p style="color:var(--text-dim); margin:10px 0">Archive logs and terminate administrative session.</p><button class="btn-sm btn-danger" onclick="logout()">Terminate Session</button></div>
         </div>
       </section>
@@ -478,7 +497,33 @@
             </label>
           </div>
         </div>
-        <div style="display:flex; gap:10px; margin-top:20px"><button type="submit" class="btn-sm btn-primary" style="flex:1">Apply Changes</button><button type="button" class="btn-sm btn-outline" style="flex:1" onclick="closeModals()">Cancel</button></div>
+        
+        <div style="background:rgba(255,255,255,0.02); padding:15px; border-radius:8px; margin-top:15px; border:1px solid var(--glass-border)">
+          <h4 style="margin-bottom:10px; color:var(--accent-teal)"><i class="fas fa-server"></i> Server 2 Configuration</h4>
+          <div class="form-group"><label>Server 2 URL</label><input type="url" id="ch_url2" class="form-input"></div>
+          <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px;">
+             <div class="form-group"><label>DRM Scheme</label><select id="ch_url2_drm_scheme" class="form-input"><option value="">None</option><option value="clearkey">ClearKey</option><option value="widevine">Widevine</option></select></div>
+             <div class="form-group"><label>DRM License</label><input type="text" id="ch_url2_drm_license" class="form-input"></div>
+          </div>
+          <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px;">
+             <div class="form-group"><label>Referer</label><input type="text" id="ch_url2_referer" class="form-input"></div>
+             <div class="form-group"><label>User-Agent</label><input type="text" id="ch_url2_user_agent" class="form-input"></div>
+          </div>
+        </div>
+
+        <div style="background:rgba(255,255,255,0.02); padding:15px; border-radius:8px; margin-top:15px; border:1px solid var(--glass-border)">
+          <h4 style="margin-bottom:10px; color:var(--accent-gold)"><i class="fas fa-server"></i> Server 3 Configuration</h4>
+          <div class="form-group"><label>Server 3 URL</label><input type="url" id="ch_url3" class="form-input"></div>
+          <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px;">
+             <div class="form-group"><label>DRM Scheme</label><select id="ch_url3_drm_scheme" class="form-input"><option value="">None</option><option value="clearkey">ClearKey</option><option value="widevine">Widevine</option></select></div>
+             <div class="form-group"><label>DRM License</label><input type="text" id="ch_url3_drm_license" class="form-input"></div>
+          </div>
+          <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px;">
+             <div class="form-group"><label>Referer</label><input type="text" id="ch_url3_referer" class="form-input"></div>
+             <div class="form-group"><label>User-Agent</label><input type="text" id="ch_url3_user_agent" class="form-input"></div>
+          </div>
+        </div>
+<div style="display:flex; gap:10px; margin-top:20px"><button type="submit" class="btn-sm btn-primary" style="flex:1">Apply Changes</button><button type="button" class="btn-sm btn-outline" style="flex:1" onclick="closeModals()">Cancel</button></div>
       </form>
     </div>
   </div>
@@ -640,19 +685,70 @@
     window.handleChannelSubmit = async (e) => {
       e.preventDefault();
       const k = document.getElementById('editKey').value;
+      
+      const pbPass = prompt("Enter PocketBase Security Password to sync channel:", localStorage.getItem('pbPass') || "");
+      if(!pbPass) return alert("Password required to secure streams!");
+      localStorage.setItem('pbPass', pbPass);
+
       const payload = {
         name: document.getElementById('ch_name').value,
-        url: document.getElementById('ch_url').value,
         group: document.getElementById('ch_group').value,
         logo: document.getElementById('ch_logo').value,
         backdrop: document.getElementById('ch_backdrop').value,
         type: document.querySelector('input[name="ch_type"]:checked').value,
-        featured: document.getElementById('ch_featured').checked
+        featured: document.getElementById('ch_featured').checked,
       };
-      if(k) await update(ref(db, `${P_PLAY}/${k}`), payload);
-      else await push(ref(db, P_PLAY), payload);
-      showToast("Channel data synchronized");
-      closeModals();
+
+      const streamPayload = {
+        url: document.getElementById('ch_url').value,
+        url2: document.getElementById('ch_url2').value,
+        url2DrmScheme: document.getElementById('ch_url2_drm_scheme').value,
+        url2DrmLicense: document.getElementById('ch_url2_drm_license').value,
+        url2Referer: document.getElementById('ch_url2_referer').value,
+        url2UserAgent: document.getElementById('ch_url2_user_agent').value,
+        url3: document.getElementById('ch_url3').value,
+        url3DrmScheme: document.getElementById('ch_url3_drm_scheme').value,
+        url3DrmLicense: document.getElementById('ch_url3_drm_license').value,
+        url3Referer: document.getElementById('ch_url3_referer').value,
+        url3UserAgent: document.getElementById('ch_url3_user_agent').value
+      };
+
+      try {
+        const authResp = await fetch("https://api.optictv.cloud/api/collections/_superusers/auth-with-password", {
+          method: "POST", headers: {"Content-Type": "application/json"},
+          body: JSON.stringify({ identity: "mkoye461@gmail.com", password: pbPass })
+        });
+        if (!authResp.ok) throw new Error("Invalid PocketBase Password");
+        const token = (await authResp.json()).token;
+        const headers = { "Authorization": token, "Content-Type": "application/json" };
+
+        let pbChId = k;
+        if (k) {
+          await fetch(`https://api.optictv.cloud/api/collections/managedPlaylist/records/${k}`, { method: "PATCH", headers, body: JSON.stringify(payload) });
+          const sRes = await fetch(`https://api.optictv.cloud/api/collections/channel_streams/records?filter=(channel_id='${k}')`, { headers });
+          const sData = await sRes.json();
+          if (sData.totalItems > 0) {
+            await fetch(`https://api.optictv.cloud/api/collections/channel_streams/records/${sData.items[0].id}`, { method: "PATCH", headers, body: JSON.stringify(streamPayload) });
+          } else {
+            streamPayload.channel_id = k;
+            await fetch(`https://api.optictv.cloud/api/collections/channel_streams/records`, { method: "POST", headers, body: JSON.stringify(streamPayload) });
+          }
+        } else {
+          const mRes = await fetch(`https://api.optictv.cloud/api/collections/managedPlaylist/records`, { method: "POST", headers, body: JSON.stringify(payload) });
+          pbChId = (await mRes.json()).id;
+          streamPayload.channel_id = pbChId;
+          await fetch(`https://api.optictv.cloud/api/collections/channel_streams/records`, { method: "POST", headers, body: JSON.stringify(streamPayload) });
+        }
+
+        // Save metadata to Firebase UI (NO URLs to keep them hidden!)
+        if(k) await update(ref(db, `${P_PLAY}/${k}`), payload);
+        else await set(ref(db, `${P_PLAY}/${pbChId}`), payload);
+
+        showToast("Channel securely synced to PocketBase!");
+        closeModals();
+      } catch (err) {
+        alert("Failed to sync: " + err.message);
+      }
     };
 
     window.delChannel = async (k) => { if(confirm("Discard this channel?")) await remove(ref(db, `${P_PLAY}/${k}`)); };
@@ -728,7 +824,7 @@
     // --- Notifications ---
     window.clearActiveNotification = async () => {
       if(confirm("Retract the currently active notification from all units?")) {
-        await remove(ref(db, P_NOTIF_CLEAR));
+        await remove(ref(db, P_NOTIF));
         showToast("Broadcast Retracted");
       }
     };
@@ -747,17 +843,22 @@
         timestamp: new Date().toISOString()
       };
 
-      // 1. Broadcast to all active units
-      await set(ref(db, P_NOTIF), notifObj);
-      
-      // 2. Save to history
-      await push(ref(db, P_NOTIF_HIST), notifObj);
+      try {
+        // 1. Broadcast to all active units via Firebase RTDB
+        await set(ref(db, P_NOTIF), notifObj);
 
-      document.getElementById('notifTitle').value = '';
-      document.getElementById('notifBody').value = '';
-      document.getElementById('notifImage').value = '';
-      document.getElementById('notifLogoPrev').src = 'https://via.placeholder.com/100?text=IMG';
-      showToast("Notification Broadcasted!");
+        // 2. Save to Firebase history for the admin panel record keeping
+        await push(ref(db, P_NOTIF_HIST), notifObj);
+
+        document.getElementById('notifTitle').value = '';
+        document.getElementById('notifBody').value = '';
+        document.getElementById('notifImage').value = '';
+        document.getElementById('notifLogoPrev').src = 'https://via.placeholder.com/100?text=IMG';
+        showToast("Notification Broadcasted!");
+      } catch (err) {
+        console.error(err);
+        alert("Failed to send broadcast");
+      }
     };
 
     window.delNotification = async (k) => {
@@ -786,20 +887,120 @@
     };
     window.saveUpdateUrl = async () => {
       const url = document.getElementById('updateUrlInput').value.trim();
-      await set(ref(db, P_UPDATE), url);
-      showToast(url ? "Update URL Broadcasted" : "Update URL Cleared");
+      const isActive = document.getElementById('updateToggle').checked;
+      await set(ref(db, 'sync/global/settings/updateManager'), { active: isActive, url: url });
+      showToast(isActive ? "Update Broadcasted (ACTIVE)" : "Update Disabled");
     };
 
-    window.clearUpdateUrl = async () => {
-      document.getElementById('updateUrlInput').value = '';
-      await window.saveUpdateUrl();
-    };
+    // Realtime Listener for Update Manager
+    onValue(ref(db, 'sync/global/settings/updateManager'), (snapshot) => {
+        const val = snapshot.val();
+        if(val) {
+            document.getElementById('updateUrlInput').value = val.url || '';
+            document.getElementById('updateToggle').checked = val.active === true;
+            document.getElementById('updateStatusText').textContent = val.active ? "STATUS: ACTIVE (Users seeing popup)" : "STATUS: INACTIVE";
+            document.getElementById('updateStatusText').style.color = val.active ? "var(--accent-success)" : "var(--text-dim)";
+        } else {
+            // Fallback for empty state
+            document.getElementById('updateToggle').checked = false;
+            document.getElementById('updateStatusText').textContent = "STATUS: INACTIVE";
+            document.getElementById('updateStatusText').style.color = "var(--text-dim)";
+        }
+    });
 
     window.exportJSON = async () => {
       const s = await get(ref(db, 'sync/global'));
       const blob = new Blob([JSON.stringify(s.val(), null, 2)], {type: 'application/json'});
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a'); a.href = url; a.download = `optic_v2_backup.json`; a.click();
+    };
+
+    function encryptXor(plainText) {
+      if (!plainText || !plainText.startsWith('http')) return plainText;
+      const key = "KOBANI_TV_SECRET_2026";
+      let result = [];
+      for (let i = 0; i < plainText.length; i++) {
+        result.push(plainText.charCodeAt(i) ^ key.charCodeAt(i % key.length));
+      }
+      const binaryString = String.fromCharCode.apply(null, result);
+      return btoa(binaryString);
+    }
+
+    window.migrateStreamsToPocketBase = async () => {
+      const pbPass = prompt("Enter PocketBase Security Password to start migration:", localStorage.getItem('pbPass') || "");
+      if(!pbPass) return;
+      localStorage.setItem('pbPass', pbPass);
+
+      try {
+        const authResp = await fetch("https://api.optictv.cloud/api/collections/_superusers/auth-with-password", {
+          method: "POST", headers: {"Content-Type": "application/json"},
+          body: JSON.stringify({ identity: "mkoye461@gmail.com", password: pbPass })
+        });
+        if (!authResp.ok) throw new Error("Invalid PocketBase Password");
+        const token = (await authResp.json()).token;
+        const headers = { "Authorization": token, "Content-Type": "application/json" };
+
+        const channels = Object.entries(window.plData);
+        if (channels.length === 0) return alert("No channels found in Firebase to migrate.");
+
+        if (!confirm(`This will encrypt and migrate ${channels.length} channels to PocketBase, removing plain URLs from Firebase. Proceed?`)) return;
+
+        let migratedCount = 0;
+
+        for (const [k, v] of channels) {
+          if (!v.url && !v.url2 && !v.url3) continue; // Already migrated or has no streams
+
+          const streamPayload = {
+            channel_id: k,
+            url: encryptXor(v.url || ""),
+            url2: encryptXor(v.url2 || ""),
+            url2DrmScheme: v.url2DrmScheme || "",
+            url2DrmLicense: v.url2DrmLicense || "",
+            url2Referer: v.url2Referer || "",
+            url2UserAgent: v.url2UserAgent || "",
+            url3: encryptXor(v.url3 || ""),
+            url3DrmScheme: v.url3DrmScheme || "",
+            url3DrmLicense: v.url3DrmLicense || "",
+            url3Referer: v.url3Referer || "",
+            url3UserAgent: v.url3UserAgent || ""
+          };
+
+          // 1. Save or Update in PocketBase channel_streams
+          const sRes = await fetch(`https://api.optictv.cloud/api/collections/channel_streams/records?filter=(channel_id='${k}')`, { headers });
+          const sData = await sRes.json();
+          
+          if (sData.totalItems > 0) {
+            await fetch(`https://api.optictv.cloud/api/collections/channel_streams/records/${sData.items[0].id}`, { 
+              method: "PATCH", headers, body: JSON.stringify(streamPayload) 
+            });
+          } else {
+            await fetch(`https://api.optictv.cloud/api/collections/channel_streams/records`, { 
+              method: "POST", headers, body: JSON.stringify(streamPayload) 
+            });
+          }
+
+          // 2. Update Firebase metadata to remove URLs (so they are hidden)
+          const updatedChannel = { ...v };
+          delete updatedChannel.url;
+          delete updatedChannel.url2;
+          delete updatedChannel.url3;
+          delete updatedChannel.url2DrmScheme;
+          delete updatedChannel.url2DrmLicense;
+          delete updatedChannel.url2Referer;
+          delete updatedChannel.url2UserAgent;
+          delete updatedChannel.url3DrmScheme;
+          delete updatedChannel.url3DrmLicense;
+          delete updatedChannel.url3Referer;
+          delete updatedChannel.url3UserAgent;
+
+          await set(ref(db, `${P_PLAY}/${k}`), updatedChannel);
+          migratedCount++;
+        }
+
+        showToast(`Successfully migrated ${migratedCount} streams to PocketBase!`);
+      } catch (err) {
+        alert("Migration failed: " + err.message);
+      }
     };
 
     window.healthResults = [];
@@ -966,6 +1167,16 @@
         document.getElementById('ch_logo').value = d.logo || '';
         document.getElementById('ch_backdrop').value = d.backdrop || '';
         document.getElementById('ch_featured').checked = d.featured === true;
+        document.getElementById('ch_url2').value = d.url2 || '';
+        document.getElementById('ch_url2_drm_scheme').value = d.url2DrmScheme || '';
+        document.getElementById('ch_url2_drm_license').value = d.url2DrmLicense || '';
+        document.getElementById('ch_url2_referer').value = d.url2Referer || '';
+        document.getElementById('ch_url2_user_agent').value = d.url2UserAgent || '';
+        document.getElementById('ch_url3').value = d.url3 || '';
+        document.getElementById('ch_url3_drm_scheme').value = d.url3DrmScheme || '';
+        document.getElementById('ch_url3_drm_license').value = d.url3DrmLicense || '';
+        document.getElementById('ch_url3_referer').value = d.url3Referer || '';
+        document.getElementById('ch_url3_user_agent').value = d.url3UserAgent || '';
         const type = d.type || 'live';
         const radio = document.querySelector(`input[name="ch_type"][value="${type}"]`);
         if(radio) radio.checked = true;

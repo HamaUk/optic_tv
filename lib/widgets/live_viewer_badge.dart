@@ -20,10 +20,10 @@ class LiveViewerBadge extends ConsumerWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
-        color: Colors.black.withOpacity(0.55),
+        color: Colors.black.withValues(alpha: 0.55),
         borderRadius: BorderRadius.circular(8),
         border: Border.all(
-          color: const Color(0xFFD4AF37).withOpacity(0.6),
+          color: const Color(0xFFD4AF37).withValues(alpha: 0.6),
           width: 1,
         ),
       ),

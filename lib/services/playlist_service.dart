@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'dart:async';
 import 'dart:convert';
 
@@ -11,6 +12,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 const _kChannelCache = 'channels_cache_v1';
 
 class Channel {
+  final String pbId;
   final String name;
   final String url;
   final String group;
@@ -30,8 +32,17 @@ class Channel {
   final String? drmScheme;
   final String? drmLicense;
   final String? referer;
+  final String? url2DrmScheme;
+  final String? url2DrmLicense;
+  final String? url2Referer;
+  final String? url2UserAgent;
+  final String? url3DrmScheme;
+  final String? url3DrmLicense;
+  final String? url3Referer;
+  final String? url3UserAgent;
 
   Channel({
+    this.pbId = '',
     required this.name,
     required this.url,
     this.group = 'General',
@@ -51,36 +62,22 @@ class Channel {
     this.drmScheme,
     this.drmLicense,
     this.referer,
+    this.url2DrmScheme,
+    this.url2DrmLicense,
+    this.url2Referer,
+    this.url2UserAgent,
+    this.url3DrmScheme,
+    this.url3DrmLicense,
+    this.url3Referer,
+    this.url3UserAgent,
   });
 
   static String decrypt(String b64Text) {
-    if (b64Text.isEmpty || b64Text.startsWith('http')) return b64Text;
-    try {
-      const key = "KOBANI_TV_SECRET_2026";
-      final bytes = base64.decode(b64Text);
-      final List<int> resultBytes = [];
-      for (int i = 0; i < bytes.length; i++) {
-        resultBytes.add(bytes[i] ^ key.codeUnitAt(i % key.length));
-      }
-      return String.fromCharCodes(resultBytes);
-    } catch (e) {
-      return b64Text;
-    }
+    return b64Text;
   }
 
   static String encrypt(String plainText) {
-    if (plainText.isEmpty || !plainText.startsWith('http')) return plainText;
-    try {
-      const key = "KOBANI_TV_SECRET_2026";
-      final List<int> bytes = plainText.codeUnits;
-      final List<int> resultBytes = [];
-      for (int i = 0; i < bytes.length; i++) {
-        resultBytes.add(bytes[i] ^ key.codeUnitAt(i % key.length));
-      }
-      return base64.encode(resultBytes);
-    } catch (e) {
-      return plainText;
-    }
+    return plainText;
   }
 
   static int _parseInt(dynamic value, [int defaultValue = 999999]) {
@@ -101,8 +98,9 @@ class Channel {
 
   factory Channel.fromMap(Map<dynamic, dynamic> map) {
     return Channel(
+      pbId: map['id']?.toString() ?? map['pbId']?.toString() ?? '',
       name: map['name'] ?? 'Unknown',
-      url: decrypt(map['url'] ?? ''),
+      url: decrypt(map['url']?.toString() ?? ''),
       group: map['group'] ?? map['category'] ?? 'General',
       logo: map['logo'] ?? map['icon_url'],
       backdrop: map['backdrop'] as String?,
@@ -120,10 +118,19 @@ class Channel {
       drmScheme: map['drmScheme'] as String?,
       drmLicense: map['drmLicense'] as String?,
       referer: map['referer'] as String?,
+      url2DrmScheme: map['url2DrmScheme'] as String?,
+      url2DrmLicense: map['url2DrmLicense'] as String?,
+      url2Referer: map['url2Referer'] as String?,
+      url2UserAgent: map['url2UserAgent'] as String?,
+      url3DrmScheme: map['url3DrmScheme'] as String?,
+      url3DrmLicense: map['url3DrmLicense'] as String?,
+      url3Referer: map['url3Referer'] as String?,
+      url3UserAgent: map['url3UserAgent'] as String?,
     );
   }
 
   Map<String, dynamic> toMap() => {
+    'pbId': pbId,
     'name': name,
     'url': url,
     'group': group,
@@ -143,6 +150,14 @@ class Channel {
     'drmScheme': drmScheme,
     'drmLicense': drmLicense,
     'referer': referer,
+    'url2DrmScheme': url2DrmScheme,
+    'url2DrmLicense': url2DrmLicense,
+    'url2Referer': url2Referer,
+    'url2UserAgent': url2UserAgent,
+    'url3DrmScheme': url3DrmScheme,
+    'url3DrmLicense': url3DrmLicense,
+    'url3Referer': url3Referer,
+    'url3UserAgent': url3UserAgent,
   };
 
   @override
@@ -160,11 +175,19 @@ List<Channel> _parseChannelData(dynamic data) {
   if (data is List) {
     channels = data
         .where((item) => item != null)
-        .map((item) => Channel.fromMap(item as Map))
+        .map((item) {
+          final m = Map<String, dynamic>.from(item as Map);
+          if (!m.containsKey('pbId') && m.containsKey('id')) m['pbId'] = m['id'];
+          return Channel.fromMap(m);
+        })
         .toList();
   } else if (data is Map) {
-    channels = data.values
-        .map((item) => Channel.fromMap(item as Map))
+    channels = data.entries
+        .map((entry) {
+          final m = Map<String, dynamic>.from(entry.value as Map);
+          m['pbId'] = entry.key; // The key is the ID in Maps
+          return Channel.fromMap(m);
+        })
         .toList();
   }
   channels.sort((a, b) {
@@ -174,7 +197,7 @@ List<Channel> _parseChannelData(dynamic data) {
   return channels;
 }
 
-Future<List<Channel>> _loadCachedChannels() async {
+Future<List<Channel>> loadCachedChannels() async {
   try {
     final prefs = await SharedPreferences.getInstance();
     final raw = prefs.getString(_kChannelCache);
@@ -193,7 +216,7 @@ Future<void> _saveChannelCache(List<Channel> channels) async {
       _kChannelCache,
       jsonEncode(channels.map((c) => c.toMap()).toList()),
     );
-  } catch (_) {}
+  } catch (e) { debugPrint('Caught error in playlist_service.dart: $e'); }
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -205,7 +228,7 @@ final channelsProvider = StreamProvider<List<Channel>>((ref) {
   final controller = StreamController<List<Channel>>();
 
   // Step 1 — emit cached channels instantly (offline-first)
-  _loadCachedChannels().then((cached) {
+  loadCachedChannels().then((cached) {
     if (!controller.isClosed && cached.isNotEmpty) {
       controller.add(cached);
     }
@@ -218,14 +241,21 @@ final channelsProvider = StreamProvider<List<Channel>>((ref) {
 
       // The custom /api/kobani-init route misses the 'order' field.
       // We fetch it natively and merge it back into the payload.
-      final rawRecords = await pb.collection('managedPlaylist').getFullList(fields: 'id,order');
-      final orderMap = { for (var r in rawRecords) r.id: r.getIntValue('order', 999999) };
+      final rawRecords = await pb.collection('managedPlaylist').getFullList(fields: 'id,name,order,url');
+      final orderMap = { for (var r in rawRecords) r.getStringValue('url').trim(): r.getIntValue('order', 999999) };
       
       for (var item in data) {
         if (item is Map) {
-          final id = item['id'];
-          if (id != null && orderMap.containsKey(id)) {
-            item['order'] = orderMap[id];
+          final url = item['url']?.toString().trim();
+          if (url != null && orderMap.containsKey(url)) {
+            item['order'] = orderMap[url];
+          } else {
+            // Fallback to name if url matching fails
+            final name = item['name']?.toString().trim();
+            final fallbackMap = { for (var r in rawRecords) r.getStringValue('name').trim(): r.getIntValue('order', 999999) };
+            if (name != null && fallbackMap.containsKey(name)) {
+              item['order'] = fallbackMap[name];
+            }
           }
         }
       }
@@ -243,13 +273,21 @@ final channelsProvider = StreamProvider<List<Channel>>((ref) {
   // Step 2 — fetch from encrypted route
   fetchChannels();
 
-  // Listen to realtime / broadcast updates
+  // Listen to custom mock events (local app changes)
   final sub = PocketBaseDatabase.instance.ref('managedPlaylist').onValue.listen((_) {
     fetchChannels();
   });
 
+  // Listen to NATIVE PocketBase realtime events (for web panel changes)
+  try {
+    pb.collection('managedPlaylist').subscribe('*', (e) {
+      fetchChannels();
+    });
+  } catch (e) { debugPrint('Caught error in playlist_service.dart: $e'); }
+
   ref.onDispose(() {
     sub.cancel();
+    try { pb.collection('managedPlaylist').unsubscribe('*'); } catch (e) { debugPrint('Caught error in playlist_service.dart: $e'); }
     controller.close();
   });
 

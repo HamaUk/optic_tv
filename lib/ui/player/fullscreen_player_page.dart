@@ -12,7 +12,6 @@ import '../../services/optic_player.dart';
 import '../../services/playlist_service.dart';
 import '../../services/platform_service.dart';
 import 'package:wakelock_plus/wakelock_plus.dart';
-import '../../widgets/tv/tv_focusable.dart';
 import '../../widgets/channel_logo_image.dart';
 import '../../core/theme.dart';
 import '../../l10n/app_strings.dart';
@@ -95,11 +94,13 @@ class _FullscreenPlayerPageState extends ConsumerState<FullscreenPlayerPage> {
 
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
 
-    // Force landscape for all devices in fullscreen mode
-    SystemChrome.setPreferredOrientations([
-      DeviceOrientation.landscapeLeft,
-      DeviceOrientation.landscapeRight,
-    ]);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      SystemChrome.setPreferredOrientations([
+        DeviceOrientation.landscapeLeft,
+        DeviceOrientation.landscapeRight,
+      ]);
+    });
 
     _resetHideTimer();
     
@@ -366,25 +367,47 @@ class _FullscreenPlayerPageState extends ConsumerState<FullscreenPlayerPage> {
     final key = event.logicalKey;
 
     if (key == LogicalKeyboardKey.arrowUp) {
+      if (_zapListVisible) return KeyEventResult.ignored;
       _zapTo(_currentIndex - 1);
       return KeyEventResult.handled;
     }
     if (key == LogicalKeyboardKey.arrowDown) {
+      if (_zapListVisible) return KeyEventResult.ignored;
       _zapTo(_currentIndex + 1);
       return KeyEventResult.handled;
     }
+    if (key == LogicalKeyboardKey.arrowLeft || key == LogicalKeyboardKey.arrowRight) {
+      if (!_overlayVisible || _zapListVisible) {
+        setState(() {
+          _overlayVisible = true;
+          _zapListVisible = false;
+        });
+        _resetHideTimer();
+        return KeyEventResult.handled;
+      }
+    }
     if (key == LogicalKeyboardKey.select || key == LogicalKeyboardKey.enter) {
-      setState(() {
-        _zapListVisible = !_zapListVisible;
-        _overlayVisible = true;
-      });
-      if (!_zapListVisible) _resetHideTimer();
+      if (!_overlayVisible && !_zapListVisible) {
+        setState(() => _overlayVisible = true);
+        _resetHideTimer();
+        return KeyEventResult.handled;
+      }
+      if (!_zapListVisible) {
+        setState(() => _zapListVisible = true);
+      } else {
+        setState(() => _zapListVisible = false);
+        _resetHideTimer();
+      }
       return KeyEventResult.handled;
     }
     if (key == LogicalKeyboardKey.escape || key == LogicalKeyboardKey.backspace) {
       if (_zapListVisible) {
         setState(() => _zapListVisible = false);
         _resetHideTimer();
+        return KeyEventResult.handled;
+      }
+      if (_overlayVisible) {
+        setState(() => _overlayVisible = false);
         return KeyEventResult.handled;
       }
     }
@@ -396,20 +419,17 @@ class _FullscreenPlayerPageState extends ConsumerState<FullscreenPlayerPage> {
   Widget build(BuildContext context) {
     final settings = ref.watch(appUiSettingsProvider).asData?.value ?? AppSettingsData();
     final accent = AppTheme.accentColor(settings.gradientPreset);
-    final deviceType = ref.watch(deviceTypeProvider).value ?? DeviceType.phone;
-    final isTv = deviceType == DeviceType.tv;
 
     return Scaffold(
       backgroundColor: Colors.black,
       body: Focus(
-        autofocus: isTv,
-        onKeyEvent: isTv ? _handleKeyEvent : null,
+        autofocus: false,
         child: GestureDetector(
           onTap: () {
             setState(() => _overlayVisible = !_overlayVisible);
             if (_overlayVisible) _resetHideTimer();
           },
-          onVerticalDragUpdate: !isTv ? _handleVerticalDrag : null,
+          onVerticalDragUpdate: _handleVerticalDrag,
           child: Stack(
             children: [
               // THE VIDEO LAYER
@@ -433,29 +453,21 @@ class _FullscreenPlayerPageState extends ConsumerState<FullscreenPlayerPage> {
                         const SizedBox(height: 8),
                         const Text('Please check your internet or try another server.', style: TextStyle(color: Colors.white54, fontSize: 14)),
                         const SizedBox(height: 24),
-                        TVFocusable(
-                          onSelect: () {
+                        ElevatedButton.icon(
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFFD4AF37),
+                            foregroundColor: Colors.black,
+                            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                          ),
+                          icon: const Icon(Icons.refresh_rounded),
+                          label: const Text('Retry Connection', style: TextStyle(fontWeight: FontWeight.bold)),
+                          onPressed: () {
                             _retryCount = 0;
                             _zapTo(_currentIndex, preserveServer: true);
                           },
-                          child: const SizedBox(),
-                          builder: (context, isFocused, child) => ElevatedButton.icon(
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: isFocused ? Colors.white : const Color(0xFFD4AF37),
-                              foregroundColor: Colors.black,
-                              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(8),
-                                side: isFocused ? const BorderSide(color: Color(0xFFD4AF37), width: 3) : BorderSide.none,
-                              ),
-                            ),
-                            icon: const Icon(Icons.refresh_rounded),
-                            label: const Text('Retry Connection', style: TextStyle(fontWeight: FontWeight.bold)),
-                            onPressed: () {
-                              _retryCount = 0;
-                              _zapTo(_currentIndex, preserveServer: true);
-                            },
-                          ),
                         ),
                       ],
                     ),
@@ -468,15 +480,12 @@ class _FullscreenPlayerPageState extends ConsumerState<FullscreenPlayerPage> {
                 child: AnimatedOpacity(
                   opacity: (_overlayVisible && !_zapListVisible) ? 1.0 : 0.0,
                   duration: const Duration(milliseconds: 300),
-                  child: isTv ? _buildTvHud(accent) : _buildNanoOverlay(accent),
+                  child: _buildNanoOverlay(accent),
                 ),
               ),
 
-              // QUICK ZAP OVERLAY (TV Only)
-              if (isTv && _zapListVisible) _buildQuickZap(accent),
-
               // GESTURE OSD (Mobile Only)
-              if (!isTv && _osdLabel != null) Center(child: _buildOSDIndicator()),
+              if (_osdLabel != null) Center(child: _buildOSDIndicator()),
             ],
           ),
         ),
@@ -493,9 +502,9 @@ class _FullscreenPlayerPageState extends ConsumerState<FullscreenPlayerPage> {
       decoration: BoxDecoration(
         gradient: LinearGradient(
           colors: [
-            Colors.black.withOpacity(0.8),
+            Colors.black.withValues(alpha: 0.8),
             Colors.transparent,
-            Colors.black.withOpacity(0.85),
+            Colors.black.withValues(alpha: 0.85),
           ],
           begin: Alignment.topCenter,
           end: Alignment.bottomCenter,
@@ -569,24 +578,12 @@ class _FullscreenPlayerPageState extends ConsumerState<FullscreenPlayerPage> {
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 // Previous Channel
-                TVFocusable(
-                  showFocusBorder: false,
-                  focusScale: 1.0,
-                  onSelect: () {
+                IconButton(
+                  icon: const Icon(Icons.fast_rewind_rounded, color: Colors.white, size: 28),
+                  onPressed: () {
                     final prevIdx = (_currentIndex - 1 + widget.channels.length) % widget.channels.length;
                     _zapTo(prevIdx);
                   },
-                  child: const SizedBox(),
-                  builder: (context, isFocused, child) => Container(
-                    decoration: BoxDecoration(shape: BoxShape.circle, color: isFocused ? Colors.white24 : Colors.transparent),
-                    child: IconButton(
-                      icon: const Icon(Icons.fast_rewind_rounded, color: Colors.white, size: 28),
-                      onPressed: () {
-                        final prevIdx = (_currentIndex - 1 + widget.channels.length) % widget.channels.length;
-                        _zapTo(prevIdx);
-                      },
-                    ),
-                  ),
                 ),
                 const SizedBox(width: 20),
                 // Volume/Mute Toggle
@@ -595,51 +592,27 @@ class _FullscreenPlayerPageState extends ConsumerState<FullscreenPlayerPage> {
                   builder: (context, snapshot) {
                     final volume = snapshot.data ?? 100.0;
                     final isMuted = volume == 0.0;
-                    return TVFocusable(
-                      showFocusBorder: false,
-                      focusScale: 1.0,
-                      onSelect: () {
+                    return IconButton(
+                      icon: Icon(
+                        isMuted ? Icons.volume_off_rounded : Icons.volume_up_rounded,
+                        color: Colors.white,
+                        size: 28,
+                      ),
+                      onPressed: () {
                         widget.player.setVolume(isMuted ? 100.0 : 0.0);
                         _resetHideTimer();
                       },
-                      child: const SizedBox(),
-                      builder: (context, isFocused, child) => Container(
-                        decoration: BoxDecoration(shape: BoxShape.circle, color: isFocused ? Colors.white24 : Colors.transparent),
-                        child: IconButton(
-                          icon: Icon(
-                            isMuted ? Icons.volume_off_rounded : Icons.volume_up_rounded,
-                            color: Colors.white,
-                            size: 28,
-                          ),
-                          onPressed: () {
-                            widget.player.setVolume(isMuted ? 100.0 : 0.0);
-                            _resetHideTimer();
-                          },
-                        ),
-                      ),
                     );
                   },
                 ),
                 const SizedBox(width: 20),
                 // Settings/Quality
-                TVFocusable(
-                  showFocusBorder: false,
-                  focusScale: 1.0,
-                  onSelect: () {
+                IconButton(
+                  icon: const Icon(Icons.settings_rounded, color: Colors.white, size: 28),
+                  onPressed: () {
                     _showQualityDialog();
                     _resetHideTimer();
                   },
-                  child: const SizedBox(),
-                  builder: (context, isFocused, child) => Container(
-                    decoration: BoxDecoration(shape: BoxShape.circle, color: isFocused ? Colors.white24 : Colors.transparent),
-                    child: IconButton(
-                      icon: const Icon(Icons.settings_rounded, color: Colors.white, size: 28),
-                      onPressed: () {
-                        _showQualityDialog();
-                        _resetHideTimer();
-                      },
-                    ),
-                  ),
                 ),
                 const SizedBox(width: 20),
                 // Play/Pause
@@ -647,104 +620,55 @@ class _FullscreenPlayerPageState extends ConsumerState<FullscreenPlayerPage> {
                   stream: widget.player.stream.playing,
                   builder: (context, snapshot) {
                     final isPlaying = snapshot.data ?? true;
-                    return TVFocusable(
-                      showFocusBorder: false,
-                      focusScale: 1.0,
-                      onSelect: () {
-                        if (isPlaying) {
-                          widget.player.pause();
-                        } else {
-                          widget.player.play();
-                        }
-                        _resetHideTimer();
-                      },
-                      child: const SizedBox(),
-                      builder: (context, isFocused, child) => Container(
-                        decoration: BoxDecoration(
-                          color: isFocused ? Colors.white.withOpacity(0.3) : Colors.white.withOpacity(0.15),
-                          shape: BoxShape.circle,
+                    return Container(
+                      decoration: BoxDecoration(
+                        color: Colors.white.withValues(alpha: 0.15),
+                        shape: BoxShape.circle,
+                      ),
+                      child: IconButton(
+                        icon: Icon(
+                          isPlaying ? Icons.pause_rounded : Icons.play_arrow_rounded,
+                          color: Colors.white,
+                          size: 36,
                         ),
-                        child: IconButton(
-                          icon: Icon(
-                            isPlaying ? Icons.pause_rounded : Icons.play_arrow_rounded,
-                            color: Colors.white,
-                            size: 36,
-                          ),
-                          onPressed: () {
-                            if (isPlaying) {
-                              widget.player.pause();
-                            } else {
-                              widget.player.play();
-                            }
-                            _resetHideTimer();
-                          },
-                        ),
+                        onPressed: () {
+                          if (isPlaying) {
+                            widget.player.pause();
+                          } else {
+                            widget.player.play();
+                          }
+                          _resetHideTimer();
+                        },
                       ),
                     );
                   },
                 ),
                 const SizedBox(width: 20),
                 // Aspect Ratio (Fit Toggle)
-                TVFocusable(
-                  showFocusBorder: false,
-                  focusScale: 1.0,
-                  onSelect: () {
+                IconButton(
+                  icon: const Icon(Icons.aspect_ratio_rounded, color: Colors.white, size: 28),
+                  onPressed: () {
                     _showAspectDialog();
                     _resetHideTimer();
                   },
-                  child: const SizedBox(),
-                  builder: (context, isFocused, child) => Container(
-                    decoration: BoxDecoration(shape: BoxShape.circle, color: isFocused ? Colors.white24 : Colors.transparent),
-                    child: IconButton(
-                      icon: const Icon(Icons.aspect_ratio_rounded, color: Colors.white, size: 28),
-                      onPressed: () {
-                        _showAspectDialog();
-                        _resetHideTimer();
-                      },
-                    ),
-                  ),
                 ),
                 const SizedBox(width: 20),
                 // Picture-in-Picture Mode
-                TVFocusable(
-                  showFocusBorder: false,
-                  focusScale: 1.0,
-                  onSelect: () {
+                IconButton(
+                  icon: const Icon(Icons.picture_in_picture_alt_rounded, color: Colors.white, size: 28),
+                  onPressed: () {
                     SimplePip().enterPipMode();
                     _resetHideTimer();
                   },
-                  child: const SizedBox(),
-                  builder: (context, isFocused, child) => Container(
-                    decoration: BoxDecoration(shape: BoxShape.circle, color: isFocused ? Colors.white24 : Colors.transparent),
-                    child: IconButton(
-                      icon: const Icon(Icons.picture_in_picture_alt_rounded, color: Colors.white, size: 28),
-                      onPressed: () {
-                        SimplePip().enterPipMode();
-                        _resetHideTimer();
-                      },
-                    ),
-                  ),
                 ),
                 const SizedBox(width: 20),
                 // Next Channel
-                TVFocusable(
-                  showFocusBorder: false,
-                  focusScale: 1.0,
-                  onSelect: () {
+                IconButton(
+                  icon: const Icon(Icons.fast_forward_rounded, color: Colors.white, size: 28),
+                  onPressed: () {
                     final nextIdx = (_currentIndex + 1) % widget.channels.length;
                     _zapTo(nextIdx);
                   },
-                  child: const SizedBox(),
-                  builder: (context, isFocused, child) => Container(
-                    decoration: BoxDecoration(shape: BoxShape.circle, color: isFocused ? Colors.white24 : Colors.transparent),
-                    child: IconButton(
-                      icon: const Icon(Icons.fast_forward_rounded, color: Colors.white, size: 28),
-                      onPressed: () {
-                        final nextIdx = (_currentIndex + 1) % widget.channels.length;
-                        _zapTo(nextIdx);
-                      },
-                    ),
-                  ),
                 ),
               ],
             ),
@@ -758,7 +682,7 @@ class _FullscreenPlayerPageState extends ConsumerState<FullscreenPlayerPage> {
               width: double.infinity,
               padding: const EdgeInsets.symmetric(vertical: 8),
               decoration: BoxDecoration(
-                color: Colors.black.withOpacity(0.4),
+                color: Colors.black.withValues(alpha: 0.4),
                 border: const Border(
                   top: BorderSide(color: Colors.white12, width: 0.5),
                 ),
@@ -798,7 +722,7 @@ class _FullscreenPlayerPageState extends ConsumerState<FullscreenPlayerPage> {
               width: 90,
               height: 65,
               decoration: BoxDecoration(
-                color: isSelected ? Colors.white : Colors.white.withOpacity(0.08),
+                color: isSelected ? Colors.white : Colors.white.withValues(alpha: 0.08),
                 borderRadius: BorderRadius.circular(12),
                 border: Border.all(
                   color: isSelected ? accent : Colors.transparent,
@@ -807,7 +731,7 @@ class _FullscreenPlayerPageState extends ConsumerState<FullscreenPlayerPage> {
                 boxShadow: isSelected
                     ? [
                         BoxShadow(
-                          color: accent.withOpacity(0.4),
+                          color: accent.withValues(alpha: 0.4),
                           blurRadius: 8,
                           spreadRadius: 2,
                         ),
@@ -845,7 +769,7 @@ class _FullscreenPlayerPageState extends ConsumerState<FullscreenPlayerPage> {
     );
   }
 
-  Widget _buildHorizontalServerSelection(Color accent) {
+  Widget _buildHorizontalServerSelection(Color accent, {double padding = 76}) {
     final sLoc = AppStrings(ref.watch(appLocaleProvider));
     List<Map<String, dynamic>> servers = [
       {'index': 0, 'name': sLoc.serverName(1), 'url': _currentChannel.url},
@@ -865,7 +789,7 @@ class _FullscreenPlayerPageState extends ConsumerState<FullscreenPlayerPage> {
     return Container(
       height: 36,
       alignment: Alignment.centerLeft,
-      padding: const EdgeInsets.symmetric(horizontal: 76),
+      padding: EdgeInsets.symmetric(horizontal: padding),
       child: ListView.builder(
         scrollDirection: Axis.horizontal,
         shrinkWrap: true,
@@ -873,14 +797,14 @@ class _FullscreenPlayerPageState extends ConsumerState<FullscreenPlayerPage> {
         itemBuilder: (context, i) {
           final s = servers[i];
           final active = _currentServerIndex == s['index'];
-          return GestureDetector(
+          return InkWell(
             onTap: () => _switchServer(s['index'], s['url']),
             child: Container(
               margin: const EdgeInsets.only(right: 8),
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
               alignment: Alignment.center,
               decoration: BoxDecoration(
-                color: active ? accent : Colors.black.withOpacity(0.5),
+                color: active ? accent : Colors.black.withValues(alpha: 0.5),
                 borderRadius: BorderRadius.circular(8),
                 border: Border.all(color: active ? accent : Colors.white24),
               ),
@@ -914,131 +838,10 @@ class _FullscreenPlayerPageState extends ConsumerState<FullscreenPlayerPage> {
   Widget _buildOSDIndicator() {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 15),
-      decoration: BoxDecoration(color: Colors.black.withOpacity(0.8), borderRadius: BorderRadius.circular(16), border: Border.all(color: Colors.white10)),
+      decoration: BoxDecoration(color: Colors.black.withValues(alpha: 0.8), borderRadius: BorderRadius.circular(16), border: Border.all(color: Colors.white10)),
       child: Text(_osdLabel!, style: const TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.w900)),
     );
   }
 
-  // ==========================================
-  // PREMIUM KOYA TV HUD
-  // ==========================================
 
-  Widget _buildTvHud(Color accent) {
-    return Container(
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topCenter,
-          end: Alignment.bottomCenter,
-          colors: [
-            Colors.black.withOpacity(0.7),
-            Colors.transparent,
-            Colors.black.withOpacity(0.9),
-          ],
-        ),
-      ),
-      padding: const EdgeInsets.all(40),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Container(
-                width: 60,
-                height: 60,
-                decoration: BoxDecoration(
-                  color: Colors.white10,
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: ChannelLogoImage(
-                  logo: _currentChannel.logo,
-                  channelName: _currentChannel.name,
-                  width: 60,
-                  height: 60,
-                ),
-              ),
-              const SizedBox(width: 20),
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(_currentChannel.group.toUpperCase(), style: TextStyle(color: accent, letterSpacing: 2, fontSize: 12)),
-                  Text(_currentChannel.name, style: const TextStyle(color: Colors.white, fontSize: 32, fontWeight: FontWeight.bold)),
-                ],
-              ),
-              const Spacer(),
-              // Live Viewers Badge (TV),
-            ],
-          ),
-          const Spacer(),
-          Row(
-            children: [
-              Icon(Icons.unfold_more, color: accent, size: 20),
-              SizedBox(width: 10),
-              Text('ZAP: UP/DOWN', style: TextStyle(color: Colors.white54, fontSize: 14)),
-              SizedBox(width: 40),
-              Icon(Icons.list, color: accent, size: 20),
-              SizedBox(width: 10),
-              Text('CHANNELS: OK', style: TextStyle(color: Colors.white54, fontSize: 14)),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildQuickZap(Color accent) {
-    return Positioned(
-      left: 0,
-      top: 0,
-      bottom: 0,
-      width: 400,
-      child: Container(
-        decoration: BoxDecoration(
-          color: Colors.black.withOpacity(0.9),
-          border: const Border(right: BorderSide(color: Colors.white10)),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Padding(
-              padding: EdgeInsets.fromLTRB(30, 50, 30, 20),
-              child: Text('QUICK ZAP', style: TextStyle(color: accent, letterSpacing: 4, fontWeight: FontWeight.bold)),
-            ),
-            Expanded(
-              child: ListView.builder(
-                padding: const EdgeInsets.symmetric(horizontal: 10),
-                itemCount: widget.channels.length,
-                itemBuilder: (context, index) {
-                  final ch = widget.channels[index];
-                  final isCurrent = index == _currentIndex;
-                  return TVFocusable(
-                    autofocus: isCurrent,
-                    onSelect: () => _zapTo(index),
-                    showFocusBorder: true,
-                    builder: (context, isFocused, child) {
-                      return Container(
-                        padding: const EdgeInsets.all(15),
-                        decoration: BoxDecoration(
-                          color: isFocused ? accent.withOpacity(0.1) : Colors.transparent,
-                          border: isCurrent ? Border(left: BorderSide(color: accent, width: 4)) : null,
-                        ),
-                        child: Row(
-                          children: [
-                            Text('${index + 1}', style: const TextStyle(color: Colors.white24, fontSize: 12)),
-                            const SizedBox(width: 15),
-                            Expanded(child: Text(ch.name, style: TextStyle(color: isFocused ? Colors.white : Colors.white70))),
-                            if (isCurrent) Icon(Icons.play_arrow, color: accent, size: 16),
-                          ],
-                        ),
-                      );
-                    },
-                    child: const SizedBox.shrink(),
-                  );
-                },
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
 }

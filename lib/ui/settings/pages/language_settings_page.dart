@@ -5,7 +5,6 @@ import '../../../core/theme.dart';
 import '../../../l10n/app_strings.dart';
 import '../../../providers/app_locale_provider.dart';
 import '../../../providers/ui_settings_provider.dart';
-import '../../../widgets/tv/tv_focusable.dart';
 
 class LanguageSettingsPage extends ConsumerWidget {
   const LanguageSettingsPage({super.key});
@@ -41,17 +40,12 @@ class LanguageSettingsPage extends ConsumerWidget {
 
   Widget _buildLangTile(WidgetRef ref, String code, String title, Locale currentLocale, AppSettingsData uiSettings) {
     final active = currentLocale.languageCode == code;
-    return TVFocusable(
-      showFocusBorder: true,
-      focusScale: 1.02,
-      borderRadius: BorderRadius.circular(16),
-      child: ListTile(
-        title: Text(title, style: TextStyle(color: active ? AppTheme.accentColor(uiSettings.gradientPreset) : Colors.white)),
-        trailing: active ? Icon(Icons.check_circle_rounded, color: AppTheme.accentColor(uiSettings.gradientPreset)) : null,
-        onTap: () {
-          ref.read(appLocaleProvider.notifier).setLocale(Locale(code));
-        },
-      ),
+    return ListTile(
+      title: Text(title, style: TextStyle(color: active ? AppTheme.accentColor(uiSettings.gradientPreset) : Colors.white)),
+      trailing: active ? Icon(Icons.check_circle_rounded, color: AppTheme.accentColor(uiSettings.gradientPreset)) : null,
+      onTap: () {
+        ref.read(appLocaleProvider.notifier).setLocale(Locale(code));
+      },
     );
   }
 }

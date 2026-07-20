@@ -25,6 +25,8 @@ subprojects {
     val newSubprojectBuildDir: Directory = newBuildDir.dir(project.name)
     project.layout.buildDirectory.value(newSubprojectBuildDir)
 
+
+
     afterEvaluate {
         if (plugins.hasPlugin("com.android.application") || plugins.hasPlugin("com.android.library")) {
             val android = extensions.findByName("android") as? com.android.build.gradle.BaseExtension
@@ -50,6 +52,13 @@ subprojects {
                         // Fallback or ignore if not available
                     }
                 }
+            }
+        }
+        
+        // Force Kotlin 17 for all plugins
+        tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile>().configureEach {
+            compilerOptions {
+                jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17)
             }
         }
     }

@@ -5,7 +5,6 @@ import '../../../core/theme.dart';
 import '../../../l10n/app_strings.dart';
 import '../../../providers/app_locale_provider.dart';
 import '../../../providers/ui_settings_provider.dart';
-import '../../../widgets/tv/tv_focusable.dart';
 
 class PlaybackSettingsPage extends ConsumerWidget {
   const PlaybackSettingsPage({super.key});
@@ -36,8 +35,8 @@ class PlaybackSettingsPage extends ConsumerWidget {
                   title: Text(s.keepScreenOnTitle, style: const TextStyle(color: Colors.white)),
                   subtitle: Text(s.keepScreenOnSub, style: const TextStyle(color: Colors.white70)),
                   value: uiSettings.keepScreenOnWhilePlaying,
-                  activeTrackColor: AppTheme.accentColor(uiSettings.gradientPreset).withOpacity(0.45),
-                  activeColor: AppTheme.accentColor(uiSettings.gradientPreset),
+                  activeTrackColor: AppTheme.accentColor(uiSettings.gradientPreset).withValues(alpha: 0.45),
+                  activeThumbColor: AppTheme.accentColor(uiSettings.gradientPreset),
                   onChanged: (v) => ref.read(appUiSettingsProvider.notifier).apply(uiSettings.copyWith(keepScreenOnWhilePlaying: v)),
                 ),
                 const Divider(color: Colors.white12, height: 1),
@@ -45,8 +44,8 @@ class PlaybackSettingsPage extends ConsumerWidget {
                   title: Text(s.autoHideTitle, style: const TextStyle(color: Colors.white)),
                   subtitle: Text(s.autoHideSub, style: const TextStyle(color: Colors.white70)),
                   value: uiSettings.autoHidePlayerControls,
-                  activeTrackColor: AppTheme.accentColor(uiSettings.gradientPreset).withOpacity(0.45),
-                  activeColor: AppTheme.accentColor(uiSettings.gradientPreset),
+                  activeTrackColor: AppTheme.accentColor(uiSettings.gradientPreset).withValues(alpha: 0.45),
+                  activeThumbColor: AppTheme.accentColor(uiSettings.gradientPreset),
                   onChanged: (v) => ref.read(appUiSettingsProvider.notifier).apply(uiSettings.copyWith(autoHidePlayerControls: v)),
                 ),
                 const Divider(color: Colors.white12, height: 1),
@@ -54,8 +53,8 @@ class PlaybackSettingsPage extends ConsumerWidget {
                   title: Text(s.clockTitle, style: const TextStyle(color: Colors.white)),
                   subtitle: Text(s.clockSub, style: const TextStyle(color: Colors.white70)),
                   value: uiSettings.showOnScreenClock,
-                  activeTrackColor: AppTheme.accentColor(uiSettings.gradientPreset).withOpacity(0.45),
-                  activeColor: AppTheme.accentColor(uiSettings.gradientPreset),
+                  activeTrackColor: AppTheme.accentColor(uiSettings.gradientPreset).withValues(alpha: 0.45),
+                  activeThumbColor: AppTheme.accentColor(uiSettings.gradientPreset),
                   onChanged: (v) => ref.read(appUiSettingsProvider.notifier).apply(uiSettings.copyWith(showOnScreenClock: v)),
                 ),
               ],
@@ -70,7 +69,7 @@ class PlaybackSettingsPage extends ConsumerWidget {
                 ),
           ),
           const SizedBox(height: 8),
-          Text(s.subtitleCaption, style: TextStyle(color: Colors.white.withOpacity(0.45), fontSize: 13)),
+          Text(s.subtitleCaption, style: TextStyle(color: Colors.white.withValues(alpha: 0.45), fontSize: 13)),
           const SizedBox(height: 12),
           glassCard(
             child: Padding(
@@ -149,19 +148,14 @@ class PlaybackSettingsPage extends ConsumerWidget {
             child: Column(
               children: [
                 for (final fit in _fitChoices)
-                  TVFocusable(
-                    showFocusBorder: true,
-                    focusScale: 1.02,
-                    borderRadius: BorderRadius.circular(16),
-                    child: RadioListTile<BoxFit>(
-                      value: fit,
-                      groupValue: uiSettings.videoFit,
-                      activeColor: AppTheme.accentColor(uiSettings.gradientPreset),
-                      title: Text(s.fitLabel(fit), style: const TextStyle(color: Colors.white)),
-                      onChanged: (v) {
-                        if (v != null) ref.read(appUiSettingsProvider.notifier).apply(uiSettings.copyWith(videoFit: v));
-                      },
-                    ),
+                  RadioListTile<BoxFit>(
+                    value: fit,
+                    groupValue: uiSettings.videoFit,
+                    activeColor: AppTheme.accentColor(uiSettings.gradientPreset),
+                    title: Text(s.fitLabel(fit), style: const TextStyle(color: Colors.white)),
+                    onChanged: (v) {
+                      if (v != null) ref.read(appUiSettingsProvider.notifier).apply(uiSettings.copyWith(videoFit: v));
+                    },
                   ),
               ],
             ),
@@ -182,8 +176,8 @@ class PlaybackSettingsPage extends ConsumerWidget {
                   title: Text(s.hardwareAccel, style: const TextStyle(color: Colors.white)),
                   subtitle: Text(s.hardwareAccelSub, style: const TextStyle(color: Colors.white70)),
                   value: uiSettings.hardwareAcceleration,
-                  activeTrackColor: AppTheme.accentColor(uiSettings.gradientPreset).withOpacity(0.45),
-                  activeColor: AppTheme.accentColor(uiSettings.gradientPreset),
+                  activeTrackColor: AppTheme.accentColor(uiSettings.gradientPreset).withValues(alpha: 0.45),
+                  activeThumbColor: AppTheme.accentColor(uiSettings.gradientPreset),
                   onChanged: (v) => ref.read(appUiSettingsProvider.notifier).apply(uiSettings.copyWith(hardwareAcceleration: v)),
                 ),
                 const Divider(color: Colors.white12, height: 1),
@@ -191,8 +185,8 @@ class PlaybackSettingsPage extends ConsumerWidget {
                   title: Text(s.dataSaver, style: const TextStyle(color: Colors.white)),
                   subtitle: Text(s.dataSaverSub, style: const TextStyle(color: Colors.white70)),
                   value: uiSettings.dataSaverMode,
-                  activeTrackColor: AppTheme.accentColor(uiSettings.gradientPreset).withOpacity(0.45),
-                  activeColor: AppTheme.accentColor(uiSettings.gradientPreset),
+                  activeTrackColor: AppTheme.accentColor(uiSettings.gradientPreset).withValues(alpha: 0.45),
+                  activeThumbColor: AppTheme.accentColor(uiSettings.gradientPreset),
                   onChanged: (v) => ref.read(appUiSettingsProvider.notifier).apply(uiSettings.copyWith(dataSaverMode: v)),
                 ),
               ],
@@ -214,7 +208,7 @@ class PlaybackSettingsPage extends ConsumerWidget {
           color: Color(colorValue),
           shape: BoxShape.circle,
           border: Border.all(color: active ? AppTheme.accentColor(uiSettings.gradientPreset) : Colors.white24, width: active ? 3 : 1),
-          boxShadow: active ? [BoxShadow(color: AppTheme.accentColor(uiSettings.gradientPreset).withOpacity(0.5), blurRadius: 8)] : [],
+          boxShadow: active ? [BoxShadow(color: AppTheme.accentColor(uiSettings.gradientPreset).withValues(alpha: 0.5), blurRadius: 8)] : [],
         ),
       ),
     );

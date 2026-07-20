@@ -12,8 +12,14 @@ import 'package:googleapis_auth/auth_io.dart' hide ResponseType;
 import 'package:firebase_core/firebase_core.dart';
 import '../firebase_options.dart';
 import 'pocketbase_service.dart';
+import 'package:firebase_database/firebase_database.dart';
 import 'pocketbase_database_mock.dart';
 import 'login_codes_service.dart';
+import '../main.dart';
+import 'playlist_service.dart';
+import '../ui/player/player_screen.dart';
+import '../ui/dashboard/movie_details_screen.dart';
+import 'package:flutter/material.dart';
 
 @pragma('vm:entry-point')
 Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
@@ -58,6 +64,20 @@ class NotificationService {
     // Register background message handler
     FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
 
+    FirebaseMessaging.onMessageOpenedApp.listen((RemoteMessage message) {
+      if (message.data['target'] != null) {
+         _handleDeepLink(message.data['target'].toString());
+      }
+    });
+
+    FirebaseMessaging.instance.getInitialMessage().then((RemoteMessage? message) {
+      if (message != null && message.data['target'] != null) {
+         Future.delayed(const Duration(seconds: 1), () {
+           _handleDeepLink(message.data['target'].toString());
+         });
+      }
+    });
+
     // Foreground message handler
     FirebaseMessaging.onMessage.listen((RemoteMessage message) {
       if (message.data['action'] == 'refresh') {
@@ -74,9 +94,55 @@ class NotificationService {
           message.notification!.title ?? '',
           message.notification!.body ?? '',
           message.notification!.android?.imageUrl,
+          payload: message.data['target']?.toString(),
         );
       }
     });
+
+    // Listen to Firebase RTDB for broadcasts from the Web Admin panel
+    // (Since Web Admin cannot securely authenticate with PocketBase without a backend)
+    try {
+      FirebaseDatabase.instance.ref('sync/global/notifications/broadcast').onValue.listen((event) async {
+        final data = event.snapshot.value as Map?;
+        if (data != null && data['id'] != null) {
+          final id = data['id'].toString();
+          final prefs = await SharedPreferences.getInstance();
+          final lastId = prefs.getString('last_broadcast_id');
+          if (lastId != id) {
+            await prefs.setString('last_broadcast_id', id);
+            final title = data['title']?.toString() ?? '';
+            final body = data['body']?.toString() ?? '';
+            final image = data['image']?.toString();
+            final target = data['target']?.toString();
+            if (title.isNotEmpty) {
+               _showBroadcastNotification(title, body, image, payload: target);
+            }
+          }
+        }
+      });
+    } catch (e) { debugPrint('Caught error in notification_service.dart: $e'); }
+
+    // Listen to PocketBase for broadcasts from the Flutter App Admin panel
+    try {
+      PocketBaseDatabase.instance.ref('sync/global/notifications/broadcast').onValue.listen((event) async {
+        final data = event.snapshot.value as Map?;
+        if (data != null && data['id'] != null) {
+          final id = data['id'].toString();
+          final prefs = await SharedPreferences.getInstance();
+          final lastId = prefs.getString('last_broadcast_id');
+          if (lastId != id) {
+            await prefs.setString('last_broadcast_id', id);
+            final title = data['title']?.toString() ?? '';
+            final body = data['body']?.toString() ?? '';
+            final image = data['image']?.toString();
+            final target = data['target']?.toString();
+            if (title.isNotEmpty) {
+               _showBroadcastNotification(title, body, image, payload: target);
+            }
+          }
+        }
+      });
+    } catch (e) { debugPrint('Caught error in notification_service.dart: $e'); }
   }
 
   /// Sends a push notification to all users via FCM HTTP v1 API
@@ -84,9 +150,10 @@ class NotificationService {
     required String title,
     required String body,
     String? imageUrl,
+    String? targetUrl,
   }) async {
     try {
-      final serviceAccountJson = await rootBundle.loadString('assets/json/kobani-noti-service-account.json');
+      final serviceAccountJson = await rootBundle.loadString('assets/json/kobani-4k-service-account.json');
       final serviceAccountMap = jsonDecode(serviceAccountJson) as Map<String, dynamic>;
       final accountCredentials = ServiceAccountCredentials.fromJson(serviceAccountJson);
       final scopes = ['https://www.googleapis.com/auth/firebase.messaging'];
@@ -103,6 +170,9 @@ class NotificationService {
             'title': title,
             'body': body,
             if (imageUrl != null && imageUrl.isNotEmpty) 'image': imageUrl,
+          },
+          'data': {
+            if (targetUrl != null && targetUrl.isNotEmpty) 'target': targetUrl,
           },
           'android': {
             'priority': 'HIGH',
@@ -143,7 +213,7 @@ class NotificationService {
   /// Sends a silent FCM data message to trigger a refresh for all clients
   Future<void> sendSilentRefreshPulse(String collection) async {
     try {
-      final serviceAccountJson = await rootBundle.loadString('assets/json/kobani-noti-service-account.json');
+      final serviceAccountJson = await rootBundle.loadString('assets/json/kobani-4k-service-account.json');
       final serviceAccountMap = jsonDecode(serviceAccountJson) as Map<String, dynamic>;
       final accountCredentials = ServiceAccountCredentials.fromJson(serviceAccountJson);
       final scopes = ['https://www.googleapis.com/auth/firebase.messaging'];
@@ -189,7 +259,12 @@ class NotificationService {
       log('Failed to send silent pulse: $e');
     }
   }
-  Future<void> _showBroadcastNotification(String title, String body, String? imageUrl) async {
+  Future<void> _showBroadcastNotification(
+    String title,
+    String body,
+    String? imageUrl, {
+    String? payload,
+  }) async {
     BigPictureStyleInformation? bigPictureStyleInformation;
     FilePathAndroidBitmap? largeIconBitmap;
     
@@ -208,23 +283,28 @@ class NotificationService {
       }
     }
 
-    _localNotificationsPlugin.show(
-      DateTime.now().millisecond,
-      title,
-      body,
-      NotificationDetails(
-        android: AndroidNotificationDetails(
-          'high_importance_channel',
-          'High Importance Notifications',
-          channelDescription: 'This channel is used for important notifications.',
-          icon: 'ic_notification',
-          largeIcon: largeIconBitmap,
-          importance: Importance.high,
-          priority: Priority.high,
-          styleInformation: bigPictureStyleInformation,
+    try {
+      _localNotificationsPlugin.show(
+        id: DateTime.now().millisecond,
+        title: title,
+        body: body,
+        notificationDetails: NotificationDetails(
+          android: AndroidNotificationDetails(
+            'high_importance_channel',
+            'High Importance Notifications',
+            channelDescription: 'This channel is used for important notifications.',
+            icon: 'ic_stat_logo',
+            largeIcon: largeIconBitmap,
+            importance: Importance.high,
+            priority: Priority.high,
+            styleInformation: bigPictureStyleInformation,
+          ),
         ),
-      ),
-    );
+        payload: payload,
+      );
+    } catch (e) {
+      log('Failed to show foreground local notification: $e');
+    }
   }
 
   Future<String> _downloadAndSaveImage(String url, String fileName) async {
@@ -265,7 +345,7 @@ class NotificationService {
     }
 
     const AndroidInitializationSettings initializationSettingsAndroid =
-        AndroidInitializationSettings('ic_notification');
+        AndroidInitializationSettings('ic_stat_logo');
 
     const InitializationSettings initializationSettings =
         InitializationSettings(
@@ -273,9 +353,12 @@ class NotificationService {
     );
 
     await _localNotificationsPlugin.initialize(
-      initializationSettings,
+      settings: initializationSettings,
       onDidReceiveNotificationResponse: (NotificationResponse response) {
         log('Local notification tapped: ${response.payload}');
+        if (response.payload != null && response.payload!.isNotEmpty) {
+          _handleDeepLink(response.payload!);
+        }
       },
     );
 
@@ -292,5 +375,31 @@ class NotificationService {
         ?.createNotificationChannel(channel);
 
     _isFlutterLocalNotificationsInitialized = true;
+  }
+
+  Future<void> _handleDeepLink(String target) async {
+    log('Handling Deep Link for target: $target');
+    
+    final context = appNavigatorKey.currentContext;
+    if (context == null) {
+      log('Cannot handle deep link: navigator context is null');
+      return;
+    }
+
+    final channels = await loadCachedChannels();
+    final lowercaseTarget = target.toLowerCase();
+    
+    final targetIndex = channels.indexWhere((c) => c.name.toLowerCase() == lowercaseTarget);
+    
+    if (targetIndex != -1) {
+      final channel = channels[targetIndex];
+      if (channel.type == 'movie') {
+        Navigator.push(context, MaterialPageRoute(builder: (_) => MovieDetailsScreen(allChannels: channels, channel: channel)));
+      } else {
+        Navigator.push(context, MaterialPageRoute(builder: (_) => PlayerScreen(channels: channels, initialIndex: targetIndex)));
+      }
+    } else {
+      log('Deep link target channel "$target" not found in cached channels.');
+    }
   }
 }
