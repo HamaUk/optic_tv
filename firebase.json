@@ -1,0 +1,22 @@
+{
+  "hosting": {
+    "public": "standalone_web",
+    "ignore": [
+      "firebase.json",
+      "**/.*",
+      "**/node_modules/**",
+      "android/**",
+      "**/*.apk",
+      "**/*.exe",
+      "**/*.jar",
+      "**/*.so",
+      "**/*.aab"
+    ],
+    "rewrites": [
+      {
+        "source": "**",
+        "destination": "/index.html"
+      }
+    ]
+  }
+}
