@@ -141,7 +141,7 @@ fun DashboardScreen(
 
     var selectedCategory by rememberSaveable { mutableStateOf<String?>(null) }
     var focusedChannel by remember { mutableStateOf<TvChannel?>(null) }
-    var activeNav by remember { mutableStateOf("nav_live_tv") }
+    var activeNav by rememberSaveable { mutableStateOf("nav_live_tv") }
     var showSearch by remember { mutableStateOf(false) }
     var railExpanded by remember { mutableStateOf(false) }
 
@@ -190,7 +190,7 @@ fun DashboardScreen(
 
     LaunchedEffect(categories, activeNav) {
         if (categories.isNotEmpty() && (selectedCategory == null || !categories.contains(selectedCategory))) {
-            selectedCategory = categories.first()
+            selectedCategory = categories.getOrNull(1) ?: categories.first()
         }
     }
     val categoryFocusRequester = remember { FocusRequester() }
@@ -811,6 +811,7 @@ private fun CategoryPane(
             ) {
                 items(categories) { category ->
                     val isSelected = selectedCategory == category
+                    val initialFocusCategory = categories.getOrNull(1) ?: categories.firstOrNull()
                     CategoryItem(
                         title = category,
                         count = channelCounts[category] ?: 0,
@@ -819,7 +820,7 @@ private fun CategoryPane(
                             onAnyFocus()
                             onCategorySelected(category)
                         },
-                        modifier = if (category == categories.firstOrNull()) {
+                        modifier = if (category == initialFocusCategory) {
                             Modifier.focusRequester(focusRequester)
                         } else Modifier
                     )

@@ -57,12 +57,14 @@ import androidx.media3.ui.PlayerView
 import androidx.tv.material3.*
 import coil.compose.AsyncImage
 import com.kobani4k.app.tv.data.AppPreferences
+import com.kobani4k.app.tv.data.MqttViewerService
 import com.kobani4k.app.tv.data.PocketBaseRepository
 import com.kobani4k.app.tv.data.TvChannel
 import com.kobani4k.app.tv.ui.theme.UltraTokens
 import com.kobani4k.app.tv.ui.theme.kobaniFocus
 import androidx.compose.foundation.clickable
 import com.kobani4k.app.tv.ui.theme.kobaniCardColors
+import com.kobani4k.player.StreamResolver
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
@@ -140,6 +142,7 @@ fun PlayerScreen(
 ) {
     val context = LocalContext.current
     val repository = remember { PocketBaseRepository() }
+    val mqttViewerService = remember { MqttViewerService() }
 
     // ── Channel state ──
     var currentChannelName by remember { mutableStateOf(channelName) }
@@ -260,6 +263,20 @@ fun PlayerScreen(
             }
     }
 
+    // MQTT Viewer Tracking
+    DisposableEffect(currentChannelName) {
+        mqttViewerService.publishJoin(currentChannelName)
+        onDispose {
+            mqttViewerService.publishLeave(currentChannelName)
+        }
+    }
+
+    DisposableEffect(Unit) {
+        onDispose {
+            mqttViewerService.disconnect()
+        }
+    }
+
     // Load / switch stream — stops the old one cleanly before preparing new
     LaunchedEffect(currentStreamUrl, activeServerIndex) {
         if (validServers.isEmpty()) return@LaunchedEffect
@@ -296,6 +313,8 @@ fun PlayerScreen(
             }
         }
         
+        finalUrl = StreamResolver.resolveIfNeeded(finalUrl)
+
         val builder = MediaItem.Builder().setUri(finalUrl)
 
         if (finalUrl.contains("m3u8", ignoreCase = true)) {

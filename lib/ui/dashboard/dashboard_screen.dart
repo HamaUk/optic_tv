@@ -68,6 +68,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
   bool _tvHomeActive = true; 
   final TextEditingController _searchController = TextEditingController();
   bool _hasPromptedUpdate = false;
+  String? _lastShownUpdateUrl;
   
   Channel? _focusedChannel;
   bool _sidebarFocused = false;
@@ -543,11 +544,34 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
   @override
   Widget build(BuildContext context) {
     ref.listen<AppUpdateData?>(updatePromptTriggerProvider, (previous, next) {
-      if (next != null && !_hasPromptedUpdate) {
+      if (next != null && next.apkUrl.isNotEmpty && _lastShownUpdateUrl != next.apkUrl) {
+        _lastShownUpdateUrl = next.apkUrl;
         _hasPromptedUpdate = true;
-        UpdatePromptDialog.show(context, next, AppStrings(ref.read(appLocaleProvider)));
+        // Check SharedPreferences — if user already tapped update for this URL, skip
+        getHandledUpdateUrl().then((handledUrl) {
+          if (handledUrl == next.apkUrl) return; // already handled on this device
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (mounted) {
+              UpdatePromptDialog.show(context, next, AppStrings(ref.read(appLocaleProvider)));
+            }
+          });
+        });
       }
     });
+
+    // Also show on startup if an update is already active
+    final currentUpdate = ref.watch(updatePromptTriggerProvider);
+    if (currentUpdate != null && currentUpdate.apkUrl.isNotEmpty && _lastShownUpdateUrl != currentUpdate.apkUrl) {
+      _lastShownUpdateUrl = currentUpdate.apkUrl;
+      getHandledUpdateUrl().then((handledUrl) {
+        if (handledUrl == currentUpdate.apkUrl) return; // already handled on this device
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (mounted) {
+            UpdatePromptDialog.show(context, currentUpdate, AppStrings(ref.read(appLocaleProvider)));
+          }
+        });
+      });
+    }
 
     final s = AppStrings(ref.watch(appLocaleProvider));
     final settings = ref.watch(appUiSettingsProvider).asData?.value ?? const AppSettingsData();

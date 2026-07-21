@@ -25,6 +25,8 @@ class UpdatePromptDialog extends StatefulWidget {
 
 class _UpdatePromptDialogState extends State<UpdatePromptDialog> {
   Future<void> _launchUpdateUrl() async {
+    // Mark this URL as handled so we never show this popup again for this URL
+    await markUpdateUrlHandled(widget.updateData.apkUrl);
     final url = Uri.parse(widget.updateData.apkUrl);
     if (await canLaunchUrl(url)) {
       await launchUrl(url, mode: LaunchMode.externalApplication);
