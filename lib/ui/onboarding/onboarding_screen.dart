@@ -3,6 +3,7 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:video_player/video_player.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../providers/app_locale_provider.dart';
 import '../../widgets/animated_gradient_border.dart';
@@ -520,6 +521,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen>
                 onTap: () async {
                   final p = await SharedPreferences.getInstance();
                   await p.setString('device_mode', 'tv');
+                  await p.setBool('first_launch', false);
                   _finishOnboarding();
                 },
               ),

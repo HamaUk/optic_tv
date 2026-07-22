@@ -878,6 +878,7 @@ private fun CategoryItem(
                 isFocused = it.isFocused
                 if (it.isFocused) onFocus()
             }
+            .clickable(onClick = onFocus)
             .focusable()
             .padding(horizontal = 14.dp, vertical = 12.dp)
     ) {

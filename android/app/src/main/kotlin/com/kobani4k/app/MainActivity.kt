@@ -125,6 +125,11 @@ class MainActivity: FlutterActivity() {
                 } else {
                     result.error("INVALID_ARGUMENT", "apkPath is required", null)
                 }
+            } else if (call.method == "launchTvInterface") {
+                val intent = Intent(this@MainActivity, com.kobani4k.app.tv.TvMainActivity::class.java)
+                startActivity(intent)
+                finish()
+                result.success(true)
             } else {
                 result.notImplemented()
             }

@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'package:flutter/services.dart';
+import 'package:aptabase_flutter/aptabase_flutter.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -16,6 +17,7 @@ import 'providers/session_provider.dart';
 import 'providers/ui_settings_provider.dart';
 import 'services/notification_service.dart';
 import 'services/settings_service.dart';
+import 'services/analytics_service.dart';
 import 'ui/auth/login_screen.dart';
 import 'ui/dashboard/dashboard_screen.dart';
 import 'ui/onboarding/onboarding_screen.dart';
@@ -43,6 +45,15 @@ void main() async {
     );
   } catch (e) {
     debugPrint('Firebase initialization failed: $e');
+  }
+
+  // Aptabase Analytics Initialization
+  try {
+    await Aptabase.init("A-EU-6309896811");
+    Aptabase.instance.trackEvent("app_open");
+    AnalyticsService().trackAppOpen();
+  } catch (e) {
+    debugPrint('Aptabase initialization failed: $e');
   }
 
   // Notifications init can fail safely
@@ -235,7 +246,9 @@ class _OpticTvAppState extends ConsumerState<OpticTvApp> with WidgetsBindingObse
       supportedLocales: const [Locale('en')],
       home: (widget.isFirstLaunch && deviceType != DeviceType.tv)
         ? const OnboardingScreen()
-        : (session.loggedIn ? const DashboardScreen() : const LoginScreen()),
+        : (session.loggedIn 
+            ? (deviceType == DeviceType.tv ? const NativeTvLauncherScreen() : const DashboardScreen()) 
+            : const LoginScreen()),
     );
   }
 
@@ -278,6 +291,35 @@ class _OpticTvAppState extends ConsumerState<OpticTvApp> with WidgetsBindingObse
             ],
           ),
         ),
+      ),
+    );
+  }
+}
+
+class NativeTvLauncherScreen extends StatefulWidget {
+  const NativeTvLauncherScreen({super.key});
+  @override
+  State<NativeTvLauncherScreen> createState() => _NativeTvLauncherScreenState();
+}
+
+class _NativeTvLauncherScreenState extends State<NativeTvLauncherScreen> {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      try {
+        const platform = MethodChannel('com.optic.iptv/device');
+        await platform.invokeMethod('launchTvInterface');
+      } catch (_) {}
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return const Scaffold(
+      backgroundColor: Colors.black,
+      body: Center(
+        child: CircularProgressIndicator(color: Color(0xFFE5A922)),
       ),
     );
   }

@@ -138,6 +138,9 @@ dependencies {
 
     // MQTT for Viewer Count
     implementation("com.hivemq:hivemq-mqtt-client:1.3.3")
+
+    // Aptabase Analytics
+    implementation("com.github.aptabase:aptabase-kotlin:0.0.8")
 }
 
 flutter {

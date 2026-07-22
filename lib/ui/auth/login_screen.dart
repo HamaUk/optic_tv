@@ -3,6 +3,8 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:video_player/video_player.dart';
+import 'package:flutter/services.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../core/theme.dart';
 import '../../widgets/kobani_wordmark.dart';
@@ -70,10 +72,19 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
     setState(() => _busy = false);
     
     if (success) {
-      Navigator.of(context).pushAndRemoveUntil(
-        MaterialPageRoute(builder: (_) => const DashboardScreen()),
-        (route) => false,
-      );
+      final prefs = await SharedPreferences.getInstance();
+      final mode = prefs.getString('device_mode');
+      if (mode == 'tv') {
+        try {
+          const platform = MethodChannel('com.optic.iptv/device');
+          await platform.invokeMethod('launchTvInterface');
+        } catch (_) {}
+      } else {
+        Navigator.of(context).pushAndRemoveUntil(
+          MaterialPageRoute(builder: (_) => const DashboardScreen()),
+          (route) => false,
+        );
+      }
     } else {
       final error = ref.read(sessionProvider).error ?? 'Invalid code.';
       ScaffoldMessenger.of(context).showSnackBar(

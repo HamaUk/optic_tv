@@ -36,6 +36,7 @@
 -dontwarn coil.**
 
 # ─── HiveMQ MQTT & Netty dependencies ───
+-keep class io.netty.** { *; }
 -dontwarn io.netty.**
 -dontwarn org.slf4j.**
 -dontwarn org.apache.log4j.**
@@ -44,6 +45,24 @@
 -dontwarn reactor.blockhound.**
 -keep class com.hivemq.** { *; }
 -dontwarn com.hivemq.**
+-keep class io.reactivex.** { *; }
+-dontwarn io.reactivex.**
+-keep class io.reactivex.rxjava3.** { *; }
+-dontwarn io.reactivex.rxjava3.**
+-keep class org.reactivestreams.** { *; }
+-dontwarn org.reactivestreams.**
+-keep class dagger.** { *; }
+-dontwarn dagger.**
+-keep class javax.inject.** { *; }
+-keep class org.jctools.** { *; }
+-dontwarn org.jctools.**
+
+# Force keep concurrency fields accessed via reflection
+-keepclassmembers class * {
+    long consumerIndex;
+    long producerIndex;
+    long p*;
+}
 
 # ─── JSON (org.json is built-in, keep for safety) ───
 -keep class org.json.** { *; }

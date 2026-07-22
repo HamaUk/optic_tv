@@ -4,6 +4,8 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes, viewport-fit=cover">
   <title>OpticTV · Admin Console</title>
+  <link rel="manifest" href="/manifest.json">
+  <meta name="theme-color" content="#09090b">
   <script src="https://unpkg.com/lucide@latest"></script>
   <script src="https://cdn.jsdelivr.net/npm/pocketbase@0.21.5/dist/pocketbase.umd.js"></script>
   <style>
@@ -1364,6 +1366,9 @@
             </div>
           </div>
           <div class="topbar-actions">
+            <button id="pwaInstallBtn" class="btn btn-outline btn-sm icon-btn" title="Install App" onclick="promptPWAInstall()">
+              <i data-lucide="download"></i>
+            </button>
             <button class="btn btn-outline btn-sm icon-btn" title="Refresh data" onclick="refreshAndRender()">
               <i data-lucide="refresh-cw"></i>
             </button>
@@ -2533,6 +2538,15 @@
     // Initialize
     // ════════════════════════════════════════════════════════════
     async function init() {
+      // Register Service Worker for PWA
+      if ('serviceWorker' in navigator) {
+        try {
+          await navigator.serviceWorker.register('/sw.js');
+        } catch (e) {
+          console.error('SW registration failed:', e);
+        }
+      }
+
       document.body.setAttribute('data-theme', theme);
       if (pb.authStore.isValid) {
         currentUser = pb.authStore.model;
@@ -2559,6 +2573,30 @@
     }
 
     init();
+
+    // ════════════════════════════════════════════════════════════
+    // PWA Install Logic
+    // ════════════════════════════════════════════════════════════
+    let deferredPrompt;
+    window.addEventListener('beforeinstallprompt', (e) => {
+      e.preventDefault();
+      deferredPrompt = e;
+      const btn = document.getElementById('pwaInstallBtn');
+      if (btn) btn.style.display = 'inline-flex';
+    });
+
+    async function promptPWAInstall() {
+      if (deferredPrompt) {
+        deferredPrompt.prompt();
+        const { outcome } = await deferredPrompt.userChoice;
+        if (outcome === 'accepted') {
+          deferredPrompt = null;
+        }
+      } else {
+        showToast('App is already installed or your browser does not support installation right now.', 'info');
+      }
+    }
+    window.promptPWAInstall = promptPWAInstall;
   </script>
 </body>
 </html>

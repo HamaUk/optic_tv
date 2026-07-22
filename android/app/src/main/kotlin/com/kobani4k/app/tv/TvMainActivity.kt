@@ -17,6 +17,12 @@ import androidx.tv.material3.darkColorScheme
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.Font
 import androidx.compose.runtime.*
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.graphics.Color
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.background
+import androidx.compose.ui.Alignment
 import android.content.SharedPreferences
 import com.kobani4k.app.tv.ui.DashboardScreen
 import com.kobani4k.app.tv.ui.LoginScreen
@@ -27,6 +33,7 @@ import com.kobani4k.app.R
 import android.content.Context
 import android.view.WindowManager
 import android.util.Base64
+import com.aptabase.Aptabase
 
 // Safe Base64 helpers — avoids all route-breaking characters
 private fun b64Encode(value: String): String =
@@ -40,12 +47,28 @@ class TvMainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+        
+        try {
+            Aptabase.instance.initialize(applicationContext, "A-EU-6309896811")
+            Aptabase.instance.trackEvent("app_started_tv")
+        } catch (e: Exception) {
+            android.util.Log.e("Aptabase", "Failed to initialize Aptabase", e)
+        }
         com.kobani4k.app.GlobalProxyBypass.apply() // Enforce proxy bypass for ExoPlayer and native HTTP
+        
+        val sharedPrefs = getSharedPreferences("FlutterSharedPreferences", Context.MODE_PRIVATE)
+        Thread.setDefaultUncaughtExceptionHandler { thread, throwable ->
+            val trace = android.util.Log.getStackTraceString(throwable)
+            sharedPrefs.edit().putString("last_crash", trace).commit()
+            System.exit(2)
+        }
+
         setContent {
             val context = androidx.compose.ui.platform.LocalContext.current
             val prefs = remember { com.kobani4k.app.tv.data.AppPreferences(context) }
-            val sharedPrefs = context.getSharedPreferences("FlutterSharedPreferences", Context.MODE_PRIVATE)
             var appLanguage by remember { mutableStateOf(prefs.appLanguage) }
+            
+            val lastCrash = sharedPrefs.getString("last_crash", null)
 
             DisposableEffect(sharedPrefs) {
                 val listener = SharedPreferences.OnSharedPreferenceChangeListener { sp, key ->
@@ -98,6 +121,31 @@ class TvMainActivity : ComponentActivity() {
                         .fillMaxSize()
                         .background(MaterialTheme.colorScheme.background)
                 ) {
+                    if (lastCrash != null) {
+                        Column(
+                            modifier = Modifier.fillMaxSize().background(Color.Red).padding(16.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.Center
+                        ) {
+                            androidx.tv.material3.Text("CRASH DETECTED", color = Color.White, style = MaterialTheme.typography.headlineLarge)
+                            androidx.tv.material3.Text("Please take a photo of this and send it to the developer:", color = Color.White)
+                            Spacer(Modifier.height(16.dp))
+                            LazyColumn(modifier = Modifier.weight(1f).background(Color.Black.copy(alpha = 0.5f)).padding(8.dp)) {
+                                item {
+                                    androidx.tv.material3.Text(lastCrash, color = Color.White, style = MaterialTheme.typography.bodySmall)
+                                }
+                            }
+                            Spacer(Modifier.height(16.dp))
+                            androidx.tv.material3.Button(onClick = {
+                                sharedPrefs.edit().remove("last_crash").apply()
+                                System.exit(0)
+                            }) {
+                                androidx.tv.material3.Text("Clear Crash & Restart")
+                            }
+                        }
+                        return@Box
+                    }
+
                     val initialSession = sharedPrefs.getBoolean("flutter.auth_logged_in", false)
                     val startDest = if (initialSession) "dashboard" else "login"
 

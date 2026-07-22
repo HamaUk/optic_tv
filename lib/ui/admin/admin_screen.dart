@@ -32,6 +32,7 @@ part 'tabs/admin_access_tab.dart';
 part 'tabs/admin_announcement_tab.dart';
 part 'tabs/admin_movies_tab.dart';
 part 'tabs/admin_update_tab.dart';
+part 'tabs/admin_analytics_tab.dart';
 
 enum _PublishShelf { liveTv, movies, custom }
 enum _LoginDuration { day, week, month, year, never }
@@ -133,7 +134,7 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
   void initState() {
     super.initState();
     _isAuthenticated = AuthService.isAdmin;
-    _tabController = TabController(length: 8, vsync: this);
+    _tabController = TabController(length: 9, vsync: this);
     _channelGroupController.text = 'Live TV';
     _channelSearchController.addListener(() {
       setState(() => _channelSearchQuery = _channelSearchController.text.trim().toLowerCase());
@@ -766,6 +767,7 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
                 Tab(text: 'ACCESS'),
                 Tab(text: 'BROADCAST'),
                 Tab(text: 'UPDATE'),
+                Tab(text: 'ANALYTICS'),
               ],
             ),
           ],
@@ -820,6 +822,10 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
                     KeyedSubtree(
                       key: const PageStorageKey<String>('admin_update'),
                       child: _KeepAliveTab(child: _buildUpdateTab()),
+                    ),
+                    KeyedSubtree(
+                      key: const PageStorageKey<String>('admin_analytics'),
+                      child: _KeepAliveTab(child: _buildAnalyticsTab()),
                     ),
                   ],
                 ),

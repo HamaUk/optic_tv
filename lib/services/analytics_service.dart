@@ -33,16 +33,27 @@ class AnalyticsService {
      }
   }
 
+  Future<void> trackAppOpen() async {
+    try {
+      final ref = _db.ref('sync/global/analytics/views/total');
+      final snap = await ref.get();
+      int current = 0;
+      if (snap.exists && snap.value != null) {
+        final data = snap.value as Map<dynamic, dynamic>;
+        current = (data['total'] as num?)?.toInt() ?? 0;
+      }
+      await ref.set({'total': current + 1});
+    } catch (e) {
+      // Silently fail if DB is unavailable
+    }
+  }
+
   Stream<int> getTotalViewsStream() {
     return _db.ref('sync/global/analytics/views/total').onValue.map((event) {
       if (event.snapshot.value == null) return 0;
       
       final data = event.snapshot.value as Map<dynamic, dynamic>;
-      if (data.isNotEmpty && data.values.first is Map) {
-        final firstRecord = data.values.first as Map;
-        return (firstRecord['total'] as num?)?.toInt() ?? 0;
-      }
-      return 0;
+      return (data['total'] as num?)?.toInt() ?? 0;
     });
   }
 

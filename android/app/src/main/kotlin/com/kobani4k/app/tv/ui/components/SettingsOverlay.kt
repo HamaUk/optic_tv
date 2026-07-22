@@ -289,6 +289,7 @@ private fun SettingsCategoryItem(
                 isFocused = it.isFocused
                 if (it.isFocused) onFocus()
             }
+            .clickable(onClick = onFocus)
             .focusable()
             .padding(horizontal = 16.dp, vertical = 14.dp),
         verticalAlignment = Alignment.CenterVertically
@@ -623,6 +624,7 @@ private fun ThemeOptionRow(
             .clip(RoundedCornerShape(12.dp))
             .background(bgColor)
             .onFocusChanged { isFocused = it.isFocused }
+            .clickable(onClick = onClick)
             .focusable()
             .onKeyEvent { ev ->
                 if (ev.nativeKeyEvent.action == KeyEvent.ACTION_DOWN &&
@@ -1021,6 +1023,7 @@ private fun SettingsToggleRow(
             .background(bgColor)
             .border(1.5.dp, borderColor, RoundedCornerShape(14.dp))
             .onFocusChanged { isFocused = it.isFocused }
+            .clickable(onClick = onToggle)
             .focusable()
             .onKeyEvent { ev ->
                 if (ev.nativeKeyEvent.action == KeyEvent.ACTION_DOWN &&
@@ -1113,6 +1116,7 @@ private fun SettingsRadioRow(
             .clip(RoundedCornerShape(8.dp))
             .background(bgColor)
             .onFocusChanged { isFocused = it.isFocused }
+            .clickable(onClick = onClick)
             .focusable()
             .onKeyEvent { ev ->
                 if (ev.nativeKeyEvent.action == KeyEvent.ACTION_DOWN &&
@@ -1196,6 +1200,7 @@ private fun SettingsActionButton(
             .background(bgColor)
             .border(1.5.dp, borderColor, RoundedCornerShape(14.dp))
             .onFocusChanged { isFocused = it.isFocused }
+            .clickable(onClick = onClick)
             .focusable()
             .onKeyEvent { ev ->
                 if (ev.nativeKeyEvent.action == KeyEvent.ACTION_DOWN &&

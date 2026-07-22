@@ -1,5 +1,5 @@
 // Service Worker for Optic TV PWA
-const CACHE_NAME = 'optic-tv-v1';
+const CACHE_NAME = 'optic-tv-v3';
 const urlsToCache = [
   '/index.html',
   '/manifest.json',

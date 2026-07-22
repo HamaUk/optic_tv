@@ -496,6 +496,18 @@ fun PlayerScreen(
         modifier = Modifier
             .fillMaxSize()
             .background(Color.Black)
+            .clickable(
+                interactionSource = remember { MutableInteractionSource() },
+                indication = null,
+                onClick = {
+                    if (!showZapList && activeMenu == ActiveMenu.NONE) {
+                        if (showControls) showControls = false else wakeUpControls()
+                    } else {
+                        showZapList = false
+                        activeMenu = ActiveMenu.NONE
+                    }
+                }
+            )
             .focusRequester(mainFocusRequester)
             .focusable()
             .onKeyEvent { keyEvent ->
@@ -1157,6 +1169,7 @@ fun OsdIconButton(
                     isFocused = it.isFocused
                     if (it.isFocused) onWake()
                 }
+                .clickable(onClick = onClick)
                 .focusable()
                 .onKeyEvent { ke ->
                     if (ke.nativeKeyEvent.action == KeyEvent.ACTION_DOWN &&
@@ -1519,6 +1532,7 @@ private fun TrackOption(
             .background(bgColor)
             .border(1.dp, Color.White.copy(alpha = 0.3f), RoundedCornerShape(10.dp))
             .onFocusChanged { isFocused = it.isFocused }
+            .clickable(onClick = onClick)
             .focusable()
             .onKeyEvent { ke ->
                 if (ke.nativeKeyEvent.action == KeyEvent.ACTION_DOWN &&
@@ -1667,6 +1681,7 @@ private fun SettingRadioItem(
             .background(bgColor)
             .border(1.dp, Color.White.copy(alpha = 0.3f), RoundedCornerShape(8.dp))
             .onFocusChanged { isFocused = it.isFocused }
+            .clickable(onClick = onClick)
             .focusable()
             .onKeyEvent { ke ->
                 if (ke.nativeKeyEvent.action == KeyEvent.ACTION_DOWN &&

@@ -1,24 +1,15 @@
 import 'dart:async';
-import 'dart:convert';
-import 'dart:io';
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../../widgets/native_player_view.dart';
 import 'package:intl/intl.dart' hide TextDirection;
-import 'package:path_provider/path_provider.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../services/optic_player.dart';
 import 'package:wakelock_plus/wakelock_plus.dart';
 
-import '../../core/theme.dart';
 import '../../l10n/app_strings.dart';
 import '../../services/playlist_service.dart';
-import '../../services/subtitle_service.dart';
-import '../../services/tmdb_service.dart';
-import '../dashboard/movie_details_screen.dart';
-import '../../providers/ui_settings_provider.dart';
-import '../../services/settings_service.dart';
 
 class MoviePlayerPage extends ConsumerStatefulWidget {
   final OpticPlayer player;
@@ -50,6 +41,12 @@ class _MoviePlayerPageState extends ConsumerState<MoviePlayerPage> {
   Timer? _clockTimer;
   final List<StreamSubscription> _subscriptions = [];
   
+  // New States
+  bool _isLocked = false;
+  bool _isMuted = false;
+  Timer? _sleepCountdownTimer;
+  bool _isFullscreen = true;
+  
   // Gesture OSD State
   double? _volumeValue;
   double? _brightnessValue;
@@ -57,7 +54,6 @@ class _MoviePlayerPageState extends ConsumerState<MoviePlayerPage> {
   Timer? _osdTimer;
 
   // TMDB Service for metadata
-  final TmdbService _tmdbService = TmdbService();
 
   @override
   void initState() {
@@ -115,6 +111,7 @@ class _MoviePlayerPageState extends ConsumerState<MoviePlayerPage> {
     _hideTimer?.cancel();
     _clockTimer?.cancel();
     _osdTimer?.cancel();
+    _sleepCountdownTimer?.cancel();
     for (final s in _subscriptions) {
       s.cancel();
     }
@@ -131,6 +128,7 @@ class _MoviePlayerPageState extends ConsumerState<MoviePlayerPage> {
   Future<bool> _exitFullscreen() async {
     await SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
     
+    if (!mounted) return true;
     // Smart reset: Only force portrait on exit for phones
     final isTv = MediaQuery.of(context).size.shortestSide >= 600;
     if (!isTv) {
@@ -141,18 +139,22 @@ class _MoviePlayerPageState extends ConsumerState<MoviePlayerPage> {
 
   @override
   Widget build(BuildContext context) {
-    final settingsAsync = ref.watch(appUiSettingsProvider);
-    final settings = settingsAsync.asData?.value ?? AppSettingsData();
-    final ctrl = null; // Native ExoPlayer — no Flutter controller needed
-    return WillPopScope(
-      onWillPop: _exitFullscreen,
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, result) async {
+        if (didPop) return;
+        final shouldPop = await _exitFullscreen();
+        if (shouldPop && context.mounted) {
+          Navigator.pop(context, result);
+        }
+      },
       child: Scaffold(
         backgroundColor: Colors.black,
         body: GestureDetector(
-          onVerticalDragUpdate: _handleVerticalDrag,
-          onVerticalDragEnd: (_) => _hideOSD(),
-          onHorizontalDragUpdate: _handleHorizontalDrag,
-          onHorizontalDragEnd: (_) => _hideOSD(),
+          onVerticalDragUpdate: _isLocked ? null : _handleVerticalDrag,
+          onVerticalDragEnd: _isLocked ? null : (_) => _hideOSD(),
+          onHorizontalDragUpdate: _isLocked ? null : _handleHorizontalDrag,
+          onHorizontalDragEnd: _isLocked ? null : (_) => _hideOSD(),
           onTap: () {
             setState(() {
               _overlayVisible = !_overlayVisible;
@@ -166,20 +168,52 @@ class _MoviePlayerPageState extends ConsumerState<MoviePlayerPage> {
               NativePlayerView(player: widget.player),
 
               // 2. Ambient Clock
-              if (_overlayVisible)
-                Positioned(
-                  top: 30,
-                  right: 40,
+              Positioned(
+                top: 40,
+                right: 40,
+                child: AnimatedOpacity(
+                  opacity: _overlayVisible ? 1.0 : 0.0,
+                  duration: const Duration(milliseconds: 300),
                   child: _buildAmbientClock(),
                 ),
+              ),
 
               // 3. Gesture OSD Indicators
               if (_osdLabel != null)
                 Center(child: _buildOSDIndicator()),
 
               // 4. Movie HUD (Immersive Controls Only)
-              if (_overlayVisible)
-                _buildMovieHUD(),
+              if (!_isLocked)
+                AnimatedOpacity(
+                  opacity: _overlayVisible ? 1.0 : 0.0,
+                  duration: const Duration(milliseconds: 300),
+                  child: IgnorePointer(
+                    ignoring: !_overlayVisible,
+                    child: _buildMovieHUD(),
+                  ),
+                ),
+
+              // 5. Locked Mode Unlock Button
+              if (_isLocked)
+                AnimatedOpacity(
+                  opacity: _overlayVisible ? 1.0 : 0.0,
+                  duration: const Duration(milliseconds: 300),
+                  child: IgnorePointer(
+                    ignoring: !_overlayVisible,
+                    child: Align(
+                      alignment: Alignment.bottomLeft,
+                      child: Padding(
+                        padding: const EdgeInsets.only(left: 40, bottom: 40),
+                        child: _buildHUDImageAsset('assets/images/flixy/ic_unlock.png', () {
+                          setState(() {
+                            _isLocked = false;
+                            _resetHideTimer();
+                          });
+                        }),
+                      ),
+                    ),
+                  ),
+                ),
             ],
           ),
         ),
@@ -196,58 +230,60 @@ class _MoviePlayerPageState extends ConsumerState<MoviePlayerPage> {
           left: 0,
           right: 0,
           child: Container(
-            padding: const EdgeInsets.symmetric(vertical: 40, horizontal: 50),
+            padding: const EdgeInsets.symmetric(vertical: 30, horizontal: 40),
             decoration: BoxDecoration(
               gradient: LinearGradient(
                 begin: Alignment.topCenter,
                 end: Alignment.bottomCenter,
-                colors: [Colors.black.withOpacity(0.8), Colors.transparent],
+                colors: [Colors.black.withValues(alpha: 0.8), Colors.transparent],
               ),
             ),
             child: Row(
               children: [
-                _buildHUDAction(Icons.arrow_back_ios_new_rounded, () async {
+                _buildHUDImageAsset('assets/images/flixy/ic_back.png', () async {
                   await _exitFullscreen();
                   if (mounted) Navigator.pop(context);
                 }),
-                const SizedBox(width: 20),
+                const SizedBox(width: 16),
                 Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        widget.channel.name.toUpperCase(),
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 26,
-                          fontWeight: FontWeight.w900,
-                          letterSpacing: 1.5,
-                          shadows: [Shadow(color: Colors.black54, blurRadius: 10)],
-                        ),
-                      ),
-                      const SizedBox(height: 6),
-                      Row(
-                        children: [
-                          _buildBadge('4K CINEMATIC', const Color(0xFFD4AF37)),
-                          const SizedBox(width: 8),
-                          _buildBadge('VOD', Colors.redAccent),
-                        ],
-                      ),
-                    ],
+                  child: Text(
+                    widget.channel.name,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 22,
+                      fontWeight: FontWeight.bold,
+                      shadows: [Shadow(color: Colors.black54, blurRadius: 10)],
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                   ),
                 ),
-                _buildHUDAction(Icons.settings_outlined, _showSettingsModal),
+                // Right side icons
+                _buildHUDImageAsset('assets/images/flixy/ic_time.png', () {
+                  setState(() {
+                    _playbackSpeed = _playbackSpeed >= 2.0 ? 0.5 : _playbackSpeed + 0.25;
+                  });
+                  widget.player.setRate(_playbackSpeed);
+                  _resetHideTimer();
+                }),
+                const SizedBox(width: 12),
+                _buildHUDImageAsset('assets/images/flixy/ic_clock_pause.png', _showSleepTimerDialog),
+                const SizedBox(width: 12),
+                _buildHUDImageAsset('assets/images/flixy/ic_subtitle.png', _showSettingsModal),
+                const SizedBox(width: 12),
+                _buildHUDAction(Icons.mic_none_outlined, () {
+                  ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Voice Search / Audio Tracks...')));
+                }),
+                const SizedBox(width: 12),
+                _buildHUDImageAsset('assets/images/flixy/ic_tv.png', () {
+                  ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Searching for Cast devices...')));
+                }),
+                const SizedBox(width: 12),
+                _buildHUDImageAsset('assets/images/flixy/ic_menu.png', () {
+                  ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('More options coming soon.')));
+                }),
               ],
             ),
-          ),
-        ),
-
-        // Play/Pause Big Icon (Center)
-        Center(
-          child: _buildHUDAction(
-            widget.player.isPlaying ? Icons.pause_rounded : Icons.play_arrow_rounded,
-            () => widget.player.playOrPause(),
-            isLarge: true,
           ),
         ),
 
@@ -257,32 +293,93 @@ class _MoviePlayerPageState extends ConsumerState<MoviePlayerPage> {
           left: 0,
           right: 0,
           child: Container(
-            padding: const EdgeInsets.fromLTRB(50, 20, 50, 40),
+            padding: const EdgeInsets.fromLTRB(40, 20, 40, 30),
             decoration: BoxDecoration(
               gradient: LinearGradient(
                 begin: Alignment.bottomCenter,
                 end: Alignment.topCenter,
-                colors: [Colors.black.withOpacity(0.9), Colors.transparent],
+                colors: [Colors.black.withValues(alpha: 0.9), Colors.transparent],
               ),
             ),
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
                 _buildSeekBar(),
-                const SizedBox(height: 16),
+                const SizedBox(height: 12),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
+                    // Left Group
                     Row(
                       children: [
-                        _buildHUDAction(Icons.replay_10_rounded, () => widget.player.seek(_position - const Duration(seconds: 10))),
+                        _buildHUDImageAsset('assets/images/flixy/ic_lock.png', () {
+                          setState(() {
+                            _isLocked = true;
+                            _overlayVisible = false;
+                          });
+                        }),
                         const SizedBox(width: 20),
+                        _buildHUDImageAsset(_isMuted ? 'assets/images/flixy/ic_mute.png' : 'assets/images/flixy/ic_unmute.png', () {
+                          setState(() {
+                            _isMuted = !_isMuted;
+                            widget.player.setVolume(_isMuted ? 0.0 : 1.0);
+                          });
+                        }),
+                      ],
+                    ),
+                    // Center Group
+                    Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        _buildHUDAction(Icons.replay_10_rounded, () => widget.player.seek(_position - const Duration(seconds: 10))),
+                        const SizedBox(width: 24),
+                        _buildHUDAction(Icons.skip_previous_rounded, () {
+                          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('No previous episode available.')));
+                        }),
+                        const SizedBox(width: 24),
+                        // Play Button
+                        InkWell(
+                          onTap: () {
+                            widget.player.playOrPause();
+                            _resetHideTimer();
+                          },
+                          child: Image.asset(
+                            widget.player.isPlaying ? 'assets/images/flixy/ic_pause.png' : 'assets/images/flixy/ic_play.png',
+                            color: Colors.white,
+                            width: 52,
+                            height: 52,
+                          ),
+                        ),
+                        const SizedBox(width: 24),
+                        _buildHUDAction(Icons.skip_next_rounded, () {
+                          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('No next episode available.')));
+                        }),
+                        const SizedBox(width: 24),
                         _buildHUDAction(Icons.forward_10_rounded, () => widget.player.seek(_position + const Duration(seconds: 10))),
                       ],
                     ),
+                    // Right Group
                     Row(
                       children: [
-                        _buildSpeedButton(),
+                        _buildHUDImageAsset('assets/images/flixy/ic_download.png', () {
+                          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Added to download queue.')));
+                        }),
+                        const SizedBox(width: 20),
+                        _buildHUDImageAsset('assets/images/flixy/ic_fullscreen.png', () {
+                          setState(() {
+                            _isFullscreen = !_isFullscreen;
+                          });
+                          if (_isFullscreen) {
+                            SystemChrome.setPreferredOrientations([
+                              DeviceOrientation.landscapeLeft,
+                              DeviceOrientation.landscapeRight,
+                            ]);
+                          } else {
+                            SystemChrome.setPreferredOrientations([
+                              DeviceOrientation.portraitUp,
+                            ]);
+                          }
+                        }),
                       ],
                     ),
                   ],
@@ -298,35 +395,38 @@ class _MoviePlayerPageState extends ConsumerState<MoviePlayerPage> {
   Widget _buildSeekBar() {
     final pos = _position.inSeconds.toDouble();
     final dur = _duration.inSeconds.toDouble().clamp(1.0, double.infinity);
-    return Column(
+    return Row(
       children: [
-        SliderTheme(
-          data: SliderTheme.of(context).copyWith(
-            trackHeight: 6,
-            thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 8),
-            activeTrackColor: const Color(0xFFD4AF37),
-            inactiveTrackColor: Colors.white24,
-            thumbColor: const Color(0xFFD4AF37),
-            overlayColor: const Color(0xFFD4AF37).withOpacity(0.2),
-          ),
-          child: Slider(
-            value: pos.clamp(0.0, dur),
-            max: dur,
-            onChanged: (v) {
-              widget.player.seek(Duration(seconds: v.toInt()));
-              _resetHideTimer();
-            },
+        Text(
+          _formatDuration(_position), 
+          style: const TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.bold)
+        ),
+        const SizedBox(width: 16),
+        Expanded(
+          child: SliderTheme(
+            data: SliderTheme.of(context).copyWith(
+              trackHeight: 4,
+              thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 8),
+              overlayShape: const RoundSliderOverlayShape(overlayRadius: 16),
+              activeTrackColor: Colors.red,
+              inactiveTrackColor: Colors.white.withValues(alpha: 0.3),
+              thumbColor: Colors.white,
+              overlayColor: Colors.red.withValues(alpha: 0.2),
+            ),
+            child: Slider(
+              value: pos.clamp(0.0, dur),
+              max: dur,
+              onChanged: (v) {
+                widget.player.seek(Duration(seconds: v.toInt()));
+                _resetHideTimer();
+              },
+            ),
           ),
         ),
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(_formatDuration(_position), style: const TextStyle(color: Colors.white70, fontSize: 13, fontFamily: 'monospace')),
-              Text(_formatDuration(_duration), style: const TextStyle(color: Colors.white30, fontSize: 13, fontFamily: 'monospace')),
-            ],
-          ),
+        const SizedBox(width: 16),
+        Text(
+          _formatDuration(_duration), 
+          style: const TextStyle(color: Colors.white70, fontSize: 14)
         ),
       ],
     );
@@ -338,68 +438,45 @@ class _MoviePlayerPageState extends ConsumerState<MoviePlayerPage> {
       timeStr,
       style: const TextStyle(
         color: Colors.white,
-        fontSize: 42,
-        fontWeight: FontWeight.w900,
-        letterSpacing: -1,
-        shadows: [Shadow(color: Colors.black, blurRadius: 15)],
+        fontSize: 32,
+        fontWeight: FontWeight.bold,
+        letterSpacing: 1,
+        shadows: [Shadow(color: Colors.black87, blurRadius: 10)],
       ),
     );
   }
 
-  Widget _buildHUDAction(IconData icon, VoidCallback onTap, {bool isLarge = false}) {
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(50),
-        child: Container(
-          padding: EdgeInsets.all(isLarge ? 24 : 12),
-          decoration: isLarge ? BoxDecoration(
-            color: Colors.white.withOpacity(0.15),
-            shape: BoxShape.circle,
-            border: Border.all(color: Colors.white30, width: 1.5),
-          ) : null,
-          child: Icon(icon, color: Colors.white, size: isLarge ? 56 : 30),
+  Widget _buildHUDAction(IconData icon, VoidCallback onTap) {
+    return ClipOval(
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: onTap,
+          child: Container(
+            padding: const EdgeInsets.all(12),
+            child: Icon(icon, color: Colors.white, size: 28),
+          ),
         ),
       ),
     );
   }
 
-  Widget _buildBadge(String label, Color color) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-      decoration: BoxDecoration(
-        color: color.withOpacity(0.15),
-        borderRadius: BorderRadius.circular(4),
-        border: Border.all(color: color.withOpacity(0.5)),
+  Widget _buildHUDImageAsset(String assetPath, VoidCallback onTap) {
+    return ClipOval(
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: onTap,
+          child: Container(
+            padding: const EdgeInsets.all(12),
+            child: Image.asset(assetPath, color: Colors.white, width: 28, height: 28),
+          ),
+        ),
       ),
-      child: Text(label, style: TextStyle(color: color, fontSize: 10, fontWeight: FontWeight.bold)),
     );
   }
 
-  Widget _buildSpeedButton() {
-    return InkWell(
-      onTap: () {
-        setState(() {
-          _playbackSpeed = _playbackSpeed >= 3.0 ? 1.0 : _playbackSpeed + 0.5;
-        });
-        widget.player.setRate(_playbackSpeed);
-        _resetHideTimer();
-      },
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-        decoration: BoxDecoration(
-          color: Colors.white.withOpacity(0.1),
-          border: Border.all(color: const Color(0xFFD4AF37).withOpacity(0.5)), 
-          borderRadius: BorderRadius.circular(12)
-        ),
-        child: Text(
-          '${_playbackSpeed.toStringAsFixed(1)}x', 
-          style: const TextStyle(color: Color(0xFFD4AF37), fontWeight: FontWeight.bold, fontSize: 16)
-        ),
-      ),
-    );
-  }
+
 
   void _showSettingsModal() {
     showModalBottomSheet(
@@ -407,6 +484,64 @@ class _MoviePlayerPageState extends ConsumerState<MoviePlayerPage> {
       backgroundColor: Colors.transparent, // Allows custom rounded corner container
       builder: (context) => VideoSettingsModal(player: widget.player),
     );
+  }
+
+  void _showSleepTimerDialog() {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => Container(
+        padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(
+          color: Colors.black.withValues(alpha: 0.9),
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Text('Sleep Timer', style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold)),
+            const SizedBox(height: 20),
+            ListTile(
+              title: const Text('Off', style: TextStyle(color: Colors.white)),
+              onTap: () {
+                _sleepCountdownTimer?.cancel();
+                Navigator.pop(ctx);
+                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Sleep timer disabled.')));
+              },
+            ),
+            ListTile(
+              title: const Text('15 Minutes', style: TextStyle(color: Colors.white)),
+              onTap: () {
+                _setSleepTimer(15);
+                Navigator.pop(ctx);
+              },
+            ),
+            ListTile(
+              title: const Text('30 Minutes', style: TextStyle(color: Colors.white)),
+              onTap: () {
+                _setSleepTimer(30);
+                Navigator.pop(ctx);
+              },
+            ),
+            ListTile(
+              title: const Text('1 Hour', style: TextStyle(color: Colors.white)),
+              onTap: () {
+                _setSleepTimer(60);
+                Navigator.pop(ctx);
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _setSleepTimer(int minutes) {
+    _sleepCountdownTimer?.cancel();
+    _sleepCountdownTimer = Timer(Duration(minutes: minutes), () {
+      if (mounted) Navigator.pop(context); // Close player
+    });
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Sleep timer set for $minutes minutes')));
   }
 
   // OSD & Drag Handlers
@@ -440,10 +575,49 @@ class _MoviePlayerPageState extends ConsumerState<MoviePlayerPage> {
   void _hideOSD() => _osdTimer = Timer(const Duration(milliseconds: 500), () => setState(() => _osdLabel = null));
 
   Widget _buildOSDIndicator() {
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(color: Colors.black87, borderRadius: BorderRadius.circular(16)),
-      child: Text(_osdLabel!, style: const TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold)),
+    final isVolume = _osdLabel == "VOLUME";
+    final isBrightness = _osdLabel == "BRIGHTNESS";
+    final value = isVolume ? (_volumeValue ?? 0.5) : (isBrightness ? (_brightnessValue ?? 0.5) : null);
+    
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(24),
+      child: BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+          decoration: BoxDecoration(
+            color: Colors.black.withValues(alpha: 0.5),
+            borderRadius: BorderRadius.circular(24),
+            border: Border.all(color: Colors.white24),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                isVolume 
+                  ? (value! > 0.5 ? Icons.volume_up_rounded : (value > 0 ? Icons.volume_down_rounded : Icons.volume_mute_rounded))
+                  : (isBrightness ? Icons.brightness_6_rounded : Icons.fast_forward_rounded),
+                color: Colors.white,
+                size: 28,
+              ),
+              const SizedBox(width: 16),
+              if (value != null)
+                SizedBox(
+                  width: 100,
+                  height: 4,
+                  child: LinearProgressIndicator(
+                    value: value,
+                    backgroundColor: Colors.white24,
+                    valueColor: const AlwaysStoppedAnimation<Color>(Color(0xFFD4AF37)),
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                )
+              else
+                Text(_osdLabel!, style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold, letterSpacing: 1)),
+            ],
+          ),
+        ),
+      ),
     );
   }
 
@@ -457,7 +631,7 @@ class _MoviePlayerPageState extends ConsumerState<MoviePlayerPage> {
 
 class VideoSettingsModal extends StatefulWidget {
   final OpticPlayer player;
-  const VideoSettingsModal({Key? key, required this.player}) : super(key: key);
+  const VideoSettingsModal({super.key, required this.player});
 
   @override
   State<VideoSettingsModal> createState() => _VideoSettingsModalState();

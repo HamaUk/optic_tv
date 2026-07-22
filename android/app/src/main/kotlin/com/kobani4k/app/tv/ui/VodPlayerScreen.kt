@@ -1,4 +1,4 @@
-﻿package com.kobani4k.app.tv.ui
+package com.kobani4k.app.tv.ui
 
 import android.view.KeyEvent
 import android.widget.TextClock
@@ -9,6 +9,7 @@ import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.focusable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -246,6 +247,17 @@ fun VodPlayerScreen(
         modifier = Modifier
             .fillMaxSize()
             .background(Color.Black)
+            .clickable(
+                interactionSource = remember { MutableInteractionSource() },
+                indication = null,
+                onClick = {
+                    if (activeMenu == ActiveMenu.NONE) {
+                        if (showControls) showControls = false else wakeUpControls()
+                    } else {
+                        activeMenu = ActiveMenu.NONE
+                    }
+                }
+            )
             .focusRequester(mainFocusRequester)
             .focusable()
             .onKeyEvent { keyEvent ->
