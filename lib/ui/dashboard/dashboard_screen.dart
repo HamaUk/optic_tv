@@ -19,7 +19,6 @@ import 'package:video_player/video_player.dart';
 
 import '../../core/theme.dart';
 import '../../widgets/channel_logo_image.dart';
-import '../../widgets/live_viewer_badge.dart';
 import '../../widgets/kobani_wordmark.dart';
 import '../../l10n/app_strings.dart';
 import '../../providers/app_locale_provider.dart';
@@ -34,12 +33,14 @@ import '../../services/settings_service.dart';
 
 import 'package:intl/intl.dart' as intl;
 import '../admin/admin_screen.dart';
+import '../onboarding/onboarding_screen.dart';
 import '../player/player_screen.dart';
 import '../player/movie_player_page.dart';
 import '../settings/settings_screen.dart';
 import 'movie_details_screen.dart';
 import '../../services/update_service.dart';
 import '../../widgets/update_prompt_dialog.dart';
+import '../../services/analytics_service.dart';
 
 import '../../services/tmdb_service.dart';
 import '../../widgets/dynamic_background.dart';
@@ -104,6 +105,11 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
       parent: _sidebarShimmerCtrl,
       curve: Curves.easeInOut,
     );
+
+    // Track app open once per session
+    Future.microtask(() {
+      ref.read(analyticsServiceProvider).trackAppOpen();
+    });
   }
 
   @override
@@ -621,19 +627,19 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
                 16.0,
                 false,
                 filtered.isEmpty
-                    ? _buildEmptyState(s)
-                    : _buildScrollableContent(
-                        context,
-                        s,
-                        filteredForNav,
-                        filtered,
-                        groups,
-                        settings,
-                        settings.reduceMotion ? 100 : 220,
-                        16.0,
-                        managedGroups,
-                        channels,
-                      ),
+                        ? _buildEmptyState(s)
+                        : _buildScrollableContent(
+                            context,
+                            s,
+                            filteredForNav,
+                            filtered,
+                            groups,
+                            settings,
+                            settings.reduceMotion ? 100 : 220,
+                            16.0,
+                            managedGroups,
+                            channels,
+                          ),
                 settings,
               ),
             ),
@@ -1323,6 +1329,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
                     child: ListView.builder(
                       controller: scrollController,
                       itemCount: items.length,
+                      itemExtent: 56.0,
                       itemBuilder: (context, index) {
                         final item = items[index];
                         final isSelected = item == selected;
@@ -1527,6 +1534,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
                     scrollDirection: Axis.horizontal,
                     padding: EdgeInsets.only(left: pad),
                     itemCount: sectionChannels.length,
+                    itemExtent: isMovie ? 240.0 : 170.0,
                     itemBuilder: (context, index) {
                       final ch = sectionChannels[index];
                       return Container(
@@ -1543,6 +1551,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
                       scrollDirection: Axis.horizontal,
                       padding: EdgeInsets.only(left: pad),
                       itemCount: sectionChannels.length,
+                      itemExtent: isMovie ? 240.0 : 170.0,
                       itemBuilder: (context, index) {
                         final ch = sectionChannels[index];
                         return AnimationConfiguration.staggeredList(
@@ -1629,17 +1638,18 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
     final isTv = ref.watch(deviceTypeProvider).asData?.value == DeviceType.tv;
     final focused = isTv && (_focusedChannel == channel);
     
-    return GestureDetector(
-      onTap: () => _openPlayer(allChannels, channel),
-      onLongPress: () {
-        final favs = ref.read(favoritesProvider.notifier);
-        final isFav = favs.isFavorite(channel);
-        favs.toggle(channel);
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-          content: Text(isFav ? '${channel.name} removed from favorites' : '${channel.name} saved to favorites'),
-          duration: const Duration(seconds: 2),
-        ));
-      },
+    return RepaintBoundary(
+      child: GestureDetector(
+        onTap: () => _openPlayer(allChannels, channel),
+        onLongPress: () {
+          final favs = ref.read(favoritesProvider.notifier);
+          final isFav = favs.isFavorite(channel);
+          favs.toggle(channel);
+          ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+            content: Text(isFav ? '${channel.name} removed from favorites' : '${channel.name} saved to favorites'),
+            duration: const Duration(seconds: 2),
+          ));
+        },
       child: Focus(
         onFocusChange: (f) {
            if (f && mounted) {
@@ -1724,7 +1734,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
           ],
         ),
       ),
-    );
+    ));
   }
 
   /// Larger poster-style tile for Movies. The logo/poster fills
@@ -1741,17 +1751,18 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
     final isTv = ref.watch(deviceTypeProvider).asData?.value == DeviceType.tv;
     final focused = isTv && (_focusedChannel == channel);
 
-    return GestureDetector(
-      onTap: () => _openPlayer(allChannels, channel),
-      onLongPress: () {
-        final favs = ref.read(favoritesProvider.notifier);
-        final isFav = favs.isFavorite(channel);
-        favs.toggle(channel);
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-          content: Text(isFav ? '${channel.name} removed from favorites' : '${channel.name} saved to favorites'),
-          duration: const Duration(seconds: 2),
-        ));
-      },
+    return RepaintBoundary(
+      child: GestureDetector(
+        onTap: () => _openPlayer(allChannels, channel),
+        onLongPress: () {
+          final favs = ref.read(favoritesProvider.notifier);
+          final isFav = favs.isFavorite(channel);
+          favs.toggle(channel);
+          ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+            content: Text(isFav ? '${channel.name} removed from favorites' : '${channel.name} saved to favorites'),
+            duration: const Duration(seconds: 2),
+          ));
+        },
       child: Focus(
         onFocusChange: (f) {
           if (f && mounted) {
@@ -1835,7 +1846,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
           ],
         ),
       ),
-    );
+    ));
   }
 
   Widget _movieFallback() {

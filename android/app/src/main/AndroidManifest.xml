@@ -19,7 +19,13 @@
         android:icon="@mipmap/ic_launcher"
         android:banner="@mipmap/ic_launcher"
         android:extractNativeLibs="true"
+        android:requestLegacyExternalStorage="true"
         android:usesCleartextTraffic="true">
+        
+        <meta-data
+            android:name="com.google.firebase.messaging.default_notification_channel_id"
+            android:value="optic_tv_channel" />
+            
         <activity
             android:name=".MainActivity"
             android:exported="true"

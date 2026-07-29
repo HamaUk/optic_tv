@@ -250,30 +250,30 @@ private fun SettingsCategoryItem(
 ) {
     var isFocused by remember { mutableStateOf(false) }
 
-    val bgColor by animateColorAsState(
-        targetValue = when {
-            isFocused || isSelected -> Color.White
-            else -> Color.Transparent
-        },
-        animationSpec = tween(200),
-        label = "setCatBg"
-    )
-    val iconTint by animateColorAsState(
-        targetValue = when {
-            isFocused || isSelected -> Color.Black
-            else -> UltraTokens.Divider
-        },
-        animationSpec = tween(200),
-        label = "setCatIcon"
-    )
-    val textColor = if (isFocused || isSelected) Color.Black else UltraTokens.TextSecondary
-    
+    val bgColor = when {
+        isFocused -> Color.White
+        isSelected -> UltraTokens.Accent.copy(alpha = 0.18f)
+        else -> Color.Transparent
+    }
+    val iconTint = when {
+        isFocused -> Color.Black
+        isSelected -> UltraTokens.Accent
+        else -> UltraTokens.Divider
+    }
+    val textColor = when {
+        isFocused -> Color.Black
+        isSelected -> Color.White
+        else -> UltraTokens.TextSecondary
+    }
+    val borderColor = when {
+        isFocused -> Color.White
+        isSelected -> UltraTokens.Accent.copy(alpha = 0.4f)
+        else -> Color.Transparent
+    }
+
     val scale by animateFloatAsState(
-        targetValue = if (isFocused || isSelected) 1.05f else 1f,
-        animationSpec = androidx.compose.animation.core.spring(
-            dampingRatio = 0.65f,
-            stiffness = androidx.compose.animation.core.Spring.StiffnessLow
-        ),
+        targetValue = if (isFocused) 1.05f else 1f,
+        animationSpec = tween(80),
         label = "setCatScale"
     )
 
@@ -284,7 +284,7 @@ private fun SettingsCategoryItem(
             .scale(scale)
             .clip(RoundedCornerShape(12.dp))
             .background(bgColor)
-            .border(1.dp, Color.White.copy(alpha = 0.3f), RoundedCornerShape(12.dp))
+            .border(1.dp, borderColor, RoundedCornerShape(12.dp))
             .onFocusChanged {
                 isFocused = it.isFocused
                 if (it.isFocused) onFocus()
@@ -305,7 +305,7 @@ private fun SettingsCategoryItem(
             text = label,
             color = textColor,
             fontSize = 14.sp,
-            fontWeight = if (isSelected || isFocused) FontWeight.Bold else FontWeight.Medium
+            fontWeight = if (isFocused || isSelected) FontWeight.Bold else FontWeight.Medium
         )
     }
 }
@@ -761,33 +761,42 @@ private fun AboutSection(appLanguage: String) {
 
         Spacer(Modifier.height(24.dp))
 
+        var cardFocused by remember { mutableStateOf(false) }
+        val cardScale by animateFloatAsState(if (cardFocused) 1.03f else 1f, tween(80))
+        val cardBg = if (cardFocused) Color.White else UltraTokens.SurfaceHover
+        val cardTextColor = if (cardFocused) Color.Black else Color.White
+
         // App info card
         Column(
             modifier = Modifier
                 .fillMaxWidth()
+                .scale(cardScale)
                 .clip(RoundedCornerShape(16.dp))
-                .background(UltraTokens.SurfaceHover)
+                .background(cardBg)
+                .border(1.dp, if (cardFocused) Color.White else Color.Transparent, RoundedCornerShape(16.dp))
+                .onFocusChanged { cardFocused = it.isFocused }
+                .focusable()
                 .padding(24.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Icon(
                 Icons.Rounded.LiveTv,
                 contentDescription = null,
-                tint = UltraTokens.Accent,
+                tint = if (cardFocused) Color.Black else UltraTokens.Accent,
                 modifier = Modifier.size(48.dp)
             )
             Spacer(Modifier.height(12.dp))
             Row {
                 Text(
                     "KOBANI ",
-                    color = Color.White,
+                    color = cardTextColor,
                     fontSize = 24.sp,
                     fontWeight = FontWeight.Black,
                     letterSpacing = 2.sp
                 )
                 Text(
                     "4K",
-                    color = UltraTokens.Accent,
+                    color = if (cardFocused) Color.Black else UltraTokens.Accent,
                     fontSize = 24.sp,
                     fontWeight = FontWeight.Black,
                     letterSpacing = 2.sp
@@ -796,7 +805,7 @@ private fun AboutSection(appLanguage: String) {
             Spacer(Modifier.height(4.dp))
             Text(
                 Locales.getString("abt_prem", appLanguage),
-                color = UltraTokens.Divider,
+                color = if (cardFocused) Color.Black.copy(alpha = 0.7f) else UltraTokens.Divider,
                 fontSize = 13.sp,
                 letterSpacing = 2.sp
             )

@@ -28,7 +28,7 @@ import androidx.tv.material3.*
 object UltraTokens {
 
     // ─── Backgrounds ───
-    val Background   = Color(0xFF07070C)   // deep void
+    val Background   = Color.Black
     val Surface      = Color(0xFF0D0D14)   // panels base
     val SurfaceHover = Color(0xFF151520)
 

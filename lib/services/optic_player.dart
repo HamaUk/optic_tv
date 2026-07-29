@@ -186,8 +186,14 @@ class OpticPlayer with WidgetsBindingObserver {
     if (_disposed) return;
     final vol = (percent / 100.0).clamp(0.0, 1.0);
     _volume = vol;
-    _volumeCtrl.add(percent);
+    // Bug 4 fix: emit the normalized 0.0–1.0 value, not the raw 0–100 percent
+    _volumeCtrl.add(vol);
     await _channel.invokeMethod('setVolume', {'volume': vol});
+  }
+
+  Future<void> setStadiumMode(bool enabled) async {
+    if (_disposed) return;
+    await _channel.invokeMethod('setStadiumMode', {'enabled': enabled});
   }
 
   Future<void> setRate(double speed) async {
@@ -216,6 +222,8 @@ class OpticPlayer with WidgetsBindingObserver {
     _volumeCtrl.close();
     playing.dispose();
     buffering.dispose();
+    // Bug 5 fix: videoSize ValueNotifier was never disposed — memory leak
+    videoSize.dispose();
     textureIdNotifier.dispose();
   }
 

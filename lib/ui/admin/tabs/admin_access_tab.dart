@@ -24,12 +24,68 @@ extension _AdminAccessTabExt on _AdminScreenState {
               children: [
                 Row(
                   children: [
-                    Expanded(child: _field(_newGroupController, 'New group name', Icons.create_new_folder_outlined)),
+                    Expanded(
+                      child: SegmentedButton<String>(
+                        style: SegmentedButton.styleFrom(
+                          visualDensity: VisualDensity.compact,
+                          backgroundColor: Colors.black26,
+                          selectedBackgroundColor: AppTheme.accentTeal.withValues(alpha: 0.2),
+                          selectedForegroundColor: AppTheme.accentTeal,
+                        ),
+                        segments: const [
+                          ButtonSegment(value: 'live', label: Text('Live TV'), icon: Icon(Icons.live_tv_rounded, size: 16)),
+                          ButtonSegment(value: 'movie', label: Text('Movie'), icon: Icon(Icons.movie_rounded, size: 16)),
+                          ButtonSegment(value: 'sport', label: Text('Sport'), icon: Icon(Icons.sports_soccer_rounded, size: 16)),
+                        ],
+                        selected: {_newGroupType},
+                        onSelectionChanged: (set) => setAdminState(() => _newGroupType = set.first),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                Row(
+                  children: [
+                    Expanded(child: _field(_newGroupController, 'New $_newGroupType group', Icons.create_new_folder_outlined)),
                     const SizedBox(width: 12),
                     FilledButton(
                       onPressed: _addGroup,
                       style: FilledButton.styleFrom(padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16)),
                       child: const Text('Add'),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+                const Divider(color: Colors.white10),
+                const SizedBox(height: 12),
+                Row(
+                  children: [
+                    const Text('View: ', style: TextStyle(fontSize: 12, color: Colors.white54)),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: SegmentedButton<String>(
+                        style: SegmentedButton.styleFrom(
+                          visualDensity: VisualDensity.compact,
+                          backgroundColor: Colors.black26,
+                          selectedBackgroundColor: AppTheme.accentTeal.withValues(alpha: 0.2),
+                          selectedForegroundColor: AppTheme.accentTeal,
+                        ),
+                        segments: const [
+                          ButtonSegment(value: 'live', label: Text('Live TV')),
+                          ButtonSegment(value: 'movie', label: Text('Movie')),
+                          ButtonSegment(value: 'sport', label: Text('Sport')),
+                        ],
+                        selected: {_viewGroupType},
+                        onSelectionChanged: (set) => setAdminState(() => _viewGroupType = set.first),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    ActionChip(
+                      label: const Text('Sync M3U Groups', style: TextStyle(fontSize: 11)),
+                      avatar: const Icon(Icons.sync_rounded, size: 14),
+                      onPressed: _syncMissingGroups,
+                      backgroundColor: AppTheme.accentTeal.withValues(alpha: 0.1),
+                      side: BorderSide(color: AppTheme.accentTeal.withValues(alpha: 0.3)),
                     ),
                   ],
                 ),
@@ -44,19 +100,32 @@ extension _AdminAccessTabExt on _AdminScreenState {
                     if (value is! Map || value.isEmpty) {
                       return Text('No saved groups', style: TextStyle(color: Colors.white.withValues(alpha: 0.35)));
                     }
-                    final entries = value.entries.toList()
-                      ..sort((a, b) {
-                        final av = a.value;
-                        final bv = b.value;
-                        if (av is Map && bv is Map) {
-                          final ao = av['order'] as int? ?? 999999;
-                          final bo = bv['order'] as int? ?? 999999;
-                          if (ao != bo) return ao.compareTo(bo);
-                        }
-                        final an = (av is Map) ? '${av['name']}' : '';
-                        final bn = (bv is Map) ? '${bv['name']}' : '';
-                        return an.toLowerCase().compareTo(bn.toLowerCase());
-                      });
+                    var entries = value.entries.toList();
+                    entries = entries.where((e) {
+                      final val = e.value;
+                      if (val is Map) {
+                        final t = val['type'] as String? ?? 'live';
+                        return t == _viewGroupType;
+                      }
+                      return _viewGroupType == 'live';
+                    }).toList();
+
+                    if (entries.isEmpty) {
+                      return Text('No $_viewGroupType groups', style: TextStyle(color: Colors.white.withValues(alpha: 0.35)));
+                    }
+
+                    entries.sort((a, b) {
+                      final av = a.value;
+                      final bv = b.value;
+                      if (av is Map && bv is Map) {
+                        final ao = av['order'] as int? ?? 999999;
+                        final bo = bv['order'] as int? ?? 999999;
+                        if (ao != bo) return ao.compareTo(bo);
+                      }
+                      final an = (av is Map) ? '${av['name']}' : '';
+                      final bn = (bv is Map) ? '${bv['name']}' : '';
+                      return an.toLowerCase().compareTo(bn.toLowerCase());
+                    });
                     return ReorderableListView(
                       shrinkWrap: true,
                       physics: const NeverScrollableScrollPhysics(),
@@ -224,6 +293,41 @@ extension _AdminAccessTabExt on _AdminScreenState {
 
 
 
+  Future<void> _syncMissingGroups() async {
+    _snack('Syncing missing groups from playlist...');
+    try {
+      final groupsSnapshot = await _groupsRef.get();
+      final existingGroups = <String>{};
+      if (groupsSnapshot.value is Map) {
+        for (final val in (groupsSnapshot.value as Map).values) {
+          if (val is Map && val['name'] != null) {
+            existingGroups.add('${val['name']}'.toLowerCase());
+          }
+        }
+      }
+
+      final playlistSnapshot = await _playlistRef.get();
+      int added = 0;
+      if (playlistSnapshot.value is Map) {
+        for (final val in (playlistSnapshot.value as Map).values) {
+          if (val is Map && val['group'] != null && val['group'].toString().trim().isNotEmpty) {
+            final groupName = val['group'].toString().trim();
+            if (!existingGroups.contains(groupName.toLowerCase())) {
+              final isMovie = val['isMovie'] == true || (val['url'] != null && val['url'].toString().contains(RegExp(r'\.(mp4|mkv|avi)$', caseSensitive: false)));
+              final type = isMovie ? 'movie' : 'live';
+              await _groupsRef.push().set({'name': groupName, 'type': type});
+              existingGroups.add(groupName.toLowerCase());
+              added++;
+            }
+          }
+        }
+      }
+      _snack(added > 0 ? 'Synced $added missing groups' : 'All groups are already synced');
+    } catch (e) {
+      _snack('Error syncing groups: $e', error: true);
+    }
+  }
+
   Future<void> _addGroup() async {
     final name = _newGroupController.text.trim();
     if (name.isEmpty) {
@@ -231,7 +335,7 @@ extension _AdminAccessTabExt on _AdminScreenState {
       return;
     }
     try {
-      await _groupsRef.push().set({'name': name});
+      await _groupsRef.push().set({'name': name, 'type': _newGroupType});
       _newGroupController.clear();
       _snack('Group added');
     } catch (e) {

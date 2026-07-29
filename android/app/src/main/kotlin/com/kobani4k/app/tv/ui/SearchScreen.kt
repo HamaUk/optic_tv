@@ -1,4 +1,4 @@
-﻿package com.kobani4k.app.tv.ui
+package com.kobani4k.app.tv.ui
 
 import android.view.KeyEvent
 import androidx.compose.animation.AnimatedVisibility
@@ -47,16 +47,20 @@ import com.kobani4k.app.tv.ui.theme.UltraTokens
 //  TV KEYBOARD LAYOUT
 // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
+private const val KEY_DEL = "DEL"
+private const val KEY_CLEAR = "CLR"
+private const val KEY_SPACE = "SPACE"
+
 private val keyboardRows = listOf(
     listOf("1", "2", "3", "4", "5", "6", "7", "8", "9", "0"),
     listOf("Q", "W", "E", "R", "T", "Y", "U", "I", "O", "P"),
-    listOf("A", "S", "D", "F", "G", "H", "J", "K", "L", "âŒ«"),
-    listOf("Z", "X", "C", "V", "B", "N", "M", " ", ".", "âœ“")
+    listOf("A", "S", "D", "F", "G", "H", "J", "K", "L", KEY_DEL),
+    listOf("Z", "X", "C", "V", "B", "N", "M", KEY_SPACE, ".", KEY_CLEAR)
 )
 
-// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ═══════════════════════════════════════════════════════════════════════════
 //  SEARCH SCREEN
-// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ═══════════════════════════════════════════════════════════════════════════
 
 @Composable
 fun SearchScreen(
@@ -83,7 +87,7 @@ fun SearchScreen(
             .fillMaxSize()
             .background(UltraTokens.Background)
     ) {
-        // â”€â”€ LEFT: Keyboard + Query Box â”€â”€
+        // ── LEFT: Keyboard + Query Box ──
         Column(
             modifier = Modifier
                 .width(460.dp)
@@ -121,7 +125,7 @@ fun SearchScreen(
             ) {
                 if (query.isEmpty()) {
                     Text(
-                        "Type to search channels & moviesâ€¦",
+                        "Type to search channels & movies...",
                         color = UltraTokens.Divider,
                         fontSize = 15.sp
                     )
@@ -158,18 +162,18 @@ fun SearchScreen(
                         row.forEachIndexed { colIdx, key ->
                             val keyFocusRequester = remember { FocusRequester() }
                             val isFirstKey = rowIdx == 0 && colIdx == 0
-                            val isBackspace = key == "âŒ«"
-                            val isConfirmKey = key == "âœ“"
+                            val isSpecial = key == KEY_DEL || key == KEY_CLEAR || key == KEY_SPACE
 
                             KeyboardKey(
                                 label = key,
-                                isSpecial = isBackspace || isConfirmKey,
+                                isSpecial = isSpecial,
                                 focusRequester = if (isFirstKey) searchFocusRequester else keyFocusRequester,
                                 modifier = Modifier.weight(1f),
                                 onClick = {
-                                    when {
-                                        isBackspace -> if (query.isNotEmpty()) query = query.dropLast(1)
-                                        isConfirmKey -> { /* query is live â€” nothing extra needed */ }
+                                    when (key) {
+                                        KEY_DEL -> if (query.isNotEmpty()) query = query.dropLast(1)
+                                        KEY_CLEAR -> query = ""
+                                        KEY_SPACE -> query += " "
                                         else -> query += key
                                     }
                                 }
@@ -306,22 +310,27 @@ private fun KeyboardKey(
 ) {
     var isFocused by remember { mutableStateOf(false) }
 
-    val bgColor by animateColorAsState(
-        if (isFocused) Color.White
-        else if (isSpecial) UltraTokens.SurfaceSelected
-        else Color.Black,
-        tween(120), label = "keyBg"
+    val bgColor = when {
+        isFocused -> Color.White
+        isSpecial -> UltraTokens.SurfaceHover
+        else -> Color.Black.copy(alpha = 0.5f)
+    }
+    val contentColor = if (isFocused) Color.Black else Color.White
+    val borderColor = if (isFocused) Color.White else Color.White.copy(alpha = 0.15f)
+
+    val scale by animateFloatAsState(
+        targetValue = if (isFocused) 1.06f else 1f,
+        animationSpec = tween(80),
+        label = "keyScale"
     )
-    val textColor = if (isFocused) Color.Black else Color.White
-    val scale by animateFloatAsState(if (isFocused) 1.1f else 1f, tween(100), label = "keyScale")
 
     Box(
         modifier = modifier
-            .height(40.dp)
+            .height(42.dp)
             .scale(scale)
-            .clip(RoundedCornerShape(6.dp))
+            .clip(RoundedCornerShape(8.dp))
             .background(bgColor)
-            .border(1.dp, Color.White.copy(alpha = 0.2f), RoundedCornerShape(6.dp))
+            .border(1.dp, borderColor, RoundedCornerShape(8.dp))
             .focusRequester(focusRequester)
             .onFocusChanged { isFocused = it.isFocused }
             .focusable()
@@ -336,13 +345,18 @@ private fun KeyboardKey(
             .clickable { onClick() },
         contentAlignment = Alignment.Center
     ) {
-        Text(
-            text = label,
-            color = textColor,
-            fontSize = if (label.length > 1) 12.sp else 14.sp,
-            fontWeight = FontWeight.Bold,
-            textAlign = TextAlign.Center
-        )
+        when (label) {
+            KEY_DEL -> Icon(Icons.Rounded.Backspace, contentDescription = "Delete", tint = contentColor, modifier = Modifier.size(18.dp))
+            KEY_CLEAR -> Icon(Icons.Rounded.Clear, contentDescription = "Clear", tint = contentColor, modifier = Modifier.size(18.dp))
+            KEY_SPACE -> Icon(Icons.Rounded.SpaceBar, contentDescription = "Space", tint = contentColor, modifier = Modifier.size(18.dp))
+            else -> Text(
+                text = label,
+                color = contentColor,
+                fontSize = 14.sp,
+                fontWeight = FontWeight.Bold,
+                textAlign = TextAlign.Center
+            )
+        }
     }
 }
 

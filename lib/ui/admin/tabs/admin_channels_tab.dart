@@ -10,30 +10,61 @@ extension _AdminChannelsTabExt on _AdminScreenState {
         ),
       ),
       child: StreamBuilder<DatabaseEvent>(
-        stream: _playlistRef.onValue,
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return Center(child: CircularProgressIndicator(color: Theme.of(context).primaryColor));
+        stream: _groupsRef.onValue,
+        builder: (context, groupsSnapshot) {
+          final groupsRaw = groupsSnapshot.data?.snapshot.value;
+          final groupOrders = <String, int>{};
+          if (groupsRaw is Map) {
+            for (final entry in groupsRaw.entries) {
+              final val = entry.value;
+              if (val is Map) {
+                final name = '${val['name'] ?? entry.key}';
+                final order = val['order'] as int? ?? 999999;
+                groupOrders[name.toLowerCase()] = order;
+              }
+            }
           }
-          final raw = snapshot.data?.snapshot.value;
-          var items = _parsePlaylist(raw);
-          _sortChannelEntries(items);
+
+          return StreamBuilder<DatabaseEvent>(
+            stream: _playlistRef.onValue,
+            builder: (context, snapshot) {
+              if (snapshot.connectionState == ConnectionState.waiting) {
+                return Center(child: CircularProgressIndicator(color: Theme.of(context).primaryColor));
+              }
+              final raw = snapshot.data?.snapshot.value;
+              var items = _parsePlaylist(raw);
+              _sortChannelEntries(items);
 
           final groups = <String>{};
           for (final e in items) {
             final v = e.value;
             if (v is Map) {
-              groups.add('${v['group'] ?? v['category'] ?? 'General'}');
+              final grp = '${v['group'] ?? v['category'] ?? 'General'}';
+              final isMovieGroup = grp.toLowerCase().contains('movie') || grp.toLowerCase().contains('film') || grp.toLowerCase().contains('cinema') || grp.toLowerCase() == 'vod';
+              if (!isMovieGroup && v['type'] != 'movie') {
+                groups.add(grp);
+              }
             }
           }
-          final sortedGroups = groups.toList()..sort();
+          final sortedGroups = groups.toList()..sort((a, b) {
+            final oa = groupOrders[a.toLowerCase()] ?? 999999;
+            final ob = groupOrders[b.toLowerCase()] ?? 999999;
+            if (oa != ob) return oa.compareTo(ob);
+            return a.toLowerCase().compareTo(b.toLowerCase());
+          });
 
           items = items.where((e) {
             final v = e.value;
             if (v is! Map) return false;
+            
+            // Exclude movies and movie groups from Channels tab
+            final grp = '${v['group'] ?? v['category'] ?? 'General'}';
+            final isMovieGroup = grp.toLowerCase().contains('movie') || grp.toLowerCase().contains('film') || grp.toLowerCase().contains('cinema') || grp.toLowerCase() == 'vod';
+            if (isMovieGroup || v['type'] == 'movie') return false;
+
             final name = '${v['name'] ?? ''}'.toLowerCase();
             final url = '${v['url'] ?? ''}'.toLowerCase();
-            final grp = '${v['group'] ?? v['category'] ?? 'General'}';
+            
             if (_groupFilter != null && grp != _groupFilter) return false;
             if (_channelSearchQuery.isEmpty) return true;
             return name.contains(_channelSearchQuery) ||
@@ -112,6 +143,7 @@ extension _AdminChannelsTabExt on _AdminScreenState {
                         ),
                       ),
                     ),
+
                     if (_selectedKeys.isNotEmpty) ...[
                       const SizedBox(width: 12),
                       FilledButton.icon(
@@ -160,6 +192,16 @@ extension _AdminChannelsTabExt on _AdminScreenState {
                                   }),
                                   selectedColor: Theme.of(context).primaryColor.withValues(alpha: 0.35),
                                 ),
+                              ),
+                            ),
+                            Padding(
+                              padding: const EdgeInsets.only(left: 8),
+                              child: ActionChip(
+                                label: const Text('Manage Groups'),
+                                avatar: const Icon(Icons.sort_rounded, size: 16),
+                                onPressed: () => _tabController.animateTo(5), // 5 is ACCESS tab
+                                backgroundColor: AppTheme.accentTeal.withValues(alpha: 0.1),
+                                side: BorderSide(color: AppTheme.accentTeal.withValues(alpha: 0.3)),
                               ),
                             ),
                           ],
@@ -313,8 +355,10 @@ extension _AdminChannelsTabExt on _AdminScreenState {
             ],
           );
         },
-      ),
-    );
+      );
+    },
+  ),
+);
   }
 
 
@@ -428,14 +472,16 @@ extension _AdminChannelsTabExt on _AdminScreenState {
                       _sheetField(userAgentCtrl, 'User Agent (Optional)', Icons.language_rounded),
                       const SizedBox(height: 12),
                       _sheetField(refererCtrl, 'Referer (Optional)', Icons.link_rounded),
-                      const SizedBox(height: 12),
-                      Row(
-                        children: [
-                          Expanded(child: _sheetField(drmSchemeCtrl, 'DRM Type (e.g. widevine)', Icons.security_rounded)),
-                          const SizedBox(width: 8),
-                          Expanded(flex: 2, child: _sheetField(drmLicenseCtrl, 'DRM License URL', Icons.key_rounded)),
-                        ],
-                      ),
+                      if (contentType != 'movie') ...[
+                        const SizedBox(height: 12),
+                        Row(
+                          children: [
+                            Expanded(child: _sheetField(drmSchemeCtrl, 'DRM Type (e.g. widevine)', Icons.security_rounded)),
+                            const SizedBox(width: 8),
+                            Expanded(flex: 2, child: _sheetField(drmLicenseCtrl, 'DRM License URL', Icons.key_rounded)),
+                          ],
+                        ),
+                      ],
                       const SizedBox(height: 12),
                       _sheetField(groupCtrl, 'Group', Icons.folder_outlined),
                       const SizedBox(height: 12),

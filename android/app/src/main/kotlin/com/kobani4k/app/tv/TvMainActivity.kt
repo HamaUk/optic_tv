@@ -51,6 +51,7 @@ class TvMainActivity : ComponentActivity() {
         try {
             Aptabase.instance.initialize(applicationContext, "A-EU-6309896811")
             Aptabase.instance.trackEvent("app_started_tv")
+            com.kobani4k.app.tv.data.PocketBaseRepository().postAnalyticsEvent("app_open", context = applicationContext)
         } catch (e: Exception) {
             android.util.Log.e("Aptabase", "Failed to initialize Aptabase", e)
         }
@@ -72,8 +73,8 @@ class TvMainActivity : ComponentActivity() {
 
             DisposableEffect(sharedPrefs) {
                 val listener = SharedPreferences.OnSharedPreferenceChangeListener { sp, key ->
-                    if (key == "settings.app_lang") {
-                        appLanguage = sp.getString(key, "Kurdish Sorani") ?: "Kurdish Sorani"
+                    if (key == "flutter.settings.app_lang") {
+                        appLanguage = sp.getString(key, "ckb") ?: "ckb"
                     }
                 }
                 sharedPrefs.registerOnSharedPreferenceChangeListener(listener)
@@ -90,7 +91,7 @@ class TvMainActivity : ComponentActivity() {
                 Font(R.font.rabar_021, weight = androidx.compose.ui.text.font.FontWeight.ExtraBold)
             )
             val defaultTypography = Typography()
-            val customTypography = if (appLanguage == "Kurdish Sorani" || appLanguage == "Arabic") {
+            val customTypography = if (appLanguage == "ckb" || appLanguage == "kmr" || appLanguage == "ar" || appLanguage == "Kurdish Sorani" || appLanguage == "Arabic") {
                 Typography(
                     displayLarge = defaultTypography.displayLarge.copy(fontFamily = rabarFontFamily),
                     displayMedium = defaultTypography.displayMedium.copy(fontFamily = rabarFontFamily),
@@ -121,6 +122,48 @@ class TvMainActivity : ComponentActivity() {
                         .fillMaxSize()
                         .background(MaterialTheme.colorScheme.background)
                 ) {
+                    var showUpdateDialog by remember { mutableStateOf<com.kobani4k.app.tv.data.AppUpdateInfo?>(null) }
+                    val repo = remember { com.kobani4k.app.tv.data.PocketBaseRepository() }
+                    
+                    LaunchedEffect(Unit) {
+                        val update = repo.checkAppUpdate()
+                        if (update != null && update.isActive && update.apkUrl.isNotEmpty()) {
+                            val dismissedUrl = sharedPrefs.getString("dismissed_update_url", null)
+                            if (dismissedUrl != update.apkUrl) {
+                                showUpdateDialog = update
+                            }
+                        }
+                    }
+
+                    val updateInfo = showUpdateDialog
+                    if (updateInfo != null) {
+                        androidx.compose.material3.AlertDialog(
+                            onDismissRequest = { 
+                                sharedPrefs.edit().putString("dismissed_update_url", updateInfo.apkUrl).apply()
+                                showUpdateDialog = null 
+                            },
+                            title = { androidx.tv.material3.Text("New Update Available") },
+                            text = { androidx.tv.material3.Text("An important update is available for KOBANI 4K. Please update for the best experience.") },
+                            confirmButton = {
+                                androidx.tv.material3.Button(onClick = {
+                                    sharedPrefs.edit().putString("dismissed_update_url", updateInfo.apkUrl).apply()
+                                    showUpdateDialog = null
+                                    com.kobani4k.app.tv.utils.TvUpdateManager.downloadAndInstallApk(context, updateInfo.apkUrl)
+                                }) {
+                                    androidx.tv.material3.Text("Update Now")
+                                }
+                            },
+                            dismissButton = {
+                                androidx.tv.material3.Button(onClick = {
+                                    sharedPrefs.edit().putString("dismissed_update_url", updateInfo.apkUrl).apply()
+                                    showUpdateDialog = null
+                                }) {
+                                    androidx.tv.material3.Text("Later")
+                                }
+                            }
+                        )
+                    }
+
                     if (lastCrash != null) {
                         Column(
                             modifier = Modifier.fillMaxSize().background(Color.Red).padding(16.dp),
@@ -145,6 +188,7 @@ class TvMainActivity : ComponentActivity() {
                         }
                         return@Box
                     }
+
 
                     val initialSession = sharedPrefs.getBoolean("flutter.auth_logged_in", false)
                     val startDest = if (initialSession) "dashboard" else "login"

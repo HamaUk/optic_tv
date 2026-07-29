@@ -106,6 +106,7 @@ class AppSettingsData {
 
   static BoxFit _decodeFit(String key) {
     return switch (key) {
+      'contain' => BoxFit.contain, // Bug 8 fix: was missing, caused setting to reset to fill
       'cover' => BoxFit.cover,
       'fill' => BoxFit.fill,
       'fitWidth' => BoxFit.fitWidth,

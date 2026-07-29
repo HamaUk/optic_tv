@@ -64,12 +64,14 @@ class _FullscreenPlayerPageState extends ConsumerState<FullscreenPlayerPage> {
 
   // MOBILE SPECIFIC STATE (Nano Banana)
   DateTime _now = DateTime.now();
+  bool _stadiumModeEnabled = false;
   Timer? _clockTimer;
   String? _osdLabel;
   Timer? _osdTimer;
   double? _brightnessValue;
   late int _currentServerIndex;
   late final ScrollController _scrollController;
+  late final PageController _pageController;
   bool _isPlaying = true;
   BoxFit _currentFit = BoxFit.fill;
   int _currentMaxHeight = 0; // 0 = Auto
@@ -81,6 +83,7 @@ class _FullscreenPlayerPageState extends ConsumerState<FullscreenPlayerPage> {
     _currentServerIndex = widget.activeServerIndex;
     _currentChannel = widget.channels[_currentIndex];
     _scrollController = ScrollController();
+    _pageController = PageController(initialPage: widget.initialIndex);
     
     _subscriptions.add(widget.player.stream.position.listen((p) {
       if (mounted) setState(() {}); // Refresh for progress if needed
@@ -121,6 +124,7 @@ class _FullscreenPlayerPageState extends ConsumerState<FullscreenPlayerPage> {
   void dispose() {
     WakelockPlus.disable();
     _scrollController.dispose();
+    _pageController.dispose();
     if (widget.onChannelChanged == null) {
       try {
         widget.player.stop();
@@ -210,6 +214,10 @@ class _FullscreenPlayerPageState extends ConsumerState<FullscreenPlayerPage> {
       _overlayVisible = true;
       _zapListVisible = false;
     });
+    
+    if (_pageController.hasClients && _pageController.page?.round() != index) {
+      _pageController.jumpToPage(index);
+    }
 
     final newChannel = _currentChannel;
 
@@ -429,15 +437,35 @@ class _FullscreenPlayerPageState extends ConsumerState<FullscreenPlayerPage> {
             setState(() => _overlayVisible = !_overlayVisible);
             if (_overlayVisible) _resetHideTimer();
           },
-          onVerticalDragUpdate: _handleVerticalDrag,
           child: Stack(
             children: [
               // THE VIDEO LAYER
               const Center(
                 child: SizedBox.expand(),
               ),
-              Center(
-                child: NativePlayerView(player: widget.player, fit: _currentFit),
+              PageView.builder(
+                scrollDirection: Axis.vertical,
+                controller: _pageController,
+                itemCount: widget.channels.length,
+                onPageChanged: (index) {
+                  if (index != _currentIndex) {
+                    _zapTo(index);
+                  }
+                },
+                itemBuilder: (context, index) {
+                  if (index == _currentIndex) {
+                    return Center(
+                      child: NativePlayerView(player: widget.player, fit: _currentFit),
+                    );
+                  } else {
+                    return Container(
+                      color: Colors.black,
+                      child: const Center(
+                        child: CircularProgressIndicator(color: Colors.redAccent),
+                      ),
+                    );
+                  }
+                },
               ),
               
               if (_streamFailed)
@@ -644,6 +672,30 @@ class _FullscreenPlayerPageState extends ConsumerState<FullscreenPlayerPage> {
                   },
                 ),
                 const SizedBox(width: 20),
+                // Stadium Mode (Vocal Isolation) Toggle
+                IconButton(
+                  icon: Icon(
+                    Icons.stadium_rounded, 
+                    color: _stadiumModeEnabled ? Colors.greenAccent : Colors.white, 
+                    size: 28,
+                  ),
+                  tooltip: 'Stadium Audio Mixer',
+                  onPressed: () {
+                    setState(() {
+                      _stadiumModeEnabled = !_stadiumModeEnabled;
+                    });
+                    widget.player.setStadiumMode(_stadiumModeEnabled);
+                    
+                    ScaffoldMessenger.of(context).clearSnackBars();
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text(_stadiumModeEnabled ? 'Stadium Audio Mixer: ON (Vocals Isolated)' : 'Stadium Audio Mixer: OFF'),
+                        duration: const Duration(seconds: 2),
+                      ),
+                    );
+                  },
+                ),
+                const SizedBox(width: 20),
                 // Aspect Ratio (Fit Toggle)
                 IconButton(
                   icon: const Icon(Icons.aspect_ratio_rounded, color: Colors.white, size: 28),
@@ -823,12 +875,7 @@ class _FullscreenPlayerPageState extends ConsumerState<FullscreenPlayerPage> {
     );
   }
 
-  void _handleVerticalDrag(DragUpdateDetails details) {
-    _brightnessValue = ((_brightnessValue ?? 0.5) - details.delta.dy / 300).clamp(0.0, 1.0);
-    _osdLabel = "BRIGHTNESS";
-    setState(() {});
-    _resetOSDTimer();
-  }
+  // Removed brightness drag to allow native vertical Swipe-to-Zap
 
   void _resetOSDTimer() {
     _osdTimer?.cancel();

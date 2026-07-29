@@ -8,8 +8,13 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../services/optic_player.dart';
 import 'package:wakelock_plus/wakelock_plus.dart';
 
+import '../../services/settings_service.dart';
+import '../../services/update_service.dart';
+import '../../widgets/update_prompt_dialog.dart';
 import '../../l10n/app_strings.dart';
 import '../../services/playlist_service.dart';
+import '../../services/analytics_service.dart';
+
 
 class MoviePlayerPage extends ConsumerStatefulWidget {
   final OpticPlayer player;
@@ -59,6 +64,11 @@ class _MoviePlayerPageState extends ConsumerState<MoviePlayerPage> {
   void initState() {
     super.initState();
     _position = widget.player.currentPosition;
+    
+    // Track movie start
+    Future.microtask(() {
+      ref.read(analyticsServiceProvider).trackChannelStart(widget.channel.url, widget.channel.name);
+    });
     _duration = widget.player.totalDuration;
 
     _subscriptions.add(widget.player.stream.position.listen((p) {
@@ -115,8 +125,13 @@ class _MoviePlayerPageState extends ConsumerState<MoviePlayerPage> {
     for (final s in _subscriptions) {
       s.cancel();
     }
+    
     // STOP AUDIO LEAK: Explicitly dispose the player engine
     widget.player.dispose();
+    
+    // Track movie stop
+    ref.read(analyticsServiceProvider).trackChannelStop(widget.channel.url, widget.channel.name);
+    
     super.dispose();
   }
 
@@ -136,6 +151,8 @@ class _MoviePlayerPageState extends ConsumerState<MoviePlayerPage> {
     }
     return true;
   }
+
+
 
   @override
   Widget build(BuildContext context) {
@@ -246,19 +263,30 @@ class _MoviePlayerPageState extends ConsumerState<MoviePlayerPage> {
                 }),
                 const SizedBox(width: 16),
                 Expanded(
-                  child: Text(
-                    widget.channel.name,
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 22,
-                      fontWeight: FontWeight.bold,
-                      shadows: [Shadow(color: Colors.black54, blurRadius: 10)],
-                    ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
+                  child: Row(
+                    children: [
+                      Flexible(
+                        child: Text(
+                          widget.channel.name,
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 22,
+                            fontWeight: FontWeight.bold,
+                            shadows: [Shadow(color: Colors.black54, blurRadius: 10)],
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+
+                    ],
                   ),
                 ),
                 // Right side icons
+                _buildHUDAction(Icons.subtitles_rounded, () {
+                  // Subtitle selection
+                }),
+                const SizedBox(width: 12),
                 _buildHUDImageAsset('assets/images/flixy/ic_time.png', () {
                   setState(() {
                     _playbackSpeed = _playbackSpeed >= 2.0 ? 0.5 : _playbackSpeed + 0.25;

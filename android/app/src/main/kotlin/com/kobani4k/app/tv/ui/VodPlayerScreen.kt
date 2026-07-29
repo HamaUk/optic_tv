@@ -98,6 +98,7 @@ fun VodPlayerScreen(
 
     var selectedAspect  by remember { mutableStateOf("Fit") }
     var selectedDecoder by remember { mutableStateOf("Auto") }
+    var selectedSleep   by remember { mutableStateOf("Off") }
 
     // Auto-hide controls after 5 s of inactivity
     LaunchedEffect(showControls, controlsActivityTrigger, activeMenu) {
@@ -275,7 +276,8 @@ fun VodPlayerScreen(
                 // Seek +/- 10s if controls are hidden, otherwise rely on controls HUD
                 if (!showControls && activeMenu == ActiveMenu.NONE && isLeftRight(code)) {
                     val jumpMs = if (code == KeyEvent.KEYCODE_DPAD_LEFT) -15000L else 15000L
-                    val newPos = (exoPlayer.currentPosition + jumpMs).coerceIn(0, exoPlayer.duration)
+                    val safeDuration = if (exoPlayer.duration > 0) exoPlayer.duration else Long.MAX_VALUE
+                    val newPos = (exoPlayer.currentPosition + jumpMs).coerceIn(0, safeDuration)
                     exoPlayer.seekTo(newPos)
                     currentPosition = newPos
                     wakeUpControls()
@@ -349,7 +351,8 @@ fun VodPlayerScreen(
                     if (isPlayingState) exoPlayer.pause() else exoPlayer.play()
                 },
                 onSeek = { ms ->
-                    val newPos = (exoPlayer.currentPosition + ms).coerceIn(0, exoPlayer.duration)
+                    val safeDuration = if (exoPlayer.duration > 0) exoPlayer.duration else Long.MAX_VALUE
+                    val newPos = (exoPlayer.currentPosition + ms).coerceIn(0, safeDuration)
                     exoPlayer.seekTo(newPos)
                     currentPosition = newPos
                     wakeUpControls()
@@ -379,6 +382,8 @@ fun VodPlayerScreen(
                 onAspectSelected = { selectedAspect = it },
                 selectedDecoder = selectedDecoder,
                 onDecoderSelected = { selectedDecoder = it },
+                selectedSleep = selectedSleep,
+                onSleepSelected = { selectedSleep = it },
                 onDismiss  = { activeMenu = ActiveMenu.NONE }
             )
         }

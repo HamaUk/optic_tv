@@ -65,6 +65,8 @@ class DatabaseReference {
     if (path.contains('analytics/views/total')) return 'analytics_views_total';
     if (path.contains('analytics/views/daily')) return 'analytics_views_daily';
     if (path.contains('analytics/channel_views')) return 'analytics_channel_views';
+    if (path.contains('watchParties')) return 'watchParties';
+    if (path.contains('watchPartyMessages')) return 'watchPartyMessages';
     return 'unknown';
   }
 

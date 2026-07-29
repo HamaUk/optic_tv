@@ -12,6 +12,11 @@ import android.content.Intent
 import android.net.Uri
 import androidx.core.content.FileProvider
 import android.view.WindowManager
+import android.app.NotificationChannel
+import android.app.NotificationManager
+import android.media.AudioAttributes
+import android.os.Build
+import android.content.ContentResolver
 import io.flutter.plugin.common.MethodChannel
 import com.kobani4k.player.NativeExoPlayer
 import java.io.File
@@ -31,6 +36,28 @@ class MainActivity: FlutterActivity() {
             val intent = android.content.Intent(this, com.kobani4k.app.tv.TvMainActivity::class.java)
             startActivity(intent)
             finish()
+        }
+        
+        // Create Firebase Notification Channel with custom dragon_studio sound
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            val channel = NotificationChannel(
+                "optic_tv_channel",
+                "Match Notifications",
+                NotificationManager.IMPORTANCE_HIGH
+            )
+            
+            val soundId = resources.getIdentifier("dragon_studio", "raw", packageName)
+            if (soundId != 0) {
+                val soundUri = Uri.parse(ContentResolver.SCHEME_ANDROID_RESOURCE + "://" + packageName + "/" + soundId)
+                val audioAttributes = AudioAttributes.Builder()
+                    .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
+                    .setUsage(AudioAttributes.USAGE_NOTIFICATION)
+                    .build()
+                channel.setSound(soundUri, audioAttributes)
+            }
+            
+            val notificationManager = getSystemService(NotificationManager::class.java)
+            notificationManager?.createNotificationChannel(channel)
         }
     }
 

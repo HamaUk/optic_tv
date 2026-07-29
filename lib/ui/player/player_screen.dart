@@ -20,7 +20,6 @@ import '../../core/theme.dart';
 import '../../widgets/channel_logo_image.dart';
 import '../../widgets/player_control_button.dart';
 import '../../widgets/kobani_wordmark.dart';
-import '../../widgets/live_viewer_badge.dart';
 import '../../l10n/app_strings.dart';
 import '../../providers/app_locale_provider.dart';
 import '../../providers/channel_library_provider.dart';
@@ -30,9 +29,8 @@ import '../../services/playlist_service.dart';
 import '../../services/platform_service.dart';
 import '../../services/settings_service.dart';
 import '../../services/settings_service.dart';
-import '../../services/viewer_service.dart';
 import '../../services/analytics_service.dart';
-import '../../widgets/live_viewer_badge.dart';
+
 import '../settings/settings_screen.dart';
 import '../../widgets/dlna_device_dialog.dart';
 import '../../services/dlna_service.dart';
@@ -163,15 +161,16 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> with WidgetsBinding
 
     _initFlow();
     
-
+    // Track initial channel start
+    Future.microtask(() {
+      ref.read(analyticsServiceProvider).trackChannelStart(_current.url, _current.name);
+    });
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
       ref.read(recentChannelsProvider.notifier).record(_current);
       _activePanel.addListener(_onPanelChanged);
       _configureNativePlayer();
       _startTechInfoTicker();
-      
-      ref.read(viewerServiceProvider).joinChannel(_current.name);
     });
   }
 
@@ -368,7 +367,10 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> with WidgetsBinding
     _playerFocus.dispose();
     _player?.stop();
     _player?.dispose();
-    ref.read(viewerServiceProvider).leaveChannel(_current.name);
+    
+    // Track channel stop on exit
+    ref.read(analyticsServiceProvider).trackChannelStop(_current.url, _current.name);
+    
     super.dispose();
   }
 
@@ -412,10 +414,10 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> with WidgetsBinding
     final newName = _current.name;
     final newUrl = _current.url;
 
-    if (oldName != newName) {
-      // Leave old channel first, then join new one
-      ref.read(viewerServiceProvider).leaveChannel(oldName);
-      ref.read(viewerServiceProvider).joinChannel(newName);
+    if (oldName != newName || oldUrl != newUrl) {
+      final analytics = ref.read(analyticsServiceProvider);
+      analytics.trackChannelStop(oldUrl, oldName);
+      analytics.trackChannelStart(newUrl, newName);
     }
 
     ref.read(recentChannelsProvider.notifier).record(_current);
@@ -531,7 +533,6 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> with WidgetsBinding
                   _selectedGroup = newCh.group;
                 }
               });
-              ref.read(viewerServiceProvider).joinChannel(newCh.name);
             }
           },
         );
@@ -879,11 +880,6 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> with WidgetsBinding
                       ),
                     ),
                   ),
-                ),
-                const SizedBox(width: 8),
-                LiveViewerBadge(
-                  channelName: _current.name,
-                  isMobile: true,
                 ),
               ],
             ),

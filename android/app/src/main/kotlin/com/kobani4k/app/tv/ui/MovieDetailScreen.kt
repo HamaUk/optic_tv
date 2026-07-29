@@ -26,6 +26,7 @@ import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -45,7 +46,8 @@ fun MovieDetailScreen(
     onBack: () -> Unit,
     onPlay: () -> Unit
 ) {
-    val tmdbService = remember { TmdbService() }
+    val context = LocalContext.current
+    val tmdbService = remember { TmdbService().init(context) }
     var tmdbMovie by remember { mutableStateOf<TmdbMovie?>(null) }
     var isLoading by remember { mutableStateOf(true) }
 
@@ -55,7 +57,7 @@ fun MovieDetailScreen(
         tmdbMovie = tmdbService.findMovie(channelName)
         isLoading = false
         delay(100) // Slight delay to let UI render before requesting focus
-        playFocusRequester.requestFocus()
+        runCatching { playFocusRequester.requestFocus() }
     }
 
     Box(
@@ -168,7 +170,7 @@ fun MovieDetailScreen(
                                 fontWeight = FontWeight.SemiBold
                             )
                         }
-                        Text("â€¢", color = UltraTokens.TextSecondary, fontSize = 18.sp)
+                        Text("•", color = UltraTokens.TextSecondary, fontSize = 18.sp)
                     }
 
                     val year = tmdbMovie?.releaseDate?.take(4)

@@ -27,11 +27,15 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.animation.core.tween
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -39,6 +43,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.tv.material3.Text
 import coil.compose.AsyncImage
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import com.kobani4k.app.tv.data.TmdbMovie
 import com.kobani4k.app.tv.data.TmdbService
 import com.kobani4k.app.tv.data.TvChannel
@@ -49,7 +55,8 @@ fun MoviesGridScreen(
     channels: List<TvChannel>,
     onMovieClick: (TvChannel) -> Unit
 ) {
-    val tmdbService = remember { TmdbService() }
+    val context = LocalContext.current
+    val tmdbService = remember { TmdbService().init(context) }
     val groupedChannels = remember(channels) {
         channels.groupBy { if (it.group.isBlank()) "Movies" else it.group }
     }
@@ -206,7 +213,7 @@ fun MovieHeroSection(
                             fontWeight = FontWeight.SemiBold
                         )
                     }
-                    Text("-", color = UltraTokens.TextSecondary, fontSize = 14.sp)
+                    Text("•", color = UltraTokens.TextSecondary, fontSize = 14.sp)
                 }
 
                 val year = tmdbMovie?.releaseDate?.take(4)
@@ -237,11 +244,24 @@ fun MovieHeroSection(
             ) {
                 // Play button
                 var playFocused by remember { mutableStateOf(false) }
+                val playFocusRequester = remember { FocusRequester() }
                 val playBgColor = if (playFocused) Color.White else Color.Transparent
                 val playContentColor = if (playFocused) Color.Black else Color.White
                 
+                LaunchedEffect(Unit) {
+                    runCatching { playFocusRequester.requestFocus() }
+                }
+
+                val playScale by animateFloatAsState(
+                    targetValue = if (playFocused) 1.05f else 1f,
+                    animationSpec = tween(80),
+                    label = "play_scale"
+                )
+
                 Box(
                     modifier = Modifier
+                        .scale(playScale)
+                        .focusRequester(playFocusRequester)
                         .onFocusChanged { playFocused = it.isFocused }
                         .clip(RoundedCornerShape(8.dp))
                         .background(playBgColor)
@@ -263,8 +283,15 @@ fun MovieHeroSection(
                 val infoBgColor = if (infoFocused) Color.White else Color.Transparent
                 val infoContentColor = if (infoFocused) Color.Black else Color.White
                 
+                val infoScale by animateFloatAsState(
+                    targetValue = if (infoFocused) 1.05f else 1f,
+                    animationSpec = tween(80),
+                    label = "info_scale"
+                )
+
                 Box(
                     modifier = Modifier
+                        .scale(infoScale)
                         .onFocusChanged { infoFocused = it.isFocused }
                         .clip(RoundedCornerShape(8.dp))
                         .background(infoBgColor)
@@ -337,14 +364,19 @@ fun MoviePosterCard(
 ) {
     var isFocused by remember { mutableStateOf(false) }
     var tmdbMovie by remember { mutableStateOf<TmdbMovie?>(null) }
-    var isLoading by remember { mutableStateOf(true) }
 
-    LaunchedEffect(channel.name) {
-        tmdbMovie = tmdbService.findMovie(channel.name)
-        isLoading = false
-    }
+    // Lazy TMDB fetch — only triggered on focus with 250ms debounce.
+    // Previously fired for EVERY visible card immediately on composition,
+    // causing 50+ simultaneous network requests during initial grid render.
+    val scope = rememberCoroutineScope()
+    var fetchJob by remember { mutableStateOf<kotlinx.coroutines.Job?>(null) }
 
-    val scale by animateFloatAsState(if (isFocused) 1.05f else 1f, label = "scale")
+    val scale by animateFloatAsState(
+        targetValue = if (isFocused) 1.05f else 1f,
+        animationSpec = tween(durationMillis = 100),
+        label = "scale"
+    )
+
     
     // Card container
     Box(
@@ -363,10 +395,19 @@ fun MoviePosterCard(
             )
             .clip(RoundedCornerShape(8.dp))
             .background(UltraTokens.Surface)
-            .onFocusChanged { 
-                isFocused = it.isFocused 
+            .onFocusChanged {
+                isFocused = it.isFocused
                 if (it.isFocused) {
                     onFocus()
+                    // Debounced fetch: cancel if user moves away quickly,
+                    // only fetch when resting on a card for ≥250ms.
+                    fetchJob?.cancel()
+                    fetchJob = scope.launch {
+                        delay(250)
+                        if (tmdbMovie == null) {
+                            tmdbMovie = tmdbService.findMovie(channel.name)
+                        }
+                    }
                 }
             }
             .clickable { onClick() }

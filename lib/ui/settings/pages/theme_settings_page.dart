@@ -103,84 +103,90 @@ class _ThemeCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final accent = AppTheme.accentColor(preset);
 
-    return GestureDetector(
-      onTap: onTap,
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 300),
-        curve: Curves.easeOutQuart,
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(16),
-          gradient: AppTheme.shellGradient(preset),
-          border: Border.all(
-            color: isSelected ? accent : Colors.white.withValues(alpha: 0.1),
-            width: isSelected ? 2.5 : 1.0,
-          ),
-          boxShadow: [
-            if (isSelected)
-              BoxShadow(
-                color: accent.withValues(alpha: 0.3),
-                blurRadius: 16,
-                spreadRadius: 2,
-              ),
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.5),
-              blurRadius: 8,
-              offset: const Offset(0, 4),
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(16),
+        focusColor: Colors.white.withValues(alpha: 0.15),
+        hoverColor: Colors.white.withValues(alpha: 0.1),
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 300),
+          curve: Curves.easeOutQuart,
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(16),
+            gradient: AppTheme.shellGradient(preset),
+            border: Border.all(
+              color: isSelected ? accent : Colors.white.withValues(alpha: 0.1),
+              width: isSelected ? 2.5 : 1.0,
             ),
-          ],
-        ),
-        child: Stack(
-          children: [
-            // Decorative accent blob
-            Positioned(
-              right: -10,
-              top: -10,
-              child: Container(
-                width: 60,
-                height: 60,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: accent.withValues(alpha: 0.15),
+            boxShadow: [
+              if (isSelected)
+                BoxShadow(
+                  color: accent.withValues(alpha: 0.3),
+                  blurRadius: 16,
+                  spreadRadius: 2,
+                ),
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.5),
+                blurRadius: 8,
+                offset: const Offset(0, 4),
+              ),
+            ],
+          ),
+          child: Stack(
+            children: [
+              // Decorative accent blob
+              Positioned(
+                right: -10,
+                top: -10,
+                child: Container(
+                  width: 60,
+                  height: 60,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: accent.withValues(alpha: 0.15),
+                  ),
                 ),
               ),
-            ),
-            Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Container(
-                        width: 20,
-                        height: 20,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          color: accent,
-                          border: Border.all(color: Colors.white, width: 2),
-                          boxShadow: [
-                            BoxShadow(color: accent.withValues(alpha: 0.5), blurRadius: 6),
-                          ],
+              Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Container(
+                          width: 20,
+                          height: 20,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            color: accent,
+                            border: Border.all(color: Colors.white, width: 2),
+                            boxShadow: [
+                              BoxShadow(color: accent.withValues(alpha: 0.5), blurRadius: 6),
+                            ],
+                          ),
                         ),
-                      ),
-                      if (isSelected)
-                        Icon(Icons.check_circle_rounded, color: accent, size: 24),
-                    ],
-                  ),
-                  Text(
-                    title,
-                    style: TextStyle(
-                      color: isSelected ? Colors.white : Colors.white70,
-                      fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
-                      fontSize: 15,
+                        if (isSelected)
+                          Icon(Icons.check_circle_rounded, color: accent, size: 24),
+                      ],
                     ),
-                  ),
-                ],
+                    Text(
+                      title,
+                      style: TextStyle(
+                        color: isSelected ? Colors.white : Colors.white70,
+                        fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
+                        fontSize: 15,
+                      ),
+                    ),
+                  ],
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );

@@ -72,13 +72,12 @@ class Channel {
     this.url3UserAgent,
   });
 
-  static String decrypt(String b64Text) {
-    return b64Text;
-  }
-
-  static String encrypt(String plainText) {
-    return plainText;
-  }
+  // Bug 9 note: These are intentional pass-through stubs.
+  // Real URL decryption is handled by NativeExoPlayer.kt (decryptUrl method)
+  // at the native layer just before ExoPlayer opens the stream.
+  // Having these as no-ops in Dart avoids double-decryption.
+  static String decrypt(String b64Text) => b64Text;
+  static String encrypt(String plainText) => plainText;
 
   static int _parseInt(dynamic value, [int defaultValue = 999999]) {
     if (value == null) return defaultValue;

@@ -44,6 +44,9 @@ class CustomSettingsItem extends StatelessWidget {
       ),
       child: ListTile(
         onTap: onTap,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        focusColor: Colors.white.withValues(alpha: 0.15),
+        hoverColor: Colors.white.withValues(alpha: 0.1),
         leading: Container(
           padding: const EdgeInsets.all(8),
           decoration: BoxDecoration(color: iconBgColor, borderRadius: BorderRadius.circular(12)),

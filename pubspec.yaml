@@ -1,9 +1,9 @@
 name: optic_tv
 description: A premium, professional IPTV application built from scratch.
-version: 1.5.0+223
+version: 1.6.0+225
 
 environment:
-  sdk: '>=3.7.0 <4.0.0'
+  sdk: ">=3.7.0 <4.0.0"
 
 dependencies:
   flutter:
@@ -72,8 +72,8 @@ dependencies:
   babstrap_settings_screen: ^0.1.7
   freerasp: ^8.0.0
   http_certificate_pinning: ^3.0.1
-  mqtt_client: ^10.11.11
   aptabase_flutter: ^0.4.1
+  ota_update: ^7.1.0
 dev_dependencies:
   flutter_test:
     sdk: flutter

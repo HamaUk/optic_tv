@@ -105,10 +105,16 @@ class ChannelLogoImage extends StatelessWidget {
     }
 
     final Map<String, String> headers = httpHeaders ?? {'User-Agent': 'SmartIPTV'};
+    // Cap memory cache size to 2x the display size to prevent huge images from bloat RAM
+    final memW = (w != double.infinity && w > 0) ? (w * 2).toInt() : null;
+    final memH = (h != double.infinity && h > 0) ? (h * 2).toInt() : null;
+    
     final net = CachedNetworkImage(
       imageUrl: s,
       width: w,
       height: h,
+      memCacheWidth: memW,
+      memCacheHeight: memH,
       fit: fit,
       placeholder: (_, __) => fb,
       errorWidget: (_, __, ___) => Image.network(

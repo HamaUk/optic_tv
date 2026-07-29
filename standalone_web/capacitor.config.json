@@ -1,5 +1,6 @@
 {
-  "appId": "com.kobani.tv",
-  "appName": "Kobani 4K",
-  "webDir": "."
+  "appId": "com.optictv.standalone",
+  "appName": "OpticTV Admin",
+  "webDir": "www",
+  "bundledWebRuntime": false
 }

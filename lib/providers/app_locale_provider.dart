@@ -5,7 +5,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 /// User-facing language (`ckb` / `en`). Persisted; **not** passed to [MaterialApp.locale]
 /// (that stays [Locale('en')] so Material/Cupertino delegates stay valid).
 class AppLocaleNotifier extends Notifier<Locale> {
-  static const _prefsKey = 'app_locale';
+  static const _prefsKey = 'settings.app_lang';
 
   static bool isSupportedCode(String code) =>
       code == 'en' || code == 'ckb' || code == 'kmr' || code == 'ar';

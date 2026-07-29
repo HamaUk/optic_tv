@@ -58,6 +58,7 @@ class NativeExoPlayer(
     private var player: ExoPlayer
     private var textureEntry: TextureRegistry.SurfaceTextureEntry? = null
     private var surface: Surface? = null
+    private var vocalIsolationProcessor: VocalIsolationAudioProcessor? = null
 
     /** The Flutter texture ID — Dart reads this to create Texture(textureId) */
     var textureId: Long = -1
@@ -85,10 +86,26 @@ class NativeExoPlayer(
      * Builds the ExoPlayer with all Ghosten-level optimizations.
      */
     private fun buildPlayer(): ExoPlayer {
-        val renderersFactory = DefaultRenderersFactory(context)
-            .setEnableDecoderFallback(true)
-            .setExtensionRendererMode(DefaultRenderersFactory.EXTENSION_RENDERER_MODE_ON)
-            .forceEnableMediaCodecAsynchronousQueueing() // ← KEY: async MediaCodec pipeline
+        val vocalProcessor = VocalIsolationAudioProcessor()
+        this.vocalIsolationProcessor = vocalProcessor
+
+        val renderersFactory = object : DefaultRenderersFactory(context) {
+            override fun buildAudioSink(
+                context: Context,
+                enableFloatOutput: Boolean,
+                enableAudioTrackPlaybackParams: Boolean
+            ): androidx.media3.exoplayer.audio.AudioSink? {
+                return androidx.media3.exoplayer.audio.DefaultAudioSink.Builder(context)
+                    .setEnableFloatOutput(enableFloatOutput)
+                    .setEnableAudioTrackPlaybackParams(enableAudioTrackPlaybackParams)
+                    .setAudioProcessors(arrayOf(vocalProcessor))
+                    .build()
+            }
+        }.apply {
+            setEnableDecoderFallback(true)
+            setExtensionRendererMode(DefaultRenderersFactory.EXTENSION_RENDERER_MODE_ON)
+            forceEnableMediaCodecAsynchronousQueueing() // ← KEY: async MediaCodec pipeline
+        }
 
         val mediaSourceFactory = DefaultMediaSourceFactory(context)
             .setDataSourceFactory(
@@ -177,9 +194,14 @@ class NativeExoPlayer(
                 result.success(null)
             }
             "setVolume" -> {
-                val volume = call.argument<Number>("volume")?.toFloat() ?: 1.0f
-                player.volume = volume
-                result.success(null)
+                val vol = call.argument<Double>("volume") ?: 1.0
+                player.volume = vol.toFloat()
+                result.success(true)
+            }
+            "setStadiumMode" -> {
+                val enabled = call.argument<Boolean>("enabled") ?: false
+                vocalIsolationProcessor?.isEnabled = enabled
+                result.success(true)
             }
             "setSpeed" -> {
                 val speed = call.argument<Number>("speed")?.toFloat() ?: 1.0f
@@ -430,6 +452,7 @@ class NativeExoPlayer(
     }
 
     fun dispose() {
+        isDisposed = true // Bug 6 fix: signals polling loop to stop immediately
         handler.removeCallbacksAndMessages(null)
         player.removeListener(this)
         player.setVideoSurface(null)
@@ -489,9 +512,14 @@ class NativeExoPlayer(
 
     // ─── Position Polling (matches Ghosten's 1-second interval) ──────────
 
+    private var isDisposed = false
+
     private fun startPositionPolling() {
         handler.postDelayed(object : Runnable {
             override fun run() {
+                // Bug 6 fix: stop polling if player has been disposed to avoid
+                // invoking MethodChannel on a dead Flutter engine
+                if (isDisposed) return
                 if (player.isPlaying) {
                     sendEvent("onPositionChanged", player.currentPosition)
                     sendEvent("onBufferPositionChanged", player.bufferedPosition)

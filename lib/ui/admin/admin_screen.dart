@@ -75,12 +75,16 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
   final _newGroupController = TextEditingController();
   final _newLoginCodeController = TextEditingController();
   final _channelSearchController = TextEditingController();
+  final _movieSearchController = TextEditingController();
   bool _isFeaturedAdmin = false;
   String _channelType = 'live';
   final _announcementController = TextEditingController();
   final _notifTitleController = TextEditingController();
   final _notifBodyController = TextEditingController();
   final _notifImageController = TextEditingController();
+  
+  String _newGroupType = 'live';
+  String _viewGroupType = 'live';
 
   // Update Manager State
   final _updateApkUrlController = TextEditingController();
@@ -101,7 +105,9 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
 
   late TabController _tabController;
   String _channelSearchQuery = '';
+  String _movieSearchQuery = '';
   String? _groupFilter;
+  String? _movieGroupFilter;
   _PublishShelf _publishShelf = _PublishShelf.liveTv;
   bool _backupBusy = false;
   final Set<String> _selectedKeys = {};
@@ -138,6 +144,9 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
     _channelGroupController.text = 'Live TV';
     _channelSearchController.addListener(() {
       setState(() => _channelSearchQuery = _channelSearchController.text.trim().toLowerCase());
+    });
+    _movieSearchController.addListener(() {
+      setState(() => _movieSearchQuery = _movieSearchController.text.trim().toLowerCase());
     });
   }
 

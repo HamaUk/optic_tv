@@ -52,8 +52,8 @@ extension _AdminUpdateTabExt on _AdminScreenState {
             if (val == null) return const Text('No active update.', style: TextStyle(color: Colors.white54));
             final map = val as Map;
             // PocketBase may store bool or string — handle both
-            final isActive = map['active'] == true || map['active'] == 'true';
-            final url = (map['url'] ?? '').toString();
+            final isActive = map['isActive'] == true || map['isActive'] == 'true';
+            final url = (map['apkUrl'] ?? '').toString();
             if (!isActive || url.isEmpty) return const Text('No active update.', style: TextStyle(color: Colors.white54));
             
             return _card(
@@ -82,8 +82,8 @@ extension _AdminUpdateTabExt on _AdminScreenState {
 
   Future<void> _pushUpdate() async {
     await _updateRef.set({
-      'url': _updateApkUrlController.text.trim(),
-      'active': _updateIsActive,
+      'apkUrl': _updateApkUrlController.text.trim(),
+      'isActive': _updateIsActive,
     });
     _snack('Update published successfully!');
   }

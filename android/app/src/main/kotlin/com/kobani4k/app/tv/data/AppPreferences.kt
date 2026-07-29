@@ -44,8 +44,8 @@ class AppPreferences(context: Context) {
         set(value) = prefs.edit().putStringSet("settings.favorites", value).apply()
 
     var appLanguage: String
-        get() = prefs.getString("settings.app_lang", "Kurdish Sorani") ?: "Kurdish Sorani"
-        set(value) = prefs.edit().putString("settings.app_lang", value).apply()
+        get() = prefs.getString("flutter.settings.app_lang", "ckb") ?: "ckb"
+        set(value) = prefs.edit().putString("flutter.settings.app_lang", value).apply()
 
     fun clear() {
         prefs.edit().clear().apply()

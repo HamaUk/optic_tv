@@ -1358,4 +1358,113 @@ class AppStrings {
     if (isSorani) return 'نوێکردنەوەکان، زانیاری وەشان و تێلیگرام';
     return 'Updates, version info, telegram';
   }
+
+  // ═══════════════════════════════════════════════════════════════
+  //  WATCH PARTY
+  // ═══════════════════════════════════════════════════════════════
+
+  String get navWatchParty {
+    if (isArabic) return 'مجموعات';
+    if (isKurmanji) return 'Koman';
+    if (isSorani) return 'گروپەکان';
+    return 'Parties';
+  }
+
+  String get wpTitle {
+    if (isArabic) return 'مشاهدة جماعية';
+    if (isKurmanji) return 'TEMAŞEKIRINA KOMÎ';
+    if (isSorani) return 'سەیرکردنی بەکۆمەڵ';
+    return 'WATCH PARTY';
+  }
+
+  String get wpSubtitle {
+    if (isArabic) return 'انضم إلى غرفة خاصة لمشاهدة الأفلام متزامنة مع أصدقائك.';
+    if (isKurmanji) return 'Tevlî jûreyek taybet bibin da ku fîliman bi hevalên xwe re temaşe bikin.';
+    if (isSorani) return 'بەشداری ژوورێکی تایبەت بکە بۆ سەیرکردنی فیلم لەگەڵ هاوڕێکانت.';
+    return 'Join a private room to watch synchronized movies with your friends.';
+  }
+
+  String get wpEnterCode {
+    if (isArabic) return 'أدخل الرمز';
+    if (isKurmanji) return 'KODÊ TÊKEVIN';
+    if (isSorani) return 'کۆدەکە بنووسە';
+    return 'ENTER CODE';
+  }
+
+  String get wpJoinRoom {
+    if (isArabic) return 'انضم للغرفة';
+    if (isKurmanji) return 'TEVLÎ JÛREYÊ BIBIN';
+    if (isSorani) return 'بەشداری ژوور بکە';
+    return 'JOIN ROOM';
+  }
+
+  String get wpRoomNotFound {
+    if (isArabic) return 'الغرفة غير موجودة!';
+    if (isKurmanji) return 'Jûr nehat dîtin!';
+    if (isSorani) return 'ژوور نەدۆزرایەوە!';
+    return 'Room not found!';
+  }
+
+  String get wpRoomPrefix {
+    if (isArabic) return 'الغرفة: ';
+    if (isKurmanji) return 'Jûr: ';
+    if (isSorani) return 'ژوور: ';
+    return 'Room: ';
+  }
+
+  String get wpChatHint {
+    if (isArabic) return 'دردشة...';
+    if (isKurmanji) return 'Sohbet...';
+    if (isSorani) return 'چات...';
+    return 'Chat...';
+  }
+
+  String get wpCreateRoom {
+    if (isArabic) return 'إنشاء غرفة';
+    if (isKurmanji) return 'Jûreyê Çêbikin';
+    if (isSorani) return 'ژوور دروست بکە';
+    return 'Create Room';
+  }
+
+  String get wpCreateDesc {
+    if (isArabic) return 'أنشئ غرفة مشاهدة خاصة وشارك الرمز مع أصدقائك للانضمام.';
+    if (isKurmanji) return 'Jûreyek taybet çêbikin û kodê bi hevalên xwe re parve bikin.';
+    if (isSorani) return 'ژوورێکی تایبەت دروست بکە و کۆدەکە لەگەڵ هاوڕێکانت بەشداری بکە.';
+    return 'Create a private watch room and share the code with your friends to join.';
+  }
+
+  String get wpRoomCreated {
+    if (isArabic) return 'تم إنشاء الغرفة!';
+    if (isKurmanji) return 'Jûr hate çêkirin!';
+    if (isSorani) return 'ژوور دروستکرا!';
+    return 'Room Created!';
+  }
+
+  String get wpCodeCopied {
+    if (isArabic) return 'تم نسخ الرمز';
+    if (isKurmanji) return 'Kod hat kopîkirin';
+    if (isSorani) return 'کۆدەکە کۆپی کرا';
+    return 'Code copied';
+  }
+
+  String get wpShareCode {
+    if (isArabic) return 'اضغط للنسخ وشارك مع أصدقائك';
+    if (isKurmanji) return 'Bikirtînin ji bo kopîkirinê û bi hevalên xwe re parve bikin';
+    if (isSorani) return 'کلیک بکە بۆ کۆپیکردن و بیبەخشە هاوڕێکانت';
+    return 'Tap to copy and share with friends';
+  }
+
+  String get wpStartWatching {
+    if (isArabic) return 'ابدأ المشاهدة';
+    if (isKurmanji) return 'Dest bi Temaşekirinê Bikin';
+    if (isSorani) return 'دەست بکە بە سەیرکردن';
+    return 'Start Watching';
+  }
+
+  String get wpNewRoom {
+    if (isArabic) return 'إنشاء غرفة جديدة';
+    if (isKurmanji) return 'Jûreyek Nû Çêbikin';
+    if (isSorani) return 'ژووری نوێ دروست بکە';
+    return 'Create a new room';
+  }
 }

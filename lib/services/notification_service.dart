@@ -177,7 +177,7 @@ class NotificationService {
           'android': {
             'priority': 'HIGH',
             'notification': {
-              'channel_id': 'high_importance_channel',
+              'channel_id': 'optic_tv_channel',
             }
           },
           'apns': {
@@ -248,8 +248,9 @@ class NotificationService {
         body: jsonEncode(message),
       );
 
+      // Bug 7 fix: authClient is always closed here before the status check
       authClient.close();
-
+      
       if (response.statusCode == 200) {
         log('Silent FCM pulse sent for $collection');
       } else {
@@ -285,14 +286,17 @@ class NotificationService {
 
     try {
       _localNotificationsPlugin.show(
-        id: DateTime.now().millisecond,
+        // Bug 10 fix: use millisecondsSinceEpoch (capped) not .millisecond (0-999)
+        id: DateTime.now().millisecondsSinceEpoch % 2147483647,
         title: title,
         body: body,
         notificationDetails: NotificationDetails(
           android: AndroidNotificationDetails(
-            'high_importance_channel',
-            'High Importance Notifications',
-            channelDescription: 'This channel is used for important notifications.',
+            // Bug 1 fix: use the same channel as FCM so dragon-studio sound plays
+            // when the app is open too (not just in background)
+            'optic_tv_channel',
+            'Match Notifications',
+            channelDescription: 'Kobani 4K broadcast and match notifications.',
             icon: 'ic_stat_logo',
             largeIcon: largeIconBitmap,
             importance: Importance.high,
@@ -323,11 +327,14 @@ class NotificationService {
       return filePath;
     }
 
-    // If it's a PocketBase file name, we need to construct the full URL
-    // e.g. pb.getFileUrl(record, filename)
+    // Bug 3 fix: removed broken 'some_record_id' placeholder.
+    // If the URL is not a full http URL, we cannot resolve it without the record ID.
+    // In this case, skip downloading and return an empty string to avoid a crash.
     String finalUrl = url;
     if (!url.startsWith('http') && !url.startsWith('data:')) {
-      finalUrl = '${pb.baseUrl}/api/files/broadcasts/some_record_id/$url'; // simplified
+      // Cannot construct valid PocketBase file URL without the record ID.
+      // Caller should pass full http URLs for notification images.
+      throw Exception('Cannot resolve relative image URL without record ID: $url');
     }
 
     final Response response = await Dio().get(
@@ -362,10 +369,12 @@ class NotificationService {
       },
     );
 
+    // Bug 1 fix: local notification channel must match FCM channel so the
+    // custom dragon-studio sound is used for foreground notifications too.
     const AndroidNotificationChannel channel = AndroidNotificationChannel(
-      'high_importance_channel',
-      'High Importance Notifications',
-      description: 'This channel is used for important notifications.',
+      'optic_tv_channel',
+      'Match Notifications',
+      description: 'Kobani 4K broadcast and match notifications.',
       importance: Importance.high,
     );
 

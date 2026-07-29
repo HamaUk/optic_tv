@@ -57,7 +57,6 @@ import androidx.media3.ui.PlayerView
 import androidx.tv.material3.*
 import coil.compose.AsyncImage
 import com.kobani4k.app.tv.data.AppPreferences
-import com.kobani4k.app.tv.data.MqttViewerService
 import com.kobani4k.app.tv.data.PocketBaseRepository
 import com.kobani4k.app.tv.data.TvChannel
 import com.kobani4k.app.tv.ui.theme.UltraTokens
@@ -142,7 +141,6 @@ fun PlayerScreen(
 ) {
     val context = LocalContext.current
     val repository = remember { PocketBaseRepository() }
-    val mqttViewerService = remember { MqttViewerService() }
 
     // ── Channel state ──
     var currentChannelName by remember { mutableStateOf(channelName) }
@@ -169,6 +167,24 @@ fun PlayerScreen(
 
     var selectedAspect  by remember { mutableStateOf("Fit") }
     var selectedDecoder by remember { mutableStateOf("Auto") }
+    var selectedSleep   by remember { mutableStateOf("Off") }
+
+    // Bug #4 fix: Sleep timer lives at top-level so it survives menu dismissals.
+    LaunchedEffect(selectedSleep) {
+        if (selectedSleep != "Off") {
+            val minutes = when (selectedSleep) {
+                "15 min" -> 15L
+                "30 min" -> 30L
+                "1 hour" -> 60L
+                "2 hours" -> 120L
+                else -> 0L
+            }
+            if (minutes > 0) {
+                delay(minutes * 60 * 1000)
+                (context as? android.app.Activity)?.finishAffinity()
+            }
+        }
+    }
 
     var channelsList by remember { mutableStateOf<List<TvChannel>>(emptyList()) }
 
@@ -193,6 +209,16 @@ fun PlayerScreen(
 
     LaunchedEffect(Unit) {
         channelsList = repository.getChannels() ?: emptyList()
+    }
+
+    // Bug #5 fix: If the stream failed before channelsList loaded (slow flash),
+    // re-attempt now that we know about backup servers.
+    LaunchedEffect(channelsList) {
+        if (streamFailed && validServers.size > 1 && activeServerIndex == 0) {
+            streamFailed = false
+            retryCount = 0
+            activeServerIndex = 1 // Try the first backup server
+        }
     }
 
     // Auto-hide zap banner after 3 s
@@ -227,8 +253,8 @@ fun PlayerScreen(
     val exoPlayer = remember(selectedDecoder) {
         val loadControl = DefaultLoadControl.Builder()
             .setBufferDurationsMs(
-                /* minBufferMs   */ 5_000,   // Start playing after 5s loaded
-                /* maxBufferMs   */ 30_000,  // 30s runway handles weak/intermittent connections
+                /* minBufferMs   */ 5_000,
+                /* maxBufferMs   */ 30_000,
                 /* bufferForPlayback */ 2_000,
                 /* bufferForPlaybackAfterRebuffer */ 5_000
             )
@@ -263,17 +289,21 @@ fun PlayerScreen(
             }
     }
 
-    // MQTT Viewer Tracking
-    DisposableEffect(currentChannelName) {
-        mqttViewerService.publishJoin(currentChannelName)
+
+
+    DisposableEffect(currentStreamUrl) {
         onDispose {
-            mqttViewerService.publishLeave(currentChannelName)
+            val ch = channelsList.firstOrNull { it.url == currentStreamUrl }
+            if (ch != null) {
+                repository.postAnalyticsEvent("channel_stop", ch.url, ch.name, context)
+            }
         }
     }
-
-    DisposableEffect(Unit) {
-        onDispose {
-            mqttViewerService.disconnect()
+    
+    LaunchedEffect(currentStreamUrl) {
+        val ch = channelsList.firstOrNull { it.url == currentStreamUrl }
+        if (ch != null) {
+            repository.postAnalyticsEvent("channel_start", ch.url, ch.name, context)
         }
     }
 
@@ -312,8 +342,8 @@ fun PlayerScreen(
                 }
             }
         }
-        
-        finalUrl = StreamResolver.resolveIfNeeded(finalUrl)
+        val userAgent = ch?.userAgent ?: "SmartIPTV"
+        finalUrl = StreamResolver.resolveIfNeeded(finalUrl, userAgent)
 
         val builder = MediaItem.Builder().setUri(finalUrl)
 
@@ -362,7 +392,6 @@ fun PlayerScreen(
             builder.setDrmConfiguration(drmConfigBuilder.build())
         }
 
-        val userAgent = ch?.userAgent ?: "SmartIPTV"
         val referer = ch?.referer
         
         val dynamicHttpFactory = DefaultHttpDataSource.Factory()
@@ -412,14 +441,16 @@ fun PlayerScreen(
                     retryCount = 0
                     streamFailed = false
                 }
-                // Live stream ended (stream server restarted) → reconnect with backoff
+                // Live stream ended (stream server restarted) → full reload with backoff
                 if (state == Media3Player.STATE_ENDED) {
                     if (retryCount < 3) {
                         retryCount++
                         scope.launch {
                             delay(2_000L * retryCount)
                             try {
-                                exoPlayer.seekToDefaultPosition()
+                                exoPlayer.stop()
+                                exoPlayer.clearMediaItems()
+                                exoPlayer.setMediaItem(exoPlayer.currentMediaItem ?: return@launch)
                                 exoPlayer.prepare()
                                 exoPlayer.play()
                             } catch (_: Exception) {}
@@ -435,13 +466,15 @@ fun PlayerScreen(
             }
             override fun onPlayerError(error: PlaybackException) {
                 isBuffering = false
-                // Network / codec error → reconnect with backoff
+                // Network / codec error → full reload with backoff
                 if (retryCount < 3) {
                     retryCount++
                     scope.launch {
                         delay(3_000L * retryCount)
                         try {
-                            exoPlayer.seekToDefaultPosition()
+                            exoPlayer.stop()
+                            exoPlayer.clearMediaItems()
+                            exoPlayer.setMediaItem(exoPlayer.currentMediaItem ?: return@launch)
                             exoPlayer.prepare()
                             exoPlayer.play()
                         } catch (_: Exception) {}
@@ -746,6 +779,8 @@ fun PlayerScreen(
                 onAspectSelected = { selectedAspect = it },
                 selectedDecoder = selectedDecoder,
                 onDecoderSelected = { selectedDecoder = it },
+                selectedSleep = selectedSleep,
+                onSleepSelected = { selectedSleep = it },
                 onDismiss  = { activeMenu = ActiveMenu.NONE }
             )
         }
@@ -1109,27 +1144,16 @@ fun OsdIconButton(
 ) {
     var isFocused by remember { mutableStateOf(false) }
 
-    // Smooth scale pop on focus — use spring so it feels physical
+    // Fast tween scale — no spring physics overhead on cheap GPUs
     val scale by animateFloatAsState(
         targetValue = if (isFocused) 1.12f else 1f,
-        animationSpec = spring(
-            dampingRatio = Spring.DampingRatioMediumBouncy,
-            stiffness    = Spring.StiffnessMediumLow
-        ),
+        animationSpec = tween(100),
         label = "osd_scale"
     )
 
-    val bgColor by animateColorAsState(
-        targetValue = if (isFocused) Color.White else Color.Transparent,
-        animationSpec = tween(180),
-        label = "osd_bg"
-    )
-
-    val iconTint by animateColorAsState(
-        targetValue = if (isFocused) Color.Black else Color.White,
-        animationSpec = tween(180),
-        label = "osd_tint"
-    )
+    // Direct color assignment — no animateColorAsState overhead
+    val bgColor = if (isFocused) Color.White else Color.Transparent
+    val iconTint = if (isFocused) Color.Black else Color.White
 
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
@@ -1270,6 +1294,8 @@ fun SubMenuPanel(
     onAspectSelected: (String) -> Unit,
     selectedDecoder: String,
     onDecoderSelected: (String) -> Unit,
+    selectedSleep: String,
+    onSleepSelected: (String) -> Unit,
     onDismiss: () -> Unit
 ) {
     val menuFocusRequester = remember { FocusRequester() }
@@ -1335,6 +1361,8 @@ fun SubMenuPanel(
                     onAspectSelected = onAspectSelected,
                     selectedDecoder = selectedDecoder,
                     onDecoderSelected = onDecoderSelected,
+                    selectedSleep = selectedSleep,
+                    onSleepSelected = onSleepSelected,
                     onDismiss      = onDismiss
                 )
             } else {
@@ -1576,26 +1604,10 @@ private fun SettingsPanel(
     onAspectSelected: (String) -> Unit,
     selectedDecoder: String,
     onDecoderSelected: (String) -> Unit,
+    selectedSleep: String,
+    onSleepSelected: (String) -> Unit,
     onDismiss: () -> Unit
 ) {
-    var selectedSleep   by remember { mutableStateOf("Off") }
-    val context = LocalContext.current
-
-    LaunchedEffect(selectedSleep) {
-        if (selectedSleep != "Off") {
-            val minutes = when (selectedSleep) {
-                "15 min" -> 15L
-                "30 min" -> 30L
-                "1 hour" -> 60L
-                "2 hours" -> 120L
-                else -> 0L
-            }
-            if (minutes > 0) {
-                kotlinx.coroutines.delay(minutes * 60 * 1000)
-                (context as? android.app.Activity)?.finishAffinity()
-            }
-        }
-    }
 
     LazyColumn(
         verticalArrangement = Arrangement.spacedBy(3.dp),
@@ -1628,7 +1640,7 @@ private fun SettingsPanel(
             SettingRadioItem(
                 title      = sleeps[i],
                 isSelected = selectedSleep == sleeps[i],
-                onClick    = { selectedSleep = sleeps[i] }
+                onClick    = { onSleepSelected(sleeps[i]) }
             )
         }
     }
@@ -1841,23 +1853,17 @@ private fun ZapDrawer(
                     items(channels.size) { index ->
                         val channel   = channels[index]
                         val isCurrent = channel.url == currentUrl
-                        val interaction = remember { MutableInteractionSource() }
-                        val focused by interaction.collectIsFocusedAsState()
+                        var focused by remember { mutableStateOf(false) }
 
+                        // Fast tween — no spring physics overhead per channel row
                         val scale by animateFloatAsState(
                             targetValue = if (focused) 1.05f else 1f,
-                            animationSpec = androidx.compose.animation.core.spring(
-                                dampingRatio = 0.65f,
-                                stiffness = androidx.compose.animation.core.Spring.StiffnessLow
-                            ),
+                            animationSpec = tween(80),
                             label = "zapScale"
                         )
 
-                        val bgColor by animateColorAsState(
-                            targetValue = if (focused) Color.White else Color.Transparent,
-                            animationSpec = tween(200)
-                        )
-                        
+                        // Direct color — no animateColorAsState per row
+                        val bgColor = if (focused) Color.White else Color.Transparent
                         val textColor = if (focused) Color.Black else Color.White
 
                         Row(
@@ -1869,6 +1875,7 @@ private fun ZapDrawer(
                                 .background(bgColor)
                                 .border(1.dp, Color.White.copy(alpha = 0.3f), RoundedCornerShape(UltraTokens.CardRadius))
                                 .then(if (isCurrent) Modifier.focusRequester(currentFocus) else Modifier)
+                                .onFocusChanged { focused = it.isFocused }
                                 .onKeyEvent { keyEvent ->
                                     if (keyEvent.nativeKeyEvent.action == android.view.KeyEvent.ACTION_DOWN &&
                                         (keyEvent.nativeKeyEvent.keyCode == android.view.KeyEvent.KEYCODE_DPAD_CENTER ||
@@ -1879,10 +1886,7 @@ private fun ZapDrawer(
                                         true
                                     } else false
                                 }
-                                .clickable(
-                                    interactionSource = interaction,
-                                    indication = null
-                                ) { onPick(channel) }
+                                .clickable { onPick(channel) }
                                 .padding(horizontal = 14.dp, vertical = 12.dp),
                             verticalAlignment = Alignment.CenterVertically
                         ) {

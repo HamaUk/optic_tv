@@ -1,6 +1,7 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:ota_update/ota_update.dart';
 
 import '../l10n/app_strings.dart';
 import '../services/update_service.dart';
@@ -24,20 +25,40 @@ class UpdatePromptDialog extends StatefulWidget {
 }
 
 class _UpdatePromptDialogState extends State<UpdatePromptDialog> {
+  OtaEvent? _currentEvent;
+  bool _isDownloading = false;
+
   Future<void> _launchUpdateUrl() async {
     // Mark this URL as handled so we never show this popup again for this URL
     await markUpdateUrlHandled(widget.updateData.apkUrl);
-    final url = Uri.parse(widget.updateData.apkUrl);
-    if (await canLaunchUrl(url)) {
-      await launchUrl(url, mode: LaunchMode.externalApplication);
+    
+    setState(() {
+      _isDownloading = true;
+    });
+
+    try {
+      OtaUpdate()
+          .execute(
+            widget.updateData.apkUrl,
+            destinationFilename: 'optic_tv_update.apk',
+            androidProviderAuthority: 'com.kobani4k.app.fileprovider',
+          )
+          .listen((OtaEvent event) {
+        if (!mounted) return;
+        setState(() => _currentEvent = event);
+      });
+    } catch (e) {
+      debugPrint('Failed to make OTA update. Details: $e');
+      // Fallback to browser
+      final url = Uri.parse(widget.updateData.apkUrl);
+      if (await canLaunchUrl(url)) {
+        await launchUrl(url, mode: LaunchMode.externalApplication);
+      }
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    final s = widget.strings;
-    final d = widget.updateData;
-
     return PopScope(
       canPop: false, // Prevents closing the dialog with the back button
       child: Dialog(
@@ -99,34 +120,68 @@ class _UpdatePromptDialogState extends State<UpdatePromptDialog> {
                     ),
                   ),
                   const SizedBox(height: 24),
-                  
-                  // Action Button
-                  SizedBox(
-                    width: double.infinity,
-                    height: 54,
-                    child: ElevatedButton.icon(
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Theme.of(context).primaryColor,
-                        foregroundColor: Colors.black,
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                        elevation: 8,
-                        shadowColor: Theme.of(context).primaryColor.withValues(alpha: 0.4),
-                      ),
-                      onPressed: _launchUpdateUrl,
-                      icon: const Icon(Icons.system_update_alt_rounded, size: 24),
-                      label: const Text(
-                        "Let's update it",
-                        style: TextStyle(fontWeight: FontWeight.w900, letterSpacing: 1.0, fontSize: 16),
+                  if (_isDownloading) ...[
+                    _buildDownloadProgress(),
+                  ] else ...[
+                    SizedBox(
+                      width: double.infinity,
+                      child: FilledButton(
+                        onPressed: _launchUpdateUrl,
+                        style: FilledButton.styleFrom(
+                          backgroundColor: Theme.of(context).primaryColor,
+                          foregroundColor: Colors.black,
+                          padding: const EdgeInsets.symmetric(vertical: 18),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                        ),
+                        child: Text("LET'S UPDATE IT", style: const TextStyle(fontWeight: FontWeight.w900, letterSpacing: 1)),
                       ),
                     ),
-                  ),
+                  ],
                 ],
               ),
-
             ),
           ),
         ),
       ),
+    );
+  }
+
+  Widget _buildDownloadProgress() {
+    final status = _currentEvent?.status ?? OtaStatus.DOWNLOADING;
+    final value = _currentEvent?.value ?? "0";
+    
+    String label = "Downloading...";
+    if (status == OtaStatus.DOWNLOADING) label = "Downloading Update... $value%";
+    if (status == OtaStatus.INSTALLING) label = "Installing... Please wait.";
+    if (status == OtaStatus.PERMISSION_NOT_GRANTED_ERROR) label = "Storage Permission Required";
+    if (status == OtaStatus.INTERNAL_ERROR) label = "Update Failed. Please try again later.";
+    
+    final double progress = double.tryParse(value) != null ? double.parse(value) / 100.0 : 0.0;
+
+    return Column(
+      children: [
+        Text(
+          label,
+          style: TextStyle(color: Theme.of(context).primaryColor, fontWeight: FontWeight.bold),
+        ),
+        const SizedBox(height: 16),
+        if (status == OtaStatus.DOWNLOADING)
+          ClipRRect(
+            borderRadius: BorderRadius.circular(8),
+            child: LinearProgressIndicator(
+              value: progress,
+              backgroundColor: Colors.white.withValues(alpha: 0.1),
+              valueColor: AlwaysStoppedAnimation<Color>(Theme.of(context).primaryColor),
+              minHeight: 8,
+            ),
+          )
+        else if (status != OtaStatus.INSTALLING)
+          FilledButton(
+            onPressed: () => Navigator.of(context).pop(),
+            style: FilledButton.styleFrom(backgroundColor: Colors.redAccent),
+            child: const Text("Close"),
+          )
+      ],
     );
   }
 }

@@ -50,9 +50,9 @@ final updateManagerProvider = StreamProvider<AppUpdateData>((ref) {
     debugPrint('[UpdateService] Raw PocketBase value: $val');
     if (val is Map) {
       // PocketBase toJson() returns full record with id/collectionId/etc.
-      // The fields 'active' and 'url' are stored at the top level.
-      final active = val['active'] == true;
-      final url = (val['url'] ?? '').toString().trim();
+      // The fields 'isActive' and 'apkUrl' are stored at the top level.
+      final active = val['isActive'] == true;
+      final url = (val['apkUrl'] ?? '').toString().trim();
       debugPrint('[UpdateService] active=$active url=$url');
       
       if (active && url.isNotEmpty) {
