@@ -281,16 +281,13 @@ fun DashboardScreen(
                         }
                     }
                 } else if (activeNav == "nav_movies") {
-                    // ═══ MOVIES GRID LAYOUT ═══
+                    // ═══ KURDFILM MOVIES LAYOUT (API + Ad-Blocking) ═══
                     Box(
                         modifier = Modifier
                             .fillMaxSize()
                             .padding(start = 24.dp)
                     ) {
-                        MoviesGridScreen(
-                            channels = activeChannels,
-                            onMovieClick = onChannelSelected
-                        )
+                        KurdfilmMoviesScreen()
                     }
                 } else {
                     // ═══ MAIN 2-PANE LAYOUT (Categories + Channels) ═══
