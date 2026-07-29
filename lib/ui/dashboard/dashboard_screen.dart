@@ -38,6 +38,7 @@ import '../player/player_screen.dart';
 import '../player/movie_player_page.dart';
 import '../settings/settings_screen.dart';
 import 'movie_details_screen.dart';
+import 'kurdfilm_movies_tab.dart';
 import '../../services/update_service.dart';
 import '../../widgets/update_prompt_dialog.dart';
 import '../../services/analytics_service.dart';
@@ -626,7 +627,10 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
                 s,
                 16.0,
                 false,
-                filtered.isEmpty
+                // ── KurdFilm Movies tab ─────────────────────────────────
+                _navIndex == 1
+                    ? const KurdfilmMoviesTab()
+                    : filtered.isEmpty
                         ? _buildEmptyState(s)
                         : _buildScrollableContent(
                             context,
