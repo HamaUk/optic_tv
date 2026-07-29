@@ -405,7 +405,7 @@ fun KurdfilmDetailScreen(
                         Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                             servers.forEachIndexed { index, server ->
                                 var btnFocused by remember { mutableStateOf(false) }
-                                val btnScale by animateFloatAsState(if (btnFocused) 1.06f else 1f, tween(80), "btn_scale")
+                                val btnScale by animateFloatAsState(if (btnFocused) 1.06f else 1f, tween(80), label = "btn_scale")
                                 Box(
                                     modifier = Modifier
                                         .scale(btnScale)
