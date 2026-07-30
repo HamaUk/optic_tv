@@ -42,7 +42,7 @@ class KurdfilmApiService {
     suspend fun getLatestMovies(page: Int = 1): List<KurdfilmMovie> = withContext(Dispatchers.IO) {
         try {
             val request = Request.Builder()
-                .url("$baseUrl/titles?kind=movie&sort=newest&per_page=21&page=$page")
+                .url("$baseUrl/titles?kind=movie&sort=newest&per_page=100&page=$page")
                 .build()
 
             val response = client.newCall(request).execute()

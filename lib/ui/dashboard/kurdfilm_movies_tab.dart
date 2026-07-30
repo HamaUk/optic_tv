@@ -579,7 +579,17 @@ class _AdBlockingPlayerScreenState extends State<_AdBlockingPlayerScreen> {
             _injectAdBlocker();
           },
           onNavigationRequest: (request) {
-            // Block pop-up / redirect navigations to ad domains
+            final targetUri = Uri.tryParse(request.url);
+            final initialUri = Uri.tryParse(widget.url);
+            
+            // Block all main-frame navigations to 3rd party sites (these are usually redirect ads)
+            if (targetUri != null && initialUri != null && request.isMainFrame) {
+              if (targetUri.host != initialUri.host && !targetUri.host.endsWith(initialUri.host.replaceAll('www.', ''))) {
+                return NavigationDecision.prevent;
+              }
+            }
+
+            // Block known pop-up / redirect navigations to ad domains
             final url = request.url.toLowerCase();
             final adDomains = [
               'doubleclick.net', 'googlesyndication.com', 'adnxs.com',
@@ -589,6 +599,7 @@ class _AdBlockingPlayerScreenState extends State<_AdBlockingPlayerScreen> {
             ];
             final isAd = adDomains.any((d) => url.contains(d));
             if (isAd) return NavigationDecision.prevent;
+            
             return NavigationDecision.navigate;
           },
         ),
@@ -631,18 +642,28 @@ class _AdBlockingPlayerScreenState extends State<_AdBlockingPlayerScreen> {
         window.confirm = function() { return true; };
         window.prompt = function() { return ''; };
 
-        // Block _blank link taps
+        // Block _blank link taps aggressively
         document.addEventListener('click', function(e) {
           var t = e.target;
           while (t) {
-            if (t.tagName === 'A' && (t.target === '_blank' || t.getAttribute('rel') === 'noopener')) {
-              e.preventDefault();
-              e.stopImmediatePropagation();
-              return false;
+            if (t.tagName === 'A') {
+               // If it tries to open in a new tab, or goes to a different domain, kill the click!
+               if (t.target === '_blank' || t.getAttribute('rel') === 'noopener' || (t.host && t.host !== window.location.host)) {
+                  e.preventDefault();
+                  e.stopImmediatePropagation();
+                  return false;
+               }
             }
             t = t.parentElement;
           }
         }, true);
+        
+        // Keep reapplying overrides just in case player scripts try to restore them
+        setInterval(function() {
+            window.open = function() { return null; };
+            var badAds = document.querySelectorAll('.ad, .ads, [id*="popup"], [class*="popup"], iframe[src*="ads"]');
+            badAds.forEach(function(el) { el.remove(); });
+        }, 1000);
 
         // Override location hijacking attempts
         var _origAssign = window.location.assign;

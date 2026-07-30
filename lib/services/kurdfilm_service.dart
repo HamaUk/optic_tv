@@ -125,7 +125,7 @@ class KurdfilmService {
     try {
       final response = await _dio.get<Map<String, dynamic>>(
         '$_baseUrl/titles',
-        queryParameters: {'kind': 'movie', 'sort': 'newest', 'per_page': 21, 'page': page},
+        queryParameters: {'kind': 'movie', 'sort': 'newest', 'per_page': 100, 'page': page},
       );
       if (response.statusCode != 200 || response.data == null) return [];
       final data = response.data!['data'] as List<dynamic>? ?? [];

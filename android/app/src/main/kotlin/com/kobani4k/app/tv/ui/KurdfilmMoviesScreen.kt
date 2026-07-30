@@ -484,6 +484,26 @@ fun AdBlockingPlayerDialog(url: String, onDismiss: () -> Unit) {
                         webChromeClient = WebChromeClient()
 
                         webViewClient = object : WebViewClient() {
+                            override fun shouldOverrideUrlLoading(view: WebView?, request: android.webkit.WebResourceRequest?): Boolean {
+                                val targetUrl = request?.url?.toString() ?: return false
+                                val targetUri = android.net.Uri.parse(targetUrl)
+                                val initialUri = android.net.Uri.parse(url)
+                                
+                                // Block if navigating to completely different host
+                                if (request.isForMainFrame) {
+                                    val tHost = targetUri.host ?: ""
+                                    val iHost = initialUri.host?.replace("www.", "") ?: ""
+                                    if (tHost != initialUri.host && !tHost.endsWith(iHost)) {
+                                        return true // block it
+                                    }
+                                }
+                                
+                                val adDomains = listOf("doubleclick.net", "googlesyndication.com", "adnxs.com", "popads.net", "popcash.net", "propellerads.com", "clickadu.com", "trafficjunky.net", "juicyads.com", "exoclick.com", "adskeeper.co.uk", "valueclick.com", "hilltopads.net")
+                                if (adDomains.any { targetUrl.contains(it) }) return true
+                                
+                                return false
+                            }
+
                             override fun onPageFinished(view: WebView?, loadedUrl: String?) {
                                 // Inject CSS to hide common ad elements
                                 val cssHide = """
@@ -518,14 +538,22 @@ fun AdBlockingPlayerDialog(url: String, onDismiss: () -> Unit) {
                                         document.addEventListener('click', function(e) {
                                             var target = e.target;
                                             while (target) {
-                                                if (target.tagName === 'A' && target.target === '_blank') {
-                                                    e.preventDefault();
-                                                    e.stopPropagation();
-                                                    return false;
+                                                if (target.tagName === 'A') {
+                                                    if (target.target === '_blank' || target.getAttribute('rel') === 'noopener' || (target.host && target.host !== window.location.host)) {
+                                                        e.preventDefault();
+                                                        e.stopPropagation();
+                                                        return false;
+                                                    }
                                                 }
                                                 target = target.parentElement;
                                             }
                                         }, true);
+                                        
+                                        setInterval(function() {
+                                            window.open = function() { return null; };
+                                            var badAds = document.querySelectorAll('.ad, .ads, [id*="popup"], [class*="popup"], iframe[src*="ads"]');
+                                            badAds.forEach(function(el) { el.remove(); });
+                                        }, 1000);
                                     })();
                                 """.trimIndent()
                                 view?.evaluateJavascript(cssHide, null)
